@@ -1,0 +1,21 @@
+{
+  "task": "put_in",
+  "triplet": "(put in, bowl, plate)",
+  "sequence": "20231024_253",
+  "source_repository": "wallacexuhanxiao/diversityverifier",
+  "source_branch": "feat/egoengine-xhand-faithful",
+  "source_commit_reviewed": "098a28a5c9001eb6600897447132cea550e715fd",
+  "anchor_frames": {
+    "grasp_start": null,
+    "grasp_end": null,
+    "put_in_start": null,
+    "put_in_end": null
+  },
+  "robot_embodiment": "MUST_MATCH_ACTUAL_PHYSX_ROBOT",
+  "hand_fixed_during_transport": true,
+  "attached_object_collision_required": true,
+  "allow_intermediate_physics_reset": false,
+  "allow_unverified_reference_motion_as_output": false,
+  "number_of_paths": 1,
+  "notes": "Inspect actual sequence and physically verify compatible anchors before filling the unknown frame indices."
+}

@@ -1,0 +1,10 @@
+# V0 execution milestones
+
+1. **PhysX robot consistency.** The source EgoEngine reproduction reports free-floating hand roots. DexImit plans UR5e joints. Choose the actual mounted arm/hand and construct matching Isaac scene and cuRobo YAML. Verify FK, joint names/order/limits, frames and collision geometry numerically. Do not copy DexImit's URDF if the Isaac robot differs.
+2. **Single Put-In scene.** Source `(put in, bowl, plate)/20231024_253`. Reuse vendor EgoEngine retarget/refine and existing actual telemetry; manually inspect exact grasp and place interaction boundaries. No VLM in V0.
+3. **Local anchor synthesis.** Replay and, if needed, locally refine each interaction; export actual physical entry/exit boundaries and source-provenance-tagged joint command arrays using `Anchor.save()`. Require *same robot embodiment*, stable grasp transform and compatible boundary posture. Adjust/re-synthesise anchors if these invariants fail.
+4. **Attached-object cuRobo planner.** Match cuRobo YAML to the Isaac robot, map named arm joints and test collision-world parity; include grasped bowl collision geometry. Plan one trajectory from *measured grasp exit* to the verified place entry. Start and canonical end joints both checked.
+5. **Local transport rollout.** Run cuRobo controls on a saved *actually reachable* PhysX grasp boundary; check actual bowl and hand states, contacts, collision and controller tracking. Local test cannot count as final output.
+6. **Single complete rollout.** Reset only at task start. Run Grasp → cuRobo transport → physically executed short correction (only if needed) → Put-In. Require task-specific geometric/contact predicate, complete actual-state trace and video. Reject any reference animation, teleport, discontinuity, hidden reset or missing evidence.
+
+**Explicitly excluded:** diverse path exclusions, VLM discovery, semantic verifier, cut, multi-interval combinatorics, and policy learning. After the single path succeeds, serial diverse planning can wrap the same Planner protocol.
