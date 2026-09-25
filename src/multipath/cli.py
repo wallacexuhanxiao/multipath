@@ -1,4 +1,4 @@
-"""Run V0 against a *real, externally supplied* Isaac/PhysX adapter."""
+"""Run V0 using a real, separately installed Isaac/PhysX adapter."""
 from __future__ import annotations
 import argparse
 import importlib
@@ -23,14 +23,15 @@ def main() -> int:
     p.add_argument("--robot-yaml", required=True)
     p.add_argument("--world-yaml", required=True)
     p.add_argument("--attached-mesh", required=True)
-    p.add_argument("--attached-pose-wxyz", nargs=7, type=float, required=True)
+    p.add_argument("--attachment-link", default="attached_object")
     p.add_argument("--output-dir", type=Path, required=True)
     args = p.parse_args()
     grasp, place = Anchor.load(args.grasp_anchor), Anchor.load(args.place_anchor)
     world = load_factory(args.world)()
-    planner = CuRoboPlanner(args.robot_yaml, args.world_yaml,
-                            held_object_mesh=args.attached_mesh,
-                            held_object_pose=args.attached_pose_wxyz)
+    planner = CuRoboPlanner(
+        args.robot_yaml, args.world_yaml,
+        held_object_mesh=args.attached_mesh,
+        attachment_link=args.attachment_link)
     result = run_single(world, planner, grasp, place, args.output_dir)
     print(f"success={result.success} stage={result.stage} trace={args.output_dir}")
     return 0 if result.success else 1

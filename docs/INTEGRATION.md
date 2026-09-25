@@ -1,49 +1,54 @@
-# Integration contract and current implementation boundary
+# V0 integration contract
 
-The code here implements the V0 *control flow, state gates and a cuRobo bridge*. It does not claim a GPU PhysX rollout was run. Physics access is deliberately an injected `PhysicsWorld` adapter; a mock cannot provide the final result.
+This repo now implements `MotionGen.plan_single_js` with canonical joint goals
+and `attach_external_objects_to_robot()` using the real observed object pose.
+The configured cuRobo robot **must** declare the dedicated `attachment_link`
+with sufficient preallocated collision spheres. The observed bowl mesh and
+world scene must use matching coordinate frames and scale. See:
+https://curobo.org/_api/curobo.wrap.reacher.motion_gen.html
 
-## Existing reference code
+The remaining required step is a *real* Isaac Sim embodiment and runtime adapter.
+The upstream EgoEngine run exposes floating hand roots and finger joint
+positions, NOT an already mounted UR5e arm. Copying DexImit's UR5e configuration
+without mounting the same arm/hand in Isaac gives invalid joint observations.
+Do not fabricate arm DOFs from floating wrist poses.
 
-- `diversityverifier/scripts/run_egoengine_auto_pipeline.py` runs the current full reference pipeline (retarget → Replay/MPC/RL as needed); it does not already export independent, compatible local grasp/place anchors.
-- `diversityverifier/scripts/export_execution_trace.py` exports actual hand/tool/target poses and velocities. It does **not** contain a fabricated mounted UR5e arm state or the full contact-state snapshot needed here.
-- `diversityverifier/src/diversityverifier/isaac_execution.py` implements the existing `ContinuousExecutor`. Wire V0 against this actual environment after the arm/hand embodiment and measured state schema are verified. The exact action API and frame mapping must be checked against the installed vendored EgoEngine SHA.
-- DexImit uses `setup_curobo_utils()`, `MotionGen.plan_single()` and `get_interpolated_plan()` in `pipeline/gen_traj.py`, but drives SAPIEN instead of Isaac.
+Source implementations:
 
-## Required `module:factory` adapter
+- EgoEngine: https://github.com/wallacexuhanxiao/diversityverifier/tree/feat/egoengine-xhand-faithful
+- `scripts/run_egoengine_auto_pipeline.py`: reference retarget/refine, not automatically standalone compatible Anchors.
+- `scripts/export_execution_trace.py`: actual hand/tool/target poses, lacking mounted arm joint telemetry.
+- `src/diversityverifier/isaac_execution.py`: existing real `ContinuousExecutor`; extend only after the mounted robot, joint commands and collider mapping are audited.
+- DexImit `third_party/any2dex/any2dex/util/curobo_util.py` and `pipeline/gen_traj.py`: cuRobo/SAPIEN planning pattern.
 
-Implement `PhysicsWorld` from `multipath.orchestrator` against real Isaac:
-`reset_initial()` (only full-run reset), `observe()` (return measured Boundary),
-`execute_joint_commands()` (synchronous PhysX steps and actual joint targets),
-`correct_to()` (real commanded short corrective motion; return False if unsupported),
-`check_grasp()`, `check_placement()`, `no_hard_physics_failure()`,
-`save_actual_trace()` (persist *all actual frames*, collision/contact channels and video).
+The real `PhysicsWorld` adapter must implement all methods in
+`multipath.orchestrator.PhysicsWorld`, with exactly **one** call to
+`reset_initial` at full-run start. Afterward, `observe()` must return actual
+PhysX states, `execute_joint_commands()` must simulate each timestep and
+record controls/states/contacts, `correct_to()` may execute *real* servo
+motions but never write states, `check_grasp()` and `check_placement()`
+must inspect contacts and task geometry, and `save_actual_trace()` must
+persist full actual-state data and video. Missing evidence is failure.
 
-The caller passes the real adapter factory to `multipath --world yourpackage.module:factory`. No fake `world` implementation is shipped as a real runtime.
+`Anchor.save()` / `Anchor.load()` use `anchor.json` plus `commands.npz`.
+Do not label independently synthesized Anchor slices `verified` unless
+their respective measured local PhysX rollouts passed. Grasp exit and
+Put-In entry must be jointly compatible under `static_anchor_compatibility()`.
 
-### Boundary requirements
-
-Every `Boundary` is measured and tagged by one scene ID; arm and hand have explicit joint names and q/dq; EE, held bowl, and grasp offsets use `xyz+xyzw`; velocities are measured (not assumed zero); `grasped` derives from independent contacts; anchor command arrays have columns in exactly the named arm/hand order. For the full rollout, all state comes from *actual simulator observations*. Never substitute the desired/canonical boundary for measured `observe()`.
-
-### cuRobo object attachment — mandatory blocker
-
-The current `CuRoboPlanner` intentionally refuses to plan until its attached-object hook has been verified with the exact locally installed cuRobo API. In the selected version, register the held bowl in the cuRobo collision world, invoke the supported attachment API and confirm the attachment before enabling `plan()`. The placeholder does not silently skip carried-object collision. Confirm transforms for the robot link, bowl geometry and planner vs simulator world coordinates. Test collisions in both systems.
-
-Also confirm the real robot YAML and world YAML. DexImit UR5e/LEAP yaml cannot simply be used to drive existing floating Inspire/XHand EgoEngine PhysX hands.
-
-### Example
+Example once the embodiment and adapters exist:
 
 ```bash
 pip install -e '.[dev,planning]'
-# install matching Isaac Sim and cuRobo separately
 multipath \
  --world my_isaac_adapter:create_world \
- --grasp-anchor /path/to/verified/grasp \
- --place-anchor /path/to/verified/put_in \
- --robot-yaml /path/to/verified_robot.yml \
- --world-yaml /path/to/verified_scene.yml \
+ --grasp-anchor /path/to/measured/grasp \
+ --place-anchor /path/to/measured/put_in \
+ --robot-yaml /path/to/matched_robot.yml \
+ --world-yaml /path/to/matched_scene.yml \
  --attached-mesh /path/to/bowl.obj \
- --attached-pose-wxyz 0 0 0 1 0 0 0 \
+ --attachment-link attached_object \
  --output-dir outputs/put_in_v0
 ```
 
-If a critical field (real arm joints, verified contact, attachment, actual trace, task predicate) is missing, *fail*, do not fill it with a placeholder and claim physical success.
+Offline CI mocks test the orchestrator, not Isaac, contact validity,
+cuRobo GPU kernels, or any particular physically verified sequence.
