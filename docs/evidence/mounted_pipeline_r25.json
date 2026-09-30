@@ -1,0 +1,417 @@
+{
+  "status": "continuous_execution_complete",
+  "task_success": true,
+  "full_pipeline_success": true,
+  "grasp_only_diagnostic": false,
+  "windows": [
+    {
+      "controller": "CUROBO",
+      "start": 0,
+      "end": 43,
+      "xhand_and_payload_sphere_count": 148,
+      "start_self_collision_pairs": [],
+      "nominal_bc_joint_goal_valid": false,
+      "nominal_bc_joint_goal_status": "MotionGenStatus.INVALID_START_STATE_WORLD_COLLISION",
+      "nominal_bc_goal_world_collisions": [
+        [
+          "tool",
+          "panda_hand",
+          0.023008091375231743
+        ],
+        [
+          "tool",
+          "panda_hand",
+          0.023008091375231743
+        ],
+        [
+          "tool",
+          "panda_hand",
+          0.021141538020826287
+        ],
+        [
+          "tool",
+          "panda_hand",
+          0.020694535225629807
+        ],
+        [
+          "tool",
+          "panda_hand",
+          0.020027639344334602
+        ],
+        [
+          "tool",
+          "panda_hand",
+          0.017950430452698743
+        ],
+        [
+          "tool",
+          "panda_hand",
+          0.016938815219574396
+        ],
+        [
+          "table",
+          "panda_hand",
+          0.013600410932157674
+        ],
+        [
+          "tool",
+          "panda_hand",
+          0.013586925267400692
+        ],
+        [
+          "table",
+          "panda_hand",
+          0.013090793081973234
+        ]
+      ],
+      "precontact_candidates": [
+        [
+          0,
+          "MotionGenStatus.INVALID_START_STATE_WORLD_COLLISION"
+        ],
+        [
+          0,
+          "MotionGenStatus.INVALID_START_STATE_WORLD_COLLISION"
+        ],
+        [
+          0,
+          "MotionGenStatus.INVALID_START_STATE_WORLD_COLLISION"
+        ],
+        [
+          0,
+          "MotionGenStatus.INVALID_START_STATE_WORLD_COLLISION"
+        ],
+        [
+          0.06,
+          "None"
+        ]
+      ],
+      "ik_goal_diagnostics": [
+        {
+          "height": 0,
+          "requested_xyz": [
+            0.26763063073158266,
+            -0.2542078197002411,
+            0.4894872307777405
+          ],
+          "returned_fk_xyz": [
+            0.26763108372688293,
+            -0.2542071044445038,
+            0.4894876480102539
+          ],
+          "error_m": 9.438635929524154e-07,
+          "reported_error_m": 8.978320238384185e-07
+        },
+        {
+          "height": 0,
+          "requested_xyz": [
+            0.2876306307315826,
+            -0.29420781970024107,
+            0.4894872307777405
+          ],
+          "returned_fk_xyz": [
+            0.2876335382461548,
+            -0.2942099869251251,
+            0.489491730928421
+          ],
+          "error_m": 5.779434300412843e-06,
+          "reported_error_m": 5.777152182417922e-06
+        },
+        {
+          "height": 0,
+          "requested_xyz": [
+            0.30763063073158264,
+            -0.3342078197002411,
+            0.4894872307777405
+          ],
+          "returned_fk_xyz": [
+            0.3076314628124237,
+            -0.3342076241970062,
+            0.4894867241382599
+          ],
+          "error_m": 9.936113949622495e-07,
+          "reported_error_m": 1.008750246001e-06
+        },
+        {
+          "height": 0,
+          "requested_xyz": [
+            0.36763063073158264,
+            -0.35420781970024107,
+            0.4894872307777405
+          ],
+          "returned_fk_xyz": [
+            0.3676309585571289,
+            -0.35420775413513184,
+            0.4894874095916748
+          ],
+          "error_m": 3.791342709977511e-07,
+          "reported_error_m": 3.5814520060739596e-07
+        },
+        {
+          "height": 0.06,
+          "requested_xyz": [
+            0.36763063073158264,
+            -0.2542078197002411,
+            0.5494872307777405
+          ],
+          "returned_fk_xyz": [
+            0.36763089895248413,
+            -0.25420817732810974,
+            0.5494853854179382
+          ],
+          "error_m": 1.8987345639056754e-06,
+          "reported_error_m": 1.9110905213892693e-06
+        }
+      ],
+      "precontact_offset_xyz": [
+        0,
+        0,
+        0.06
+      ],
+      "plan_status": "None",
+      "execution_time_scale": 3.0,
+      "duration_s": 3.25,
+      "final_arm_error_rad": 0.0028586387634277344
+    },
+    {
+      "controller": "BC",
+      "start": 43,
+      "end": 65,
+      "entry_object_displacement_m": 0.0016924403247743705,
+      "grasp_closure_rad": 0.1,
+      "repaired_grasp_min_lift_m": 0.08631651639938354,
+      "repaired_grasp_hold_drift_m": 3.683867180370726e-05
+    },
+    {
+      "controller": "CUROBO",
+      "start": 65,
+      "end": 86,
+      "physical_terminal_position_correction_xyz": [
+        -0.000317990779876709,
+        -0.08146225288510323,
+        0.0
+      ],
+      "place_chunk_translation_xyz": [
+        0.018099114383804293,
+        0.13793149855272757,
+        -0.004952870791588626
+      ],
+      "measured_wrist_to_object_xyz": [
+        0.060968527363586114,
+        0.137577470669688,
+        -0.10286472665730932
+      ],
+      "xhand_and_payload_sphere_count": 328,
+      "start_self_collision_pairs": [],
+      "nominal_bc_joint_goal_valid": false,
+      "nominal_bc_joint_goal_status": "MotionGenStatus.INVALID_START_STATE_WORLD_COLLISION",
+      "nominal_bc_goal_world_collisions": [
+        [
+          "target",
+          "panda_hand",
+          0.024089956656098366
+        ],
+        [
+          "target",
+          "panda_hand",
+          0.024089956656098366
+        ],
+        [
+          "target",
+          "panda_hand",
+          0.024089956656098366
+        ],
+        [
+          "target",
+          "panda_hand",
+          0.024089956656098366
+        ],
+        [
+          "target",
+          "panda_hand",
+          0.024089956656098366
+        ],
+        [
+          "target",
+          "panda_hand",
+          0.024089956656098366
+        ],
+        [
+          "target",
+          "panda_hand",
+          0.024089956656098366
+        ],
+        [
+          "target",
+          "panda_hand",
+          0.024089956656098366
+        ],
+        [
+          "target",
+          "panda_hand",
+          0.02351691072194155
+        ],
+        [
+          "target",
+          "panda_hand",
+          0.021983400972098797
+        ]
+      ],
+      "precontact_candidates": [
+        [
+          0.06,
+          "None"
+        ]
+      ],
+      "ik_goal_diagnostics": [
+        {
+          "height": 0.06,
+          "requested_xyz": [
+            0.41460502573405456,
+            0.07486989211575973,
+            0.6076913915222542
+          ],
+          "returned_fk_xyz": [
+            0.41460591554641724,
+            0.07486947625875473,
+            0.6076919436454773
+          ],
+          "error_m": 1.1267400512003755e-06,
+          "reported_error_m": 1.1693790611388977e-06
+        }
+      ],
+      "precontact_offset_xyz": [
+        0,
+        0,
+        0.06
+      ],
+      "plan_status": "None",
+      "execution_time_scale": 3.0,
+      "duration_s": 1.725,
+      "transport_max_object_relative_drift_m": 0.020604232064531262,
+      "final_arm_error_rad": 0.0172652006149292
+    },
+    {
+      "controller": "BC",
+      "start": 86,
+      "end": 122,
+      "bc_ik_max_position_error_m": 3.84619917842207e-05,
+      "contact_approach_duration_s": 1.0,
+      "time_scale": 12.75,
+      "duration_s": 14.875,
+      "source_duration_s": 1.1666666666666667,
+      "arm_tracking_max_rad": 0.17796457522459888,
+      "object_relative_correction_max_m": 0.0,
+      "release_retreat_duration_s": 2.0
+    },
+    {
+      "controller": "CUROBO",
+      "start": 122,
+      "end": 144,
+      "xhand_and_payload_sphere_count": 148,
+      "start_self_collision_pairs": [],
+      "nominal_bc_joint_goal_valid": true,
+      "nominal_bc_joint_goal_status": "None",
+      "nominal_bc_goal_world_collisions": [],
+      "plan_status": "None",
+      "execution_time_scale": 3.0,
+      "duration_s": 2.875,
+      "final_arm_error_rad": 0.005259007215499878
+    }
+  ],
+  "state_resets_between_windows": 0,
+  "arm_gains": [
+    [
+      [
+        22918.3125,
+        22918.3125,
+        22918.3125,
+        22918.3125,
+        22918.3125,
+        22918.3125,
+        22918.3125,
+        400.0,
+        0.0,
+        5.0,
+        5.0,
+        5.0,
+        5.0,
+        5.0,
+        5.0,
+        5.0,
+        5.0,
+        5.0,
+        5.0,
+        5.0,
+        5.0
+      ]
+    ],
+    [
+      [
+        4583.66259765625,
+        4583.66259765625,
+        4583.66259765625,
+        4583.66259765625,
+        4583.66259765625,
+        4583.66259765625,
+        4583.66259765625,
+        80.0,
+        0.0,
+        0.5,
+        0.5,
+        0.5,
+        0.5,
+        0.5,
+        0.5,
+        0.5,
+        0.5,
+        0.5,
+        0.5,
+        0.5,
+        0.5
+      ]
+    ]
+  ],
+  "physics_friction_override": 0.0,
+  "repaired_grasp_source": "/scratch/e0985859/multipath_v0_fc2da7b/assets/putin_grasp_repaired.npz",
+  "sequential_ik_fallback_frames": [],
+  "source_sha256": "e830b0dc8a3b5a2d7ad5ef3c9ff4df04632c35b598268ad3a23d6f5712fa7694",
+  "pbs_job_id": "639526.hopper-m-02",
+  "reference": "/scratch/e0985859/multipath_v0_fc2da7b/assets/putin_xhand_reference.npz",
+  "schedule": "/scratch/e0985859/multipath_v0_fc2da7b/configs/put_in_bc_curobo_contact_checked.json",
+  "table_z": 0.35427065756306475,
+  "mount_xyzw": [
+    -0.9723878971538753,
+    0.0708407020119467,
+    -0.04154451878334948,
+    -0.21844318567119259
+  ],
+  "scene_translation_xyz": [
+    1.1449892711639404,
+    -0.04615361273288726,
+    -0.32705443143844604
+  ],
+  "bc_finger_source": "measured finger trajectory plus scaled original control residual",
+  "finger_command_blend": 0.25,
+  "start_at_bc_diagnostic": false,
+  "bc_wrist_source": "qpos_right_actual",
+  "left_hand_present": false,
+  "relaxed_initial_and_terminal": "first_BC_wrist_elevated_20cm",
+  "physics": "PhysX CPU",
+  "xhand_force_drive": [
+    5,
+    0.5,
+    3
+  ],
+  "physical_outcome": {
+    "max_object_lift_m": 0.11776094675064086,
+    "final_target_footprint_score": 0.9026849910531812,
+    "final_support_gap_m": 0.0029964119611268526,
+    "final_one_second_object_drift_m": 5.136039239053156e-07,
+    "placement_geometry_and_stability_pass": true
+  },
+  "frames_recorded": 1593,
+  "duration_s": 53.075,
+  "final_object_target_xy_distance_m": 0.04704106226563454,
+  "task_success_note": "Tool mesh inside target footprint, near target support height, and stable for final second; inspect actual video as well."
+}

@@ -1,26 +1,38 @@
 # multipath — Interaction-Anchored Trajectory Generation
 
-**V0:** one continuous physics-verified Put-In trajectory from a single
-egocentric video. Keep locally validated grasp and put-in anchors, replace the
-noninteraction transport with cuRobo, and run from the initial state to task
-completion without intermediate resets.
+**Target pipeline:** VLM selects the intervals that need behavior cloning
+(BC). BC controls the interaction windows; cuRobo plans the intervening
+free-motion windows. If no robot demonstration exists for a BC interval,
+EgoEngine-style chunking, retargeting, replay, MPC, and local RL synthesize
+one first. Then each candidate runs from the initial state to task completion
+in continuous physics, without intermediate resets.
 
 First target: `(put in, bowl, plate) / 20231024_253`.
 
+**Verified 2026-09-30:** the mounted Franka + XHand Put-In runner completed
+all five BC/cuRobo windows from the ready pose in continuous PhysX, with
+zero handoff resets and a released, stable bowl inside the target footprint
+(`mounted_pipeline_r25` and an identical-configuration repeat, `r26`).
+This uses repaired, scene-specific BC commands;
+automatic missing-BC synthesis and diverse accepted paths remain unverified.
+See [physical results and run instructions](docs/MOUNTED_PIPELINE.md).
+
 ```
 Single video + reconstructed digital twin
- -> manual grasp / place segmentation
- -> local EgoEngine replay + MPC if needed
- -> verified, compatible measured anchor boundaries
- -> cuRobo attached-object joint-space transport
- -> measured state check, physical correction if necessary
- -> uninterrupted PhysX Grasp → Transport → Put-In
- -> physical task predicate + actual-state trace + video
+ -> VLM BC/relaxed schedule, checked against contact and task semantics
+ -> missing BC demonstrations: EgoEngine chunks -> retarget -> replay/MPC/local RL
+ -> BC around key interactions; cuRobo in every relaxed interval
+ -> measured boundary compatibility and physical correction if necessary
+ -> uninterrupted PhysX execution and functional task check
+ -> serial cuRobo path diversity, accepting only full successful rollouts
 ```
 
 ## Implementation
 
 `src/multipath/schema.py`: anchored boundary schemas and safe artifact I/O.
+
+`src/multipath/schedule.py`: checks the VLM BC/relaxed time table and lists
+the BC demonstrations and relaxed cuRobo windows that remain to be executed.
 
 `src/multipath/transitions.py`: canonical boundary and fixed-grasp
 compatibility checks.
@@ -30,27 +42,45 @@ compatibility checks.
 including observed bowl pose, matching named joints, real collision geometry
 and the exact canonical end-joint configuration.
 
-`src/multipath/orchestrator.py`: continuous single-path control flow,
-measured transition checks, physical-correction hook and fail-closed acceptance.
+`src/multipath/orchestrator.py`: current two-BC-window V0 continuous control
+flow, measured transition checks, physical-correction hook and fail-closed
+acceptance.
+
+`scripts/run_mounted_bc_curobo.py`: live Isaac Sim schedule executor with a
+physically mounted XHand, the existing Put-In BC, cuRobo free-space bridges,
+contact approach/release adapters, grasp retention checks, and actual-state
+recording. See [mounted pipeline instructions](docs/MOUNTED_PIPELINE.md).
 
 `tests/` + GitHub Actions: offline, mock-physics protocol tests.
 
 ## Prerequisites to physically run
 
-1. Choose an **actual matching** Isaac Sim robot and cuRobo YAML (the
-original EgoEngine uses floating hands whereas DexImit uses UR5e+LEAP).
-2. Produce two physical measured, mutually compatible Grasp and Put-In
-anchor artifacts for the same robot and scene.
-3. Install real `PhysicsWorld` adapter for the existing EgoEngine/Isaac
-execution backend and a task-specific success predicate. No simulated
-success has been claimed from CI.
+1. Choose an **actual matching** Isaac Sim robot and cuRobo YAML. The local
+Franka scene and arm motion probe are recorded in
+[`docs/HOPPER_FRANKA_PROBE.md`](docs/HOPPER_FRANKA_PROBE.md).
+2. Import the VLM BC-window schedule and retain the previous XHand finger BC.
+Mount that XHand on an arm and map its previous floating wrist poses to
+reachable arm poses, retaining the same grasp/release hand actions.
+3. Revalidate each BC window in coupled-arm physics, including its entry/exit
+state. Use EgoEngine local MPC/RL only when that replay needs correction.
+4. Run the mounted schedule executor with `hpc/run_mounted_pipeline.pbs` on
+Hopper, or the explicit Python entry point documented above.
+5. Verify the complete task predicate and actual-state trace/video. No
+simulated task success has been claimed from CI or the Franka probes.
 
-Detailed [integration contract](docs/INTEGRATION.md) and [V0 milestones](docs/V0_PLAN.md).
+Detailed [BC/cuRobo pipeline](docs/BC_CUROBO_PIPELINE.md),
+[integration contract](docs/INTEGRATION.md), and [V0 milestones](docs/V0_PLAN.md).
 
 ```bash
 pip install -e '.[dev]'
 pytest -q
 python -m multipath --help
+PYTHONPATH=src python scripts/inspect_bc_curobo_schedule.py \
+  configs/put_in_bc_curobo_contact_checked.json
+PYTHONPATH=src python scripts/prepare_egoengine_bc_windows.py \
+  --schedule configs/put_in_bc_curobo_contact_checked.json \
+  --egoengine-trajectory /path/to/trajectory_refined.npz \
+  --output-dir outputs/putin_bc_bootstrap_contact_checked
 ```
 
 References: [existing EgoEngine fork](https://github.com/wallacexuhanxiao/diversityverifier/tree/feat/egoengine-xhand-faithful)

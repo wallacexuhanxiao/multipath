@@ -1,0 +1,33 @@
+#!/bin/bash
+#PBS -P CFP04-CF-057
+#PBS -q interactive
+#PBS -N multipath_arm_motion
+#PBS -j oe
+#PBS -k oed
+#PBS -l walltime=00:45:00
+#PBS -l select=1:ncpus=12:mem=120gb:ngpus=1:gpu_model=H100
+set -euo pipefail
+
+ROOT=/scratch/e0985859/multipath_v0_fc2da7b
+RUNTIME=/scratch/e0985859/egoengine_baseline
+IMAGE=/app1/common/singularity-img/hopper/pytorch/pytorch_2.7.0_cuda_12.8.sif
+SIM_PY=$RUNTIME/envs/sim-isaac510/bin/python
+OUT=$ROOT/outputs/franka_curobo_motion_r2
+mkdir -p "$OUT/cache"
+cd "$ROOT"
+module load singularity
+MP_ENV=(
+  --env "LD_LIBRARY_PATH=/scratch/e0985859/semantic_verifier/compat_libs/x11-ubuntu22:/usr/local/cuda/compat/lib:/.singularity.d/libs"
+  --env "TRITON_LIBCUDA_PATH=/usr/local/cuda/compat/lib"
+  --env "XDG_CACHE_HOME=$OUT/cache"
+  --env "PYTHONPATH=$ROOT/deps:$ROOT/src"
+  --env PYTHONNOUSERSITE=1
+  --env OMNI_KIT_ACCEPT_EULA=YES
+)
+[[ -z "${CUDA_VISIBLE_DEVICES:-}" ]] || MP_ENV+=(--env "CUDA_VISIBLE_DEVICES=$CUDA_VISIBLE_DEVICES")
+singularity exec --nv -e "${MP_ENV[@]}" "$IMAGE" "$SIM_PY" -u \
+  scripts/smoke_franka_curobo_motion.py \
+  --robot-yaml "$ROOT/vendor/curobo-v077/src/curobo/content/configs/robot/franka.yml" \
+  --world-yaml "$ROOT/configs/franka_putin_proxy_world.yml" \
+  --output-dir "$OUT" >"$OUT/run.log" 2>&1
+cat "$OUT/arm_motion_result.json"

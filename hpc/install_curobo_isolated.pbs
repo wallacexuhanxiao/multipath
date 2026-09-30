@@ -1,0 +1,46 @@
+#!/bin/bash
+#PBS -P CFP04-CF-057
+#PBS -q interactive
+#PBS -N multipath_curobo
+#PBS -j oe
+#PBS -k oed
+#PBS -l walltime=01:50:00
+#PBS -l select=1:ncpus=12:mem=120gb:ngpus=1:gpu_model=H100
+set -euo pipefail
+
+ROOT=/scratch/e0985859/multipath_v0_fc2da7b
+RUNTIME=/scratch/e0985859/egoengine_baseline
+IMAGE=/app1/common/singularity-img/hopper/pytorch/pytorch_2.7.0_cuda_12.8.sif
+SIM_PY=$RUNTIME/envs/sim-isaac510/bin/python
+UV=$RUNTIME/tools/uv
+OUT=$ROOT/outputs/curobo_install_r1
+mkdir -p "$OUT/cache" "$ROOT/deps"
+cd "$ROOT/vendor/curobo-v077"
+module load singularity
+echo "job=${PBS_JOBID:-unknown} host=$(hostname)" >"$OUT/environment.txt"
+command -v nvidia-smi >>"$OUT/environment.txt" 2>&1 || true
+nvidia-smi -L >>"$OUT/environment.txt" 2>&1 || true
+echo "CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-unset}" >>"$OUT/environment.txt"
+singularity exec --nv -e \
+  --env "LD_LIBRARY_PATH=/scratch/e0985859/semantic_verifier/compat_libs/x11-ubuntu22:/usr/local/cuda/compat/lib:/.singularity.d/libs" \
+  --env PYTHONNOUSERSITE=1 \
+  "$IMAGE" "$SIM_PY" -c 'import torch; print("TORCH_CUDA_AVAILABLE=", torch.cuda.is_available()); print("TORCH_CUDA_DEVICE_COUNT=", torch.cuda.device_count())' \
+  >>"$OUT/environment.txt" 2>&1
+singularity exec --nv -e \
+  --env "LD_LIBRARY_PATH=/scratch/e0985859/semantic_verifier/compat_libs/x11-ubuntu22:/usr/local/cuda/compat/lib:/.singularity.d/libs" \
+  --env "TRITON_LIBCUDA_PATH=/usr/local/cuda/compat/lib" \
+  --env "XDG_CACHE_HOME=$OUT/cache" \
+  --env "CUDA_HOME=/usr/local/cuda" \
+  --env "TORCH_CUDA_ARCH_LIST=9.0" \
+  --env "MAX_JOBS=8" \
+  --env PYTHONNOUSERSITE=1 \
+  --env OMNI_KIT_ACCEPT_EULA=YES \
+  "$IMAGE" "$UV" pip install . --python "$SIM_PY" --no-build-isolation --no-deps \
+    --target "$ROOT/deps" >"$OUT/install.log" 2>&1
+PYTHONPATH="$ROOT/deps" singularity exec --nv -e \
+  --env "PYTHONPATH=$ROOT/deps" \
+  --env "LD_LIBRARY_PATH=/scratch/e0985859/semantic_verifier/compat_libs/x11-ubuntu22:/usr/local/cuda/compat/lib:/.singularity.d/libs" \
+  --env PYTHONNOUSERSITE=1 \
+  "$IMAGE" "$SIM_PY" -c 'import curobo, torch; print("CUROBO_IMPORT=PASS", curobo.__file__, "CUDA_AVAILABLE=", torch.cuda.is_available())' \
+  >"$OUT/import.txt" 2>&1
+cat "$OUT/import.txt"

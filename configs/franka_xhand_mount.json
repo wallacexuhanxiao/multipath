@@ -1,0 +1,14 @@
+{
+  "scene_translation_xyz": [
+    1.1449892711639404,
+    -0.04615361273288726,
+    -0.32705443143844604
+  ],
+  "candidate_mount_quaternion_xyzw": [
+    -0.9723878971538753,
+    0.0708407020119467,
+    -0.04154451878334948,
+    -0.21844318567119259
+  ],
+  "provenance": "Derived from source frame 43 and Franka nominal wrist orientation; used consistently in physical fixed joint and IK."
+}

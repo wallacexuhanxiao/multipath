@@ -1,0 +1,9 @@
+{
+  "place_translation_correction_xyz": [
+    -0.000317990779876709,
+    -0.08146225288510323,
+    0.0
+  ],
+  "source_run": "mounted_pipeline_r15",
+  "reason": "One physical terminal-position correction: target mesh center minus measured final bowl position; height already satisfied support criterion."
+}

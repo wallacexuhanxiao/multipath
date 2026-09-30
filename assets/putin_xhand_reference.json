@@ -1,0 +1,10 @@
+{
+  "source": "diversityverifier_phase1_scoped/outputs/xhand_chunk_fidelity_controls_r3/putin/artifacts/trajectory_refined.npz",
+  "sha256": "e830b0dc8a3b5a2d7ad5ef3c9ff4df04632c35b598268ad3a23d6f5712fa7694",
+  "sequence": "20231024_253",
+  "triplet": "(put in, bowl, plate)",
+  "frames": 144,
+  "finger_actions": "qpos_right[:,7:]",
+  "measured_wrist": "qpos_right_actual[:,:7]",
+  "source_task_success_independently_established": false
+}

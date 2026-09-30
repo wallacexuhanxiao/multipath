@@ -1,0 +1,21 @@
+# Cuboids are in the same world frame and metres as smoke_franka_putin_scene.py.
+# Quaternion order for cuRobo WorldConfig is wxyz.
+cuboid:
+  table:
+    dims: [0.80, 0.75, 0.35]
+    pose: [0.60, 0.0, 0.175, 1.0, 0.0, 0.0, 0.0]
+  tray_base:
+    dims: [0.20, 0.20, 0.03]
+    pose: [0.60, 0.20, 0.365, 1.0, 0.0, 0.0, 0.0]
+  tray_wall_front:
+    dims: [0.20, 0.02, 0.08]
+    pose: [0.60, 0.29, 0.415, 1.0, 0.0, 0.0, 0.0]
+  tray_wall_back:
+    dims: [0.20, 0.02, 0.08]
+    pose: [0.60, 0.11, 0.415, 1.0, 0.0, 0.0, 0.0]
+  tray_wall_left:
+    dims: [0.02, 0.16, 0.08]
+    pose: [0.51, 0.20, 0.415, 1.0, 0.0, 0.0, 0.0]
+  tray_wall_right:
+    dims: [0.02, 0.16, 0.08]
+    pose: [0.69, 0.20, 0.415, 1.0, 0.0, 0.0, 0.0]

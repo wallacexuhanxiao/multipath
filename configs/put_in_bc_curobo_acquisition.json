@@ -1,0 +1,72 @@
+{
+  "instruction": "pick up the bowl, move it to the plate, put it in the plate, and release it",
+  "num_frames": 144,
+  "fps": 30.0,
+  "model": "VLM semantic stages with macro structured-path supervision",
+  "stages": [
+    {
+      "start": 0,
+      "end": 59,
+      "stage": "approach and establish bowl grasp"
+    },
+    {
+      "start": 59,
+      "end": 91,
+      "stage": "carry the grasped bowl toward the plate"
+    },
+    {
+      "start": 91,
+      "end": 116,
+      "stage": "place and stabilize the bowl"
+    },
+    {
+      "start": 116,
+      "end": 144,
+      "stage": "release and retract"
+    }
+  ],
+  "bc_intervals": [
+    {
+      "start": 35,
+      "end": 81
+    },
+    {
+      "start": 86,
+      "end": 122
+    }
+  ],
+  "schedule": [
+    {
+      "start": 0,
+      "end": 35,
+      "mode": "RELAXED"
+    },
+    {
+      "start": 35,
+      "end": 81,
+      "mode": "BC"
+    },
+    {
+      "start": 81,
+      "end": 86,
+      "mode": "RELAXED"
+    },
+    {
+      "start": 86,
+      "end": 122,
+      "mode": "BC"
+    },
+    {
+      "start": 122,
+      "end": 144,
+      "mode": "RELAXED"
+    }
+  ],
+  "contact_review": {
+    "status": "candidate_grasp_acquisition_extension",
+    "source": "floating-XHand opposition_contact_proxy in xhand_chunk_fidelity_controls_r3/putin/artifacts/trajectory_refined.npz",
+    "first_sustained_contact_frame": 46,
+    "reason": "Include the original side approach and acquisition lift; frame 64 is still on the table and does not establish a load-bearing grasp. Validate in mounted physics before accepting.",
+    "pre_contact_margin_frames": 3
+  }
+}

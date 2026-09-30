@@ -1,0 +1,32 @@
+#!/bin/bash
+#PBS -P CFP04-CF-057
+#PBS -q interactive
+#PBS -N multipath_deps
+#PBS -j oe
+#PBS -k oed
+#PBS -l walltime=00:30:00
+#PBS -l select=1:ncpus=12:mem=120gb:ngpus=1:gpu_model=H100
+set -euo pipefail
+
+ROOT=/scratch/e0985859/multipath_v0_fc2da7b
+RUNTIME=/scratch/e0985859/egoengine_baseline
+IMAGE=/app1/common/singularity-img/hopper/pytorch/pytorch_2.7.0_cuda_12.8.sif
+SIM_PY=$RUNTIME/envs/sim-isaac510/bin/python
+UV=$RUNTIME/tools/uv
+OUT=$ROOT/outputs/curobo_deps_r1
+mkdir -p "$OUT/cache"
+module load singularity
+singularity exec --nv -e \
+  --env "XDG_CACHE_HOME=$OUT/cache" \
+  --env PYTHONNOUSERSITE=1 \
+  "$IMAGE" "$UV" pip install --python "$SIM_PY" --target "$ROOT/deps" --no-deps \
+  yourdfpy numpy-quaternion scikit-image importlib_resources pybind11 \
+  setuptools_scm lxml shapely pycollada \
+  >"$OUT/install.log" 2>&1
+singularity exec --nv -e \
+  --env "PYTHONPATH=$ROOT/deps" \
+  --env "LD_LIBRARY_PATH=/scratch/e0985859/semantic_verifier/compat_libs/x11-ubuntu22:/usr/local/cuda/compat/lib:/.singularity.d/libs" \
+  --env PYTHONNOUSERSITE=1 \
+  "$IMAGE" "$SIM_PY" -c 'from curobo.wrap.reacher.motion_gen import MotionGen; import torch; print("MOTION_GEN_IMPORT=PASS", "CUDA_AVAILABLE=", torch.cuda.is_available())' \
+  >"$OUT/import.log" 2>&1
+cat "$OUT/import.log"

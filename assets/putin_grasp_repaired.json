@@ -1,0 +1,6 @@
+{
+  "source_run": "mounted_pipeline_r16",
+  "source": "actual_trace.json command stream and measured initial state",
+  "source_grasp_lift_hold_passed": true,
+  "note": "A derived physically verified BC chunk, not the unmodified floating-wrist reference. Entry must be reached continuously and physically revalidated."
+}
