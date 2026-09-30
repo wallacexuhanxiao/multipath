@@ -14,8 +14,13 @@ all five BC/cuRobo windows from the ready pose in continuous PhysX, with
 zero handoff resets and a released, stable bowl inside the target footprint
 (`mounted_pipeline_r25` and an identical-configuration repeat, `r26`).
 This uses repaired, scene-specific BC commands;
-automatic missing-BC synthesis and diverse accepted paths remain unverified.
+automatic missing-BC synthesis remains unverified. A reusable path-obstacle
+generator and serial search loop also produced a second physically successful
+path (`mounted_diverse_auto_01/solution_02_attempt_01`): obstacles were placed
+automatically along the measured curve, with entry/exit geometry protected.
 See [physical results and run instructions](docs/MOUNTED_PIPELINE.md).
+
+![Automatically generated obstacles and two measured paths](docs/evidence/automatic_path_diversity.png)
 
 ```
 Single video + reconstructed digital twin
@@ -50,6 +55,14 @@ acceptance.
 physically mounted XHand, the existing Put-In BC, cuRobo free-space bridges,
 contact approach/release adapters, grasp retention checks, and actual-state
 recording. See [mounted pipeline instructions](docs/MOUNTED_PIPELINE.md).
+
+`src/multipath/path_exclusion.py`: reusable arc-length obstacle placement for
+any Nx3 curve, boundary protection, cumulative accepted-path exclusions, and
+measured-path comparison. The geometry API has no task-specific frame IDs.
+
+`scripts/explore_diverse_paths.py`: serially generate exclusions, execute the
+full task, reject failed candidates, and accumulate successful new paths.
+`hpc/run_diverse_paths.pbs` runs this loop in one interactive allocation.
 
 `tests/` + GitHub Actions: offline, mock-physics protocol tests.
 

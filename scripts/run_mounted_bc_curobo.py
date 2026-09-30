@@ -20,6 +20,7 @@ def main():
     p.add_argument('--robot-yaml', type=Path, required=True)
     p.add_argument('--xhand-urdf', type=Path, required=True)
     p.add_argument('--object-cache', type=Path, required=True)
+    p.add_argument('--path-exclusions', type=Path)
     p.add_argument('--grasp-closure',type=float,default=0.)
     p.add_argument('--repaired-grasp',type=Path)
     p.add_argument('--object-relative-bc',action='store_true')
@@ -55,7 +56,16 @@ def main():
         from multipath.schedule import Schedule,Window
         from multipath.mounted_xhand import assemble,configure_drives,ActualMeshRecorder
         from multipath.bc_trajectory import retime_bc
+        from multipath.path_exclusion import transport_points,compare_path,exclusion_segments
         schedule=Schedule.load(args.schedule)
+        exclusions=json.loads(args.path_exclusions.read_text()) if args.path_exclusions else None
+        if exclusions:
+            if exclusions['kind']!='virtual_planner_obstacles':
+                raise ValueError('Invalid virtual path exclusions')
+            for segment in exclusion_segments(exclusions):
+                if not segment['cuboid'] or not any([w.start,w.end]==segment['window'] for w in schedule.curobo_windows):
+                    raise ValueError('Exclusion window must match a cuRobo schedule interval')
+            report['path_exclusions']=exclusions
         ref=dict(np.load(args.reference,allow_pickle=False))
         config=json.loads(args.mount_report.read_text())
         translation=np.asarray(config['scene_translation_xyz'])
@@ -160,6 +170,9 @@ def main():
         sim_steps=0
         last_command=np.r_[qinit[arm],qinit[fingers]].copy()
         report['source_sha256']=__import__('hashlib').sha256(args.reference.read_bytes()).hexdigest()
+        if exclusions:
+            scene={'source_sha256':report['source_sha256'],'mount_xyzw':mount.tolist(),'scene_translation_xyz':translation.tolist()}
+            if scene!=exclusions['scene']:raise ValueError('Exclusions do not match current scene/reference')
         report['pbs_job_id']=__import__('os').environ.get('PBS_JOBID','unknown')
         def capture(mode,frame,command):
             wp,wq=wrist.get_world_pose()
@@ -353,6 +366,7 @@ def main():
                     for a,f in zip(la,lf):step(a,f,'BC_RELEASE_RETREAT',w.end-1)
                     info['release_retreat_duration_s']=lt['duration_s']
             else:
+                active_exclusions=next((s for s in exclusion_segments(exclusions) if s['window']==[w.start,w.end]),None) if exclusions else None
                 endpoint=w.end if w.end<schedule.num_frames else w.end-1
                 startq=np.asarray(robot.get_joint_positions())[arm]
                 if wi==0:
@@ -398,6 +412,9 @@ def main():
                     bounds=meshes[role].bounds;center=(bounds[0]+bounds[1])/2
                     live_world['cuboid'][role]={'dims':(bounds[1]-bounds[0]).tolist(),
                         'pose':np.r_[np.asarray(op)+r.apply(center),oq].tolist()}
+                if active_exclusions:
+                    live_world['cuboid'].update(active_exclusions['cuboid'])
+                    info['virtual_path_obstacle_count']=len(active_exclusions['cuboid'])
 
                 info['xhand_and_payload_sphere_count']=n_spheres
                 planner=MotionGen(MotionGenConfig.load_from_robot_config(cfg,live_world,tensor_args=tensor,
@@ -504,6 +521,13 @@ def main():
                     info['transport_max_object_relative_drift_m']=max(retention)
                     if max(retention)>.04:raise RuntimeError('Object slipped during cuRobo transport')
                 info['final_arm_error_rad']=float(np.max(np.abs(np.asarray(robot.get_joint_positions())[arm]-path[-1])))
+                np.savez_compressed(out/f'planner_end_spheres_{wi}.npz',
+                    spheres=planner.compute_kinematics(js(np.asarray(robot.get_joint_positions())[arm])).robot_spheres.detach().cpu().numpy())
+                if active_exclusions:
+                    metrics=compare_path(transport_points(records,w.start,w.end),active_exclusions)
+                    info['path_diversity']=metrics
+                    if not metrics['actual_wrist_exclusion_pass']:
+                        raise RuntimeError('Measured wrist entered a prior-path exclusion region')
             (out/'pipeline_result.json').write_text(json.dumps(report,indent=2))
         # Preserve the applied finger target and hence contact force while
         # settling. Replacing it by measured positions unloads a held grasp.
@@ -531,6 +555,9 @@ def main():
                        'task_success':task_success,'task_success_note':'Tool mesh inside target footprint, near target support height, and stable for final second; inspect actual video as well.'})
         report['full_pipeline_success']=bool(task_success and not args.start_at_bc and not args.grasp_only
                                             and len(report['windows'])==len(schedule.windows))
+        if exclusions:
+            checks=[x['path_diversity']['actual_wrist_exclusion_pass'] for x in report['windows'] if 'path_diversity' in x]
+            report['diverse_solution_success']=bool(report['full_pipeline_success'] and len(checks)==len(exclusion_segments(exclusions)) and all(checks))
     except Exception as exc:
         report['status']='failed'
         report['error']=f'{type(exc).__name__}: {exc}'

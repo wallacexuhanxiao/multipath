@@ -27,6 +27,8 @@ MP_ENV=(
   --env "PBS_JOBID=${PBS_JOBID:-unknown}"
 )
 [[ -z "${CUDA_VISIBLE_DEVICES:-}" ]] || MP_ENV+=(--env "CUDA_VISIBLE_DEVICES=$CUDA_VISIBLE_DEVICES")
+EXTRA_ARGS=()
+[[ -z "${MULTIPATH_EXCLUSIONS:-}" ]] || EXTRA_ARGS+=(--path-exclusions "$ROOT/$MULTIPATH_EXCLUSIONS")
 singularity exec --nv -e "${MP_ENV[@]}" "$IMAGE" "$SIM_PY" -u \
   scripts/run_mounted_bc_curobo.py \
   --xhand-urdf "$XHAND" \
@@ -37,5 +39,5 @@ singularity exec --nv -e "${MP_ENV[@]}" "$IMAGE" "$SIM_PY" -u \
   --object-cache /scratch/e0985859/dv_xhand_faithful_20260907/vendor/egoengine/outputs/sim_usd \
   --place-correction-json "$ROOT/configs/put_in_bc_repair.json" \
   --finger-command-blend 0.25 --grasp-closure 0.10 --repaired-grasp "$ROOT/assets/putin_grasp_repaired.npz" \
-  --output-dir "$OUT" >"$OUT/run.log" 2>&1
+  "${EXTRA_ARGS[@]}" --output-dir "$OUT" >"$OUT/run.log" 2>&1
 cat "$OUT/pipeline_result.json"

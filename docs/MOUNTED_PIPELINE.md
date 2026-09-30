@@ -155,3 +155,79 @@ Each allocation uses a separate `outputs/mounted_pipeline_<job number>`
 directory by default. Set `MULTIPATH_RUN_NAME` through qsub's `-v` option
 only when an explicit new run name is needed. The script runs the full
 schedule; it does not enable either diagnostic shortcut.
+
+## Automatic sequential path diversity
+
+The obstacle placement API is `multipath.path_exclusion.obstacles_along_path`.
+It takes any world-space `N x 3` curve, an obstacle half-size, optional sample
+spacing, and optional protected entry/exit collision spheres. It samples the
+whole curve uniformly by arc length and removes candidates intersecting the
+protected geometry. No Put-In frame numbers, fixed middle fractions, or hand
+selected obstacle coordinates are used. With no robot geometry, it protects
+endpoint neighborhoods; if no room remains it reports failure rather than
+silently returning an empty obstacle set. Coordinate units must match the
+obstacle size (the mounted scene uses meters).
+
+`build_path_exclusions.py` adapts accepted mounted rollouts to this API. It
+automatically discovers all cuRobo intervals between BC windows, or all
+cuRobo intervals if none are bracketed by BC. An explicit interval can also
+be requested. It uses the saved robot/hand/payload collision spheres to
+protect boundaries and keeps each interval's obstacles separate.
+
+```bash
+PYTHONPATH=src python scripts/build_path_exclusions.py \
+  --accepted-run outputs/mounted_pipeline_r26 \
+  --output outputs/exclusions.json
+```
+
+Repeat `--accepted-run` to exclude multiple accepted solutions cumulatively.
+These obstacles exist in the planner, not as new physical props: they steer
+path search without changing the manipulation task. They apply only to the
+selected free-motion intervals. The planner checks its robot/hand/payload
+against them; measured wrist paths are independently checked after execution.
+Acceptance requires full physical task success and actual exclusion clearance.
+
+`explore_diverse_paths.py` runs this loop automatically: build exclusions,
+launch a complete rollout, reject failures, append a successful path, then
+rebuild exclusions for the next solution. Its `solutions.json` records every
+attempt. The default is one additional solution with at most three attempts;
+the script never counts a failed candidate as a solution or an exclusion source.
+
+On Hopper, submit `hpc/run_diverse_paths.pbs` to `interactive`. For example:
+
+```bash
+/cm/shared/apps/pbspro/current/bin/qsub \
+  -v MULTIPATH_BASELINE_RUN=outputs/mounted_pipeline_r26,MULTIPATH_ADDITIONAL_SOLUTIONS=1 \
+  hpc/run_diverse_paths.pbs
+```
+
+The geometric generator is reusable across curves and schedules; the scene
+loader and task success predicate in the mounted runner still require an
+adapter for a different manipulation task. Generic geometry tests are not
+evidence of physical success on another task.
+
+### Verified automatic search
+
+PBS job `639659.hopper-m-02` ran `explore_diverse_paths.py` from baseline
+`mounted_pipeline_r26`. It automatically identified the transport interval,
+sampled 13 candidate boxes along the 0.300 m curve, and filtered 9 against
+protected entry/exit geometry. The remaining 4 boxes required a new route.
+No coordinates or interval frame numbers were supplied to this search.
+
+The first candidate, `mounted_diverse_auto_01/solution_02_attempt_01`, passed
+the complete five-window physical rollout and actual path-exclusion check.
+Minimum measured wrist clearance from the exclusions was 66.9 mm. Mean
+nearest distance from the new measured curve to the old curve was 73.5 mm;
+symmetric Hausdorff distance was 106.8 mm. Final footprint score was 0.892,
+support gap 3.0 mm, and no intermediate states were reset. The serial manifest
+accepted the candidate and ended with two solutions. This establishes one
+automatically generated alternative on the existing scene.
+
+The earlier fixed-interior-fraction prototype `mounted_diverse_02a` also
+passed physically, but the reusable implementation uses whole-curve sampling
+and geometry filtering. The old prototype is not the default placement rule.
+
+The renderer overlays virtual obstacles in pink and prior measured paths in
+cyan during the applicable motion interval. These overlays are explicitly
+labelled; robot, hand, and object motion always come from measured PhysX.
+`scripts/plot_path_diversity.py --run-dir RUN` exports a static comparison.

@@ -12,6 +12,22 @@ def main():
     geo=np.load(out/'visual_meshes.npz'); transforms=np.load(out/'visual_actual.npz')['transforms']
     trace=json.loads((out/'actual_trace.json').read_text());names=json.loads((out/'visual_mesh_paths.json').read_text())
     report=json.loads((out/'pipeline_result.json').read_text())
+    exclusions=report.get('path_exclusions')
+    overlays=[];overlay_names=[]
+    if exclusions:
+        for wi,segment in enumerate(exclusions.get('segments',[exclusions])):
+            for key,box in segment['cuboid'].items():
+                name=f'w{wi}_{key}'
+                xyz=' '.join(map(str,box['pose'][:3]));half=' '.join(str(x/2) for x in box['dims'])
+                overlays.append(f'<geom name="{name}" type="box" pos="{xyz}" size="{half}" rgba="1 .15 .55 .4" contype="0" conaffinity="0"/>')
+                overlay_names.append((name,.4,segment['window']))
+            for si,source in enumerate(segment['sources']):
+                points=source['wrist_path_xyz'][::3]
+                for j,(a,b) in enumerate(zip(points,points[1:])):
+                    name=f'old_path_{wi}_{si}_{j}';coords=' '.join(map(str,[*a,*b]))
+                    if np.linalg.norm(np.asarray(a)-b)<1e-6:continue
+                    overlays.append(f'<geom name="{name}" type="capsule" fromto="{coords}" size=".002" rgba=".1 .9 1 .65" contype="0" conaffinity="0"/>')
+                    overlay_names.append((name,.65,segment['window']))
     if not len(trace):raise RuntimeError('No actual frames recorded')
     cache=out/'render_meshes';cache.mkdir(exist_ok=True)
     assets=[];bodies=[];rotations=[];positions=[]
@@ -32,7 +48,7 @@ def main():
     <light pos="1 -2 3" dir="-.2 .4 -1" diffuse=".8 .8 .8"/>
     <geom type="plane" size="3 3 .01" rgba=".16 .18 .22 1"/>
     <geom type="box" pos=".57 0 {z-.02}" size=".475 .5 .02" rgba=".48 .39 .29 1"/>
-    {''.join(bodies)}</worldbody></mujoco>'''
+    {''.join(bodies)}{''.join(overlays)}</worldbody></mujoco>'''
     model=mujoco.MjModel.from_xml_string(xml);data=mujoco.MjData(model)
     renderer=mujoco.Renderer(model,height=720,width=960)
     cam=mujoco.MjvCamera();cam.lookat[:]=[.4,-.03,.4];cam.distance=1.65;cam.azimuth=135;cam.elevation=-25
@@ -41,11 +57,20 @@ def main():
     writer=cv2.VideoWriter(str(video),cv2.VideoWriter_fourcc(*'mp4v'),30/args.stride,(960,720))
     if not writer.isOpened():raise RuntimeError('VideoWriter failed')
     for frame in range(0,len(trace),args.stride):
+        item=trace[frame]
+        if exclusions:
+            active=False
+            for name,alpha,window in overlay_names:
+                visible=item['mode']=='CUROBO' and window[0]<=item['source_frame']<=window[1]
+                active=active or visible
+                model.geom_rgba[mujoco.mj_name2id(model,mujoco.mjtObj.mjOBJ_GEOM,name),3]=alpha if visible else 0
         data.mocap_pos[:]=positions[frame];data.mocap_quat[:]=rotations[frame]
         mujoco.mj_forward(model,data);renderer.update_scene(data,camera=cam)
         bgr=renderer.render()[:,:,::-1].copy();item=trace[frame]
         cv2.putText(bgr,f"Actual PhysX | {item['mode']} | t={item['time_s']:.2f}s | source {item['source_frame']:.1f}",(15,28),cv2.FONT_HERSHEY_SIMPLEX,.57,(245,245,245),1,cv2.LINE_AA)
         cv2.putText(bgr,'Measured arm, XHand and objects; task success evaluated separately',(15,700),cv2.FONT_HERSHEY_SIMPLEX,.48,(235,235,235),1,cv2.LINE_AA)
+        if exclusions and active:
+            cv2.putText(bgr,'Pink: virtual planning obstacles | Cyan: prior measured wrist path',(15,53),cv2.FONT_HERSHEY_SIMPLEX,.5,(245,200,235),1,cv2.LINE_AA)
         writer.write(bgr)
         if frame==0 or frame==len(trace)-1:cv2.imwrite(str(out/f'actual_frame_{frame:05d}.png'),bgr)
     writer.release();renderer.close()

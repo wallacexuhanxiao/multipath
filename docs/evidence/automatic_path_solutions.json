@@ -1,0 +1,19 @@
+{
+  "status": "complete",
+  "accepted_runs": [
+    "/scratch/e0985859/multipath_v0_fc2da7b/outputs/mounted_pipeline_r26",
+    "/scratch/e0985859/multipath_v0_fc2da7b/outputs/mounted_diverse_auto_01/solution_02_attempt_01"
+  ],
+  "candidates": [
+    {
+      "run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/mounted_diverse_auto_01/solution_02_attempt_01",
+      "excluded_runs": [
+        "/scratch/e0985859/multipath_v0_fc2da7b/outputs/mounted_pipeline_r26"
+      ],
+      "status": "accepted",
+      "returncode": 0,
+      "error": null,
+      "physical_task_success": true
+    }
+  ]
+}
