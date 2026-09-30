@@ -1,5 +1,16 @@
 # Mounted XHand BC + cuRobo execution
 
+## Correction to the action contract
+
+Inspection of the original `20231024_253/color.mp4` confirms 144 frames at
+30 fps (4.8 s). The bowl remains held during tilting and return, and is then
+released near its initial location. The previous place-on-board predicate
+and the imported VLM labels were wrong. The results below are retained as
+historical diagnostics and do not satisfy the corrected semantics or timing.
+Use `hpc/run_source_clock.pbs` for the replacement validation. Its acceptance
+must include source timing, retained grasp, tilt timing, return and release;
+time stretching and a bowl left on the board cannot count as success.
+
 The physical entry point is `scripts/run_mounted_bc_curobo.py`. It uses Isaac
 Sim 5.1 and cuRobo v0.7.7 on Hopper. Submit `hpc/run_mounted_pipeline.pbs` to
 `interactive`; jobs run sequentially because this queue permits one running

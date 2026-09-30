@@ -1,5 +1,21 @@
 # multipath — Interaction-Anchored Trajectory Generation
 
+**Semantic correction (2026-09-30):** direct inspection of the original
+144-frame / 30-fps video shows a held-bowl tilt over the board, return to the
+source location, and only then release. Earlier runs below used an incorrect
+place-on-board terminal predicate and stretched execution to roughly 50 s.
+They are historical physical/planning diagnostics, not valid reproductions
+of the source action. The replacement `hpc/run_source_clock.pbs` produced a 4.8-second
+hold/tilt/return/release rollout (`source_clock_r11`) passing current heuristic
+checks, with remaining angle/position errors and imperfect repeatability.
+See the [repair report](docs/SOURCE_CLOCK_REPAIR_REPORT_20260930.md).
+
+**Source-clock diversity (2026-10-01):** reusable small–large–small virtual
+obstacles, fixed-time route screening, and actual-path validation are implemented.
+New-semantics multi-solution acceptance is still under validation; the old
+place-on-board diversity result is not evidence for the corrected task.
+See [implementation and current limits](docs/SOURCE_CLOCK_DIVERSITY.md).
+
 **Target pipeline:** VLM selects the intervals that need behavior cloning
 (BC). BC controls the interaction windows; cuRobo plans the intervening
 free-motion windows. If no robot demonstration exists for a BC interval,
@@ -9,7 +25,7 @@ in continuous physics, without intermediate resets.
 
 First target: `(put in, bowl, plate) / 20231024_253`.
 
-**Verified 2026-09-30:** the mounted Franka + XHand Put-In runner completed
+**Historical physical diagnostic:** the mounted Franka + XHand Put-In runner completed
 all five BC/cuRobo windows from the ready pose in continuous PhysX, with
 zero handoff resets and a released, stable bowl inside the target footprint
 (`mounted_pipeline_r25` and an identical-configuration repeat, `r26`).

@@ -1,0 +1,21 @@
+{
+  "delivery_run": "r11",
+  "pbs_job_id": "639769.hopper-m-02",
+  "base_commit": "8b94d16",
+  "uncommitted_repairs": true,
+  "r11_config_reconstructed_not_original_snapshot": true,
+  "r11_parameters": {
+    "source_wrist": "qpos_right_actual",
+    "finger_command_blend": 0.25,
+    "grasp_closure": 0.2,
+    "grasp_hold_frame": 54,
+    "physical_velocity_fraction": 0.98,
+    "command_velocity_fraction": 0.9,
+    "tilt_control_lead_frames": 0
+  },
+  "current_worktree_matches": "r12 settings, physical velocity fraction .94 and tilt lead 4; not the delivered r11 settings",
+  "r11_video_peak_frame": 98,
+  "reference_peak_frame": 92,
+  "report_peak_frame_label": 97,
+  "measurement_label_note": "Measurements taken at end of control interval; label is one frame earlier than recorded video timestamp."
+}

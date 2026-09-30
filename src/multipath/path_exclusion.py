@@ -56,15 +56,91 @@ def obstacles_along_path(points, half_size=.025, spacing=None, boundary_spheres=
                    'protected_sphere_count':len(spheres),'minimum_boundary_clearance_m':float(distances[distances>clearance].min())}
 
 
+def tapered_obstacles_along_path(points, max_half_size=.025, boundary_spheres=None, clearance=.005):
+    """Small -> large -> small envelope in normalized path arc length.
+
+    The sine-squared profile is capped by measured endpoint geometry, then
+    constrained to a single peak. No object names, frame IDs, or coordinates.
+    Obstacles are virtual exclusions used only during their planning interval.
+    """
+    points=np.asarray(points,dtype=float)
+    if points.ndim!=2 or points.shape[1]!=3 or len(points)<2 or not np.isfinite(points).all():
+        raise ValueError('Expected a finite Nx3 path with at least two points')
+    if max_half_size<=0 or clearance<0:raise ValueError('Invalid obstacle size or clearance')
+    length=float(np.linalg.norm(np.diff(points,axis=0),axis=1).sum())
+    count=max(33,int(np.ceil(length/(max_half_size/2)))+1)
+    centers=resample(points,count)
+    u=np.linspace(0,1,count)
+    requested=max_half_size*np.sin(np.pi*u)**2
+    endpoints=np.c_[points[[0,-1]],np.full(2,min(max_half_size/2,length/10))]
+    spheres=endpoints if boundary_spheres is None else np.concatenate([endpoints,np.asarray(boundary_spheres).reshape(-1,4)])
+    spheres=spheres[spheres[:,3]>0]
+    if not np.isfinite(spheres).all():raise ValueError('Nonfinite boundary geometry')
+    def distances(sizes):
+        delta=np.maximum(np.abs(centers[:,None,:]-spheres[None,:,:3])-sizes[:,None,None],0)
+        return (np.linalg.norm(delta,axis=-1)-spheres[None,:,3]).min(axis=1)
+    lo=np.zeros(count);hi=requested.copy()
+    for _ in range(32):
+        mid=(lo+hi)/2;safe=distances(mid)>clearance
+        lo=np.where(safe,mid,lo);hi=np.where(safe,hi,mid)
+    peak=count//2
+    # Bound every earlier/later size by its neighbors towards the peak,
+    # retaining the small-large-small shape even near boundary geometry.
+    sizes=lo.copy()
+    sizes[:peak+1]=np.minimum.accumulate(sizes[:peak+1][::-1])[::-1]
+    sizes[peak:]=np.minimum.accumulate(sizes[peak:])
+    keep=(sizes>=max_half_size*.1)&(distances(sizes)>clearance)
+    if not keep.any():raise ValueError('No room for tapered path obstacles outside protected boundaries')
+    boxes={f'path_exclusion_{j}':{'dims':[float(2*h)]*3,'pose':[*p.tolist(),1.,0.,0.,0.]}
+           for j,(p,h) in enumerate(zip(centers[keep],sizes[keep]))}
+    return boxes,{'path_length_m':length,'candidate_count':count,'boundary_filtered_count':int((~keep).sum()),
+                  'protected_sphere_count':len(spheres),'size_profile':'sin_squared_geometry_capped_unimodal',
+                  'arc_fractions':u[keep].tolist(),'half_sizes_m':sizes[keep].tolist(),
+                  'requested_max_half_size_m':max_half_size,
+                  'minimum_boundary_clearance_m':float(distances(sizes)[keep].min())}
+
+
 def exclusion_segments(config):
     """Read new multi-window configurations and earlier single-window records."""
     return config.get('segments', [config])
 
 
+def recorded_boundary_spheres(directory, trace, start, end):
+    """Recover protected robot/held-object geometry from actual mesh records."""
+    geometry=np.load(directory/'visual_meshes.npz',allow_pickle=False)
+    transforms=np.load(directory/'visual_actual.npz',allow_pickle=False)['transforms']
+    names=json.loads((directory/'visual_mesh_paths.json').read_text())
+    times=np.asarray([r['source_frame'] for r in trace])
+    frames=[int(np.abs(times-frame).argmin()) for frame in (start,end)]
+    arrays=[]
+    for i,name in enumerate(names):
+        if not name.startswith(('/World/Franka/','/xhand_right/','/World/tool/')):continue
+        vertices=geometry[f'v{i}']
+        for frame in frames:
+            t=transforms[frame,i];points=vertices@t[:3,:3].T+t[:3,3]
+            center=points.mean(0);_,_,axes=np.linalg.svd(points-center,full_matrices=False)
+            coords=(points-center)@axes.T;lo=coords.min(0);hi=coords.max(0)
+            counts=np.maximum(1,np.ceil((hi-lo)/.025).astype(int));width=(hi-lo)/counts
+            grid=np.indices(tuple(counts)).reshape(3,-1).T
+            centers=center+(lo+(grid+.5)*width)@axes
+            radius=float(np.linalg.norm(width)*.5+.001)
+            arrays.append(np.c_[centers,np.full(len(centers),radius)])
+    if not arrays:raise ValueError('No recorded robot geometry for boundaries')
+    return np.concatenate(arrays)
+
+
 def _boundaries(directory, report, window_index):
-    files = [directory/f'planner_start_spheres_{window_index}.npz']
+    start=directory/f'planner_start_spheres_{window_index}.npz'
+    if not start.exists():start=directory/f'source_start_spheres_{window_index}.npz'
+    files = [start]
     end = directory/f'planner_end_spheres_{window_index}.npz'
     if end.exists():files.append(end)
+    elif (directory/'visual_actual.npz').exists():
+        window=report['windows'][window_index]
+        trace=json.loads((directory/'actual_trace.json').read_text())
+        measured=recorded_boundary_spheres(directory,trace,window['start'],window['end'])
+        arrays=[np.load(p,allow_pickle=False)['spheres'].reshape(-1,4) for p in files if p.exists()]
+        return np.concatenate([measured,*arrays]), ['visual_actual.npz','visual_meshes.npz',*[p.name for p in files if p.exists()]]
     else:
         # Older accepted records saved the last feasible precontact endpoint.
         for j,candidate in enumerate(report['windows'][window_index].get('precontact_candidates', [])):
@@ -73,11 +149,13 @@ def _boundaries(directory, report, window_index):
     return (np.concatenate(arrays) if arrays else None), [p.name for p in files if p.exists()]
 
 
-def build_exclusions(run_dirs, start=None, end=None, half_size=.025):
+def build_exclusions(run_dirs, start=None, end=None, half_size=.025, adaptive_size=False, exclusion_scope="robot", window_policy="all"):
     if not run_dirs or not 0 < half_size <= .1 or (start is None)!=(end is None):
         raise ValueError('Invalid exclusion geometry, window, or empty accepted path list')
-    result = {'version': 2, 'kind': 'virtual_planner_obstacles',
-              'half_size_m': half_size, 'placement': 'arc_length_with_boundary_geometry_filter',
+    if window_policy not in ('all','longest-budget'):raise ValueError('Unknown window policy')
+    if exclusion_scope not in ('robot','wrist'):raise ValueError('Unknown exclusion scope')
+    result = {'version': 2, 'exclusion_scope':exclusion_scope, 'window_policy':window_policy, 'kind': 'virtual_planner_obstacles',
+              'half_size_m': half_size, 'placement': 'tapered_arc_length_with_boundary_geometry_filter' if adaptive_size else 'arc_length_with_boundary_geometry_filter',
               'sources': [], 'segments': []}
     selected = None
     for index, directory in enumerate(run_dirs):
@@ -85,6 +163,8 @@ def build_exclusions(run_dirs, start=None, end=None, half_size=.025):
         report = json.loads((directory / 'pipeline_result.json').read_text())
         if not report.get('full_pipeline_success'):
             raise ValueError(f'{directory}: source is not a full successful rollout')
+        if not report.get('reference_semantics_validated'):
+            raise ValueError(f'{directory}: source semantics and timing have not been validated against the video')
         if report.get('path_exclusions') and not report.get('diverse_solution_success'):
             raise ValueError(f'{directory}: source did not pass its path exclusion checks')
         scene = {key: report[key] for key in ('source_sha256', 'mount_xyzw', 'scene_translation_xyz')}
@@ -103,6 +183,7 @@ def build_exclusions(run_dirs, start=None, end=None, half_size=.025):
                 interior=[w for i,w in enumerate(windows) if w['controller']=='CUROBO' and 0<i<len(windows)-1
                           and windows[i-1]['controller']=='BC' and windows[i+1]['controller']=='BC']
                 chosen=interior or [w for w in windows if w['controller']=='CUROBO']
+                if window_policy=='longest-budget':chosen=[max(chosen,key=lambda w:w['end']-w['start'])]
                 selected=[(w['start'],w['end']) for w in chosen]
             if not selected:raise ValueError('No cuRobo intervals found in accepted rollout')
             result['segments']=[{'window':list(w),'sources':[],'cuboid':{}} for w in selected]
@@ -111,8 +192,15 @@ def build_exclusions(run_dirs, start=None, end=None, half_size=.025):
             match=[i for i,w in enumerate(windows) if (w['start'],w['end'])==(a,b) and w['controller']=='CUROBO']
             if len(match)!=1:raise ValueError('Accepted paths have incompatible motion intervals')
             path=transport_points(trace,a,b)
-            spheres,files=_boundaries(directory,report,match[0])
-            boxes,stats=obstacles_along_path(path,half_size,boundary_spheres=spheres)
+            spheres,files=_boundaries(directory,report,match[0]) if exclusion_scope=='robot' else (None,[])
+            if adaptive_size:
+                boxes,stats=tapered_obstacles_along_path(path,half_size,boundary_spheres=spheres)
+            else:
+                boxes,stats=obstacles_along_path(path,half_size,boundary_spheres=spheres)
+                stats['half_size_m']=half_size
+            endpoint=min(trace,key=lambda r:abs(r['source_frame']-b))
+            if 'boundary_wrist_xyz_wxyz' not in segment:
+                segment['boundary_wrist_xyz_wxyz']=endpoint['wrist_xyz_wxyz']
             segment['sources'].append({**metadata,'wrist_path_xyz':resample(path).tolist(),
                                        'boundary_geometry_files':files,'placement_diagnostics':stats})
             segment['cuboid'].update({f'path_exclusion_{index}_{j}':box for j,box in enumerate(boxes.values())})

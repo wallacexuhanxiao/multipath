@@ -6,7 +6,7 @@ from multipath.path_exclusion import build_exclusions, compare_path, resample, o
 
 def accepted_run(tmp_path, name, offset=0, success=True):
     out=tmp_path/name;out.mkdir()
-    report={'full_pipeline_success':success,'source_sha256':'same-reference',
+    report={'full_pipeline_success':success,'reference_semantics_validated':True,'source_sha256':'same-reference',
             'mount_xyzw':[0,0,0,1],'scene_translation_xyz':[0,0,0],
             'windows':[{'controller':'CUROBO','start':65,'end':86}]}
     (out/'pipeline_result.json').write_text(json.dumps(report))
@@ -35,6 +35,14 @@ def test_failed_or_scene_mismatched_rollouts_cannot_define_solutions(tmp_path):
     p=b/'pipeline_result.json';d=json.loads(p.read_text());d['source_sha256']='other';p.write_text(json.dumps(d))
     with pytest.raises(ValueError,match='different scenes'):
         build_exclusions([a,b])
+
+
+def test_old_placement_success_does_not_pass_corrected_video_contract(tmp_path):
+    run=accepted_run(tmp_path,'legacy')
+    path=run/'pipeline_result.json';report=json.loads(path.read_text())
+    del report['reference_semantics_validated'];path.write_text(json.dumps(report))
+    with pytest.raises(ValueError,match='semantics and timing'):
+        build_exclusions([run])
 
 
 def test_path_comparison_is_independent_of_timing_and_duplicate_samples(tmp_path):
@@ -101,3 +109,74 @@ def test_serial_search_accumulates_only_successful_candidates(tmp_path,monkeypat
     assert seen==[1,1,2]
     assert manifest['status']=='complete' and len(manifest['accepted_runs'])==3
     assert [x['status'] for x in manifest['candidates']]==['rejected','accepted','accepted']
+
+
+def test_tapered_sizes_are_unimodal_protect_geometry_and_scale():
+    from multipath.path_exclusion import tapered_obstacles_along_path
+    path=np.array([[0.,0,0],[.5,.1,0],[1.,0,0]])
+    protected=np.array([[0.,0,0,.08],[1.,0,0,.08]])
+    boxes,stats=tapered_obstacles_along_path(path,.04,protected)
+    sizes=np.array(stats['half_sizes_m']);peak=sizes.argmax()
+    assert peak>0 and peak<len(sizes)-1
+    assert np.all(np.diff(sizes[:peak+1])>=-1e-12)
+    assert np.all(np.diff(sizes[peak:])<=1e-12)
+    assert sizes[0]<sizes[peak] and sizes[-1]<sizes[peak]
+    assert stats['minimum_boundary_clearance_m']>.005
+    shift=np.array([4.,-2,1])
+    scaled,s2=tapered_obstacles_along_path(2*path+shift,.08,
+                                          np.c_[2*protected[:,:3]+shift,2*protected[:,3]],.01)
+    np.testing.assert_allclose(s2['half_sizes_m'],2*sizes,atol=1e-10)
+    np.testing.assert_allclose([b['pose'][:3] for b in scaled.values()],
+                               2*np.array([b['pose'][:3] for b in boxes.values()])+shift,atol=1e-10)
+
+
+def test_wrist_detour_candidates_avoid_tapered_obstacles_and_translate():
+    from multipath.path_exclusion import tapered_obstacles_along_path,box_clearance
+    from multipath.diverse_planning import detour_waypoints
+    path=np.array([[0.,0,0],[.3,0,0]])
+    boxes,_=tapered_obstacles_along_path(path)
+    config={'cuboid':boxes,'sources':[{'wrist_path_xyz':resample(path).tolist()}]}
+    candidates=list(detour_waypoints(*path,config))
+    assert candidates and all(box_clearance(p,boxes).min()>.008 for p in candidates)
+    shift=np.array([.5,-2.,1.])
+    moved={key:{'dims':b['dims'],'pose':[*list(np.array(b['pose'][:3])+shift),1.,0.,0.,0.]} for key,b in boxes.items()}
+    c2={'cuboid':moved,'sources':[{'wrist_path_xyz':(resample(path)+shift).tolist()}]}
+    translated=list(detour_waypoints(*(path+shift),c2))
+    np.testing.assert_allclose(translated,np.array(candidates)+shift,atol=1e-12)
+
+
+def test_longest_budget_policy_selects_by_duration_not_frame_ids(tmp_path):
+    run=accepted_run(tmp_path,'longest')
+    p=run/'pipeline_result.json';r=json.loads(p.read_text())
+    r['windows']=[{'controller':'BC','start':0,'end':10},
+                  {'controller':'CUROBO','start':10,'end':30},
+                  {'controller':'BC','start':30,'end':60},
+                  {'controller':'CUROBO','start':60,'end':100},
+                  {'controller':'BC','start':100,'end':110}]
+    p.write_text(json.dumps(r))
+    p=run/'actual_trace.json';trace=json.loads(p.read_text())
+    for i,item in enumerate(trace):item['source_frame']=60+2*i
+    p.write_text(json.dumps(trace))
+    config=build_exclusions([run],adaptive_size=True,exclusion_scope='wrist',window_policy='longest-budget')
+    assert [s['window'] for s in config['segments']]==[[60,100]]
+    assert config['segments'][0]['boundary_wrist_xyz_wxyz']==trace[-1]['wrist_xyz_wxyz']
+
+
+def test_motion_budget_resampling_ignores_waypoint_stop_duplicates():
+    from multipath.diverse_planning import resample_with_velocity_budget
+    uneven=np.r_[np.zeros((100,2)),[[.1,.2],[.2,.4]],np.repeat([[.2,.4]],200,axis=0)]
+    compact=np.array([[0.,0.],[.1,.2],[.2,.4]])
+    np.testing.assert_allclose(resample_with_velocity_budget(uneven,25,[1.,2.]),
+                               resample_with_velocity_budget(compact,25,[1.,2.]))
+
+
+def test_fixed_budget_easing_reduces_endpoint_speed_without_overspeed():
+    from multipath.diverse_planning import resample_with_velocity_budget
+    path=np.array([[0.,0.],[.2,.4]])
+    out=resample_with_velocity_budget(path,41,[1.,2.],dt=.01)
+    velocity=np.abs(np.diff(out,axis=0))/.01
+    assert np.max(velocity/np.array([1.,2.]))<=1+1e-8
+    assert np.max(velocity[0])<np.max(velocity[len(velocity)//2])*.1
+    np.testing.assert_allclose(out[[0,-1]],path)
+    with pytest.raises(RuntimeError,match='usable budget'):
+        resample_with_velocity_budget(path,10,[1.,2.],dt=.01)

@@ -21,6 +21,8 @@ def main():
     p.add_argument('--xhand-urdf', type=Path, required=True)
     p.add_argument('--object-cache', type=Path, required=True)
     p.add_argument('--path-exclusions', type=Path)
+    p.add_argument('--source-clock', action='store_true', help='Preserve original tilt-return-release semantics and source duration')
+    p.add_argument('--source-wrist',choices=['qpos_right','qpos_right_actual','qpos_right_reference'],default='qpos_right')
     p.add_argument('--grasp-closure',type=float,default=0.)
     p.add_argument('--repaired-grasp',type=Path)
     p.add_argument('--object-relative-bc',action='store_true')
@@ -34,8 +36,10 @@ def main():
     p.add_argument('--output-dir', type=Path, required=True)
     args = p.parse_args()
     out=args.output_dir; out.mkdir(parents=True, exist_ok=True)
+    (out/'execution_arguments.json').write_text(json.dumps(vars(args),default=str,indent=2))
     app=SimulationApp({'headless':True})
     report={'status':'running','task_success':False,'full_pipeline_success':False,
+            'reference_semantics_validated':False,
             'grasp_only_diagnostic':args.grasp_only,'windows':[], 'state_resets_between_windows':0}
     recorder=None; records=[]
     try:
@@ -133,7 +137,7 @@ def main():
         for w in schedule.windows:
             if w.controller=='BC':needed.update(range(w.start,w.end))
         missing=sorted(i for i in needed if not valid[i])
-        if missing:raise RuntimeError(f'IK failed at required frames {missing}')
+        if missing and not args.source_clock:raise RuntimeError(f'IK failed at required frames {missing}')
         # Seed each BC frame from its predecessor to limit null-space jumps.
         arm_reference=batchq.copy()
         first_bc=schedule.bc_windows[0].start
@@ -145,7 +149,7 @@ def main():
         arm_reference[0]=ready_q
         arm_reference[-1]=ready_q
         report['sequential_ik_fallback_frames']=[]
-        for w in schedule.bc_windows:
+        for w in ([] if args.source_clock else schedule.bc_windows):
             prev=tensor.to_device(batchq[w.start])
             for i in range(w.start,w.end):
                 sol=ik.solve_single(pose_at(i),
@@ -183,12 +187,13 @@ def main():
             for r,obj in objects.items():
                 op,oq=obj.get_world_pose(); item[r+'_xyz_wxyz']=np.r_[op,oq].tolist()
             records.append(item);recorder.capture()
-        def step(aq,fq,mode,frame):
+        def step(aq,fq,mode,frame,velocity=None):
             nonlocal sim_steps,last_command
             last_command=np.r_[aq,fq].copy()
-            robot.apply_action(ArticulationAction(joint_positions=np.r_[aq,fq],joint_indices=np.r_[arm,fingers]))
+            robot.apply_action(ArticulationAction(joint_positions=np.r_[aq,fq],joint_velocities=velocity,joint_indices=np.r_[arm,fingers]))
             world.step(render=False);sim_steps+=1
-            if sim_steps%4==0:capture(mode,frame,np.r_[aq,fq])
+            if sim_steps%4==0 and (not args.source_clock or sim_steps<len(source)*4):
+                capture(mode,sim_steps/4 if args.source_clock else frame,np.r_[aq,fq])
         # Build conservative XHand spheres from each current link's actual mesh.
         def planner_robot(carry):
             import copy
@@ -237,6 +242,15 @@ def main():
                        'bc_finger_source':'measured finger trajectory plus scaled original control residual','finger_command_blend':args.finger_command_blend,'start_at_bc_diagnostic':args.start_at_bc,'bc_wrist_source':'qpos_right_actual',
                        'left_hand_present':False,'relaxed_initial_and_terminal':'first_BC_wrist_elevated_20cm','physics':'PhysX CPU','xhand_force_drive':[5,.5,3]})
         capture('INITIAL',0,np.r_[qinit[arm],qinit[fingers]])
+        if args.source_clock:
+            from multipath.source_clock import run_source_clock
+            if args.start_at_bc or args.grasp_only:
+                raise ValueError('Source-clock mode requires a complete rollout')
+            run_source_clock(args=args,report=report,ref=ref,schedule=schedule,robot=robot,arm=arm,
+                fingers=fingers,wrist=wrist,objects=objects,translation=translation,mount=mount,ik=ik,
+                tensor=tensor,planner_robot=planner_robot,table=table,meshes=meshes,step=step,records=records,out=out)
+            if not report['full_pipeline_success']:raise RuntimeError('Source-clock semantic or dynamic validation failed')
+            return
         windows=list(schedule.windows)
         for wi,w in enumerate(windows):
             if args.start_at_bc and wi==0:continue
