@@ -18,17 +18,22 @@ def main():
     parser.add_argument('--exclusion-scope',choices=['robot','wrist'],default='robot')
     parser.add_argument('--shrink-on-retry',action='store_true')
     parser.add_argument('--window-policy',choices=['all','longest-budget'],default='all')
+    parser.add_argument('--window-start',type=int,help='Explore one cuRobo interval independently')
+    parser.add_argument('--window-end',type=int)
     parser.add_argument('--output-root',type=Path,required=True)
     parser.add_argument('runner_args',nargs=argparse.REMAINDER)
     args=parser.parse_args()
     if args.additional_solutions<1 or args.attempts_per_solution<1:
         parser.error('solution and attempt counts must be positive')
+    if (args.window_start is None)!=(args.window_end is None):
+        parser.error('--window-start and --window-end must be supplied together')
     runner_args=args.runner_args
     if runner_args and runner_args[0]=='--':runner_args=runner_args[1:]
     if any(x.split('=')[0] in ('--output-dir','--path-exclusions','--start-at-bc','--grasp-only') for x in runner_args):
         parser.error('runner arguments must specify a full rollout without output/exclusion overrides')
     accepted=[p.resolve() for p in args.accepted_run]
-    build_exclusions(accepted,half_size=args.half_size,adaptive_size=args.adaptive_size,exclusion_scope=args.exclusion_scope,window_policy=args.window_policy)
+    build_exclusions(accepted,start=args.window_start,end=args.window_end,half_size=args.half_size,
+                     adaptive_size=args.adaptive_size,exclusion_scope=args.exclusion_scope,window_policy=args.window_policy)
     args.output_root.mkdir(parents=True,exist_ok=True)
     manifest_path=args.output_root/'solutions.json'
     if manifest_path.exists():raise FileExistsError('Use a new output root to preserve the previous search')
@@ -39,7 +44,9 @@ def main():
         solution_index=len(accepted)+1
         for attempt in range(1,args.attempts_per_solution+1):
             peak=args.half_size*(.5**(attempt-1) if args.shrink_on_retry else 1)
-            exclusions=build_exclusions(accepted,half_size=peak,adaptive_size=args.adaptive_size,exclusion_scope=args.exclusion_scope,window_policy=args.window_policy)
+            exclusions=build_exclusions(accepted,start=args.window_start,end=args.window_end,half_size=peak,
+                                        adaptive_size=args.adaptive_size,exclusion_scope=args.exclusion_scope,
+                                        window_policy=args.window_policy)
             exclusion_path=(args.output_root/f'exclusions_for_{solution_index:02d}_attempt_{attempt:02d}.json').resolve()
             exclusion_path.write_text(json.dumps(exclusions,indent=2)+'\n')
             out=(args.output_root/f'solution_{solution_index:02d}_attempt_{attempt:02d}').resolve()

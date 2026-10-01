@@ -1,0 +1,38 @@
+{
+  "status": "search_exhausted",
+  "interval": [
+    76,
+    82
+  ],
+  "budget_s": 0.2,
+  "candidates": [
+    {
+      "peak_half_size_m": 0.025,
+      "status": "rejected",
+      "reason": "time_budget",
+      "required_time_s": 0.4942,
+      "minimum_trial_time_s": null
+    },
+    {
+      "peak_half_size_m": 0.0125,
+      "status": "rejected",
+      "reason": "time_budget",
+      "required_time_s": 0.6745,
+      "minimum_trial_time_s": null
+    },
+    {
+      "peak_half_size_m": 0.00625,
+      "status": "rejected",
+      "reason": "no_valid_detour",
+      "required_time_s": null,
+      "minimum_trial_time_s": 0.5460310841543008
+    },
+    {
+      "peak_half_size_m": 0.003125,
+      "status": "rejected",
+      "reason": "no_valid_detour",
+      "required_time_s": null,
+      "minimum_trial_time_s": 0.592281562726185
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "hopper_job": "641070.hopper-m-02",
+  "accepted_run": "outputs/source_clock_outbound_r23/solution_02_attempt_01",
+  "full_pipeline_success": true,
+  "frames": 144,
+  "duration_s": 4.8,
+  "diversified_interval": [
+    0,
+    35
+  ],
+  "path_diversity": {
+    "actual_wrist_min_exclusion_clearance_m": 0.0071320548781298055,
+    "actual_wrist_exclusion_pass": true,
+    "comparisons": [
+      {
+        "source_run": "source_clock_r11",
+        "mean_nearest_path_distance_m": 0.03670772013878779,
+        "symmetric_hausdorff_m": 0.05856805807594942
+      }
+    ]
+  },
+  "peak_tilt_rad": 0.8305474966881771,
+  "peak_tilt_video_frame": 98,
+  "reference_peak_tilt_frame": 92,
+  "final_reference_position_error_m": 0.04154908176692916,
+  "max_held_object_relative_drift_m": 0.020822082312449395,
+  "max_held_object_rotation_drift_rad": 0.29463368941283796,
+  "measured_max_joint_speed_limit_ratio": 0.9898867186915372,
+  "released_at_end": true
+}

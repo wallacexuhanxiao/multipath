@@ -27,13 +27,16 @@ MP_ENV=(
   --env "PBS_JOBID=${PBS_JOBID:-unknown}"
 )
 [[ -z "${CUDA_VISIBLE_DEVICES:-}" ]] || MP_ENV+=(--env "CUDA_VISIBLE_DEVICES=$CUDA_VISIBLE_DEVICES")
-EXTRA_ARGS=()
-[[ -z "${MULTIPATH_EXCLUSIONS:-}" ]] || EXTRA_ARGS+=(--path-exclusions "$ROOT/$MULTIPATH_EXCLUSIONS")
+WINDOW_ARGS=()
+if [[ -n "${MULTIPATH_WINDOW_START:-}" || -n "${MULTIPATH_WINDOW_END:-}" ]]; then
+  [[ -n "${MULTIPATH_WINDOW_START:-}" && -n "${MULTIPATH_WINDOW_END:-}" ]] || { echo 'Set both interval endpoints' >&2; exit 2; }
+  WINDOW_ARGS+=(--window-start "$MULTIPATH_WINDOW_START" --window-end "$MULTIPATH_WINDOW_END")
+fi
 singularity exec --nv -e "${MP_ENV[@]}" "$IMAGE" "$SIM_PY" -u \
   scripts/explore_diverse_paths.py \
   --accepted-run "$ROOT/${MULTIPATH_BASELINE_RUN:-outputs/source_clock_r11}" \
   --additional-solutions "${MULTIPATH_ADDITIONAL_SOLUTIONS:-1}" --attempts-per-solution 4 --shrink-on-retry \
-  --tapered-obstacles --exclusion-scope wrist --window-policy "${MULTIPATH_WINDOW_POLICY:-all}" --output-root "$OUT" -- \
+  --tapered-obstacles --exclusion-scope wrist --window-policy "${MULTIPATH_WINDOW_POLICY:-all}" "${WINDOW_ARGS[@]}" --output-root "$OUT" -- \
   --xhand-urdf "$XHAND" \
   --reference "$ROOT/assets/putin_xhand_reference.npz" \
   --schedule "$ROOT/${MULTIPATH_SCHEDULE:-configs/put_in_source_clock.json}" \

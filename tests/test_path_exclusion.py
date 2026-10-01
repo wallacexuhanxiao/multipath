@@ -83,6 +83,21 @@ def test_window_discovery_does_not_depend_on_putin_frame_numbers(tmp_path):
     assert build_exclusions([run])['segments'][0]['window']==[700,900]
 
 
+def test_explicit_first_motion_interval_is_selectable_without_other_intervals(tmp_path):
+    run=accepted_run(tmp_path,'first_motion')
+    p=run/'pipeline_result.json';report=json.loads(p.read_text())
+    report['windows']=[{'controller':'CUROBO','start':0,'end':21},
+                       {'controller':'BC','start':21,'end':30},
+                       {'controller':'CUROBO','start':30,'end':40}]
+    p.write_text(json.dumps(report))
+    p=run/'actual_trace.json';trace=json.loads(p.read_text())
+    for i,item in enumerate(trace):item['source_frame']=i
+    p.write_text(json.dumps(trace))
+    config=build_exclusions([run],start=0,end=21,adaptive_size=True,exclusion_scope='wrist')
+    assert [segment['window'] for segment in config['segments']]==[[0,21]]
+    assert config['segments'][0]['cuboid']
+
+
 def test_serial_search_accumulates_only_successful_candidates(tmp_path,monkeypatch):
     import importlib.util
     import sys

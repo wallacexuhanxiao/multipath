@@ -26,6 +26,13 @@ Actual execution is checked separately from the planned curve. `compare_path` de
 
 `hpc/run_source_clock_diverse.pbs` runs sequentially in Hopper interactive. It starts from the successful source-clock r11 rollout, applies exclusions to selected interior cuRobo windows, and stores candidates separately. `MULTIPATH_WINDOW_POLICY=all` selects all interior windows; `longest-budget` chooses the longest interior window automatically, allowing diversity where more motion time is available without changing any BC interval. Failed candidates do not become future exclusion sources. Additional accepted solutions accumulate exclusions from every preceding accepted path.
 
+An explicit `MULTIPATH_WINDOW_START` and `MULTIPATH_WINDOW_END` selects one
+cuRobo interval, including the initial approach or final retreat. This is
+needed for independent per-interval searches: the automatic interior policy
+excluded the initial approach `[0, 35)` in r22, while `longest-budget` chose
+only the return `[101, 111)` over the shorter interior outbound `[76, 82)`.
+An explicit interval stores virtual obstacles only for that interval.
+
 Each candidate saves the source-clock configuration and the implementation modules used. The accepted baseline uses physical velocity coefficient 0.98, no tilt lead, finger blend 0.25, closure 0.20, and hold frame 54. These are sample-specific settings from the earlier report, not a general grasp solution.
 
 The implementation of geometry generation is reusable; end-to-end cross-sample execution and repeated grasp reliability remain unproven. A baseline repeat (r13) failed at the return boundary due to world collision after the tilt. That failure is retained and is not accepted as a baseline. Source-clock diversity must still pass full physical execution on every new candidate.
@@ -118,3 +125,39 @@ respected). It does not attach, reset, or directly command the object. The
 closing-joint mask remains XHand-specific; feedback thresholds and margins
 still require validation on other objects and hands. The current alternate
 physical velocity coefficient is 0.94; task acceptance thresholds are unchanged.
+
+## Outbound interval check (2026-10-01)
+
+The first cuRobo interval `[0, 35)` approaches the bowl before grasping; it
+has 1.167 s. Hopper job `641070.hopper-m-02` explicitly selected this
+interval, without exclusions in any other interval. Its first candidate was
+accepted after a full 144-frame, 4.8-second physical rollout. The actual
+wrist path is 3.67 cm mean nearest-path distance and 5.86 cm symmetric
+Hausdorff distance from r11, with 7.13 mm minimum virtual-box clearance.
+Peak same-frame wrist separation is 5.88 cm. The bowl is retained through
+tilt and return, then released. Final reference position error is 4.15 cm;
+maximum held relative rotation drift is 0.2946 rad. These are measurements
+from a new path to the first BC, not a carried-bowl outbound detour.
+
+The carried-bowl outbound interval `[76, 82)` is also cuRobo but has only
+0.200 s. Hopper job `641073.hopper-m-02` searched this interval alone at
+peak obstacle half-sizes 2.5, 1.25, 0.625, and 0.3125 cm. All four
+candidates were rejected. The first two required at least 0.494 and 0.675 s
+respectively under the current detour planner; the smaller two found no
+valid wrist detour, and their trial paths also exceeded the time budget.
+This establishes that the current search did not produce a diverse carried
+outbound solution. It does not prove that no feasible trajectory exists.
+No rejected r24 candidate is included among accepted solutions.
+
+For reporting, `scripts/overlay_diverse_actual.py` aligns two recorded
+actual-state videos by source frame, overlays the same-camera images, draws
+their measured wrist XY traces in cyan and magenta, and displays same-frame
+wrist separation. The approach and return overlays are versioned as
+`docs/evidence/source_clock_diversity_20261001/overlay_outbound_approach.mp4`
+and `docs/evidence/source_clock_diversity_20261001/overlay_return.mp4`.
+The two-panel actual
+wrist-path and separation figure is
+`docs/evidence/source_clock_diversity_20261001/actual_wrist_path_comparison.png`.
+The report should show each cuRobo interval separately, mark BC intervals and
+source time, and pair path separation with physical success, grasp drift,
+and timing. A planned curve alone is not evidence of an executed second path.
