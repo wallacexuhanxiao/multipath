@@ -180,3 +180,77 @@ def test_fixed_budget_easing_reduces_endpoint_speed_without_overspeed():
     np.testing.assert_allclose(out[[0,-1]],path)
     with pytest.raises(RuntimeError,match='usable budget'):
         resample_with_velocity_budget(path,10,[1.,2.],dt=.01)
+
+
+def test_obstacles_accumulate_within_intervals_never_across_intervals(tmp_path):
+    from multipath.path_exclusion import exclusions_for_window
+    runs=[]
+    for name,offset in [('first',0.),('second',.15)]:
+        run=accepted_run(tmp_path,name);runs.append(run)
+        p=run/'pipeline_result.json';report=json.loads(p.read_text())
+        report['windows']=[{'controller':'BC','start':0,'end':10},
+                           {'controller':'CUROBO','start':10,'end':30},
+                           {'controller':'BC','start':30,'end':60},
+                           {'controller':'CUROBO','start':60,'end':100},
+                           {'controller':'BC','start':100,'end':110}]
+        p.write_text(json.dumps(report))
+        trace=[]
+        for start,end,y in [(10,30,offset),(60,100,2+offset)]:
+            trace += [{'mode':'CUROBO','source_frame':start+(end-start)*i/20,
+                       'wrist_xyz_wxyz':[i/20,y,0,1,0,0,0]} for i in range(21)]
+        (run/'actual_trace.json').write_text(json.dumps(trace))
+    config=build_exclusions(runs,adaptive_size=True,exclusion_scope='wrist')
+    first=exclusions_for_window(config,10,30);second=exclusions_for_window(config,60,100)
+    assert len(first['sources'])==len(second['sources'])==2
+    assert all(b['pose'][1]<.5 for b in first['cuboid'].values())
+    assert all(b['pose'][1]>1.5 for b in second['cuboid'].values())
+    first_path=np.array([[0,0,0],[1,0,0]])
+    assert not compare_path(first_path,first)['actual_wrist_exclusion_pass']
+    assert compare_path(first_path,second)['actual_wrist_exclusion_pass']
+    assert exclusions_for_window(config,30,60) is None
+    assert exclusions_for_window(config,0,10) is None
+    config['segments'].append(first)
+    with pytest.raises(ValueError,match='Duplicate'):
+        exclusions_for_window(config,10,30)
+
+
+def test_transport_path_includes_bc_handoff_boundary():
+    from multipath.path_exclusion import transport_points
+    trace=[{'source_frame':f,'mode':'BC' if f==10 else 'CUROBO',
+            'wrist_xyz_wxyz':[f,0,0,1,0,0,0]} for f in range(10,14)]
+    np.testing.assert_allclose(transport_points(trace,10,13)[:,0],[10,11,12,13])
+
+
+def test_live_boundary_protection_stays_in_current_interval(tmp_path):
+    from multipath.path_exclusion import protect_live_wrist_boundaries,box_clearance
+    run=accepted_run(tmp_path,'live')
+    segment=build_exclusions([run],adaptive_size=True,exclusion_scope='wrist')['segments'][0]
+    protected=protect_live_wrist_boundaries(segment,[.1,0,0],[.9,0,0])
+    assert box_clearance(np.array([[.1,0,0],[.9,0,0]]),protected['cuboid']).min()>.012
+    assert not compare_path(np.array([[0.,0,0],[1.,0,0]]),protected)['actual_wrist_exclusion_pass']
+    assert segment['cuboid'] is not protected['cuboid']
+    for stats in protected['live_boundary_diagnostics']:
+        size=np.asarray(stats['half_sizes_m']);peak=size.argmax()
+        assert np.all(np.diff(size[:peak+1])>=-1e-12)
+        assert np.all(np.diff(size[peak:])<=1e-12)
+
+
+def test_each_motion_interval_keeps_its_own_arm_handoff(tmp_path):
+    run=accepted_run(tmp_path,'handoffs')
+    p=run/'pipeline_result.json';report=json.loads(p.read_text())
+    report['windows']=[{'controller':'BC','start':0,'end':10},
+                       {'controller':'CUROBO','start':10,'end':30},
+                       {'controller':'BC','start':30,'end':60},
+                       {'controller':'CUROBO','start':60,'end':100},
+                       {'controller':'BC','start':100,'end':110}]
+    p.write_text(json.dumps(report))
+    trace=[]
+    for start,end,q in [(10,30,[.1]*7),(60,100,[.2]*7)]:
+        trace.extend({'mode':'CUROBO','source_frame':start+(end-start)*i/20,
+                      'wrist_xyz_wxyz':[i/20,start/10,0,1,0,0,0],
+                      'arm_q':q} for i in range(21))
+    (run/'actual_trace.json').write_text(json.dumps(trace))
+    config=build_exclusions([run],adaptive_size=True,exclusion_scope='wrist')
+    from multipath.path_exclusion import exclusions_for_window
+    assert exclusions_for_window(config,10,30)['boundary_arm_q']==[.1]*7
+    assert exclusions_for_window(config,60,100)['boundary_arm_q']==[.2]*7

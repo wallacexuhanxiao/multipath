@@ -1,0 +1,72 @@
+{
+  "date": "2026-10-01",
+  "hopper_job": "640489.hopper-m-02",
+  "manifest_status": "complete",
+  "attempts": [
+    {
+      "status": "rejected",
+      "peak_half_size_m": 0.025,
+      "physical_task_success": false
+    },
+    {
+      "status": "rejected",
+      "peak_half_size_m": 0.0125,
+      "physical_task_success": false
+    },
+    {
+      "status": "accepted",
+      "peak_half_size_m": 0.00625,
+      "physical_task_success": true
+    }
+  ],
+  "accepted_baseline": "source_clock_r11",
+  "accepted_second": "source_clock_diverse_r22/solution_02_attempt_03",
+  "second_success": true,
+  "frames": 144,
+  "duration_s": 4.8,
+  "bc_intervals": [
+    [
+      35,
+      76
+    ],
+    [
+      82,
+      101
+    ],
+    [
+      111,
+      128
+    ]
+  ],
+  "diversified_curobo_interval": [
+    101,
+    111
+  ],
+  "peak_tilt_rad": 0.927798777155396,
+  "peak_tilt_video_frame": 98,
+  "reference_peak_tilt_frame": 92,
+  "final_reference_position_error_m": 0.049532806818861956,
+  "max_held_object_relative_drift_m": 0.02399322116666476,
+  "max_held_object_rotation_drift_rad": 0.34771890566672314,
+  "measured_max_joint_speed_limit_ratio": 1.010706963667011,
+  "released_at_end": true,
+  "path_diversity": {
+    "actual_wrist_min_exclusion_clearance_m": 0.0034492405898368813,
+    "actual_wrist_exclusion_pass": true,
+    "comparisons": [
+      {
+        "source_run": "source_clock_r11",
+        "mean_nearest_path_distance_m": 0.009493537995799222,
+        "symmetric_hausdorff_m": 0.014640337145702629
+      }
+    ]
+  },
+  "virtual_exclusion_scope": "wrist",
+  "virtual_exclusion_window_policy": "longest-budget",
+  "virtual_exclusion_obstacle_count": 48,
+  "notes": [
+    "One accepted second solution on this sample; repeatability and cross-sample transfer unproven.",
+    "Virtual obstacles are independent by motion-planning interval.",
+    "Virtual boxes check wrist path; no fluid is simulated."
+  ]
+}

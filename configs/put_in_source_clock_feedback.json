@@ -1,0 +1,84 @@
+{
+  "instruction": "grasp the bowl, hold it while tilting over the board, return it to the source position, then release",
+  "num_frames": 144,
+  "fps": 30.0,
+  "source_video": "20231024_253/color.mp4",
+  "semantic_review": "Original RGB and object poses show tilt then return; prior place-on-board labels were incorrect.",
+  "release_frame": 116,
+  "bc_intervals": [
+    {
+      "start": 35,
+      "end": 76
+    },
+    {
+      "start": 82,
+      "end": 101
+    },
+    {
+      "start": 111,
+      "end": 128
+    }
+  ],
+  "schedule": [
+    {
+      "start": 0,
+      "end": 35,
+      "mode": "RELAXED"
+    },
+    {
+      "start": 35,
+      "end": 76,
+      "mode": "BC"
+    },
+    {
+      "start": 76,
+      "end": 82,
+      "mode": "RELAXED"
+    },
+    {
+      "start": 82,
+      "end": 101,
+      "mode": "BC"
+    },
+    {
+      "start": 101,
+      "end": 111,
+      "mode": "RELAXED"
+    },
+    {
+      "start": 111,
+      "end": 128,
+      "mode": "BC"
+    },
+    {
+      "start": 128,
+      "end": 144,
+      "mode": "RELAXED"
+    }
+  ],
+  "grasp_contact_frame": 46,
+  "grasp_closed_frame": 54,
+  "precontact_end_frame": 43,
+  "prepare_open_hand_before_descent": true,
+  "tilt_control_lead_frames": 0,
+  "physical_velocity_fraction": 0.94,
+  "grasp_feedback": {
+    "enabled": true,
+    "closing_joints": [
+      0,
+      1,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11
+    ],
+    "position_deadband": 0.01,
+    "rotation_deadband": 0.12,
+    "max_preload": 0.1,
+    "closing_rate": 0.15
+  }
+}

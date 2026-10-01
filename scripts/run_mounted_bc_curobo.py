@@ -60,7 +60,7 @@ def main():
         from multipath.schedule import Schedule,Window
         from multipath.mounted_xhand import assemble,configure_drives,ActualMeshRecorder
         from multipath.bc_trajectory import retime_bc
-        from multipath.path_exclusion import transport_points,compare_path,exclusion_segments
+        from multipath.path_exclusion import transport_points,compare_path,exclusion_segments,exclusions_for_window
         schedule=Schedule.load(args.schedule)
         exclusions=json.loads(args.path_exclusions.read_text()) if args.path_exclusions else None
         if exclusions:
@@ -380,7 +380,7 @@ def main():
                     for a,f in zip(la,lf):step(a,f,'BC_RELEASE_RETREAT',w.end-1)
                     info['release_retreat_duration_s']=lt['duration_s']
             else:
-                active_exclusions=next((s for s in exclusion_segments(exclusions) if s['window']==[w.start,w.end]),None) if exclusions else None
+                active_exclusions=exclusions_for_window(exclusions,w.start,w.end)
                 endpoint=w.end if w.end<schedule.num_frames else w.end-1
                 startq=np.asarray(robot.get_joint_positions())[arm]
                 if wi==0:

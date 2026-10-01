@@ -23,7 +23,7 @@ def detour_waypoints(start, end, exclusions, clearance=.008):
                 yield points
 
 
-def plan_wrist_detour(planner, start, goal_position, goal_rotation, exclusions, tensor, budget_s, solve):
+def plan_wrist_detour(planner, start, goal_position, goal_rotation, exclusions, tensor, budget_s, solve, goal_joints=None):
     from curobo.types.math import Pose
     from curobo.types.robot import JointState
     from curobo.wrap.reacher.motion_gen import MotionGenPlanConfig
@@ -35,11 +35,11 @@ def plan_wrist_detour(planner, start, goal_position, goal_rotation, exclusions, 
     trials=[];best=None
     for trial,waypoints in enumerate(detour_waypoints(first,goal_position,exclusions)):
         current=start;pieces=[];ok=True
-        for position,rotation in zip([*waypoints,goal_position],rotations):
+        for waypoint_index,(position,rotation) in enumerate(zip([*waypoints,goal_position],rotations)):
             pose=Pose(position=tensor.to_device(position.copy())[None],quaternion=tensor.to_device(rotation.as_quat()[[3,0,1,2]])[None])
             try:
                 seed=current.position.detach().cpu().numpy().reshape(-1,7)[0].copy()
-                qgoal=solve(position,rotation,seed)
+                qgoal=np.asarray(goal_joints,dtype=float).copy() if waypoint_index==2 and goal_joints is not None else solve(position,rotation,seed)
                 joint_goal=JointState.from_position(tensor.to_device(qgoal.copy())[None],joint_names=planner.joint_names)
                 valid,_=planner.check_start_state(joint_goal)
             except RuntimeError:

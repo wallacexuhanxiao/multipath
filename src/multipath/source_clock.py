@@ -7,7 +7,7 @@ import numpy as np
 import json
 from scipy.spatial.transform import Rotation
 from scipy.optimize import least_squares
-from .path_exclusion import exclusion_segments, compare_path, transport_points
+from .path_exclusion import exclusion_segments, exclusions_for_window, protect_live_wrist_boundaries, compare_path, transport_points
 
 
 def run_source_clock(*, args, report, ref, schedule, robot, arm, fingers, wrist,
@@ -49,7 +49,7 @@ def run_source_clock(*, args, report, ref, schedule, robot, arm, fingers, wrist,
     exclusions=report.get('path_exclusions')
     (out/'source_clock_config.json').write_text(json.dumps(semantics,indent=2))
     module_dir=__import__('pathlib').Path(__file__).parent
-    for filename in ('source_clock.py','path_exclusion.py','diverse_planning.py'):
+    for filename in ('source_clock.py','path_exclusion.py','diverse_planning.py','grasp_hold.py'):
         (out/('implementation_'+filename)).write_text((module_dir/filename).read_text())
     report['source_clock_config']=semantics
     report['physical_velocity_fraction']=velocity_fraction
@@ -63,14 +63,35 @@ def run_source_clock(*, args, report, ref, schedule, robot, arm, fingers, wrist,
     held=None;relative_p=None;relative_r=None;grasp_offset=np.zeros(3)
     fidelity=[];joint_speeds=[];retention=[];rotation_retention=[]
     applied_q=qlast.copy();applied_f=np.asarray(robot.get_joint_positions())[fingers].copy();applied_speeds=[];actual_speeds=[]
+    grip_config=semantics.get('grasp_feedback',{})
+    grip_preload=0.;grip_samples=[]
+    finger_limits=np.asarray(robot._articulation_view.get_dof_limits())[0,fingers]
     def controlled_step(q,f,mode,frame):
-        nonlocal applied_q,applied_f
+        nonlocal applied_q,applied_f,grip_preload
+        if grip_config.get('enabled',False) and relative_p is not None and frame<release_frame:
+            from .grasp_hold import update_preload
+            wp,wq=wrist.get_world_pose();op,oq=objects['tool'].get_world_pose()
+            rotation=Rotation.from_quat(np.asarray(wq)[[1,2,3,0]])
+            object_rotation=Rotation.from_quat(np.asarray(oq)[[1,2,3,0]])
+            pd=float(np.linalg.norm(rotation.inv().apply(np.asarray(op)-wp)-relative_p))
+            rd=float((relative_r.inv()*rotation.inv()*object_rotation).magnitude())
+            options={k:v for k,v in grip_config.items() if k not in ('enabled','closing_joints')}
+            grip_preload=update_preload(grip_preload,pd,rd,1/120,**options)
+            f=np.asarray(f).copy()
+            f[np.asarray(grip_config['closing_joints'],dtype=int)]+=grip_preload
+            f=np.clip(f,finger_limits[:,0],finger_limits[:,1])
+            grip_samples.append({'source_frame':frame,'preload_rad':grip_preload,'position_drift_m':pd,'rotation_drift_rad':rd})
         dq=np.clip(q-applied_q,-.90*limits/120,.90*limits/120)
         df=np.clip(f-applied_f,-6/120,6/120)
         applied_q=applied_q+dq;applied_f=applied_f+df
         applied_speeds.append(float(np.max(np.abs(dq)*120/limits)))
         step(applied_q,applied_f,mode,frame,velocity=np.r_[dq*120,np.zeros(12)])
-        actual_speeds.append(float(np.max(np.abs(np.asarray(robot.get_joint_velocities())[arm])/limits)))
+        actual_velocity=np.asarray(robot.get_joint_velocities())[arm].copy()
+        ratio=float(np.max(np.abs(actual_velocity)/limits))
+        actual_speeds.append(ratio)
+        if ratio>report.get('measured_velocity_peak',{}).get('ratio',0):
+            report['measured_velocity_peak']={'ratio':ratio,'source_frame':frame,
+                                              'controller':mode,'arm_velocity_rad_s':actual_velocity.tolist()}
 
     def fk(q):
         s=ik.kinematics.get_state(tensor.to_device(q.copy())[None])
@@ -154,7 +175,8 @@ def run_source_clock(*, args, report, ref, schedule, robot, arm, fingers, wrist,
             report['acquisition_lift_m']=actual_lift
             if actual_lift<.025:
                 raise RuntimeError(f'Source-clock acquisition did not lift bowl: {actual_lift:.4f}m')
-        active_exclusions=next((s for s in exclusion_segments(exclusions) if s['window']==[w.start,w.end]),None) if exclusions else None
+        active_exclusions=exclusions_for_window(exclusions,w.start,w.end)
+        info['active_virtual_exclusion_window']=[w.start,w.end] if active_exclusions else None
         if w.controller=='CUROBO':
             endpoint=min(w.end,len(source)-1)
             p,r=desired(endpoint)
@@ -186,8 +208,13 @@ def run_source_clock(*, args, report, ref, schedule, robot, arm, fingers, wrist,
                 from .diverse_planning import plan_wrist_detour
                 anchor=np.asarray(active_exclusions['boundary_wrist_xyz_wxyz'])
                 p=anchor[:3].copy();r=Rotation.from_quat(anchor[[4,5,6,3]])*mount_r.inv()
-                raw,search=plan_wrist_detour(planner,start,p,r,active_exclusions,tensor,info['budget_s'],solve)
-                info['boundary_target']='accepted_baseline_measured_wrist'
+                live_wrist=np.asarray(wrist.get_world_pose()[0])
+                adjusted=protect_live_wrist_boundaries(active_exclusions,live_wrist,p)
+                active_exclusions.update(adjusted)
+                (out/'resolved_path_exclusions.json').write_text(json.dumps(exclusions,indent=2))
+                raw,search=plan_wrist_detour(planner,start,p,r,active_exclusions,tensor,info['budget_s'],solve,
+                                              goal_joints=active_exclusions.get('boundary_arm_q'))
+                info['boundary_target']='accepted_baseline_measured_arm_and_wrist' if 'boundary_arm_q' in active_exclusions else 'accepted_baseline_measured_wrist'
                 info['detour_search']=search
                 info['virtual_path_obstacle_count']=len(active_exclusions['cuboid'])
                 info['plan_status']='wrist_detour_found'
@@ -266,6 +293,7 @@ def run_source_clock(*, args, report, ref, schedule, robot, arm, fingers, wrist,
                    'peak_tilt_timestamp_s':(peak+1)/schedule.fps,'peak_tilt_video_frame':peak+1,'reference_peak_tilt_frame':expected_peak,
                    'final_reference_position_error_m':final_error,'max_held_object_relative_drift_m':max(retention,default=999),
                    'max_held_object_rotation_drift_rad':max(rotation_retention,default=999),
+                   'grasp_feedback_samples':grip_samples,'grasp_feedback_max_preload_rad':grip_preload,
                    'released_at_end':bool(released),'final_object_stability_m':final_drift,
                    'task_success':success,'timing_limits_pass':timing_ratio<=1.05,
                    'reference_semantics_validated':success,

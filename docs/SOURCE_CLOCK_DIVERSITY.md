@@ -38,20 +38,44 @@ Resampling uses cumulative joint travel rather than subplan sample index, so sto
 
 ## Current validation boundary (2026-10-01)
 
-As of the r17 search, there is one accepted source-clock baseline (r11) and
-zero accepted diverse solutions. The closest full candidate, r17 attempt 2,
-ran 144 frames / 4.8 seconds: peak tilt 47.21 degrees, final position error
-3.30 cm, actual return-path mean distance 2.34 cm from baseline, Hausdorff
-4.20 cm, and minimum virtual-box clearance 6.10 mm. It was rejected because
-relative hand–bowl rotation drift reached 25.62 degrees, exceeding the
-unchanged 0.35-radian gate. No thresholds were weakened.
+Hopper job `640489.hopper-m-02` completed the r22 search. Attempt 1 was
+rejected before execution because its detour needed 0.379 s in a 0.333 s
+window. Attempt 2 completed physically but failed the unchanged semantic and
+grasp gates. Attempt 3 was accepted as solution 2, following the r11 baseline.
+Both accepted runs have 144 recorded PhysX frames at 30 fps (4.8 s), with the
+bowl retained through tilt and return, then released. The BC windows are
+unchanged; the distinct cuRobo route is in the return interval `[101, 111)`.
 
-The r18 controller uses a smoothstep time law blended according to available
-velocity slack. Its endpoint easing is reusable and locally tested, but its
-physical result is pending. Tests cover geometric translation/scaling,
-unimodal sizes, cumulative source acceptance, interval selection, and
-fixed-budget velocity-bounded easing. These offline tests do not establish
-physical success.
+For the accepted second run, the actual peak tilt is 53.16 degrees at video
+frame 98, six frames after the reference peak (66.53 degrees at frame 92).
+The final bowl position is 4.95 cm from the reference, below the 5 cm gate.
+Maximum held relative translation is 2.40 cm. Maximum held relative rotation
+is 0.3477 rad (19.92 degrees), close to the 0.35 rad gate. The measured peak
+joint-speed ratio is 1.0107, inside the 1.05 tolerance. The actual wrist
+maintains 3.45 mm minimum clearance from the virtual exclusion boxes,
+above the 2 mm gate; its mean nearest-path distance from r11 is 0.95 cm and
+symmetric Hausdorff distance is 1.46 cm. This is a measured but modest path
+difference, not a large alternate route. Virtual clearance checks the wrist
+only. The real scene's full robot, hand, and carried-object collision checks
+remain active, but the virtual boxes do not prove swept-body clearance.
+
+The accepted result is one successful second solution on one sample, with
+position and rotation margins close to their gates. It does not establish
+repeatability or transfer to other samples. Pouring is judged from bowl tilt;
+no liquid or contents are simulated. The first attempted larger exclusions
+and r17 candidate show that a visually larger route can fail the fixed time
+or grasp constraints. No acceptance thresholds were weakened.
+
+The r18 controller added a smoothstep time law blended according to available
+velocity slack. The later r22 run additionally uses accepted-baseline joint
+handoff, live boundary protection, and bounded slip feedback. Offline tests
+cover geometric translation/scaling, unimodal sizes, cumulative source
+acceptance, interval isolation, and fixed-budget velocity-bounded easing.
+Physical validation is the recorded r22 rollout, not these offline tests.
+
+Local videos: `outputs/source_clock_r11/mounted_xhand_bc_curobo_actual.mp4`,
+`outputs/source_clock_diverse_r22/solution_02_attempt_03/mounted_xhand_bc_curobo_actual.mp4`,
+and `outputs/source_clock_diverse_r22/baseline_vs_second_solution.mp4`.
 
 Evidence is under `docs/evidence/source_clock_diversity_20261001/`.
 The previous Chinese repair report describes its original delivery state;
@@ -59,3 +83,38 @@ its statement that default settings still use r12 was historical. The current
 source-clock configuration has been restored to r11's 0.98 velocity coefficient
 and zero tilt lead; now each rollout snapshots its actual configuration and
 implementation. This does not imply deterministic r11 reproduction.
+
+## Per-interval isolation
+
+Virtual path exclusions belong to a single motion-planning interval. Each
+interval accumulates only the paths previously accepted for that same interval.
+`exclusions_for_window(config, start, end)` activates the exact matching set;
+other intervals and BC receive none of those virtual obstacles. Each cuRobo
+interval constructs its real-scene collision world afresh. Spatial overlap
+between two different intervals does not make their virtual obstacles shared.
+Real table/object collision geometry remains shared scene geometry.
+
+A regression test builds two intervals with two accepted trajectories each,
+checks that their generated obstacle sets remain separate, and verifies that
+a path rejected by one interval's exclusion set is not rejected by the other
+interval's set. The current `longest-budget` experiment varies only the return
+interval; it does not claim diversity in every motion-planning interval.
+
+
+## Live anchors and bounded grip feedback
+
+Source-time path extraction includes the BC-to-motion handoff sample. Before
+planning a wrist detour, the current interval rebuilds its tapered exclusions
+with the actual wrist start and fixed end protected. All previous paths for
+that interval must remain excluded; removing the complete diversity constraint
+raises an error. The adjusted boxes are saved as `resolved_path_exclusions.json`
+and used both for planning and actual-path acceptance. Other intervals are
+unchanged.
+
+`configs/put_in_source_clock_feedback.json` is an experimental alternative to
+the baseline: object motion relative to the grasp triggers a bounded increase
+in finger position targets (at most 0.10 rad, at most 0.15 rad/s, joint limits
+respected). It does not attach, reset, or directly command the object. The
+closing-joint mask remains XHand-specific; feedback thresholds and margins
+still require validation on other objects and hands. The current alternate
+physical velocity coefficient is 0.94; task acceptance thresholds are unchanged.

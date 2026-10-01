@@ -9,7 +9,8 @@ import numpy as np
 
 def transport_points(trace, start, end):
     points = np.asarray([r['wrist_xyz_wxyz'][:3] for r in trace
-                         if r['mode'] == 'CUROBO' and start <= r['source_frame'] <= end], dtype=float)
+                         if (r['mode'] == 'CUROBO' and start <= r['source_frame'] <= end)
+                         or r['source_frame'] in (start,end)], dtype=float)
     if len(points) < 2 or not np.isfinite(points).all():
         raise ValueError('No finite measured cuRobo path for requested window')
     return points
@@ -103,6 +104,42 @@ def tapered_obstacles_along_path(points, max_half_size=.025, boundary_spheres=No
 def exclusion_segments(config):
     """Read new multi-window configurations and earlier single-window records."""
     return config.get('segments', [config])
+
+
+def protect_live_wrist_boundaries(segment, start_xyz, end_xyz, radius=.008):
+    """Rebuild this interval's tapered exclusions around live wrist anchors.
+
+    Preserve every prior path in the same interval, while ensuring the current
+    planning start and fixed end are outside the artificial exclusion tube.
+    """
+    spheres=np.c_[np.asarray([start_xyz,end_xyz]),np.full(2,radius)]
+    boxes={};diagnostics=[]
+    for index,source in enumerate(segment['sources']):
+        prior=source['placement_diagnostics']
+        maximum=prior.get('requested_max_half_size_m',prior.get('half_size_m'))
+        if maximum is None:raise ValueError('Missing obstacle peak size')
+        generated,stats=tapered_obstacles_along_path(source['wrist_path_xyz'],maximum,spheres)
+        boxes.update({f'path_exclusion_{index}_{j}':box for j,box in enumerate(generated.values())})
+        diagnostics.append(stats)
+    result={**segment,'cuboid':boxes,'live_boundary_spheres':spheres.tolist(),
+            'live_boundary_diagnostics':diagnostics}
+    # Endpoint protection must not silently erase the diversity constraint.
+    for source in segment['sources']:
+        if compare_path(np.asarray(source['wrist_path_xyz']),result)['actual_wrist_exclusion_pass']:
+            raise ValueError('Protected boundaries removed exclusion of a prior path')
+    return result
+
+
+def exclusions_for_window(config, start, end):
+    """Activate only this interval's accumulated virtual obstacles.
+
+    Geometry from another interval never transfers, even if spatial paths
+    overlap. Returning None means this interval has no virtual exclusions.
+    """
+    if config is None:return None
+    matches=[segment for segment in exclusion_segments(config) if segment['window']==[start,end]]
+    if len(matches)>1:raise ValueError('Duplicate exclusion interval')
+    return matches[0] if matches else None
 
 
 def recorded_boundary_spheres(directory, trace, start, end):
@@ -201,6 +238,7 @@ def build_exclusions(run_dirs, start=None, end=None, half_size=.025, adaptive_si
             endpoint=min(trace,key=lambda r:abs(r['source_frame']-b))
             if 'boundary_wrist_xyz_wxyz' not in segment:
                 segment['boundary_wrist_xyz_wxyz']=endpoint['wrist_xyz_wxyz']
+                if 'arm_q' in endpoint:segment['boundary_arm_q']=endpoint['arm_q']
             segment['sources'].append({**metadata,'wrist_path_xyz':resample(path).tolist(),
                                        'boundary_geometry_files':files,'placement_diagnostics':stats})
             segment['cuboid'].update({f'path_exclusion_{index}_{j}':box for j,box in enumerate(boxes.values())})
