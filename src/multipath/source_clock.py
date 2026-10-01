@@ -1,4 +1,4 @@
-"""Source-time execution of a held-bowl tilt, return, and release sequence.
+"""Source-time execution with reference-derived interaction and release events.
 
 No phase inserts simulation time. New spatial plans must fit their source
 interval; reference replay and physical measurements share the same clock.
@@ -19,6 +19,8 @@ def run_source_clock(*, args, report, ref, schedule, robot, arm, fingers, wrist,
     from curobo.wrap.reacher.motion_gen import MotionGen,MotionGenConfig,MotionGenPlanConfig
     source=ref[args.source_wrist]
     semantics=json.loads(args.schedule.read_text())
+    reference_driven=bool(semantics.get('reference_driven'))
+    acquisition_end=int(semantics.get('acquisition_end_frame',schedule.bc_windows[0].end))
     release_frame=int(semantics['release_frame'])
     contact_frame=int(semantics['grasp_contact_frame'])
     closure_frame=int(semantics['grasp_closed_frame'])
@@ -57,10 +59,12 @@ def run_source_clock(*, args, report, ref, schedule, robot, arm, fingers, wrist,
     upper=np.array([2.8973,1.7628,2.8973,-.0698,2.8973,3.7525,2.8973])
     report.update({'source_clock':True,'source_duration_s':len(source)/schedule.fps,
                    'source_wrist':args.source_wrist,
-                   'semantic_contract':'hold bowl through tilt and return; release at source return location',
+                   'semantic_contract':('reference object pose and grasp retention through inferred release'
+                                        if reference_driven else 'hold bowl through tilt and return; release at source return location'),
                    'old_place_on_target_predicate_disabled':True,'windows':[]})
     qlast=np.asarray(robot.get_joint_positions())[arm].copy()
     held=None;relative_p=None;relative_r=None;grasp_offset=np.zeros(3)
+    precontact_offset=np.zeros(3)
     fidelity=[];joint_speeds=[];retention=[];rotation_retention=[]
     applied_q=qlast.copy();applied_f=np.asarray(robot.get_joint_positions())[fingers].copy();applied_speeds=[];actual_speeds=[]
     grip_config=semantics.get('grasp_feedback',{})
@@ -106,10 +110,35 @@ def run_source_clock(*, args, report, ref, schedule, robot, arm, fingers, wrist,
         fit=least_squares(residual,np.clip(seed,lower+1e-6,upper-1e-6),bounds=(lower,upper),
                           diff_step=2e-3,max_nfev=60,xtol=1e-7,ftol=1e-7,gtol=1e-7)
         p,r=fk(fit.x);err=np.linalg.norm(p-position);angle=(rotation*r.inv()).magnitude()
-        if err>.015 or angle>.15:raise RuntimeError(f'Source-time local IK error {err:.4f}m {angle:.3f}rad')
+        if err>.015 or angle>.15:
+            requested=Pose(position=tensor.to_device(np.asarray(position).copy())[None],
+                           quaternion=tensor.to_device(rotation.as_quat()[[3,0,1,2]])[None])
+            alternate=ik.solve_single(requested,retract_config=tensor.to_device(seed.copy())[None],
+                                      seed_config=tensor.to_device(seed.copy())[None,None],num_seeds=40)
+            if bool(alternate.success.item()):
+                candidate=alternate.solution.detach().cpu().numpy().reshape(-1).copy()
+                p,r=fk(candidate);err=np.linalg.norm(p-position);angle=(rotation*r.inv()).magnitude()
+                if err<=.015 and angle<=.15:
+                    report['global_ik_fallback_count']=report.get('global_ik_fallback_count',0)+1
+                    return candidate
+            raise RuntimeError(f'Reference wrist IK error {err:.4f}m {angle:.3f}rad')
         return fit.x
 
     def desired(frame):
+        if reference_driven:
+            if relative_p is not None and frame<release_frame:
+                rotation=gtr[frame]*relative_r.inv()
+                return gt[frame,:3,3]+grasp_offset-rotation.apply(relative_p),rotation*mount_r.inv()
+            if relative_p is not None:
+                anchor_rotation=gtr[release_frame]*relative_r.inv()
+                anchor=gt[release_frame,:3,3]+grasp_offset-anchor_rotation.apply(relative_p)
+                phase=(frame-release_frame)/max(1,len(source)-1-release_frame)
+                remaining=1-(3*phase*phase-2*phase*phase*phase)
+                position=xyz[frame]+remaining*(anchor-xyz[release_frame])
+                rotation=anchor_rotation*wr[release_frame].inv()*wr[frame]
+                return position,rotation*mount_r.inv()
+            phase=np.clip((contact_frame-frame)/max(1,contact_frame-approach_start),0,1)
+            return xyz[frame].copy()+phase*precontact_offset,wr[frame]*mount_r.inv()
         if relative_p is not None and frame>=release_frame:
             # Keep the returned bowl pose while opening; then withdraw the
             # hand continuously. Switching back to the old floating wrist
@@ -150,7 +179,9 @@ def run_source_clock(*, args, report, ref, schedule, robot, arm, fingers, wrist,
         wp,wq=wrist.get_world_pose();op,oq=objects['tool'].get_world_pose()
         orot=Rotation.from_quat(np.asarray(oq)[[1,2,3,0]])
         angle=float(np.arccos(np.clip(orot.apply([0,0,1])@gtr[0].apply([0,0,1]),-1,1)))
-        entry={'frame':frame,'measured_time_s':(frame+1)/schedule.fps,'bowl_xyz':np.asarray(op).tolist(),'tilt_rad':angle}
+        entry={'frame':frame,'measured_time_s':(frame+1)/schedule.fps,'bowl_xyz':np.asarray(op).tolist(),'tilt_rad':angle,
+               'reference_position_error_m':float(np.linalg.norm(np.asarray(op)-gt[frame,:3,3])),
+               'reference_rotation_error_rad':float((gtr[frame].inv()*orot).magnitude())}
         fidelity.append(entry)
         if relative_p is not None and frame<release_frame:
             current=Rotation.from_quat(np.asarray(wq)[[1,2,3,0]])
@@ -162,7 +193,7 @@ def run_source_clock(*, args, report, ref, schedule, robot, arm, fingers, wrist,
         info={'controller':w.controller,'start':w.start,'end':w.end,'budget_s':(w.end-w.start)/schedule.fps}
         speed_start=len(joint_speeds)
         report['windows'].append(info);print('SOURCE_WINDOW',info,flush=True)
-        if w.start==schedule.bc_windows[0].end:
+        if w.start==acquisition_end:
             wp,wq=wrist.get_world_pose();op,oq=objects['tool'].get_world_pose()
             current=Rotation.from_quat(np.asarray(wq)[[1,2,3,0]])
             relative_p=current.inv().apply(np.asarray(op)-wp)
@@ -173,7 +204,15 @@ def run_source_clock(*, args, report, ref, schedule, robot, arm, fingers, wrist,
             report['grasp_relative_position']=relative_p.tolist()
             actual_lift=float(op[2]-gt[0,2,3])
             report['acquisition_lift_m']=actual_lift
-            if actual_lift<.025:
+            if reference_driven:
+                expected_motion=float(np.linalg.norm(gt[w.start,:3,3]-gt[0,:3,3]))
+                actual_motion=float(np.linalg.norm(np.asarray(op)-gt[0,:3,3]))
+                expected_lift=max(0.,float(gt[w.start,2,3]-gt[0,2,3]))
+                report['acquisition_reference_motion_m']=expected_motion
+                report['acquisition_actual_motion_m']=actual_motion
+                if actual_motion<.5*expected_motion or (expected_lift>.01 and actual_lift<.5*expected_lift):
+                    raise RuntimeError(f'Reference acquisition not reproduced: actual {actual_motion:.4f}m, expected {expected_motion:.4f}m')
+            elif actual_lift<.025:
                 raise RuntimeError(f'Source-clock acquisition did not lift bowl: {actual_lift:.4f}m')
         active_exclusions=exclusions_for_window(exclusions,w.start,w.end)
         info['active_virtual_exclusion_window']=[w.start,w.end] if active_exclusions else None
@@ -188,9 +227,6 @@ def run_source_clock(*, args, report, ref, schedule, robot, arm, fingers, wrist,
                 op,oq=objects[role].get_world_pose();rot=Rotation.from_quat(np.asarray(oq)[[1,2,3,0]])
                 bounds=meshes[role].bounds
                 live['cuboid'][role]={'dims':(bounds[1]-bounds[0]).tolist(),'pose':np.r_[op+rot.apply(bounds.mean(0)),oq].tolist()}
-            if active_exclusions and exclusions.get('exclusion_scope','robot')=='robot':
-                live['cuboid'].update(active_exclusions['cuboid'])
-                info['virtual_path_obstacle_count']=len(active_exclusions['cuboid'])
             planner=MotionGen(MotionGenConfig.load_from_robot_config(cfg,live,tensor_args=tensor,interpolation_dt=1/120,
                        self_collision_check=True,collision_checker_type=CollisionCheckerType.PRIMITIVE,use_cuda_graph=False))
             start=JointState.from_position(tensor.to_device(qstart)[None],joint_names=planner.joint_names)
@@ -204,22 +240,54 @@ def run_source_clock(*, args, report, ref, schedule, robot, arm, fingers, wrist,
             info['start_world_overlap']=sorted(hits,key=lambda x:x[2])[:12]
             np.savez_compressed(out/f'planner_start_spheres_{wi}.npz',spheres=spheres)
             (out/f'source_world_{wi}.json').write_text(json.dumps(live,indent=2))
-            if active_exclusions and exclusions.get('exclusion_scope')=='wrist':
+            if active_exclusions:
                 from .diverse_planning import plan_wrist_detour
                 anchor=np.asarray(active_exclusions['boundary_wrist_xyz_wxyz'])
                 p=anchor[:3].copy();r=Rotation.from_quat(anchor[[4,5,6,3]])*mount_r.inv()
                 live_wrist=np.asarray(wrist.get_world_pose()[0])
+                live_wrist_quaternion=np.asarray(wrist.get_world_pose()[1])
                 adjusted=protect_live_wrist_boundaries(active_exclusions,live_wrist,p)
                 active_exclusions.update(adjusted)
                 (out/'resolved_path_exclusions.json').write_text(json.dumps(exclusions,indent=2))
-                raw,search=plan_wrist_detour(planner,start,p,r,active_exclusions,tensor,info['budget_s'],solve,
-                                              goal_joints=active_exclusions.get('boundary_arm_q'))
+                raw,search=plan_wrist_detour(planner,start,active_exclusions,tensor,info['budget_s'],solve,
+                                              goal_joints=active_exclusions.get('boundary_arm_q'),
+                                              live_wrist_pose=np.r_[live_wrist,live_wrist_quaternion])
                 info['boundary_target']='accepted_baseline_measured_arm_and_wrist' if 'boundary_arm_q' in active_exclusions else 'accepted_baseline_measured_wrist'
                 info['detour_search']=search
                 info['virtual_path_obstacle_count']=len(active_exclusions['cuboid'])
                 info['plan_status']='wrist_detour_found'
             else:
-                qgoal=solve(p,r,qstart)
+                qgoal=None
+                if reference_driven and endpoint<=contact_frame:
+                    # A retarget wrist boundary may overlap the mounted hand's
+                    # conservative collision geometry. Find the nearest safe
+                    # approach height from object extent, then blend back to
+                    # the demonstrated contact at its original source time.
+                    extent=float(np.linalg.norm(meshes['tool'].extents))
+                    for height in np.linspace(0,extent,9):
+                        offset=np.array([0.,0.,height])
+                        try:
+                            candidate=solve(p+offset,r,qstart)
+                        except RuntimeError:
+                            candidate=None
+                        feasible=False
+                        if candidate is not None:
+                            candidate_state=JointState.from_position(tensor.to_device(candidate.copy())[None],joint_names=planner.joint_names)
+                            feasible,_=planner.check_start_state(candidate_state)
+                        if not feasible:
+                            requested=Pose(position=tensor.to_device((p+offset).copy())[None],
+                                           quaternion=tensor.to_device(r.as_quat()[[3,0,1,2]])[None])
+                            alternate=planner.ik_solver.solve_single(requested,num_seeds=40)
+                            if bool(alternate.success.item()):
+                                candidate=alternate.solution.detach().cpu().numpy().reshape(-1).copy()
+                                candidate_state=JointState.from_position(tensor.to_device(candidate.copy())[None],joint_names=planner.joint_names)
+                                feasible,_=planner.check_start_state(candidate_state)
+                        if feasible:
+                            qgoal=candidate;p=p+offset;precontact_offset=offset
+                            info['automatic_precontact_offset_xyz']=offset.tolist()
+                            break
+                    if qgoal is None:raise RuntimeError('No collision-free precontact boundary within one object extent')
+                else:qgoal=solve(p,r,qstart)
                 goal=JointState.from_position(tensor.to_device(qgoal)[None],joint_names=planner.joint_names)
                 goal_ok,goal_status=planner.check_start_state(goal)
                 info['local_goal_valid']=bool(goal_ok);info['local_goal_status']=str(goal_status)
@@ -234,7 +302,7 @@ def run_source_clock(*, args, report, ref, schedule, robot, arm, fingers, wrist,
                 if not bool(result.success.item()):raise RuntimeError(f'Source-clock cuRobo {w.start}:{w.end} failed: {result.status}')
                 raw=result.get_interpolated_plan().position.detach().cpu().numpy().reshape(-1,7)
             ticks=(w.end-w.start)*ticks_per_frame
-            if active_exclusions and exclusions.get('exclusion_scope')=='wrist':
+            if active_exclusions:
                 from .diverse_planning import resample_with_velocity_budget
                 path=resample_with_velocity_budget(raw,ticks,.90*limits,dt=1/120)
             else:
@@ -255,12 +323,15 @@ def run_source_clock(*, args, report, ref, schedule, robot, arm, fingers, wrist,
         else:
             planned=[];seed=qlast.copy()
             for frame in range(w.start,w.end):
-                p,r=desired(frame);seed=solve(p,r,seed);planned.append(seed.copy())
+                p,r=desired(frame)
+                try:seed=solve(p,r,seed)
+                except RuntimeError as error:raise RuntimeError(f'BC source frame {frame}: {error}') from error
+                planned.append(seed.copy())
             last=qlast.copy()
             for k,q in enumerate(planned):
                 frame=w.start+k
                 fq=held if held is not None and frame<release_frame else target_f[frame]
-                if held is not None and frame>=release_frame:
+                if held is not None and frame>=release_frame and not reference_driven:
                     opened=np.zeros(12);opened[2:4]=held[2:4]
                     blend=np.clip((frame-release_frame+1)/3,0,1)
                     fq=held*(1-blend)+opened*blend
@@ -283,8 +354,20 @@ def run_source_clock(*, args, report, ref, schedule, robot, arm, fingers, wrist,
     release_distance=float(np.linalg.norm(np.asarray(wp)-op))
     final_drift=float(np.linalg.norm(trace[-10:]-trace[-1],axis=1).max())
     released=relative_p is not None and release_distance>np.linalg.norm(relative_p)+.04
+    if reference_driven:
+        source_separation=float(np.linalg.norm(xyz[-1]-gt[-1,:3,3]))
+        held_separation=float(semantics['event_evidence']['held_wrist_object_distance_m'])
+        released=relative_p is not None and release_distance>np.linalg.norm(relative_p)+.5*max(.01,source_separation-held_separation)
     success=bool(tilt.max()>.8 and abs(peak-expected_peak)<=8 and final_error<.05 and retention and max(retention)<.05
                  and max(rotation_retention,default=999)<.35 and released and final_drift<.005)
+    if reference_driven:
+        held_measurements=[m for m in fidelity if acquisition_end<=m['frame']<release_frame]
+        position_errors=[m['reference_position_error_m'] for m in held_measurements]
+        rotation_errors=[m['reference_rotation_error_rad'] for m in held_measurements]
+        success=bool(position_errors and max(position_errors)<.05 and max(rotation_errors)<.35
+                     and final_error<.05 and retention and max(retention)<.05
+                     and max(rotation_retention,default=999)<.35 and released and final_drift<.005)
+        report['semantic_contract']='reference object pose and grasp retention through inferred release'
     timing_ratio=max(actual_speeds,default=0)
     report.update({'status':'source_clock_complete','frames_recorded':len(records),'duration_s':len(source)/schedule.fps,
                    'source_clock_measurements':fidelity,'max_joint_speed_limit_ratio':timing_ratio,
@@ -300,5 +383,11 @@ def run_source_clock(*, args, report, ref, schedule, robot, arm, fingers, wrist,
                    'full_pipeline_success':success and timing_ratio<=1.05})
 
     if exclusions:
-        checks=[w['path_diversity']['actual_wrist_exclusion_pass'] for w in report['windows'] if 'path_diversity' in w]
+        checks=[w['path_diversity']['actual_wrist_exclusion_pass'] and
+                w['path_diversity']['actual_arc_pass'] and
+                w['path_diversity']['smooth_arc_pass'] for w in report['windows'] if 'path_diversity' in w]
         report['diverse_solution_success']=bool(report['full_pipeline_success'] and len(checks)==len(exclusion_segments(exclusions)) and all(checks))
+        if exclusions.get('reference_only'):
+            report['diagnostic_only']=True
+            report['full_pipeline_success']=False
+            report['diverse_solution_success']=False

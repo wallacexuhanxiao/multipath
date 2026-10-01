@@ -20,8 +20,10 @@ def main():
     p.add_argument('--robot-yaml', type=Path, required=True)
     p.add_argument('--xhand-urdf', type=Path, required=True)
     p.add_argument('--object-cache', type=Path, required=True)
+    p.add_argument('--tool-object-id')
+    p.add_argument('--target-object-id')
     p.add_argument('--path-exclusions', type=Path)
-    p.add_argument('--source-clock', action='store_true', help='Preserve original tilt-return-release semantics and source duration')
+    p.add_argument('--source-clock', action='store_true', help='Preserve source duration and reference interaction events')
     p.add_argument('--source-wrist',choices=['qpos_right','qpos_right_actual','qpos_right_reference'],default='qpos_right')
     p.add_argument('--grasp-closure',type=float,default=0.)
     p.add_argument('--repaired-grasp',type=Path)
@@ -66,11 +68,24 @@ def main():
         if exclusions:
             if exclusions['kind']!='virtual_planner_obstacles':
                 raise ValueError('Invalid virtual path exclusions')
+            if exclusions.get('exclusion_scope')!='wrist':
+                raise ValueError('Regenerate virtual obstacles with wrist scope; arm links must not collide with them')
+            if not args.source_clock:
+                raise ValueError('Wrist-only virtual exclusions require the source-clock planner')
+            report['reference_only_exclusions']=bool(exclusions.get('reference_only',False))
             for segment in exclusion_segments(exclusions):
                 if not segment['cuboid'] or not any([w.start,w.end]==segment['window'] for w in schedule.curobo_windows):
                     raise ValueError('Exclusion window must match a cuRobo schedule interval')
             report['path_exclusions']=exclusions
         ref=dict(np.load(args.reference,allow_pickle=False))
+        metadata_path=args.reference.with_suffix('.json')
+        reference_metadata=json.loads(metadata_path.read_text()) if metadata_path.exists() else {}
+        report['reference_source_kind']=reference_metadata.get('source_kind','see reference provenance metadata')
+        args.tool_object_id=args.tool_object_id or str(ref.get('tool_mesh_id',reference_metadata.get('tool_mesh_id','')))
+        args.target_object_id=args.target_object_id or str(ref.get('target_mesh_id',reference_metadata.get('target_mesh_id','')))
+        if not args.tool_object_id or not args.target_object_id:
+            raise ValueError('Reference metadata must provide tool/target mesh IDs, or pass both explicitly')
+        report['object_mesh_ids']={'tool':args.tool_object_id,'target':args.target_object_id}
         config=json.loads(args.mount_report.read_text())
         translation=np.asarray(config['scene_translation_xyz'])
         mount=np.asarray(config['candidate_mount_quaternion_xyzw'])
@@ -83,7 +98,8 @@ def main():
         goals_xyz=source[:,:3]+translation
         goals_q=(Rotation.from_quat(source[:,[4,5,6,3]])*Rotation.from_quat(mount).inv()).as_quat()[:,[3,0,1,2]]
         initial_objects={r:np.array(ref[f'object_pose_actual_{r}_xyzw'][0],dtype=float) for r in ('tool','target')}
-        meshes={r:trimesh.load(args.object_cache/id/(id+'_m.obj'),force='mesh') for r,id in [('tool','180'),('target','049')]}
+        object_ids=[('tool',args.tool_object_id),('target',args.target_object_id)]
+        meshes={r:trimesh.load(args.object_cache/id/(id+'_m.obj'),force='mesh') for r,id in object_ids}
         for value in initial_objects.values(): value[:3]+=translation
         table_z=min((Rotation.from_quat(initial_objects[r][3:]).apply(meshes[r].vertices)+initial_objects[r][:3])[:,2].min() for r in meshes)-.001
         table={'dims':[.95,1.0,.04],'pose':[.57,0,float(table_z-.02),1,0,0,0]}
@@ -94,7 +110,7 @@ def main():
         world.scene.add(FixedCuboid(prim_path='/World/Table', name='table',position=np.asarray(table['pose'][:3]),scale=np.asarray(table['dims'])))
         robot,wrist,flange=assemble(world,args.xhand_urdf,mount)
         objects={}
-        for role,id in [('tool','180'),('target','049')]:
+        for role,id in object_ids:
             path='/World/'+role
             add_reference_to_stage(str(args.object_cache/id/(id+'.usd')),path)
             pose=initial_objects[role]
@@ -141,11 +157,24 @@ def main():
         # Seed each BC frame from its predecessor to limit null-space jumps.
         arm_reference=batchq.copy()
         first_bc=schedule.bc_windows[0].start
-        ready_goal=Pose(position=tensor.to_device(goals_xyz[first_bc]+[0,0,.2])[None],
-                        quaternion=tensor.to_device(goals_q[first_bc])[None])
-        ready_solution=ik.solve_single(ready_goal)
-        if not bool(ready_solution.success.item()):raise RuntimeError('Elevated ready pose is unreachable')
-        ready_q=ready_solution.solution.detach().cpu().numpy().reshape(-1)
+        initial_arm_pose=json.loads(args.schedule.read_text()).get('initial_arm_pose','elevated_first_bc')
+        if initial_arm_pose=='automatic_source':
+            ready_q=None
+            extent=float(np.linalg.norm(meshes['tool'].extents))
+            for height in np.linspace(0,extent,9):
+                candidate=ik.solve_single(pose_at(0,np.array([0.,0.,height])))
+                if bool(candidate.success.item()):
+                    ready_q=candidate.solution.detach().cpu().numpy().reshape(-1)
+                    report['initial_wrist_lift_m']=height
+                    break
+            if ready_q is None:raise RuntimeError('No collision-free initial pose within one object extent of source')
+        elif initial_arm_pose=='elevated_first_bc':
+            ready_goal=Pose(position=tensor.to_device(goals_xyz[first_bc]+[0,0,.2])[None],
+                            quaternion=tensor.to_device(goals_q[first_bc])[None])
+            ready_solution=ik.solve_single(ready_goal)
+            if not bool(ready_solution.success.item()):raise RuntimeError('Elevated ready pose is unreachable')
+            ready_q=ready_solution.solution.detach().cpu().numpy().reshape(-1)
+        else:raise ValueError('Unknown initial arm pose')
         arm_reference[0]=ready_q
         arm_reference[-1]=ready_q
         report['sequential_ik_fallback_frames']=[]
@@ -240,7 +269,8 @@ def main():
         report.update({'reference':str(args.reference),'schedule':str(args.schedule),'table_z':float(table_z),
                        'mount_xyzw':mount.tolist(),'scene_translation_xyz':translation.tolist(),
                        'bc_finger_source':'measured finger trajectory plus scaled original control residual','finger_command_blend':args.finger_command_blend,'start_at_bc_diagnostic':args.start_at_bc,'bc_wrist_source':'qpos_right_actual',
-                       'left_hand_present':False,'relaxed_initial_and_terminal':'first_BC_wrist_elevated_20cm','physics':'PhysX CPU','xhand_force_drive':[5,.5,3]})
+                       'left_hand_present':False,'relaxed_initial_and_terminal':initial_arm_pose,
+                       'physics':'PhysX CPU','xhand_force_drive':[5,.5,3]})
         capture('INITIAL',0,np.r_[qinit[arm],qinit[fingers]])
         if args.source_clock:
             from multipath.source_clock import run_source_clock
@@ -426,10 +456,6 @@ def main():
                     bounds=meshes[role].bounds;center=(bounds[0]+bounds[1])/2
                     live_world['cuboid'][role]={'dims':(bounds[1]-bounds[0]).tolist(),
                         'pose':np.r_[np.asarray(op)+r.apply(center),oq].tolist()}
-                if active_exclusions:
-                    live_world['cuboid'].update(active_exclusions['cuboid'])
-                    info['virtual_path_obstacle_count']=len(active_exclusions['cuboid'])
-
                 info['xhand_and_payload_sphere_count']=n_spheres
                 planner=MotionGen(MotionGenConfig.load_from_robot_config(cfg,live_world,tensor_args=tensor,
                     interpolation_dt=1/120,self_collision_check=True,
@@ -570,7 +596,8 @@ def main():
         report['full_pipeline_success']=bool(task_success and not args.start_at_bc and not args.grasp_only
                                             and len(report['windows'])==len(schedule.windows))
         if exclusions:
-            checks=[x['path_diversity']['actual_wrist_exclusion_pass'] for x in report['windows'] if 'path_diversity' in x]
+            checks=[x['path_diversity']['actual_wrist_exclusion_pass'] and
+                    x['path_diversity']['actual_arc_pass'] for x in report['windows'] if 'path_diversity' in x]
             report['diverse_solution_success']=bool(report['full_pipeline_success'] and len(checks)==len(exclusion_segments(exclusions)) and all(checks))
     except Exception as exc:
         report['status']='failed'

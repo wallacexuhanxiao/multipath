@@ -5,6 +5,7 @@ import hashlib
 import json
 from pathlib import Path
 import numpy as np
+from scipy.spatial.transform import Rotation
 
 
 def transport_points(trace, start, end):
@@ -24,6 +25,31 @@ def resample(points, count=101):
         raise ValueError('Path has no measurable translation')
     query = np.linspace(0, distance[-1], count)
     return np.stack([np.interp(query, distance[keep], points[keep, k]) for k in range(3)], axis=1)
+
+
+def interval_distance_profile(points, peak_ratio=.45, target_arc_ratio=.75,
+                              max_half_size=.08, size_multiplier=1.):
+    """Scale a tapered exclusion and visible-arc target to this measured path.
+
+    The chord controls ordinary transfers. Half the traveled arc length keeps
+    curved or near-looping intervals from collapsing to a tiny obstacle.
+    Physical planning still decides whether the requested size is feasible.
+    """
+    path=np.asarray(points,dtype=float)
+    if path.ndim!=2 or path.shape[1]!=3 or len(path)<2 or not np.isfinite(path).all():
+        raise ValueError('Expected a finite Nx3 interval path')
+    if not (0<peak_ratio<=1 and 0<target_arc_ratio<=2 and max_half_size>0 and 0<size_multiplier<=1):
+        raise ValueError('Invalid distance-adaptive obstacle parameters')
+    length=float(np.linalg.norm(np.diff(path,axis=0),axis=1).sum())
+    chord=float(np.linalg.norm(path[-1]-path[0]))
+    if length<1e-5:raise ValueError('Path has no measurable translation')
+    scale=max(chord,.5*length)
+    peak=min(max_half_size,peak_ratio*scale)*size_multiplier
+    return {'path_length_m':length,'endpoint_distance_m':chord,
+            'interval_distance_scale_m':scale,'requested_max_half_size_m':peak,
+            'minimum_arc_distance_m':target_arc_ratio*scale,
+            'peak_ratio':peak_ratio,'target_arc_ratio':target_arc_ratio,
+            'size_multiplier':size_multiplier}
 
 
 def obstacles_along_path(points, half_size=.025, spacing=None, boundary_spheres=None, clearance=.005):
@@ -57,7 +83,8 @@ def obstacles_along_path(points, half_size=.025, spacing=None, boundary_spheres=
                    'protected_sphere_count':len(spheres),'minimum_boundary_clearance_m':float(distances[distances>clearance].min())}
 
 
-def tapered_obstacles_along_path(points, max_half_size=.025, boundary_spheres=None, clearance=.005):
+def tapered_obstacles_along_path(points, max_half_size=.025, boundary_spheres=None,
+                                 clearance=.005, oriented=False):
     """Small -> large -> small envelope in normalized path arc length.
 
     The sine-squared profile is capped by measured endpoint geometry, then
@@ -71,6 +98,12 @@ def tapered_obstacles_along_path(points, max_half_size=.025, boundary_spheres=No
     length=float(np.linalg.norm(np.diff(points,axis=0),axis=1).sum())
     count=max(33,int(np.ceil(length/(max_half_size/2)))+1)
     centers=resample(points,count)
+    tangent=np.gradient(centers,axis=0)
+    tangent/=np.maximum(np.linalg.norm(tangent,axis=1,keepdims=True),1e-9)
+    basis=np.eye(3)[np.argmin(np.abs(tangent),axis=1)]
+    normal=np.cross(tangent,basis);normal/=np.linalg.norm(normal,axis=1,keepdims=True)
+    rotation=np.stack([tangent,normal,np.cross(tangent,normal)],axis=-1)
+    longitudinal_half=max(.003,.8*length/(count-1))
     u=np.linspace(0,1,count)
     requested=max_half_size*np.sin(np.pi*u)**2
     endpoints=np.c_[points[[0,-1]],np.full(2,min(max_half_size/2,length/10))]
@@ -78,7 +111,13 @@ def tapered_obstacles_along_path(points, max_half_size=.025, boundary_spheres=No
     spheres=spheres[spheres[:,3]>0]
     if not np.isfinite(spheres).all():raise ValueError('Nonfinite boundary geometry')
     def distances(sizes):
-        delta=np.maximum(np.abs(centers[:,None,:]-spheres[None,:,:3])-sizes[:,None,None],0)
+        if oriented:
+            relative=spheres[None,:,:3]-centers[:,None,:]
+            local=np.einsum('csi,cij->csj',relative,rotation)
+            half=np.stack([np.full(count,longitudinal_half),sizes,sizes],axis=1)
+            delta=np.maximum(np.abs(local)-half[:,None,:],0)
+        else:
+            delta=np.maximum(np.abs(centers[:,None,:]-spheres[None,:,:3])-sizes[:,None,None],0)
         return (np.linalg.norm(delta,axis=-1)-spheres[None,:,3]).min(axis=1)
     lo=np.zeros(count);hi=requested.copy()
     for _ in range(32):
@@ -92,10 +131,15 @@ def tapered_obstacles_along_path(points, max_half_size=.025, boundary_spheres=No
     sizes[peak:]=np.minimum.accumulate(sizes[peak:])
     keep=(sizes>=max_half_size*.1)&(distances(sizes)>clearance)
     if not keep.any():raise ValueError('No room for tapered path obstacles outside protected boundaries')
-    boxes={f'path_exclusion_{j}':{'dims':[float(2*h)]*3,'pose':[*p.tolist(),1.,0.,0.,0.]}
-           for j,(p,h) in enumerate(zip(centers[keep],sizes[keep]))}
+    quaternions=Rotation.from_matrix(rotation).as_quat()[:,[3,0,1,2]]
+    boxes={f'path_exclusion_{j}':{
+        'dims':([float(2*longitudinal_half),float(2*h),float(2*h)] if oriented else [float(2*h)]*3),
+        'pose':[*p.tolist(),*(quaternions[i].tolist() if oriented else [1.,0.,0.,0.])]}
+           for j,(i,p,h) in enumerate(zip(np.flatnonzero(keep),centers[keep],sizes[keep]))}
     return boxes,{'path_length_m':length,'candidate_count':count,'boundary_filtered_count':int((~keep).sum()),
                   'protected_sphere_count':len(spheres),'size_profile':'sin_squared_geometry_capped_unimodal',
+                  'box_orientation':'path_tangent' if oriented else 'axis_aligned',
+                  'longitudinal_half_size_m':longitudinal_half if oriented else None,
                   'arc_fractions':u[keep].tolist(),'half_sizes_m':sizes[keep].tolist(),
                   'requested_max_half_size_m':max_half_size,
                   'minimum_boundary_clearance_m':float(distances(sizes)[keep].min())}
@@ -118,7 +162,9 @@ def protect_live_wrist_boundaries(segment, start_xyz, end_xyz, radius=.008):
         prior=source['placement_diagnostics']
         maximum=prior.get('requested_max_half_size_m',prior.get('half_size_m'))
         if maximum is None:raise ValueError('Missing obstacle peak size')
-        generated,stats=tapered_obstacles_along_path(source['wrist_path_xyz'],maximum,spheres)
+        generated,stats=tapered_obstacles_along_path(
+            source['wrist_path_xyz'],maximum,spheres,
+            oriented=prior.get('box_orientation')=='path_tangent')
         boxes.update({f'path_exclusion_{index}_{j}':box for j,box in enumerate(generated.values())})
         diagnostics.append(stats)
     result={**segment,'cuboid':boxes,'live_boundary_spheres':spheres.tolist(),
@@ -186,13 +232,22 @@ def _boundaries(directory, report, window_index):
     return (np.concatenate(arrays) if arrays else None), [p.name for p in files if p.exists()]
 
 
-def build_exclusions(run_dirs, start=None, end=None, half_size=.025, adaptive_size=False, exclusion_scope="robot", window_policy="all"):
-    if not run_dirs or not 0 < half_size <= .1 or (start is None)!=(end is None):
+def build_exclusions(run_dirs, start=None, end=None, half_size=.025, adaptive_size=False,
+                     exclusion_scope="wrist", window_policy="all", size_mode="fixed",
+                     peak_ratio=.45, target_arc_ratio=.75, max_half_size=.08,
+                     size_multiplier=1.):
+    if not run_dirs or (start is None)!=(end is None):
         raise ValueError('Invalid exclusion geometry, window, or empty accepted path list')
+    if size_mode not in ('fixed','distance') or (size_mode=='fixed' and not 0<half_size<=.1):
+        raise ValueError('Invalid exclusion size mode or fixed size')
+    if size_mode=='distance':
+        adaptive_size=True
     if window_policy not in ('all','longest-budget'):raise ValueError('Unknown window policy')
-    if exclusion_scope not in ('robot','wrist'):raise ValueError('Unknown exclusion scope')
-    result = {'version': 2, 'exclusion_scope':exclusion_scope, 'window_policy':window_policy, 'kind': 'virtual_planner_obstacles',
-              'half_size_m': half_size, 'placement': 'tapered_arc_length_with_boundary_geometry_filter' if adaptive_size else 'arc_length_with_boundary_geometry_filter',
+    if exclusion_scope!='wrist':raise ValueError('Virtual path obstacles constrain only the wrist')
+    result = {'version': 2, 'exclusion_scope':exclusion_scope, 'window_policy':window_policy,
+              'size_mode':size_mode,'kind': 'virtual_planner_obstacles',
+              'half_size_m': half_size if size_mode=='fixed' else None,
+              'placement': 'tapered_arc_length_with_boundary_geometry_filter' if adaptive_size else 'arc_length_with_boundary_geometry_filter',
               'sources': [], 'segments': []}
     selected = None
     for index, directory in enumerate(run_dirs):
@@ -229,12 +284,20 @@ def build_exclusions(run_dirs, start=None, end=None, half_size=.025, adaptive_si
             match=[i for i,w in enumerate(windows) if (w['start'],w['end'])==(a,b) and w['controller']=='CUROBO']
             if len(match)!=1:raise ValueError('Accepted paths have incompatible motion intervals')
             path=transport_points(trace,a,b)
-            spheres,files=_boundaries(directory,report,match[0]) if exclusion_scope=='robot' else (None,[])
+            if size_mode=='distance':
+                if 'distance_profile' not in segment:
+                    segment['distance_profile']=interval_distance_profile(
+                        path,peak_ratio,target_arc_ratio,max_half_size,size_multiplier)
+                    segment['minimum_arc_distance_m']=segment['distance_profile']['minimum_arc_distance_m']
+                peak=segment['distance_profile']['requested_max_half_size_m']
+            else:peak=half_size
+            spheres,files=None,[]
             if adaptive_size:
-                boxes,stats=tapered_obstacles_along_path(path,half_size,boundary_spheres=spheres)
+                boxes,stats=tapered_obstacles_along_path(path,peak,boundary_spheres=spheres,
+                                                         oriented=size_mode=='distance')
             else:
-                boxes,stats=obstacles_along_path(path,half_size,boundary_spheres=spheres)
-                stats['half_size_m']=half_size
+                boxes,stats=obstacles_along_path(path,peak,boundary_spheres=spheres)
+                stats['half_size_m']=peak
             endpoint=min(trace,key=lambda r:abs(r['source_frame']-b))
             if 'boundary_wrist_xyz_wxyz' not in segment:
                 segment['boundary_wrist_xyz_wxyz']=endpoint['wrist_xyz_wxyz']
@@ -246,13 +309,14 @@ def build_exclusions(run_dirs, start=None, end=None, half_size=.025, adaptive_si
 
 
 def box_clearance(points, boxes):
-    """Signed point distance to the union of axis-aligned exclusion boxes."""
+    """Signed point distance to the union of oriented exclusion boxes."""
     points = np.asarray(points)
     distances = []
     for box in boxes.values():
-        if box['pose'][3:] != [1., 0., 0., 0.]:
-            raise ValueError('Only axis-aligned path exclusions are supported')
-        delta = np.abs(points - np.asarray(box['pose'][:3])) - np.asarray(box['dims']) / 2
+        quaternion=np.asarray(box['pose'][3:])
+        rotation=Rotation.from_quat(quaternion[[1,2,3,0]])
+        local=rotation.inv().apply(points-np.asarray(box['pose'][:3]))
+        delta = np.abs(local) - np.asarray(box['dims']) / 2
         distances.append(np.linalg.norm(np.maximum(delta, 0), axis=-1) + np.minimum(np.max(delta, axis=-1), 0))
     if not distances:
         raise ValueError('No path exclusion boxes')
@@ -270,9 +334,30 @@ def compare_path(points, exclusions):
     for source in exclusions['sources']:
         old = np.asarray(source['wrist_path_xyz'])
         distances = np.linalg.norm(path[:, None, :] - old[None, :, :], axis=-1)
+        nearest=distances.min(axis=1)
         comparisons.append({'source_run': source['run'],
-                            'mean_nearest_path_distance_m': float(distances.min(axis=1).mean()),
+                            'mean_nearest_path_distance_m': float(nearest.mean()),
+                            'max_nearest_path_distance_m': float(nearest.max()),
+                            'middle_median_path_distance_m': float(np.median(nearest[20:81])),
                             'symmetric_hausdorff_m': float(max(distances.min(axis=1).max(), distances.min(axis=0).max()))})
+    target=float(exclusions.get('minimum_arc_distance_m',0.))
+    arc_pass=all(c['max_nearest_path_distance_m']>=target and
+                 c['middle_median_path_distance_m']>=.5*target for c in comparisons)
+    chord=float(np.linalg.norm(path[-1]-path[0]))
+    path_length=float(np.linalg.norm(np.diff(path,axis=0),axis=1).sum())
+    progress=(path-path[0])@(path[-1]-path[0])/max(chord*chord,1e-10)
+    backward_progress=float(np.maximum(-np.diff(progress),0).sum())
+    endpoint_overshoot=float(max(0.,-progress.min(),progress.max()-1.))
+    # A large distance caused by a loop is not the broad, simple arc sought by
+    # distance mode. Keep older fixed-size exclusions free of this new gate.
+    smooth_arc_pass=(target<=0 or (path_length<=3.25*max(chord,1e-5)
+                                     and backward_progress<=.25
+                                     and endpoint_overshoot<=.20))
     return {'actual_wrist_min_exclusion_clearance_m': clearance,
             'actual_wrist_exclusion_pass': clearance > .002,
+            'minimum_arc_distance_m':target,'actual_arc_pass':arc_pass,
+            'path_length_m':path_length,'endpoint_distance_m':chord,
+            'backward_progress_fraction':backward_progress,
+            'endpoint_overshoot_fraction':endpoint_overshoot,
+            'smooth_arc_pass':smooth_arc_pass,
             'comparisons': comparisons}

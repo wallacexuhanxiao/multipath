@@ -19,12 +19,25 @@ def accepted_run(tmp_path, name, offset=0, success=True):
 def test_cumulative_exclusions_preserve_boundary_space_and_block_old_paths(tmp_path):
     a=accepted_run(tmp_path,'a');b=accepted_run(tmp_path,'b',.2)
     config=build_exclusions([a,b])
+    assert config['exclusion_scope']=='wrist'
     assert len(config['sources'])==2
     config=config['segments'][0]
     for box in config['cuboid'].values():
         assert .075<box['pose'][0]<.925
     assert not compare_path(np.array([[0,0,0],[1,0,0]]),config)['actual_wrist_exclusion_pass']
     assert compare_path(np.array([[0,0,0],[0,0,.2],[1,0,.2],[1,0,0]]),config)['actual_wrist_exclusion_pass']
+
+
+def test_virtual_path_obstacles_cannot_enable_arm_collision(tmp_path):
+    run=accepted_run(tmp_path,'measured')
+    with pytest.raises(ValueError,match='only the wrist'):
+        build_exclusions([run],exclusion_scope='robot')
+    # An arm collision envelope on the wrist path is irrelevant to the
+    # virtual wrist tube. Real robot/world collision checking is separate.
+    np.savez(run/'planner_start_spheres_0.npz',spheres=np.array([[.5,0,0,10.]]))
+    generated=build_exclusions([run],adaptive_size=True)
+    assert generated['segments'][0]['cuboid']
+    assert not generated['segments'][0]['sources'][0]['boundary_geometry_files']
 
 
 def test_failed_or_scene_mismatched_rollouts_cannot_define_solutions(tmp_path):
@@ -71,6 +84,70 @@ def test_generic_curved_path_translation_scale_and_boundary_geometry():
         obstacles_along_path(np.array([[0,0,0],[.02,0,0]]))
 
 
+def test_distance_adaptive_size_scales_with_interval_and_preserves_arc_gate():
+    from multipath.path_exclusion import interval_distance_profile,tapered_obstacles_along_path
+    straight=np.c_[np.linspace(0,.2,41),np.zeros(41),np.zeros(41)]
+    profile=interval_distance_profile(straight,max_half_size=1.)
+    doubled=interval_distance_profile(2*straight,max_half_size=1.)
+    assert doubled['requested_max_half_size_m']==pytest.approx(2*profile['requested_max_half_size_m'])
+    assert doubled['minimum_arc_distance_m']==pytest.approx(2*profile['minimum_arc_distance_m'])
+    assert interval_distance_profile(straight,size_multiplier=.8,max_half_size=1.)['minimum_arc_distance_m']==profile['minimum_arc_distance_m']
+    boxes,_=tapered_obstacles_along_path(straight,profile['requested_max_half_size_m'])
+    exclusion={'cuboid':boxes,'sources':[{'run':'baseline','wrist_path_xyz':resample(straight).tolist()}],
+               'minimum_arc_distance_m':profile['minimum_arc_distance_m']}
+    x=np.linspace(0,.2,101)
+    visible=np.c_[x,.18*np.sin(np.pi*x/.2),np.zeros(101)]
+    subtle=np.c_[x,.08*np.sin(np.pi*x/.2),np.zeros(101)]
+    loopy=np.c_[x,.18*np.sin(3*np.pi*x/.2),np.zeros(101)]
+    reversal=np.c_[np.r_[np.linspace(0,.11,35),np.linspace(.11,.02,30),np.linspace(.02,.2,36)],
+                   np.r_[np.linspace(0,.18,35),np.linspace(.18,.18,30),np.linspace(.18,0,36)],
+                   np.zeros(101)]
+    assert compare_path(visible,exclusion)['actual_arc_pass']
+    assert compare_path(visible,exclusion)['smooth_arc_pass']
+    assert not compare_path(subtle,exclusion)['actual_arc_pass']
+    assert compare_path(loopy,exclusion)['actual_arc_pass']
+    assert not compare_path(loopy,exclusion)['smooth_arc_pass']
+    assert compare_path(reversal,exclusion)['backward_progress_fraction']>.25
+    assert not compare_path(reversal,exclusion)['smooth_arc_pass']
+
+
+def test_distance_design_is_coordinate_and_curve_independent():
+    from scipy.spatial.transform import Rotation
+    from multipath.path_exclusion import interval_distance_profile,tapered_obstacles_along_path
+    angle=np.linspace(0,np.pi/2,81)
+    paths=[np.c_[np.linspace(0,.32,81),np.zeros(81),np.zeros(81)],
+           np.c_[.2*np.cos(angle),.2*np.sin(angle),.03*np.sin(2*angle)]]
+    transform=Rotation.from_euler('xyz',[.3,-.5,.8])
+    shift=np.array([1.2,-.7,.4])
+    for path in paths:
+        profile=interval_distance_profile(path,max_half_size=1.)
+        transformed=transform.apply(path)+shift
+        other=interval_distance_profile(transformed,max_half_size=1.)
+        assert other['requested_max_half_size_m']==pytest.approx(profile['requested_max_half_size_m'])
+        assert other['minimum_arc_distance_m']==pytest.approx(profile['minimum_arc_distance_m'])
+        boxes,stats=tapered_obstacles_along_path(transformed,other['requested_max_half_size_m'],oriented=True)
+        assert len(boxes)>5
+        assert stats['half_sizes_m'][0]<max(stats['half_sizes_m'])
+        assert stats['half_sizes_m'][-1]<max(stats['half_sizes_m'])
+
+
+def test_path_tangent_boxes_keep_large_midpoint_and_rotate_clearance():
+    from multipath.path_exclusion import tapered_obstacles_along_path,box_clearance
+    path=np.c_[np.linspace(0,.2,101),np.linspace(0,.2,101),np.zeros(101)]
+    axis,axis_stats=tapered_obstacles_along_path(path,.08)
+    oriented,stats=tapered_obstacles_along_path(path,.08,oriented=True)
+    assert max(stats['half_sizes_m'])>.07
+    assert max(stats['half_sizes_m'])>max(axis_stats['half_sizes_m'])
+    assert stats['box_orientation']=='path_tangent'
+    assert box_clearance(path,oriented).min()<0
+    assert box_clearance(path[[0,-1]],oriented).min()>.005
+    from scipy.spatial.transform import Rotation
+    quat=Rotation.from_euler('z',90,degrees=True).as_quat()[[3,0,1,2]]
+    box={'one':{'dims':[.02,.2,.2],'pose':[0.,0.,0.,*quat]}}
+    assert box_clearance(np.array([[0.,.05,0.]]),box)[0]>.03
+    assert box_clearance(np.array([[.05,0.,0.]]),box)[0]<0
+
+
 def test_window_discovery_does_not_depend_on_putin_frame_numbers(tmp_path):
     run=accepted_run(tmp_path,'other')
     p=run/'pipeline_result.json';report=json.loads(p.read_text())
@@ -96,6 +173,18 @@ def test_explicit_first_motion_interval_is_selectable_without_other_intervals(tm
     config=build_exclusions([run],start=0,end=21,adaptive_size=True,exclusion_scope='wrist')
     assert [segment['window'] for segment in config['segments']]==[[0,21]]
     assert config['segments'][0]['cuboid']
+
+
+def test_distance_mode_builds_interval_specific_oriented_tube(tmp_path):
+    run=accepted_run(tmp_path,'measured')
+    config=build_exclusions([run],start=65,end=86,
+                            exclusion_scope='wrist',size_mode='distance',
+                            peak_ratio=.45,target_arc_ratio=.75,max_half_size=1.)
+    segment=config['segments'][0]
+    assert segment['minimum_arc_distance_m']==pytest.approx(.75)
+    assert segment['distance_profile']['requested_max_half_size_m']==pytest.approx(.45)
+    assert segment['sources'][0]['placement_diagnostics']['box_orientation']=='path_tangent'
+    assert any(box['pose'][3:]!=[1.,0.,0.,0.] for box in segment['cuboid'].values())
 
 
 def test_serial_search_accumulates_only_successful_candidates(tmp_path,monkeypatch):
@@ -157,7 +246,31 @@ def test_wrist_detour_candidates_avoid_tapered_obstacles_and_translate():
     moved={key:{'dims':b['dims'],'pose':[*list(np.array(b['pose'][:3])+shift),1.,0.,0.,0.]} for key,b in boxes.items()}
     c2={'cuboid':moved,'sources':[{'wrist_path_xyz':(resample(path)+shift).tolist()}]}
     translated=list(detour_waypoints(*(path+shift),c2))
-    np.testing.assert_allclose(translated,np.array(candidates)+shift,atol=1e-12)
+    assert len(translated)==len(candidates)
+    for original,moved in zip(candidates,translated):
+        np.testing.assert_allclose(moved,np.asarray(original)+shift,atol=1e-12)
+
+
+def test_planner_ee_and_measured_wrist_frames_round_trip():
+    from scipy.spatial.transform import Rotation
+    from multipath.diverse_planning import (wrist_mount_from_start,
+                                             wrist_targets_to_ee,ee_path_to_wrist)
+    ee_start=np.array([.2,-.1,.6])
+    ee_start_rotation=Rotation.from_euler('xyz',[.2,-.3,.4])
+    mount_position=np.array([.03,-.08,.06])
+    mount_rotation=Rotation.from_euler('xyz',[-.5,.1,.2])
+    wrist_start=ee_start+ee_start_rotation.apply(mount_position)
+    wrist_start_rotation=ee_start_rotation*mount_rotation
+    found_position,found_rotation=wrist_mount_from_start(
+        ee_start,ee_start_rotation,wrist_start,wrist_start_rotation)
+    np.testing.assert_allclose(found_position,mount_position,atol=1e-12)
+    np.testing.assert_allclose((found_rotation.inv()*mount_rotation).magnitude(),0,atol=1e-12)
+    wrist_positions=np.array([wrist_start,[.4,-.3,.7]])
+    wrist_rotations=Rotation.from_euler('xyz',[[.1,.2,.3],[-.2,.1,.5]])
+    ee_positions,ee_rotations=wrist_targets_to_ee(
+        wrist_positions,wrist_rotations,found_position,found_rotation)
+    np.testing.assert_allclose(ee_path_to_wrist(ee_positions,ee_rotations,found_position),
+                               wrist_positions,atol=1e-12)
 
 
 def test_longest_budget_policy_selects_by_duration_not_frame_ids(tmp_path):

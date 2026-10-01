@@ -1,0 +1,11 @@
+{
+  "run": "reference_auto_246_r4",
+  "pbs_job_id": "641358.hopper-m-02",
+  "status": "failed",
+  "full_pipeline_success": false,
+  "error": "RuntimeError: Source-clock cuRobo 132:145 failed: MotionGenStatus.IK_FAIL",
+  "acquisition_lift_m": 0.02757003903388977,
+  "final_recorded_source_frame": 131,
+  "final_recorded_object_position_error_m": 0.2468376127739922,
+  "configuration_source": "automatically generated from source video, reference poses and upstream VLM output"
+}

@@ -4,6 +4,8 @@
   "sequence": "20231024_253",
   "triplet": "(put in, bowl, plate)",
   "frames": 144,
+  "tool_mesh_id": "180",
+  "target_mesh_id": "049",
   "finger_actions": "qpos_right[:,7:]",
   "measured_wrist": "qpos_right_actual[:,:7]",
   "source_task_success_independently_established": false

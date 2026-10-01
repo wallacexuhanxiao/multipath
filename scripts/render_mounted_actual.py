@@ -19,7 +19,8 @@ def main():
             for key,box in segment['cuboid'].items():
                 name=f'w{wi}_{key}'
                 xyz=' '.join(map(str,box['pose'][:3]));half=' '.join(str(x/2) for x in box['dims'])
-                overlays.append(f'<geom name="{name}" type="box" pos="{xyz}" size="{half}" rgba="1 .15 .55 .4" contype="0" conaffinity="0"/>')
+                quat=' '.join(map(str,box['pose'][3:]))
+                overlays.append(f'<geom name="{name}" type="box" pos="{xyz}" quat="{quat}" size="{half}" rgba="1 .15 .55 .4" contype="0" conaffinity="0"/>')
                 overlay_names.append((name,.4,segment['window']))
             for si,source in enumerate(segment['sources']):
                 points=source['wrist_path_xyz'][::3]
