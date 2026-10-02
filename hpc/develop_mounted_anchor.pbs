@@ -4,8 +4,8 @@
 #PBS -N mounted_anchor_m2
 #PBS -j oe
 #PBS -k oed
-#PBS -l walltime=01:00:00
-#PBS -l select=1:ncpus=12:mem=120gb:ngpus=1:gpu_model=H100
+#PBS -l walltime=00:30:00
+#PBS -l select=1:ncpus=12:mem=120gb:ngpus=1:gpu_model=H200
 set -euo pipefail
 ROOT=/scratch/e0985859/multipath_v0_fc2da7b
 RUNTIME=/scratch/e0985859/egoengine_baseline
@@ -24,6 +24,7 @@ MP_ENV=( --env "LD_LIBRARY_PATH=/scratch/e0985859/semantic_verifier/compat_libs/
  --env "PYTHONPATH=$ROOT/deps:$ROOT/src" --env PYTHONNOUSERSITE=1 --env OMNI_KIT_ACCEPT_EULA=YES
  --env "PBS_JOBID=${PBS_JOBID:-unknown}" )
 [[ -z "${CUDA_VISIBLE_DEVICES:-}" ]] || MP_ENV+=(--env "CUDA_VISIBLE_DEVICES=$CUDA_VISIBLE_DEVICES")
+MP_ENV+=(--bind "$ROOT/hpc/container_env/92-env-torch-distributed.sh:/.singularity.d/env/92-env-torch-distributed.sh:ro")
 singularity exec --nv -e "${MP_ENV[@]}" "$IMAGE" "$RUNTIME/envs/sim-isaac510/bin/python" -u scripts/develop_mounted_anchor.py \
  --proposals "$MULTIPATH_PROPOSALS" --schedule "$MULTIPATH_SCHEDULE" \
  --predecessor-dir "$MULTIPATH_PREDECESSOR" \

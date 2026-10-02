@@ -54,6 +54,8 @@ class MountedScene:
                position_threshold=.005,rotation_threshold=.05,self_collision_check=True,self_collision_opt=True,
                collision_checker_type=CollisionCheckerType.PRIMITIVE,use_cuda_graph=False))
         self.velocity=np.array([2.175]*4+[2.61]*3)
+        # cuRobo nominal time-parameterization budget, NOT an actual-state
+        # actuator acceleration rating. Keep it for fitting and diagnostics.
         self.acceleration=np.array(self.config['kinematics']['cspace'].get('max_acceleration',15.))
         if self.acceleration.ndim:self.acceleration=self.acceleration[:7]
         q=np.asarray(self.robot.get_joint_positions()).copy()
@@ -108,8 +110,10 @@ class MountedScene:
         for role,obj in self.objects.items():
             p,r=obj.get_world_pose()
             objects[role]={'pose':np.r_[p,r].tolist(),'velocity':np.r_[obj.get_linear_velocity(),obj.get_angular_velocity()].tolist()}
+        measured_effort=np.asarray(self.robot.get_measured_joint_efforts())
         relative=np.linalg.inv(pose_matrix(np.r_[wp,wq]))@pose_matrix(objects['tool']['pose'])
         return {'arm_q':q[self.arm].tolist(),'arm_dq':dq[self.arm].tolist(),
+                'measured_joint_efforts':measured_effort[np.r_[self.arm,self.fingers]].tolist(),
                 'hand_q':q[self.fingers].tolist(),'hand_dq':dq[self.fingers].tolist(),
                 'objects':objects,'wrist_xyz_wxyz':np.r_[wp,wq].tolist(),
                 'hand_object_transform':relative.tolist(),'contact':self.contact_state(),
@@ -135,8 +139,10 @@ class MountedScene:
         self.max_acceleration_ratio=max(self.max_acceleration_ratio,float(np.max(np.abs(dq-self.previous_dq)/self.dt/self.acceleration)))
         self.previous_dq=dq.copy()
         if self.ticks%round(1/(self.dt*self.manifest['fps']))==0:self.capture(mode,frame)
-        if self.max_velocity_ratio>1.05 or self.max_acceleration_ratio>1.05:
-            raise RuntimeError(f'Measured actuator dynamics exceeded: velocity={self.max_velocity_ratio:.3f}, acceleration={self.max_acceleration_ratio:.3f}; dq={dq.tolist()}')
+        if not np.isfinite(dq).all() or not np.isfinite(self.robot.get_joint_positions()).all():
+            raise RuntimeError('Non-finite measured articulation state')
+        if self.max_velocity_ratio>1.05:
+            raise RuntimeError(f'Measured actuator velocity exceeded: velocity={self.max_velocity_ratio:.3f}; dq={dq.tolist()}')
 
     def solve(self,wrist_pose,seed):
         """Mounted local retargeting follows the preceding IK branch."""

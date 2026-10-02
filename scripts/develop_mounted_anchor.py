@@ -53,6 +53,12 @@ def main():
              start_hand_dq=np.array(start['hand_dq']),hand_velocity_limits=hand_limits_from_urdf(scene),hand_startup_duration=(anchor.core_start-anchor.synth_start)/schedule.fps,
              hand_joint_limits=np.asarray(scene.robot._articulation_view.get_dof_limits()).reshape(-1,2)[scene.fingers])
         report['kinematic_initialization']=fitting
+        from multipath.anchors.control_check import control_feasibility
+        all_limits=np.asarray(scene.robot._articulation_view.get_dof_limits()).reshape(-1,2)[np.r_[scene.arm,scene.fingers]]
+        precheck=control_feasibility(controls,np.array(start['arm_q']),np.array(start['arm_dq']),scene.dt,all_limits,scene.velocity,scene.acceleration,
+            start_hand_q=np.array(start['hand_q']),hand_velocity_limits=hand_limits_from_urdf(scene))
+        report['nominal_precheck']=precheck
+        if not precheck['feasible']:raise RuntimeError('Local fitted replay failed nominal precheck')
         print('PADDED_REPLAY_BEGIN',anchor.id,flush=True)
         result=replay_padded(scene,anchor,data,controls,start,out/'replay','mounted_padded_replay')
         report['padded_replay']=result

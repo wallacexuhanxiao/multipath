@@ -145,7 +145,12 @@ def replay_padded(scene,anchor,data,controls,start,folder,method,core_only=False
     validation['failures']=sorted(set(validation['failures']))
     validation['success']=not validation['failures'] and validation.get('rollout_complete',False) and entry is not None and exit_state is not None
     validation['handoff_verified']=validation['success']
-    validation.update(measured_velocity_ratio=scene.max_velocity_ratio,measured_acceleration_ratio=scene.max_acceleration_ratio)
+    validation.update(measured_velocity_ratio=scene.max_velocity_ratio,measured_acceleration_ratio=scene.max_acceleration_ratio,
+        measured_acceleration_policy='diagnostic_relative_to_curobo_nominal_budget',
+        nominal_acceleration_budget=np.asarray(scene.acceleration).tolist(),
+        configured_drive_effort_caps=np.asarray(scene.robot._articulation_view.get_max_efforts()).reshape(-1)[np.r_[scene.arm,scene.fingers]].tolist(),
+        effort_measurement_note='Measured joint efforts include reaction loads; not an isolated drive torque measurement',
+        collision_validation_note='PhysX contact response enabled; exhaustive penetration and self-collision acceptance not implemented')
     np.savez_compressed(scene.out/('core_controls.npz' if core_only else 'padded_controls.npz'),commands=controls)
     if entry is not None:
         lo=(anchor.core_start-first)*tpf;hi=(anchor.core_end-first)*tpf

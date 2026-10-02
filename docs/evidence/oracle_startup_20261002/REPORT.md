@@ -1,5 +1,7 @@
 # Mounted Anchor 接管诊断 — 实验报告
 
+> 后续勘误：本文历史实验将 cuRobo 的 15 rad/s² nominal budget 错称为实际 actuator 额定限值。r21 已纠正其用途；此前“加速度失败”仅指旧软件 gate，不足以证明硬件违规。详见 [加速度来源与完整 Replay](ACCELERATION_AUDIT.md)。
+
 ## 结论
 
 M1/r10 bridge 保持冻结。当前仍没有通过局部物理验收的 Anchor，完整 4.8 秒 rollout 未完成。
