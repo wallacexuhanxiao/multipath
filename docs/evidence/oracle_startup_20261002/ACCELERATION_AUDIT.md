@@ -31,4 +31,8 @@
 
 `643336.hopper-m-02`，H200 interactive，上限 30 分钟；输出目录 `/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_a1_physical_replay_r21`。
 
-这是完整 A1 synthesis 作业，不是第七次 startup smoothing diagnostic。结果待回收。
+这是完整 A1 synthesis 作业，不是第七次 startup smoothing diagnostic。
+
+本次收尾查询：作业在 hopper-17，状态 R，walltime 约 5 分 09 秒；日志停在 SimulationApp 初始化的 `omni.physx.tensors` 扩展加载（日志相对时间 45.249 秒）。尚无 PADDED_REPLAY_BEGIN 或 development_result.json。原因未确定，不能把它当成交互失败或 MPC 失败。保留该作业及 30 分钟上限，没有迁移或重复提交。
+
+当前结论：加速度判定的来源错误已修复，r20 小诊断已完成；A1 是否能完成交互仍未获得新证据。没有新增 smoothing 或调高物理阈值。3 项既有 focused tests 通过，未扩展测试集。
