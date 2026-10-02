@@ -16,14 +16,26 @@ New-semantics multi-solution acceptance is still under validation; the old
 place-on-board diversity result is not evidence for the corrected task.
 See [implementation and current limits](docs/SOURCE_CLOCK_DIVERSITY.md).
 
-**Target pipeline:** VLM selects the intervals that need behavior cloning
-(BC). BC controls the interaction windows; cuRobo plans the intervening
-free-motion windows. If no robot demonstration exists for a BC interval,
-EgoEngine-style chunking, retargeting, replay, MPC, and local RL synthesize
-one first. Then each candidate runs from the initial state to task completion
-in continuous physics, without intermediate resets.
+**V0 (current work):** static oracle Interaction Anchors → local padded
+human-to-XHand retarget → physical Anchor replay/synthesis → cuRobo only in
+RELAXED intervals → uninterrupted source-timed PhysX execution. V0 does not
+use VLM or a complete robot reference. Entry point: `hpc/run_oracle_v0.pbs`;
+reviewed segmentation: `configs/oracle/put_in.json`.
+
+Core and synthesis context are separate. Local proposals are **not** physical
+Anchor artifacts: these are saved only with measured entry/exit states and an
+explicit validation report. Failed replay reports the need for mounted MPC;
+the old floating-wrist MPC/RL backend is not yet connected to the mounted V0
+backend. V0 is not yet a successful end-to-end result. Diversity is deferred.
+
+The old VLM/reference-event compilers, full-reference source-clock runners,
+and path-exclusion implementation remain experimental/historical paths.
 
 First target: `(put in, bowl, plate) / 20231024_253`.
+
+Current oracle V0 result: the first 1.1667-second bridge passes real PhysX
+handoff (0.00846 rad maximum joint error); Anchor synthesis is still pending.
+See [progress and actual comparison video](docs/evidence/oracle_v0_20261002/REPORT.md).
 
 **Historical physical diagnostic:** the mounted Franka + XHand Put-In runner completed
 all five BC/cuRobo windows from the ready pose in continuous PhysX, with

@@ -1,0 +1,88 @@
+{
+  "source": "oracle",
+  "fps": 30.0,
+  "num_frames": 144,
+  "instruction": "grasp the bowl, hold it while tilting over the board, return it to the source position, then release",
+  "segmentation_provenance": "configs/put_in_source_clock.json; existing manual semantic review, intervals unchanged",
+  "semantic_review": "Original RGB and object poses show tilt then return; prior place-on-board labels were incorrect.",
+  "windows": [
+    {
+      "start": 0,
+      "end": 35,
+      "mode": "RELAXED",
+      "contact": "free"
+    },
+    {
+      "start": 35,
+      "end": 76,
+      "mode": "ANCHOR",
+      "anchor": "anchor_0"
+    },
+    {
+      "start": 76,
+      "end": 82,
+      "mode": "RELAXED",
+      "contact": "grasped"
+    },
+    {
+      "start": 82,
+      "end": 101,
+      "mode": "ANCHOR",
+      "anchor": "anchor_1"
+    },
+    {
+      "start": 101,
+      "end": 111,
+      "mode": "RELAXED",
+      "contact": "grasped"
+    },
+    {
+      "start": 111,
+      "end": 128,
+      "mode": "ANCHOR",
+      "anchor": "anchor_2"
+    },
+    {
+      "start": 128,
+      "end": 144,
+      "mode": "RELAXED",
+      "contact": "free"
+    }
+  ],
+  "anchors": [
+    {
+      "id": "anchor_0",
+      "core_start": 35,
+      "core_end": 76,
+      "synth_start": 29,
+      "synth_end": 82,
+      "entry_contact": "free",
+      "exit_contact": "grasped"
+    },
+    {
+      "id": "anchor_1",
+      "core_start": 82,
+      "core_end": 101,
+      "synth_start": 76,
+      "synth_end": 107,
+      "entry_contact": "grasped",
+      "exit_contact": "grasped"
+    },
+    {
+      "id": "anchor_2",
+      "core_start": 111,
+      "core_end": 128,
+      "synth_start": 105,
+      "synth_end": 134,
+      "entry_contact": "grasped",
+      "exit_contact": "free"
+    }
+  ],
+  "task_contract": {
+    "kind": "anchor_sequence_and_final_object_pose",
+    "position_tolerance_m": 0.05,
+    "rotation_tolerance_rad": 0.35,
+    "stable_speed_m_s": 0.03
+  },
+  "synthesis_context_note": "6 source frames per side; context is not core and does not alter runtime segmentation"
+}

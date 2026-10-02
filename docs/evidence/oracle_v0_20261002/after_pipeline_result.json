@@ -1,0 +1,556 @@
+{
+  "status": "failed",
+  "full_pipeline_success": false,
+  "task_success": false,
+  "pbs_job_id": "642690.hopper-m-02",
+  "source_provenance": {
+    "triplet": "(put in, bowl, plate)",
+    "sequence": "20231024_253",
+    "input": "raw TACO MANO and object poses",
+    "source_video": "/scratch/e0985859/egoengine_baseline/data/taco_v1/Egocentric_RGB_Videos/(put in, bowl, plate)/20231024_253/color.mp4",
+    "schedule_sha256": "111733961ac0ad03d95087435de751c2bdf27db6f375fe153bd6f5f78283adc2",
+    "full_robot_reference_used": false,
+    "vlm_used": false,
+    "transform_world_to_robot": [
+      [
+        -0.36959298057517503,
+        0.929193775162176,
+        0.0,
+        0.574305986267124
+      ],
+      [
+        -0.9291937551424282,
+        -0.36959297261218765,
+        -0.0,
+        0.005429607853050099
+      ],
+      [
+        0.0,
+        0.0,
+        1.0,
+        -0.1883068585395813
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ]
+  },
+  "source_sha256": "111733961ac0ad03d95087435de751c2bdf27db6f375fe153bd6f5f78283adc2",
+  "mount_xyzw": [
+    -0.9723878971538753,
+    0.0708407020119467,
+    -0.04154451878334948,
+    -0.21844318567119259
+  ],
+  "scene_translation_xyz": [
+    0,
+    0,
+    0
+  ],
+  "physics": "PhysX CPU",
+  "initial_state": {
+    "arm_q": [
+      3.5730565286939964e-05,
+      -1.2999135255813599,
+      0.25029128789901733,
+      -2.5009658336639404,
+      0.0007638540118932724,
+      0.999854564666748,
+      -0.0006039004074409604
+    ],
+    "arm_dq": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "hand_q": [
+      0.009954891167581081,
+      0.016352886334061623,
+      0.0010063869412988424,
+      -0.003181390231475234,
+      0.0019219095120206475,
+      0.0015946172643452883,
+      0.0021901624277234077,
+      0.0010947491973638535,
+      0.003382722847163677,
+      7.421908230753615e-05,
+      0.0031605507247149944,
+      0.0002425357379252091
+    ],
+    "hand_dq": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "objects": {
+      "target": {
+        "pose": [
+          0.5468894243240356,
+          0.057642631232738495,
+          0.3687475919723511,
+          0.7789037823677063,
+          -3.25031578540802e-06,
+          1.6914013940549921e-06,
+          0.6271436810493469
+        ],
+        "velocity": [
+          9.56273652263917e-06,
+          1.3341168596525677e-06,
+          -0.0001596263755345717,
+          0.0006805617595091462,
+          0.0010306069161742926,
+          7.043042569421232e-05
+        ]
+      },
+      "tool": {
+        "pose": [
+          0.5199962854385376,
+          -0.17998391389846802,
+          0.387001633644104,
+          0.738025963306427,
+          7.223337888717651e-06,
+          1.8993509002029896e-05,
+          -0.6747724413871765
+        ],
+        "velocity": [
+          4.969324072590098e-05,
+          -3.135563019895926e-05,
+          -4.640548650058918e-05,
+          0.0011937968665733933,
+          0.0014554946683347225,
+          0.002680616918951273
+        ]
+      }
+    },
+    "wrist_xyz_wxyz": [
+      0.10835150629281998,
+      0.0688493549823761,
+      0.5819580554962158,
+      0.828438401222229,
+      -0.27717819809913635,
+      0.09119313955307007,
+      0.47806477546691895
+    ],
+    "hand_object_transform": [
+      [
+        -0.6915279097261546,
+        0.590443787850066,
+        -0.416131329581229,
+        0.1132427409737234
+      ],
+      [
+        -0.46298398060517726,
+        -0.804485524330307,
+        -0.3720871871564189,
+        -0.3711955899742404
+      ],
+      [
+        -0.5544681990635352,
+        -0.06464653534612057,
+        0.829690208267509,
+        -0.3446263801882633
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "contact": {
+      "mode": "free",
+      "touching_links": 0,
+      "force_norms_n": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "evidence": "PhysX hand-link/tool contact force; retention checked separately"
+    },
+    "scene_id": "94ce34ec0299501b095c383f0845862b915360ab2d5340195a2597905bae8d04",
+    "physically_acquired_state": true,
+    "time_s": 0.0,
+    "state_origin": "continuous_PhysX_rollout"
+  },
+  "initial_ready_search": {
+    "candidate_count": 43,
+    "nominal": [
+      0.0,
+      -1.2999999523162842,
+      0.0,
+      -2.5,
+      0.0,
+      1.0,
+      0.0
+    ],
+    "selected": [
+      0.0,
+      -1.2999999523162842,
+      0.25,
+      -2.5,
+      0.0,
+      1.0,
+      0.0
+    ]
+  },
+  "table_z": 0.35704829206495053,
+  "source": "oracle",
+  "source_fps": 30.0,
+  "vlm_used": false,
+  "complete_robot_reference_required": false,
+  "source_duration_s": 4.8,
+  "state_resets_between_segments": 0,
+  "relaxed_reference_tracking": false,
+  "anchors": [
+    {
+      "id": "anchor_0",
+      "core_start": 35,
+      "core_end": 76,
+      "synth_start": 29,
+      "synth_end": 82,
+      "entry_contact": "free",
+      "exit_contact": "grasped",
+      "core_interval": [
+        35,
+        76
+      ],
+      "synthesis_interval": [
+        29,
+        82
+      ],
+      "entry_physically_reachable": true,
+      "local_rollout_success": false,
+      "source_provenance": {
+        "triplet": "(put in, bowl, plate)",
+        "sequence": "20231024_253",
+        "input": "raw TACO MANO and object poses",
+        "source_video": "/scratch/e0985859/egoengine_baseline/data/taco_v1/Egocentric_RGB_Videos/(put in, bowl, plate)/20231024_253/color.mp4",
+        "schedule_sha256": "111733961ac0ad03d95087435de751c2bdf27db6f375fe153bd6f5f78283adc2",
+        "full_robot_reference_used": false,
+        "vlm_used": false,
+        "transform_world_to_robot": [
+          [
+            -0.36959298057517503,
+            0.929193775162176,
+            0.0,
+            0.574305986267124
+          ],
+          [
+            -0.9291937551424282,
+            -0.36959297261218765,
+            -0.0,
+            0.005429607853050099
+          ],
+          [
+            0.0,
+            0.0,
+            1.0,
+            -0.1883068585395813
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      "contact_state": {
+        "entry": {
+          "mode": "free",
+          "touching_links": 0,
+          "force_norms_n": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "evidence": "PhysX hand-link/tool contact force; retention checked separately"
+        },
+        "exit": {
+          "mode": "free",
+          "touching_links": 0,
+          "force_norms_n": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "evidence": "PhysX hand-link/tool contact force; retention checked separately"
+        }
+      },
+      "handoff_verified": false,
+      "validation": {
+        "success": false,
+        "handoff_verified": false,
+        "synthesis_method": "replay",
+        "context_used": "padded local retarget and command smoothing",
+        "fallback_status": "mounted_MPC_required; floating-wrist EgoEngine backend cannot establish mounted reachability",
+        "core_pose_errors": [],
+        "error": "Anchor replay exceeds source-time joint velocity limits"
+      }
+    }
+  ],
+  "segments": [
+    {
+      "start": 0,
+      "end": 35,
+      "mode": "RELAXED",
+      "contact": "free",
+      "budget_s": 1.1666666666666667,
+      "success": true,
+      "entry_geometry_search": [
+        {
+          "offset_xyz": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "full_geometry_valid": false
+        },
+        {
+          "offset_xyz": [
+            0.0,
+            0.0,
+            0.026485819941399213
+          ],
+          "full_geometry_valid": false
+        },
+        {
+          "offset_xyz": [
+            0.0,
+            0.0,
+            0.052971639882798426
+          ],
+          "full_geometry_valid": true
+        }
+      ],
+      "plan_status": "None",
+      "uniform_timing_rejection": "Fixed source budget violates dynamics: velocity=1.262, acceleration=2.267",
+      "curobo_duration_s": 1.475,
+      "time_scale": 1.0,
+      "command_velocity_ratio": 0.9519190660231414,
+      "command_acceleration_ratio": 0.8962083243844177,
+      "parameterization": "squared_path_speed_reachability",
+      "minimum_computed_duration_s": 1.133223910025814,
+      "collision_model": {
+        "self": true,
+        "real_scene": true,
+        "carried_object": false,
+        "virtual_obstacles": false
+      },
+      "retention": [],
+      "transition": {
+        "arm_q_error_rad": 0.008456945419311523,
+        "actual_arm_dq": [
+          0.006596850696951151,
+          0.003920766990631819,
+          -0.005955520085990429,
+          0.0017550254706293344,
+          -0.007779035717248917,
+          0.04311311990022659,
+          0.007038063369691372
+        ],
+        "actual_hand_q": [
+          0.015324178151786327,
+          0.020427227020263672,
+          0.0010065756505355239,
+          -0.003206091234460473,
+          0.0009630101849325001,
+          0.002237010048702359,
+          0.0017379418713971972,
+          0.0015584665816277266,
+          0.003696724772453308,
+          0.00032722059404477477,
+          0.003668935038149357,
+          0.00037422895547933877
+        ],
+        "actual_hand_dq": [
+          -0.004196815192699432,
+          -0.01027839444577694,
+          -2.3695429263170809e-07,
+          -0.0013371353270485997,
+          0.005692693404853344,
+          -0.005646881647408009,
+          0.0026334458962082863,
+          -0.0031027542427182198,
+          -0.0011725398944690824,
+          -0.00025892211124300957,
+          -0.003311312524601817,
+          0.002107384381815791
+        ],
+        "actual_objects": {
+          "target": {
+            "pose": [
+              0.5468895435333252,
+              0.057642627507448196,
+              0.36874791979789734,
+              0.778903603553772,
+              -1.0690419003367424e-06,
+              1.0787516657728702e-08,
+              0.6271438598632812
+            ],
+            "velocity": [
+              4.669254849432036e-08,
+              -7.616683888045372e-07,
+              -7.452776117133908e-06,
+              7.561477832496166e-05,
+              4.77575849799905e-06,
+              1.6049336863943608e-06
+            ]
+          },
+          "tool": {
+            "pose": [
+              0.5199964046478271,
+              -0.17998404800891876,
+              0.38700181245803833,
+              0.7380269765853882,
+              8.674338459968567e-06,
+              2.040719846263528e-05,
+              -0.674771249294281
+            ],
+            "velocity": [
+              -6.033612589817494e-05,
+              -0.0001467351394239813,
+              5.7281482440885156e-05,
+              0.00333953695371747,
+              -0.0016097179614007473,
+              -0.0011748129036277533
+            ]
+          }
+        },
+        "actual_contact": {
+          "mode": "free",
+          "touching_links": 0,
+          "force_norms_n": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "evidence": "PhysX hand-link/tool contact force; retention checked separately"
+        },
+        "actual_hand_object_transform": [
+          [
+            0.174744470848449,
+            0.41506376011433155,
+            0.8928529805895532,
+            -0.030128689475771964
+          ],
+          [
+            -0.7402826642033438,
+            0.6532708621009288,
+            -0.1588041492213259,
+            0.17449413969416336
+          ],
+          [
+            -0.6491886836566818,
+            -0.6332134361885122,
+            0.4214199772702318,
+            -0.1658369209796739
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "scene_id": "94ce34ec0299501b095c383f0845862b915360ab2d5340195a2597905bae8d04",
+        "success": true
+      },
+      "actual_end_s": 1.1666666666666667
+    },
+    {
+      "start": 35,
+      "end": 76,
+      "mode": "ANCHOR",
+      "anchor": "anchor_0",
+      "budget_s": 1.3666666666666667,
+      "success": false
+    }
+  ],
+  "physical_validation_stage": "sequential_anchor_development",
+  "error": "RuntimeError: Anchor replay exceeds source-time joint velocity limits",
+  "actual_duration_s": 1.1666666666666667,
+  "frames_recorded": 36,
+  "measured_velocity_ratio": 0.9553866368143952,
+  "measured_acceleration_ratio": 0.8896979689598083
+}

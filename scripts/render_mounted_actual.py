@@ -12,6 +12,11 @@ def main():
     geo=np.load(out/'visual_meshes.npz'); transforms=np.load(out/'visual_actual.npz')['transforms']
     trace=json.loads((out/'actual_trace.json').read_text());names=json.loads((out/'visual_mesh_paths.json').read_text())
     report=json.loads((out/'pipeline_result.json').read_text())
+    fps=float(report.get('source_fps',30.))
+    video_frames=len(trace)
+    if report.get('source')=='oracle':
+        # N+1 measured boundaries describe N source-frame time intervals.
+        video_frames=min(video_frames,max(1,int(np.ceil(report['actual_duration_s']*fps-1e-8))))
     exclusions=report.get('path_exclusions')
     overlays=[];overlay_names=[]
     if exclusions:
@@ -55,9 +60,9 @@ def main():
     cam=mujoco.MjvCamera();cam.lookat[:]=[.4,-.03,.4];cam.distance=1.65;cam.azimuth=135;cam.elevation=-25
     positions=np.stack(positions,axis=1);rotations=np.stack(rotations,axis=1)
     video=out/'mounted_xhand_bc_curobo_actual.mp4'
-    writer=cv2.VideoWriter(str(video),cv2.VideoWriter_fourcc(*'mp4v'),30/args.stride,(960,720))
+    writer=cv2.VideoWriter(str(video),cv2.VideoWriter_fourcc(*'mp4v'),fps/args.stride,(960,720))
     if not writer.isOpened():raise RuntimeError('VideoWriter failed')
-    for frame in range(0,len(trace),args.stride):
+    for frame in range(0,video_frames,args.stride):
         item=trace[frame]
         if exclusions:
             active=False
@@ -73,10 +78,10 @@ def main():
         if exclusions and active:
             cv2.putText(bgr,'Pink: virtual planning obstacles | Cyan: prior measured wrist path',(15,53),cv2.FONT_HERSHEY_SIMPLEX,.5,(245,200,235),1,cv2.LINE_AA)
         writer.write(bgr)
-        if frame==0 or frame==len(trace)-1:cv2.imwrite(str(out/f'actual_frame_{frame:05d}.png'),bgr)
+        if frame==0 or frame==video_frames-1:cv2.imwrite(str(out/f'actual_frame_{frame:05d}.png'),bgr)
     writer.release();renderer.close()
     cap=cv2.VideoCapture(str(video));count=int(cap.get(cv2.CAP_PROP_FRAME_COUNT));ok,_=cap.read();cap.release()
-    if not ok or count!=len(range(0,len(trace),args.stride)):raise RuntimeError('Video verification failed')
+    if not ok or count!=len(range(0,video_frames,args.stride)):raise RuntimeError('Video verification failed')
     print(json.dumps({'video':str(video.resolve()),'frames':count,'source':'measured PhysX mesh world transforms'}))
 
 if __name__=='__main__':main()
