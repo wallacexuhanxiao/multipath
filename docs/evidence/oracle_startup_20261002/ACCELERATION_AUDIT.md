@@ -36,3 +36,27 @@
 本次收尾查询：作业在 hopper-17，状态 R，walltime 约 5 分 09 秒；日志停在 SimulationApp 初始化的 `omni.physx.tensors` 扩展加载（日志相对时间 45.249 秒）。尚无 PADDED_REPLAY_BEGIN 或 development_result.json。原因未确定，不能把它当成交互失败或 MPC 失败。保留该作业及 30 分钟上限，没有迁移或重复提交。
 
 当前结论：加速度判定的来源错误已修复，r20 小诊断已完成；A1 是否能完成交互仍未获得新证据。没有新增 smoothing 或调高物理阈值。3 项既有 focused tests 通过，未扩展测试集。
+
+
+## r21 初始化停滞调查与处理
+
+此前只反复查看日志尾部、将其当成慢启动继续等是不充分的。后续检查了完整 run.log、Kit 详细日志、PBS CPU/内存统计，并与已成功启动的 r20 对照。
+
+### 已确认
+
+- r21 在 hopper-17。第 45.092 秒 Kit 日志记录 `Initializing plugin: omni.physx.tensors.plugin`，随后长时间没有进展；运行约 13 分钟时累计 CPU 仅 17 秒、内存约 1.31 GB。没有进入 local IK 或 Replay。
+- Vulkan `ERROR_INCOMPATIBLE_DRIVER`、`Failed to create any GPU devices` 在成功的 r20 也出现过；r20 随后在 37.782 秒完成 SimulationApp 启动。因此这些错误本身不能解释 r21 独有的停滞，不能直接归因于 Vulkan。
+- r21 的单 Anchor 启动入口没有 r20 所带的 CUDA 实际运算检查，也没有初始化超时/栈输出。
+- 已保存远端 `run.log`、`kit_startup.log`、`job_at_stall.txt`，随后取消卡住的 r21（最终 walltime 16:46，取消退出码 271）。这不是交互失败。
+
+### 最小处理
+
+在 `develop_mounted_anchor.py` 的 SimulationApp 构造前加入同进程 CUDA 分配、运算和同步，输出 `CUDA_PROBE_BEGIN/READY`；Isaac 构造输出 `SIMULATION_APP_BEGIN/READY`。启动阶段由 180 秒 faulthandler watchdog 保护：超时打印 Python 线程栈并退出；成功构造后取消 watchdog，不限制后续 synthesis 时间。没有改控制器、Replay/MPC、物理参数、任务 gate 或 source clock。
+
+这是修复“初始化无诊断、可空转整个 allocation”的缺陷，同时验证先建立 CUDA context 是否消除阻塞；**尚未证明它修复了底层 PhysX/CUDA 阻塞**。当前没有拿到原进程的 native stack，不能区分驱动调用卡住与插件内部死锁。
+
+### 重跑
+
+r22 / `643351.hopper-m-02`，完整 A1 Replay → 必要时 MPC，H200 interactive，30 分钟上限。最初固定 hopper-17，希望控制节点变量；原节点释放后已被其他作业占满，因此在新作业仍排队时取消了节点绑定。后续若换节点成功，不能单独归因于 CUDA 预初始化。
+
+最新检查：r22 尚在排队，原因 `Insufficient amount of resource: ngpus`；没有新的物理结果。输出目录 `outputs/oracle_a1_physical_replay_r22`。本轮未重复提交其他实验，也没有宣称 A1/M2 成功。

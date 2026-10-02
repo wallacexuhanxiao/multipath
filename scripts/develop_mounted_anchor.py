@@ -38,8 +38,22 @@ def main():
         from multipath.anchors.synthesis import local_commands,fit_timed_controls,hand_limits_from_urdf
         start=predecessor_snapshot(args.predecessor_dir,anchor.synth_start,manifest['provenance'])
         (out/'acquired_snapshot.json').write_text(json.dumps(start,indent=2))
+        # A stalled native PhysX/CUDA initialization must expose its Python
+        # stack and release the allocation, not consume the entire job silently.
+        import faulthandler,time
+        faulthandler.enable()
+        faulthandler.dump_traceback_later(180,exit=True)
+        startup_time=time.monotonic()
+        print('CUDA_PROBE_BEGIN',os.environ.get('CUDA_VISIBLE_DEVICES'),flush=True)
+        import torch
+        probe=torch.ones(1,device='cuda');torch.cuda.synchronize()
+        print('CUDA_PROBE_READY',torch.cuda.get_device_name(0),float(probe.sum()),flush=True)
+        del probe
         from isaacsim import SimulationApp
+        print('SIMULATION_APP_BEGIN',flush=True)
         app=SimulationApp({'headless':True})
+        faulthandler.cancel_dump_traceback_later()
+        print('SIMULATION_APP_READY',time.monotonic()-startup_time,flush=True)
         scene=DevelopmentScene(args,manifest,out)
         scene.restore_development(start)
         data=dict(np.load(args.proposals/manifest['anchors'][anchor.id],allow_pickle=False))
