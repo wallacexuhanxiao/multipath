@@ -1,5 +1,27 @@
 # Oracle Interaction Anchor V0
 
+## Current iteration gates
+
+1. Each Anchor independently passes its padded physical rollout, then an exact
+   replay of its exported core from the physically reached core entry.
+2. All Anchors and cuRobo bridges execute continuously from initial state within
+   the original 4.8 s. Failures are reported at the segment that actually fails.
+3. Only after gate 2: diversity, second-sequence transfer, and later segmentation work.
+
+`hpc/run_oracle_anchor_batch.pbs` runs independent local development processes
+inside one Hopper interactive allocation. A1 runs alongside snapshot acquisition
+for later Anchors; A2/A3 start independently once measured states are available.
+A1 success immediately triggers a continuous connection through A2, without
+waiting for A3. `--through-anchor` and `--continue-development` support this
+prefix experiment; it is never reported as a completed 4.8 s trajectory.
+
+Historical traces lack velocities/contact and cannot be restored as snapshots.
+`scripts/acquire_anchor_snapshots.py` can physically re-execute their controls
+in the current scene to measure new states. This is development-only acquisition,
+not the Oracle runtime or proof of task success. No historical/GT object pose
+is assigned during execution. Missing acquisition remains an explicit failure.
+Independent development does not waive final boundary reachability.
+
 ## Method and entrypoints
 
 `configs/oracle/put_in.json` retains the existing manually reviewed cores:

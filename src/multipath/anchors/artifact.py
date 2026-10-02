@@ -21,7 +21,11 @@ def save_anchor(root, anchor, entry, exit_state, commands, validation, provenanc
     root = Path(root)/anchor.id
     root.mkdir(parents=True, exist_ok=True)
     reachable=reachable_entry(entry)
-    success = bool(validation.get('success', False) and reachable)
+    success = bool(validation.get('success', False) and reachable
+                   and validation.get('padded_rollout_complete')
+                   and validation.get('core_replay_success')
+                   and validation.get('state_resets_within_padded_rollout') == 0
+                   and validation.get('state_resets_within_core_replay') == 0)
     report = dict(asdict(anchor), core_interval=[anchor.core_start, anchor.core_end],
                   synthesis_interval=[anchor.synth_start, anchor.synth_end],
                   entry_physically_reachable=reachable,entry_origin=entry.get('entry_origin'),
@@ -46,6 +50,8 @@ def load_validated_anchor(root, anchor):
         not reachable_entry(entry) or not exit_state.get('physically_acquired_state') or
         not report['validation'].get('padded_rollout_complete') or
         report['validation'].get('state_resets_within_padded_rollout') != 0 or
+        not report['validation'].get('core_replay_success') or
+        report['validation'].get('state_resets_within_core_replay') != 0 or
         report['core_interval'] != [anchor.core_start,anchor.core_end] or
         report['synthesis_interval'] != [anchor.synth_start,anchor.synth_end]):
         raise ValueError('Anchor is unvalidated, unreachable, or belongs to another schedule')

@@ -9,6 +9,8 @@ def main():
     p.add_argument('--proposals',type=Path,required=True)
     p.add_argument('--schedule',type=Path,required=True)
     p.add_argument('--validated-anchors',type=Path,help='Final rollout: consume physically validated local Anchor artifacts')
+    p.add_argument('--continue-development',action='store_true',help='Use available validated Anchors and develop missing cores from actual predecessor execution')
+    p.add_argument('--through-anchor',help='Stop after this Anchor for an early continuous connection experiment')
     p.add_argument('--robot-yaml',type=Path,required=True)
     p.add_argument('--xhand-urdf',type=Path,required=True)
     p.add_argument('--object-cache',type=Path,required=True)
@@ -16,6 +18,7 @@ def main():
     args=p.parse_args();out=args.output_dir;out.mkdir(parents=True,exist_ok=True)
     from multipath.oracle_schedule import OracleSchedule
     schedule=OracleSchedule.load(args.schedule)
+    if args.through_anchor and args.through_anchor not in schedule.anchors:raise ValueError('Unknown stop Anchor')
     manifest=json.loads((args.proposals/'manifest.json').read_text())
     import hashlib
     if manifest['provenance']['schedule_sha256']!=hashlib.sha256(args.schedule.read_bytes()).hexdigest():
@@ -23,6 +26,8 @@ def main():
     if args.validated_anchors:
         from multipath.anchors.artifact import load_validated_anchor
         for anchor in schedule.anchors.values():
+            if args.through_anchor and anchor.core_start>schedule.anchors[args.through_anchor].core_start:continue
+            if args.continue_development and not (args.validated_anchors/anchor.id/'report.json').exists():continue
             artifact=load_validated_anchor(args.validated_anchors,anchor)
             if artifact['report']['source_provenance']!=manifest['provenance']:
                 raise ValueError('Canonical Anchor and local inputs have different provenance')
@@ -65,6 +70,6 @@ def main():
         (out/'pipeline_result.json').write_text(json.dumps(report,indent=2))
         print('ORACLE_RESULT',report['status'],report.get('error',''),flush=True)
         app.close()
-    if not (report['full_pipeline_success'] or (not args.validated_anchors and report.get('development_success'))):raise SystemExit(1)
+    if not (report['full_pipeline_success'] or report.get('prefix_success') or report.get('development_success')):raise SystemExit(1)
 
 if __name__=='__main__':main()

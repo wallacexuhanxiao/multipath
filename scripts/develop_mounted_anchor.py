@@ -12,6 +12,7 @@ def main():
     for name in ('proposals','schedule','predecessor-dir','robot-yaml','xhand-urdf','object-cache','output-dir'):
         p.add_argument('--'+name,type=Path,required=True)
     p.add_argument('--anchor',help='Default: first oracle Anchor')
+    p.add_argument('--artifact-dir',type=Path,help='Publish each Anchor here only after padded and exported-core execution pass')
     args=p.parse_args();args.validated_anchors=None
     out=args.output_dir;out.mkdir(parents=True,exist_ok=True)
     from multipath.oracle_schedule import OracleSchedule
@@ -24,8 +25,7 @@ def main():
     implementation=out/'implementation';implementation.mkdir(exist_ok=True)
     shutil.copy2(__file__,implementation/Path(__file__).name)
     shutil.copytree(Path(multipath.__file__).parent,implementation/'multipath',dirs_exist_ok=True,ignore=shutil.ignore_patterns('__pycache__'))
-    from isaacsim import SimulationApp
-    app=SimulationApp({'headless':True});scene=None
+    app=None;scene=None
     report={'milestone':'M2','status':'initializing','anchor':anchor.id,'m2_success':False,
             'full_pipeline_success':False,'pbs_job_id':os.environ.get('PBS_JOBID'),
             'source_provenance':manifest['provenance'],'bridge_backend_changed':False,
@@ -34,10 +34,12 @@ def main():
             'synthesis_interval':[anchor.synth_start,anchor.synth_end]}
     try:
         import numpy as np
-        from multipath.anchors.development import DevelopmentScene,predecessor_snapshot,replay_padded,mounted_mpc
+        from multipath.anchors.development import DevelopmentScene,predecessor_snapshot,replay_padded,validate_exported_core,mounted_mpc
         from multipath.anchors.synthesis import local_commands,fit_timed_controls
         start=predecessor_snapshot(args.predecessor_dir,anchor.synth_start,manifest['provenance'])
         (out/'acquired_snapshot.json').write_text(json.dumps(start,indent=2))
+        from isaacsim import SimulationApp
+        app=SimulationApp({'headless':True})
         scene=DevelopmentScene(args,manifest,out)
         scene.restore_development(start)
         data=dict(np.load(args.proposals/manifest['anchors'][anchor.id],allow_pickle=False))
@@ -51,6 +53,9 @@ def main():
         report['kinematic_initialization']=fitting
         print('PADDED_REPLAY_BEGIN',anchor.id,flush=True)
         result=replay_padded(scene,anchor,data,controls,start,out/'replay','mounted_padded_replay')
+        report['padded_replay']=result
+        if result['success']:
+            result=validate_exported_core(scene,anchor,data,out/'replay',out/'replay_core',args.artifact_dir)
         report['replay']=result
         report['status']='replay_passed' if result['success'] else 'replay_failed'
         (out/'development_result.json').write_text(json.dumps(report,indent=2))
@@ -58,10 +63,15 @@ def main():
             print('MOUNTED_MPC_BEGIN',result['failures'],flush=True)
             refined=mounted_mpc(scene,anchor,data,controls,start,out/'mpc_search')
             result=replay_padded(scene,anchor,data,refined,start,out/'mpc_replay','mounted_PhysX_shooting_MPC')
+            report['padded_mpc_replay']=result
+            if result['success']:
+                result=validate_exported_core(scene,anchor,data,out/'mpc_replay',out/'mpc_core',args.artifact_dir)
             report['mpc']=result
             report['status']='mpc_passed' if result['success'] else 'mounted_mpc_failed'
             if not result['success']:report['rl_status']='required_after_reviewing_physical_failure'
-        report['m2_success']=result['success']
+        report['m2_success']=bool(result['success'] and result.get('core_replay_success'))
+        if report['m2_success']:
+            report['validated_artifact_dir']=str(args.artifact_dir or scene.out/'anchors')
     except Exception as error:
         import traceback;traceback.print_exc()
         report.update(status='failed',error=f'{type(error).__name__}: {error}')
@@ -69,7 +79,7 @@ def main():
         if scene:report['development_snapshot_restores']=getattr(scene,'restore_count',0)
         (out/'development_result.json').write_text(json.dumps(report,indent=2))
         print('M2_RESULT',report['status'],report.get('error',''),flush=True)
-        app.close()
+        if app:app.close()
     if not report['m2_success']:raise SystemExit(1)
 
 

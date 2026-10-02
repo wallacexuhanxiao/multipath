@@ -17,13 +17,20 @@ def execute(scene,schedule,manifest,proposal_dir,report):
     tpf=round(1/(schedule.fps*scene.dt))
     if abs(tpf*scene.dt*schedule.fps-1)>1e-8:raise ValueError('Physics/source clocks not commensurate')
     proposals={a:dict(np.load(proposal_dir/p,allow_pickle=False)) for a,p in manifest['anchors'].items()}
-    canonical={a.id:load_validated_anchor(scene.args.validated_anchors,a) for a in schedule.anchors.values()} if scene.args.validated_anchors else {}
+    stop_anchor=getattr(scene.args,'through_anchor',None)
+    required=[a for a in schedule.anchors.values() if not stop_anchor or a.core_start<=schedule.anchors[stop_anchor].core_start]
+    canonical={}
+    if scene.args.validated_anchors:
+        for a in required:
+            if getattr(scene.args,'continue_development',False) and not (scene.args.validated_anchors/a.id/'report.json').exists():continue
+            canonical[a.id]=load_validated_anchor(scene.args.validated_anchors,a)
+    all_canonical=len(canonical)==len(schedule.anchors)
     entry_offsets={}
     held=None;hand_command=np.array(scene.state()['hand_q']);initial_q=np.array(scene.state()['arm_q'])
     report.update(source='oracle',source_fps=schedule.fps,vlm_used=False,complete_robot_reference_required=False,
                   source_duration_s=schedule.num_frames/schedule.fps,state_resets_between_segments=0,
                   relaxed_reference_tracking=False,anchors=[],segments=[],task_success=False,
-                  full_pipeline_success=False,physical_validation_stage='final_continuous_rollout' if canonical else 'sequential_anchor_development')
+                  full_pipeline_success=False,physical_validation_stage='final_continuous_rollout' if all_canonical else 'continuous_prefix_development')
     for wi,w in enumerate(schedule.windows):
         info=dict(w,budget_s=(w['end']-w['start'])/schedule.fps,success=False)
         report['segments'].append(info)
@@ -44,7 +51,7 @@ def execute(scene,schedule,manifest,proposal_dir,report):
                     expected_object=data['tool_pose'][idx]
                     goal=expected_object@np.linalg.inv(held)
                     wrist=np.r_[goal[:3,3],Rotation.from_matrix(goal[:3,:3]).as_quat()[[3,0,1,2]]]
-                if canonical:
+                if a.id in canonical:
                     canonical_entry=canonical[a.id]['entry']
                     qgoal=np.array(canonical_entry['arm_q'])
                     from multipath.execution.mounted_scene import pose_matrix
@@ -123,13 +130,17 @@ def execute(scene,schedule,manifest,proposal_dir,report):
                    'fallback_status':'not_needed','core_pose_errors':[]}
             try:
                 if start['contact']['mode']!=a.entry_contact:raise RuntimeError('Anchor entry contact mode mismatch')
-                if canonical:
+                if a.id in canonical:
+                    local=canonical[a.id]['report']['validation']
+                    for key in ('padded_rollout_complete','core_replay_success','state_resets_within_padded_rollout','state_resets_within_core_replay'):
+                        validation[key]=local[key]
+                    validation['local_artifact_evidence']=str(scene.args.validated_anchors/a.id/'report.json')
                     handoff=check_transition(scene,canonical[a.id]['entry']['arm_q'],a.entry_contact,canonical=canonical[a.id]['entry'])
                     if not handoff['success']:raise RuntimeError('Canonical Anchor entry mismatch')
                     commands=canonical[a.id]['commands'].copy()
                 else:
                     commands=local_commands(scene,a,data,held if a.entry_contact=='grasped' else None,entry_offsets.get(a.id))
-                if not canonical:
+                if a.id not in canonical:
                     joint_limits=np.asarray(scene.robot._articulation_view.get_dof_limits()).reshape(-1,2)[scene.arm]
                     commands,fitting=fit_timed_controls(commands[:,:7],commands[:,7:],np.array(start['arm_q']),
                          np.array(start['arm_dq']),np.array(start['hand_q']),schedule.fps,scene.dt,
@@ -147,7 +158,7 @@ def execute(scene,schedule,manifest,proposal_dir,report):
                             raise RuntimeError('Local Anchor object interaction fidelity failed')
                         if a.entry_contact=='grasped' and a.exit_contact=='grasped':check_retention(measured,held)
                 hand_command=commands[-1,7:19].copy()
-                transition=check_transition(scene,commands[-1,:7],a.exit_contact,data['tool_pose'][min(a.core_end-a.synth_start,len(data['tool_pose'])-1)],canonical[a.id]['exit'] if canonical else None)
+                transition=check_transition(scene,commands[-1,:7],a.exit_contact,data['tool_pose'][min(a.core_end-a.synth_start,len(data['tool_pose'])-1)],canonical[a.id]['exit'] if a.id in canonical else None)
                 validation['handoff']=transition
                 if not transition['success']:raise RuntimeError('Anchor exit/contact validation failed')
                 held=np.array(scene.state()['hand_object_transform']) if a.exit_contact=='grasped' else None
@@ -163,8 +174,12 @@ def execute(scene,schedule,manifest,proposal_dir,report):
         if abs(actual['time_s']-w['end']/schedule.fps)>1e-8:raise RuntimeError('Source clock changed')
         info['success']=True
         (scene.out/'progress.json').write_text(json.dumps(report,indent=2))
+        if w.get('anchor')==stop_anchor and stop_anchor:
+            report.update(status='prefix_complete',prefix_success=True,actual_duration_s=scene.ticks*scene.dt,
+                          full_pipeline_success=False)
+            return
     task=evaluate_task(scene.state(),manifest,schedule.metadata['task_contract'],report['anchors'])
     report.update(task=task,task_success=task['success'],actual_duration_s=scene.ticks*scene.dt,
-                  full_pipeline_success=bool(task['success'] and canonical),
+                  full_pipeline_success=bool(task['success'] and all_canonical),
                   development_success=bool(task['success']),
-                  status=('complete' if canonical else 'development_complete') if task['success'] else 'task_failed')
+                  status=('complete' if all_canonical else 'development_complete') if task['success'] else 'task_failed')

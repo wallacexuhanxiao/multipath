@@ -84,15 +84,16 @@ def core_index(anchor,frame,data):
     return min(max(int(round(frame))-anchor.synth_start,0),len(data['tool_pose'])-1)
 
 
-def replay_padded(scene,anchor,data,controls,start,folder,method):
-    """One uninterrupted padded execution; save only CORE controls as an Anchor."""
+def replay_padded(scene,anchor,data,controls,start,folder,method,core_only=False):
+    """One uninterrupted physical execution; core-only uses the exported controls."""
     fps=scene.manifest['fps'];tpf=round(1/(fps*scene.dt))
-    if len(controls)!=(anchor.synth_end-anchor.synth_start)*tpf or abs(start['time_s']*fps-anchor.synth_start)>1e-8:
-        raise ValueError('Padded controls or snapshot do not match the source interval')
+    first,last=(anchor.core_start,anchor.core_end) if core_only else (anchor.synth_start,anchor.synth_end)
+    if len(controls)!=(last-first)*tpf or abs(start['time_s']*fps-first)>1e-8:
+        raise ValueError('Controls or snapshot do not match the source interval')
     scene.begin_trial(folder,start)
     entry=None;exit_state=None;held=None
     validation={'success':False,'handoff_verified':False,'synthesis_method':method,
-                'context_used':'physical_padded_rollout','control_dt':scene.dt,'source_fps':fps,
+                'context_used':'exported_core_replay' if core_only else 'physical_padded_rollout','control_dt':scene.dt,'source_fps':fps,
                 'padded_rollout_complete':False,'state_resets_within_padded_rollout':0,
                 'core_pose_errors':[],'post_context_retention':[],'failures':[]}
     def boundary():
@@ -101,17 +102,20 @@ def replay_padded(scene,anchor,data,controls,start,folder,method):
         s['entry_provenance']={'snapshot':start['entry_provenance'],'padded_trace':str(scene.out/'actual_trace.json'),
                                'source_frame':scene.ticks*scene.dt*fps}
         return s
+    def core_entry():
+        nonlocal entry,held
+        entry=boundary()
+        if entry['contact']['mode']!=anchor.entry_contact:validation['failures'].append('core_entry_contact')
+        if anchor.entry_contact=='grasped':held=np.array(entry['hand_object_transform'])
     try:
-        if anchor.core_start==anchor.synth_start:entry=boundary()
+        if anchor.core_start==first:core_entry()
         for k,cmd in enumerate(controls):
-            frame=anchor.synth_start+(k+1)/tpf
-            scene.step(cmd[:7],cmd[7:19],'LOCAL_PADDED',frame,cmd[19:26])
+            frame=first+(k+1)/tpf
+            scene.step(cmd[:7],cmd[7:19],'EXPORTED_CORE' if core_only else 'LOCAL_PADDED',frame,cmd[19:26])
             if (k+1)%tpf:continue
             measured=scene.state()
             if frame==anchor.core_start:
-                entry=boundary()
-                if entry['contact']['mode']!=anchor.entry_contact:validation['failures'].append('core_entry_contact')
-                if anchor.entry_contact=='grasped':held=np.array(entry['hand_object_transform'])
+                core_entry()
             if anchor.core_start<frame<=anchor.core_end:
                 error=core_pose_errors(measured,data['tool_pose'][core_index(anchor,frame,data)])
                 validation['core_pose_errors'].append(dict(source_frame=frame,**error))
@@ -131,25 +135,60 @@ def replay_padded(scene,anchor,data,controls,start,folder,method):
                 r=retention_errors(measured,held);validation['post_context_retention'].append(r)
                 if r['position_m']>.05 or r['rotation_rad']>.35 or not r['contact_retained']:
                     validation['failures'].append('post_context_grasp_retention')
-        validation['padded_rollout_complete']=abs(scene.ticks*scene.dt*fps-anchor.synth_end)<1e-8
+        validation['rollout_complete']=abs(scene.ticks*scene.dt*fps-last)<1e-8
+        validation['padded_rollout_complete']=validation['rollout_complete'] and not core_only
     except RuntimeError as error:
         validation['failures'].append(str(error))
     finally:
         if not scene.records or scene.records[-1]['time_s']<scene.ticks*scene.dt:scene.capture('STOP',scene.ticks*scene.dt*fps)
         scene.save()
     validation['failures']=sorted(set(validation['failures']))
-    validation['success']=not validation['failures'] and validation['padded_rollout_complete'] and entry is not None and exit_state is not None
+    validation['success']=not validation['failures'] and validation.get('rollout_complete',False) and entry is not None and exit_state is not None
     validation['handoff_verified']=validation['success']
     validation.update(measured_velocity_ratio=scene.max_velocity_ratio,measured_acceleration_ratio=scene.max_acceleration_ratio)
-    np.savez_compressed(scene.out/'padded_controls.npz',commands=controls)
+    np.savez_compressed(scene.out/('core_controls.npz' if core_only else 'padded_controls.npz'),commands=controls)
     if entry is not None:
-        lo=(anchor.core_start-anchor.synth_start)*tpf;hi=(anchor.core_end-anchor.synth_start)*tpf
+        lo=(anchor.core_start-first)*tpf;hi=(anchor.core_end-first)*tpf
         save_anchor(scene.out/'anchors',anchor,entry,exit_state or scene.state(),controls[lo:hi],validation,scene.manifest['provenance'])
     (scene.out/'local_result.json').write_text(json.dumps(validation,indent=2))
     (scene.out/'pipeline_result.json').write_text(json.dumps(dict(validation,source='oracle',source_fps=fps,
         source_start_s=start['time_s'],actual_duration_s=scene.ticks*scene.dt-start['time_s'],
-        source_duration_s=(anchor.synth_end-anchor.synth_start)/fps,full_pipeline_success=False,
+        source_duration_s=(last-first)/fps,full_pipeline_success=False,
         table_z=float(scene.table['pose'][2]+.02)),indent=2))
+    return validation
+
+
+def validate_exported_core(scene,anchor,data,padded_folder,folder,artifact_root=None):
+    """Gate 2 of local development: replay exactly the exported core from its measured entry."""
+    padded_folder=Path(padded_folder);folder=Path(folder)
+    padded=json.loads((padded_folder/'local_result.json').read_text())
+    if not padded['success'] or not padded['padded_rollout_complete']:
+        raise ValueError('Exported core replay requires a successful padded rollout')
+    original=padded_folder/'anchors'/anchor.id
+    entry=json.loads((original/'entry.json').read_text())
+    controls=np.load(original/'commands.npz',allow_pickle=False)['commands']
+    replay=replay_padded(scene,anchor,data,controls,entry,folder,'exported_core_replay',core_only=True)
+    validation=dict(padded,success=bool(replay['success']),handoff_verified=bool(replay['handoff_verified']),
+                    core_replay_success=bool(replay['success']),state_resets_within_core_replay=0,
+                    failures=replay['failures'],
+                    padded_evidence={'result':str(padded_folder/'local_result.json'),
+                                     'trace':str(padded_folder/'actual_trace.json')},
+                    core_replay=replay,core_replay_evidence={'result':str(folder/'local_result.json'),
+                                                          'trace':str(folder/'actual_trace.json')})
+    # Publish only after both executions pass. The core replay's measured exit is
+    # the canonical exit used for subsequent bridge planning.
+    core_artifact=folder/'anchors'/anchor.id
+    exit_state=json.loads((core_artifact/'exit.json').read_text())
+    save_anchor(folder/'anchors',anchor,entry,exit_state,controls,validation,scene.manifest['provenance'])
+    if validation['success'] and artifact_root is not None:
+        # Other Anchor workers may start a connection as soon as this appears.
+        # Publish the complete directory in one rename, never half an artifact.
+        import tempfile
+        artifact_root=Path(artifact_root);artifact_root.mkdir(parents=True,exist_ok=True)
+        with tempfile.TemporaryDirectory(dir=artifact_root,prefix='.publishing_') as temporary:
+            save_anchor(temporary,anchor,entry,exit_state,controls,validation,scene.manifest['provenance'])
+            (Path(temporary)/anchor.id).rename(artifact_root/anchor.id)
+    (folder/'local_gate_result.json').write_text(json.dumps(validation,indent=2))
     return validation
 
 
