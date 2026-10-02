@@ -8,6 +8,49 @@ import numpy as np
 from scipy.spatial.transform import Rotation
 
 
+def fit_hand_startup(desired,start_q,start_dq,dt,limits,velocity_limits,*,startup_duration=None):
+    """Fit XHand commands within physical joint/speed bounds from measured q,dq.
+
+    When context duration is given, allocate that duration to ramp toward the
+    URDF speed limit. This is a synthesis slew budget, not a hardware rating.
+    The first interval continues measured velocity without adding source time.
+    """
+    from scipy.optimize import minimize,LinearConstraint,Bounds
+    from scipy.sparse import diags
+    n=len(desired);d=diags([np.ones(n),-np.ones(n-1)],[0,-1],shape=(n,n)).toarray()
+    dd=d@d;result=np.empty_like(desired)
+    for j in range(desired.shape[1]):
+        step=velocity_limits[j]*dt
+        low=np.full(n,-1.);high=np.ones(n)
+        low[0]=high[0]=start_dq[j]/velocity_limits[j]
+        target=desired[:,j]-start_q[j]
+        smooth=dd/step;constant=np.zeros(n);constant[0]=-start_dq[j]/velocity_limits[j]
+        constraints=[LinearConstraint(d/step,low,high)]
+        if startup_duration is not None:
+            acceleration=velocity_limits[j]/max(dt,startup_duration)
+            ac=np.zeros(n);ac[0]=-start_dq[j]/(acceleration*dt)
+            constraints.append(LinearConstraint(dd/(acceleration*dt**2),-1-ac,1-ac))
+        def objective(q):
+            residual=q-target;dv=smooth@q+constant
+            return .5*np.sum(residual**2)+.005*np.sum(dv**2)
+        def gradient(q):return q-target+.01*smooth.T@(smooth@q+constant)
+        solution=minimize(objective,np.zeros(n),jac=gradient,method='SLSQP',
+            bounds=Bounds(limits[j,0]-start_q[j],limits[j,1]-start_q[j]),
+            constraints=constraints,options={'maxiter':150,'ftol':1e-9})
+        if not solution.success:raise RuntimeError(f'XHand startup fit failed joint {j}: {solution.message}')
+        result[:,j]=solution.x+start_q[j]
+    speed=np.diff(np.vstack((start_q,result)),axis=0)/dt
+    if np.max(abs(speed)/velocity_limits)>1.00001:raise RuntimeError('XHand fitted velocity exceeds URDF limit')
+    return result
+
+
+def hand_limits_from_urdf(scene):
+    import xml.etree.ElementTree as ET
+    from multipath.xhand import RIGHT_XHAND_FINGER_JOINT_NAMES
+    joints={j.get('name'):j.find('limit') for j in ET.parse(scene.args.xhand_urdf).getroot().findall('joint')}
+    return np.array([float(joints[name].get('velocity')) for name in RIGHT_XHAND_FINGER_JOINT_NAMES])
+
+
 def local_commands(scene,anchor,proposal,held_transform=None,entry_offset=None,*,padded=False):
     q=np.asarray(proposal['wrist_hand_q']).copy()
     # Three-frame local smoothing includes pre/post context at core boundaries.
@@ -31,7 +74,8 @@ def local_commands(scene,anchor,proposal,held_transform=None,entry_offset=None,*
 
 
 def fit_timed_controls(arm_targets,hand_targets,start_q,start_dq,start_hand,
-                       fps,dt,velocity_limits,acceleration_limits,joint_limits):
+                       fps,dt,velocity_limits,acceleration_limits,joint_limits,
+                       *,start_hand_dq=None,hand_joint_limits=None,hand_velocity_limits=None,hand_startup_duration=None):
     """Mounted retargeting with velocity/acceleration constraints at physics rate.
 
     This is kinematic trajectory fitting, not physical MPC or a success gate.
@@ -45,6 +89,8 @@ def fit_timed_controls(arm_targets,hand_targets,start_q,start_dq,start_hand,
     desired=np.stack([np.interp(query,clock,reference[:,j]) for j in range(7)],axis=1)
     hand_ref=np.vstack((start_hand,hand_targets))
     hand=np.stack([np.interp(query,clock,hand_ref[:,j]) for j in range(hand_ref.shape[1])],axis=1)
+    if hand_joint_limits is not None:
+        hand=fit_hand_startup(hand,start_hand,start_hand_dq,dt,hand_joint_limits,hand_velocity_limits,startup_duration=hand_startup_duration)
     difference=diags([np.ones(n),-np.ones(n-1)],[0,-1],shape=(n,n)).toarray()
     second=difference@difference
     result=np.empty_like(desired)

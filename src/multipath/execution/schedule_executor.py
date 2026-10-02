@@ -3,7 +3,7 @@ import json
 import numpy as np
 from scipy.spatial.transform import Rotation
 from multipath.anchors.artifact import save_anchor, load_validated_anchor
-from multipath.anchors.synthesis import local_commands, fit_timed_controls
+from multipath.anchors.synthesis import local_commands, fit_timed_controls, hand_limits_from_urdf
 from multipath.execution.transition import check_transition
 from multipath.planning.timing import fixed_budget_path, parameterize_path
 from multipath.validation.physics import check_retention, core_pose_errors
@@ -144,7 +144,10 @@ def execute(scene,schedule,manifest,proposal_dir,report):
                     joint_limits=np.asarray(scene.robot._articulation_view.get_dof_limits()).reshape(-1,2)[scene.arm]
                     commands,fitting=fit_timed_controls(commands[:,:7],commands[:,7:],np.array(start['arm_q']),
                          np.array(start['arm_dq']),np.array(start['hand_q']),schedule.fps,scene.dt,
-                         scene.velocity,scene.acceleration,joint_limits)
+                         scene.velocity,scene.acceleration,joint_limits,start_hand_dq=np.array(start['hand_dq']),
+                         hand_velocity_limits=hand_limits_from_urdf(scene),
+                         hand_startup_duration=(a.core_start-a.synth_start)/schedule.fps,
+                         hand_joint_limits=np.asarray(scene.robot._articulation_view.get_dof_limits()).reshape(-1,2)[scene.fingers])
                     validation.update(fitting)
                 validation.update(control_dt=scene.dt,source_fps=schedule.fps)
                 for k,cmd in enumerate(commands):

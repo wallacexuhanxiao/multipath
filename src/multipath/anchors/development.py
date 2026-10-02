@@ -48,7 +48,7 @@ class DevelopmentScene(MountedScene):
                  entry_origin='predecessor_rollout',entry_provenance=self.lineage)
         return s
 
-    def restore_development(self,s):
+    def restore_development(self,s,align_targets=True):
         from multipath.anchors.artifact import reachable_entry
         if not reachable_entry(s) or s['scene_id']!=self.scene_id:
             raise ValueError('Development restore requires an acquired state in the same scene')
@@ -60,13 +60,13 @@ class DevelopmentScene(MountedScene):
             state=s['objects'][role];pose=np.array(state['pose']);velocity=np.array(state['velocity'])
             obj.set_world_pose(position=pose[:3],orientation=pose[3:])
             obj.set_linear_velocity(velocity[:3]);obj.set_angular_velocity(velocity[3:])
-        self.qcommand=np.array(s.get('command',q)).copy()
-        self.velocity_command=np.array(s.get('command_velocity',dq)).copy()
+        self.qcommand=q.copy() if align_targets else np.array(s.get('command',q)).copy()
+        self.velocity_command=dq.copy() if align_targets else np.array(s.get('command_velocity',dq)).copy()
         self.robot.apply_action(self.Action(joint_positions=self.qcommand,joint_velocities=self.velocity_command))
         self.ticks=round(s['time_s']/self.dt);self.previous_dq=dq[self.arm].copy()
         self.max_velocity_ratio=0.;self.max_acceleration_ratio=0.
         self.lineage=s['entry_provenance'];self.restored_contact=s['contact']
-        self.restored_tick=self.ticks;self.restored_state=dict(s)
+        self.restored_tick=self.ticks;self.restored_state=dict(s,command=self.qcommand.tolist(),command_velocity=self.velocity_command.tolist())
         self.restore_count=getattr(self,'restore_count',0)+1
         # No warm-up physics step or extra source time. PhysX recomputes contact
         # on the first commanded step; solver contact caches are not serialized.
@@ -198,6 +198,8 @@ def mounted_mpc(scene,anchor,data,baseline,start,out,seed=0):
     Candidate resets are explicit development-only predictions. A selected plan
     is subsequently replayed from the acquired snapshot without internal resets.
     """
+    from multipath.anchors.control_check import control_feasibility
+    from multipath.anchors.synthesis import hand_limits_from_urdf
     out=Path(out);out.mkdir(parents=True,exist_ok=True)
     scene.begin_trial(out/'selected_prefix',start,mesh=False)
     fps=scene.manifest['fps'];tpf=round(1/(fps*scene.dt))
@@ -229,12 +231,10 @@ def mounted_mpc(scene,anchor,data,baseline,start,out,seed=0):
             for residual in candidates:
                 trial_id+=1;control=base.copy();control[:,:19]+=blend[:,None]*residual
                 control[:,19:26]=base[:,19:26]+blend_velocity[:,None]*residual[:7]
-                velocity=np.diff(np.vstack((qprevious[:7],control[:,:7])),axis=0)/scene.dt
-                acceleration=np.diff(np.vstack((vprevious,velocity)),axis=0)/scene.dt
-                feasible=(np.all(control[:,:19]>=lower) and np.all(control[:,:19]<=upper)
-                          and np.max(np.abs(velocity)/scene.velocity)<=1.05
-                          and np.max(np.abs(acceleration)/scene.acceleration)<=1.05)
-                trial={'trial':trial_id,'begin_tick':begin,'feasible_controls':bool(feasible),'score':None}
+                checks=control_feasibility(control,qprevious[:7],vprevious,scene.dt,np.c_[lower,upper],scene.velocity,scene.acceleration,
+                    start_hand_q=qprevious[7:],hand_velocity_limits=hand_limits_from_urdf(scene))
+                feasible=checks['feasible']
+                trial={'trial':trial_id,'begin_tick':begin,'feasible_controls':feasible,'precheck':checks,'score':None}
                 if not feasible:history.append(trial);continue
                 folder=out/f'prediction_{trial_id:04d}';scene.begin_trial(folder,state,mesh=False)
                 score=0.;samples=0;failure=None;acquired=None

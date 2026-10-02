@@ -37,11 +37,14 @@ def main():
             'snapshots':{},'segments':[],'status':'initializing'}
     try:
         from multipath.execution.mounted_scene import MountedScene
-        from multipath.anchors.synthesis import fit_timed_controls
+        from multipath.anchors.synthesis import fit_timed_controls,hand_limits_from_urdf
         scene=MountedScene(args,manifest,out);start=scene.state()
         limits=np.asarray(scene.robot._articulation_view.get_dof_limits()).reshape(-1,2)[scene.arm]
         controls,fitting=fit_timed_controls(targets[:,:7],targets[:,7:],np.array(start['arm_q']),
-            np.array(start['arm_dq']),np.array(start['hand_q']),schedule.fps,scene.dt,scene.velocity,scene.acceleration,limits)
+            np.array(start['arm_dq']),np.array(start['hand_q']),schedule.fps,scene.dt,scene.velocity,scene.acceleration,limits,
+            start_hand_dq=np.array(start['hand_dq']),hand_velocity_limits=hand_limits_from_urdf(scene),
+            hand_startup_duration=min((a.core_start-a.synth_start)/schedule.fps for a in schedule.anchors.values()),
+            hand_joint_limits=np.asarray(scene.robot._articulation_view.get_dof_limits()).reshape(-1,2)[scene.fingers])
         report['control_fitting']=fitting
         np.savez_compressed(out/'acquisition_controls.npz',commands=controls)
         tpf=round(1/(schedule.fps*scene.dt));previous=0

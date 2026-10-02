@@ -35,7 +35,7 @@ def main():
     try:
         import numpy as np
         from multipath.anchors.development import DevelopmentScene,predecessor_snapshot,replay_padded,validate_exported_core,mounted_mpc
-        from multipath.anchors.synthesis import local_commands,fit_timed_controls
+        from multipath.anchors.synthesis import local_commands,fit_timed_controls,hand_limits_from_urdf
         start=predecessor_snapshot(args.predecessor_dir,anchor.synth_start,manifest['provenance'])
         (out/'acquired_snapshot.json').write_text(json.dumps(start,indent=2))
         from isaacsim import SimulationApp
@@ -49,7 +49,9 @@ def main():
         targets=local_commands(scene,anchor,data,held,offset,padded=True)
         limits=np.asarray(scene.robot._articulation_view.get_dof_limits()).reshape(-1,2)[scene.arm]
         controls,fitting=fit_timed_controls(targets[:,:7],targets[:,7:],np.array(start['arm_q']),
-             np.array(start['arm_dq']),np.array(start['hand_q']),schedule.fps,scene.dt,scene.velocity,scene.acceleration,limits)
+             np.array(start['arm_dq']),np.array(start['hand_q']),schedule.fps,scene.dt,scene.velocity,scene.acceleration,limits,
+             start_hand_dq=np.array(start['hand_dq']),hand_velocity_limits=hand_limits_from_urdf(scene),hand_startup_duration=(anchor.core_start-anchor.synth_start)/schedule.fps,
+             hand_joint_limits=np.asarray(scene.robot._articulation_view.get_dof_limits()).reshape(-1,2)[scene.fingers])
         report['kinematic_initialization']=fitting
         print('PADDED_REPLAY_BEGIN',anchor.id,flush=True)
         result=replay_padded(scene,anchor,data,controls,start,out/'replay','mounted_padded_replay')

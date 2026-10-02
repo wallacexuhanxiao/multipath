@@ -4,7 +4,7 @@
 #PBS -N oracle_anchor_batch
 #PBS -j oe
 #PBS -k oed
-#PBS -l walltime=00:40:00
+#PBS -l walltime=00:30:00
 #PBS -l select=1:ncpus=12:mem=120gb:ngpus=1:gpu_model=H200
 set -euo pipefail
 ROOT=/scratch/e0985859/multipath_v0_fc2da7b
