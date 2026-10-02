@@ -11,8 +11,8 @@ from scipy.spatial.transform import Rotation
 def local_commands(scene,anchor,proposal,held_transform=None,entry_offset=None,*,padded=False):
     q=np.asarray(proposal['wrist_hand_q']).copy()
     # Three-frame local smoothing includes pre/post context at core boundaries.
-    padded=np.pad(q[:,7:],((1,1),(0,0)),mode='edge')
-    q[:,7:]=(padded[:-2]+2*padded[1:-1]+padded[2:])/4
+    hand_context=np.pad(q[:,7:],((1,1),(0,0)),mode='edge')
+    q[:,7:]=(hand_context[:-2]+2*hand_context[1:-1]+hand_context[2:])/4
     seed=np.asarray(scene.state()['arm_q']); commands=[]
     start,end=(anchor.synth_start,anchor.synth_end) if padded else (anchor.core_start,anchor.core_end)
     for frame in range(start,end):
@@ -49,20 +49,20 @@ def fit_timed_controls(arm_targets,hand_targets,start_q,start_dq,start_hand,
     second=difference@difference
     result=np.empty_like(desired)
     for j in range(7):
-        vconst=np.zeros(n);vconst[0]=-start_q[j]/dt
-        aconst=np.zeros(n);aconst[0]=(-start_q[j]-start_dq[j]*dt)/dt**2
-        if n>1:aconst[1]=start_q[j]/dt**2
+        # Optimize displacement from measured entry. Normalize constraint rows
+        # so 1/dt^2 does not swamp SLSQP's numerical line search.
         vmax=velocity_limits[j]*.98;amax=float(np.broadcast_to(acceleration_limits,7)[j])*.95
-        matrix=np.vstack((difference/dt,second/dt**2))
-        low=np.r_[-vmax-vconst,-amax-aconst];high=np.r_[vmax-vconst,amax-aconst]
-        target=desired[:,j]
-        opt=minimize(lambda q:.5*np.sum((q-target)**2),np.full(n,start_q[j]),
+        aconst=np.zeros(n);aconst[0]=-start_dq[j]/(amax*dt)
+        matrix=np.vstack((difference/(dt*vmax),second/(dt**2*amax)))
+        low=np.r_[-np.ones(n),-np.ones(n)-aconst];high=np.r_[np.ones(n),np.ones(n)-aconst]
+        target=desired[:,j]-start_q[j]
+        opt=minimize(lambda q:.5*np.sum((q-target)**2),np.zeros(n),
                      jac=lambda q:q-target,method='SLSQP',
-                     bounds=Bounds(joint_limits[j,0],joint_limits[j,1]),
+                     bounds=Bounds(joint_limits[j,0]-start_q[j],joint_limits[j,1]-start_q[j]),
                      constraints=[LinearConstraint(matrix,low,high)],
                      options={'maxiter':150,'ftol':1e-8})
         if not opt.success:raise RuntimeError(f'Local dynamic retarget failed joint {j}: {opt.message}')
-        result[:,j]=opt.x
+        result[:,j]=opt.x+start_q[j]
     velocity=np.diff(np.vstack((start_q,result)),axis=0)/dt
     acceleration=np.diff(np.vstack((start_dq,velocity)),axis=0)/dt
     vr=float(np.max(np.abs(velocity)/velocity_limits));ar=float(np.max(np.abs(acceleration)/acceleration_limits))

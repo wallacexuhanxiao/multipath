@@ -21,9 +21,18 @@ def assemble(world, urdf_path, mount_xyzw):
     cfg.set_merge_fixed_joints(False)
     cfg.set_self_collision(False)
     importer = _urdf.acquire_urdf_interface()
-    urdf_path = Path(urdf_path)
-    parsed = importer.parse_urdf(str(urdf_path.parent), urdf_path.name, cfg)
-    root = str(importer.import_robot(str(urdf_path.parent), urdf_path.name, parsed, cfg, ''))
+    urdf_path = Path(urdf_path).resolve()
+    # The importer writes fixed-name *.tmp.usd files. Concurrent processes must
+    # not create/delete those layers in the same working directory.
+    import os,tempfile
+    previous_directory=Path.cwd()
+    import_directory=tempfile.mkdtemp(prefix='multipath-urdf-')
+    try:
+        os.chdir(import_directory)
+        parsed = importer.parse_urdf(str(urdf_path.parent), urdf_path.name, cfg)
+        root = str(importer.import_robot(str(urdf_path.parent), urdf_path.name, parsed, cfg, ''))
+    finally:
+        os.chdir(previous_directory)
     wrist = SingleXFormPrim(root + '/right_hand_link', name='wrist')
     flange = SingleXFormPrim('/World/Franka/panda_hand', name='flange')
     p, q = flange.get_world_pose()
