@@ -34,4 +34,4 @@ singularity exec --nv -e "${MP_ENV[@]}" "$IMAGE" "$RUNTIME/envs/sim-isaac510/bin
  --proposals "$MULTIPATH_PROPOSALS" --schedule "$MULTIPATH_SCHEDULE" --snapshot "$MULTIPATH_SNAPSHOT" --controls "$MULTIPATH_CONTROLS" \
  --robot-yaml "$ROOT/vendor/curobo-v077/src/curobo/content/configs/robot/franka.yml" \
  --xhand-urdf "$ENGINE/assets/xhand/spider/xhand_right.urdf" --object-cache "$ENGINE/outputs/sim_usd" \
- --output-dir "$OUT" >"$OUT/run.log" 2>&1
+ --steps 48 --case bounded_arm_hand --output-dir "$OUT" >"$OUT/run.log" 2>&1

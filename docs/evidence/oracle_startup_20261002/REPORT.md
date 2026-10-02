@@ -1,4 +1,4 @@
-# Mounted Anchor 接管诊断 — 本轮报告
+# Mounted Anchor 接管诊断 — 实验报告
 
 ## 结论
 
@@ -47,3 +47,32 @@ r19 / **642941**：H200 interactive，20 分钟上限，在 hopper-22 完成诊�
 本轮不再提交新实验，不推进 A2/A3 或 RL。下一轮根据 r19 剩余超限的具体关节/步骤定位；起步通过后，再让 A1 Replay 真正进入 core。MPC 只在 Replay 交互失败后继续评估。现在没有证据说明需要 RL。
 
 修改按实测入口、URDF 限值和 oracle context 时长工作，没有样本名或帧号分支。物理证据仍仅来自这一个入口；不能声称任意 snapshot 或其他 sample 已通过。
+
+
+## 续轮：r20 起步加速度约束（已实现，物理结果待回收）
+
+### 进一步定位
+
+r19 前 9 步最大加速度比不超过 1.008；第 10 步机械臂索引 6 的关节达到 **1.095587**。该步实际入口速度约 -0.8550 rad/s，命令速度 -0.9307 rad/s，位置误差约 -0.00908 rad。原 arm 拟合允许从第一步直接使用 95% 的加速度限额。结合 arm 单独执行通过的对照，联合启动时的动态余量不足仍是当前重点；不能据此断言已完全解释后续交互失败。
+
+### 这轮改了什么
+
+- 抽出共享局部 `fit_arm_startup`，仍使用真实入口 q/dq 和原关节/速度/加速度限制。
+- 首个命令区间严格延续入口速度；后续允许的加速度在已有 pre-padding 内按 smoothstep 从零增加至原上限。没有插入等待或增加控制步数。
+- 该约束用于局部 Anchor 拟合，r10 bridge 控制逻辑保持原状。
+- 这只是命令加速度包络，并非保证实际加速度连续，也不是 closed-loop 成功证明；snapshot 没有可靠入口加速度，因此本轮只强制入口速度连续。
+- 诊断延长到 48 个 physics steps（0.4 秒），覆盖现有 0.2 秒 pre-padding 后的阶段。诊断仍会记录越限后的状态，不能作为合格 Anchor artifact。
+
+代码只依赖实测状态、关节限值和 oracle context 时长，无 sample 名、特定帧号或 pour/put-in 分支。可复用的是约束机制，跨样本收益尚未物理验证。
+
+### 检查与作业
+
+`tests/test_control_check.py` 共 **3 passed**：浮点关节边界、手指入口速度/步数、机械臂入口速度/加速度包络/步数。没有扩展测试集或调低物理验收线。
+
+r20 / **643303.hopper-m-02**：H200，interactive，20 分钟上限。提交时排队原因是 `Insufficient amount of resource: ngpus`，表示调度器当前缺可分配 GPU；该信息不是 GPU hours 不足的证据。
+
+远端结果目录：`/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_startup_r20/`。
+提交记录：同目录父级 `oracle_startup_r20_submission.json`。
+诊断输入仍为 r15 保存的真实入口及原始局部指令，便于与 r19 比较。诊断重新拟合旧指令，而完整 A1 Replay 会重新拟合 local IK targets；两者不能视为同一次验收。
+
+截至本次报告收尾，r20 尚无物理结果。**A1 未通过，完整 4.8 秒 Oracle rollout 未完成。** 本轮不启动 RL、A2/A3 或多解。回收 r20 后，若启动仍失败则按具体物理步定位；若通过再跑完整 A1 padded Replay 和 exported-core 验收。

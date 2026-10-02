@@ -19,3 +19,16 @@ def test_hand_fit_preserves_source_steps_and_measured_entry_velocity():
     assert len(fitted)==len(desired)
     np.testing.assert_allclose(velocity[0],dq,atol=1e-7)
     assert np.max(abs(velocity))<=1.00001
+
+
+def test_arm_startup_preserves_measured_velocity_and_source_steps():
+    from multipath.anchors.synthesis import fit_arm_startup
+    dt=.01;duration=.1;n=20
+    q=np.zeros(7);dq=np.full(7,.1)
+    fitted=fit_arm_startup(np.full((n,7),.2),q,dq,dt,np.full(7,2.),15.,np.tile([-2.,2.],(7,1)),startup_duration=duration)
+    velocity=np.diff(np.vstack((q,fitted)),axis=0)/dt
+    acceleration=np.diff(np.vstack((dq,velocity)),axis=0)/dt
+    phase=np.clip(np.arange(n)*dt/duration,0,1)
+    assert len(fitted)==n
+    np.testing.assert_allclose(velocity[0],dq,atol=1e-7)
+    assert np.all(abs(acceleration)<=15*.95*(phase**2*(3-2*phase))[:,None]+1e-5)

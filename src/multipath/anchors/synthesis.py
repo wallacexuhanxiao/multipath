@@ -73,24 +73,15 @@ def local_commands(scene,anchor,proposal,held_transform=None,entry_offset=None,*
     return np.asarray(commands)
 
 
-def fit_timed_controls(arm_targets,hand_targets,start_q,start_dq,start_hand,
-                       fps,dt,velocity_limits,acceleration_limits,joint_limits,
-                       *,start_hand_dq=None,hand_joint_limits=None,hand_velocity_limits=None,hand_startup_duration=None):
-    """Mounted retargeting with velocity/acceleration constraints at physics rate.
+def fit_arm_startup(desired,start_q,start_dq,dt,velocity_limits,acceleration_limits,joint_limits,*,startup_duration=None):
+    """Local arm fit with measured entry velocity and a context-timed ramp.
 
-    This is kinematic trajectory fitting, not physical MPC or a success gate.
-    Only the subsequent actual object/contact rollout validates the interaction.
+    An acceleration envelope reduces simultaneous arm/hand startup demand.
+    It is a command constraint, not a proof of closed-loop physical feasibility.
     """
     from scipy.optimize import minimize, LinearConstraint, Bounds
     from scipy.sparse import diags
-    tpf=int(round(1/(fps*dt)));n=len(arm_targets)*tpf
-    clock=np.arange(len(arm_targets)+1)/fps;query=np.arange(1,n+1)*dt
-    reference=np.vstack((start_q,arm_targets))
-    desired=np.stack([np.interp(query,clock,reference[:,j]) for j in range(7)],axis=1)
-    hand_ref=np.vstack((start_hand,hand_targets))
-    hand=np.stack([np.interp(query,clock,hand_ref[:,j]) for j in range(hand_ref.shape[1])],axis=1)
-    if hand_joint_limits is not None:
-        hand=fit_hand_startup(hand,start_hand,start_hand_dq,dt,hand_joint_limits,hand_velocity_limits,startup_duration=hand_startup_duration)
+    n=len(desired)
     difference=diags([np.ones(n),-np.ones(n-1)],[0,-1],shape=(n,n)).toarray()
     second=difference@difference
     result=np.empty_like(desired)
@@ -101,6 +92,12 @@ def fit_timed_controls(arm_targets,hand_targets,start_q,start_dq,start_hand,
         aconst=np.zeros(n);aconst[0]=-start_dq[j]/(amax*dt)
         matrix=np.vstack((difference/(dt*vmax),second/(dt**2*amax)))
         low=np.r_[-np.ones(n),-np.ones(n)-aconst];high=np.r_[np.ones(n),np.ones(n)-aconst]
+        if startup_duration is not None:
+            # Preserve measured entry velocity at the first interval; smoothly
+            # open acceleration authority inside the existing synthesis context.
+            phase=np.clip(np.arange(n)*dt/max(dt,startup_duration),0,1)
+            envelope=phase**2*(3-2*phase)
+            low[n:]=-envelope-aconst;high[n:]=envelope-aconst
         target=desired[:,j]-start_q[j]
         opt=minimize(lambda q:.5*np.sum((q-target)**2),np.zeros(n),
                      jac=lambda q:q-target,method='SLSQP',
@@ -109,10 +106,31 @@ def fit_timed_controls(arm_targets,hand_targets,start_q,start_dq,start_hand,
                      options={'maxiter':150,'ftol':1e-8})
         if not opt.success:raise RuntimeError(f'Local dynamic retarget failed joint {j}: {opt.message}')
         result[:,j]=opt.x+start_q[j]
+    return result
+
+
+def fit_timed_controls(arm_targets,hand_targets,start_q,start_dq,start_hand,
+                       fps,dt,velocity_limits,acceleration_limits,joint_limits,
+                       *,start_hand_dq=None,hand_joint_limits=None,hand_velocity_limits=None,hand_startup_duration=None):
+    """Mounted retargeting with velocity/acceleration constraints at physics rate.
+
+    This is kinematic trajectory fitting, not physical MPC or a success gate.
+    Only the subsequent actual object/contact rollout validates the interaction.
+    """
+    tpf=int(round(1/(fps*dt)));n=len(arm_targets)*tpf
+    clock=np.arange(len(arm_targets)+1)/fps;query=np.arange(1,n+1)*dt
+    reference=np.vstack((start_q,arm_targets))
+    desired=np.stack([np.interp(query,clock,reference[:,j]) for j in range(7)],axis=1)
+    hand_ref=np.vstack((start_hand,hand_targets))
+    hand=np.stack([np.interp(query,clock,hand_ref[:,j]) for j in range(hand_ref.shape[1])],axis=1)
+    if hand_joint_limits is not None:
+        hand=fit_hand_startup(hand,start_hand,start_hand_dq,dt,hand_joint_limits,hand_velocity_limits,startup_duration=hand_startup_duration)
+    result=fit_arm_startup(desired,start_q,start_dq,dt,velocity_limits,acceleration_limits,joint_limits,
+                           startup_duration=hand_startup_duration)
     velocity=np.diff(np.vstack((start_q,result)),axis=0)/dt
     acceleration=np.diff(np.vstack((start_dq,velocity)),axis=0)/dt
     vr=float(np.max(np.abs(velocity)/velocity_limits));ar=float(np.max(np.abs(acceleration)/acceleration_limits))
     if vr>1.0001 or ar>1.0001:raise RuntimeError('Local retarget optimizer violated dynamics')
     return np.c_[result,hand,velocity],{'method':'continuous_IK_and_constrained_local_retarget',
-                    'control_dt':dt,'target_joint_rmse_rad':float(np.sqrt(np.mean((desired-result)**2))),
+                    'control_dt':dt,'startup_context_s':hand_startup_duration,'target_joint_rmse_rad':float(np.sqrt(np.mean((desired-result)**2))),
                     'command_velocity_ratio':vr,'command_acceleration_ratio':ar}
