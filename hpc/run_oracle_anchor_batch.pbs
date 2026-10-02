@@ -4,8 +4,8 @@
 #PBS -N oracle_anchor_batch
 #PBS -j oe
 #PBS -k oed
-#PBS -l walltime=02:00:00
-#PBS -l select=1:ncpus=12:mem=120gb:ngpus=1:gpu_model=H100
+#PBS -l walltime=00:40:00
+#PBS -l select=1:ncpus=12:mem=120gb:ngpus=1:gpu_model=H200
 set -euo pipefail
 ROOT=/scratch/e0985859/multipath_v0_fc2da7b
 RUNTIME=/scratch/e0985859/egoengine_baseline
@@ -25,6 +25,11 @@ MP_ENV=( --env "LD_LIBRARY_PATH=/scratch/e0985859/semantic_verifier/compat_libs/
  --env "PYTHONPATH=$ROOT/deps:$ROOT/src" --env PYTHONNOUSERSITE=1 --env OMNI_KIT_ACCEPT_EULA=YES
  --env "PBS_JOBID=${PBS_JOBID:-unknown}" )
 [[ -z "${CUDA_VISIBLE_DEVICES:-}" ]] || MP_ENV+=(--env "CUDA_VISIBLE_DEVICES=$CUDA_VISIBLE_DEVICES")
+# Equivalent MASTER_PORT arithmetic without a Bash subprocess that sources
+# NVIDIA's GPU-probing BASH_ENV during Apptainer environment initialization.
+MP_ENV+=(--bind "$ROOT/hpc/container_env/92-env-torch-distributed.sh:/.singularity.d/env/92-env-torch-distributed.sh:ro")
+singularity exec --nv -e "${MP_ENV[@]}" "$IMAGE" "$RUNTIME/envs/sim-isaac510/bin/python" -c \
+ 'import os,torch; x=torch.ones(1,device="cuda"); print("CONTAINER_CUDA_READY",torch.cuda.get_device_name(0),float(x.sum()),os.environ.get("MASTER_PORT"),flush=True)' >"$OUT/startup.log" 2>&1
 COMMON=( --proposals "$MULTIPATH_PROPOSALS" --schedule "$MULTIPATH_SCHEDULE"
  --robot-yaml "$ROOT/vendor/curobo-v077/src/curobo/content/configs/robot/franka.yml"
  --xhand-urdf "$ENGINE/assets/xhand/spider/xhand_right.urdf" --object-cache "$ENGINE/outputs/sim_usd" )
@@ -99,4 +104,5 @@ final=root/'final/pipeline_result.json'
 summary={'local_anchors':reports,'gate_1_passed':bool(reports) and all(r.get('m2_success') for r in reports.values()),
          'gate_2_passed':final.exists() and json.loads(final.read_text()).get('full_pipeline_success',False)}
 (root/'gate_report.json').write_text(json.dumps(summary,indent=2))
+raise SystemExit(0 if summary['gate_2_passed'] else 1)
 PYCODE

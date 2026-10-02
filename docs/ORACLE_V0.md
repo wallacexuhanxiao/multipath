@@ -22,6 +22,26 @@ not the Oracle runtime or proof of task success. No historical/GT object pose
 is assigned during execution. Missing acquisition remains an explicit failure.
 Independent development does not waive final boundary reachability.
 
+### Container startup repair (2026-10-02)
+
+Job 642792 ran on H200 hopper-17 for 2m13s, but all four container launches
+failed before Python with `bash -c echo 53394` timing out after one minute.
+The exact command comes from the image's
+`/.singularity.d/env/92-env-torch-distributed.sh`: MASTER_PORT defaults to
+`4242 % 16384 + 49152`. Its unnecessary Bash subprocess loads BASH_ENV
+(`/etc/bash.bashrc`), which sources NVIDIA `/etc/shinit_v2` and probes the GPU
+with nvidia-smi/cudaCheck. Apptainer 1.3.1 applies a one-minute command timeout
+during environment evaluation. The specific blocked GPU-probe subcommand was
+not captured; the failing outer command and initialization chain were identified.
+
+The batch binds a copy of that script with just the Bash subprocess replaced
+by equivalent shell arithmetic. Other distributed settings are retained.
+A CPU-only patched-container check returned the unchanged port 53394 in 0.29s.
+Job 642822 reruns on one H200 for at most 40 minutes and first checks a real
+CUDA allocation before starting Anchor work. Its GPU result is still pending.
+The batch now exits unsuccessfully when the final physical gate fails, rather
+than hiding container/experiment failures behind a successful summary write.
+
 ## Method and entrypoints
 
 `configs/oracle/put_in.json` retains the existing manually reviewed cores:
