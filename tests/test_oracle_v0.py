@@ -6,6 +6,15 @@ from multipath.oracle_schedule import OracleSchedule
 from multipath.planning.timing import fixed_budget_path
 
 
+def test_reference_state_cannot_be_verified_by_copying_physical_flag():
+    from multipath.anchors.artifact import reachable_entry
+    state=dict(physically_acquired_state=True,entry_provenance={'trace':'actual_trace.json'},time_s=1.)
+    assert not reachable_entry(dict(state,entry_origin='reference_constructed_state'))
+    assert not reachable_entry(dict(state,entry_origin='initial_state'))
+    assert reachable_entry(dict(state,entry_origin='predecessor_rollout'))
+    assert reachable_entry(dict(state,entry_origin='physically_acquired_snapshot'))
+
+
 def test_core_context_and_immutable_schedule(tmp_path):
     source=json.loads(open('configs/oracle/put_in.json').read())
     path=tmp_path/'schedule.json';path.write_text(json.dumps(source))

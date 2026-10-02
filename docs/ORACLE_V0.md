@@ -26,12 +26,22 @@ is used by this entrypoint. Existing experiments remain available separately.
 
 ## Boundaries and timing
 
-The synthesis input contains both core and context; local command smoothing
-uses context, while only core commands execute as ANCHOR. Context is not
-silently relabeled as task-critical. The present implementation covers local
-retarget + core replay. A separate padded physical MPC/RL synthesis stage is
-**not implemented yet**; context retargeting is not evidence of a successful
-padded physical rollout.
+The M2 development entrypoint is `scripts/develop_mounted_anchor.py`, submitted
+with `hpc/develop_mounted_anchor.pbs`. It consumes an actual predecessor trace
+at `synth_start`, preserving measured joint/object positions AND velocities.
+It executes the entire padded window, assesses interaction fidelity only in
+the core, and records the physically produced core entry/exit. Only core
+commands are exported as the final Anchor. Post-context checks grasp retention.
+The first experiment uses the r10 predecessor; this does not certify a bridge
+to a changed canonical core entry. That connection still needs fresh validation.
+
+On replay failure, a small shooting MPC searches arm and finger residuals in
+the mounted PhysX model. Its candidate restores and traces are explicitly
+development-only. The selected controls must pass another uninterrupted padded
+replay. No prediction candidate is itself accepted as an Anchor. PhysX contact
+caches are recomputed on the first commanded step, not restored or warmed up
+using extra source time. This new physical path is awaiting its first Hopper
+result; implementation is not evidence of M2 success.
 
 cuRobo uses the actual XHand and, when grasped, actual carried-object geometry.
 Joint-space planning consumes only boundary states. Human object fidelity is
@@ -59,9 +69,14 @@ A held boundary preserves the measured hand/object transform.
 
 ## Current implementation limits
 
-- Replay failures report that mounted MPC is required. The existing EgoEngine
-  floating-wrist MPC/RL backend cannot be called unchanged to establish mounted
-  arm reachability. Neither stage is claimed as integrated.
+- Mounted padded replay and MPC are implemented for local development; local RL
+  remains unimplemented and is considered only after measured MPC failure.
+- Artifact entries declare `initial_state`, `predecessor_rollout`, or
+  `physically_acquired_snapshot`, with trace provenance for non-initial entries.
+  `reference_constructed_state` cannot be verified. Canonical artifact loading
+  requires a completed padded physical replay with no internal resets.
+- The earlier sequential core-replay developer remains diagnostic. Its artifacts
+  cannot bypass the new padded-replay requirement for canonical playback.
 - Physical canonical artifact playback is implemented but has not yet passed
   a full put-in rollout. Do not claim V0 or diverse-path success.
 - Contact forces identify hand/tool contact; grasp retention additionally uses

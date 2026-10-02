@@ -8,17 +8,18 @@ import numpy as np
 from scipy.spatial.transform import Rotation
 
 
-def local_commands(scene,anchor,proposal,held_transform=None,entry_offset=None):
+def local_commands(scene,anchor,proposal,held_transform=None,entry_offset=None,*,padded=False):
     q=np.asarray(proposal['wrist_hand_q']).copy()
     # Three-frame local smoothing includes pre/post context at core boundaries.
     padded=np.pad(q[:,7:],((1,1),(0,0)),mode='edge')
     q[:,7:]=(padded[:-2]+2*padded[1:-1]+padded[2:])/4
     seed=np.asarray(scene.state()['arm_q']); commands=[]
-    for frame in range(anchor.core_start,anchor.core_end):
+    start,end=(anchor.synth_start,anchor.synth_end) if padded else (anchor.core_start,anchor.core_end)
+    for frame in range(start,end):
         i=min(frame+1-anchor.synth_start,len(q)-1)
         wrist=q[i,:7].copy()
         if entry_offset is not None:
-            phase=np.clip((frame+1-anchor.core_start)/max(1,anchor.core_start-anchor.synth_start),0,1)
+            phase=np.clip((frame+1-start)/max(1,anchor.core_start-anchor.synth_start),0,1)
             wrist[:3]+=(1-3*phase*phase+2*phase*phase*phase)*entry_offset
         if held_transform is not None:
             tool=proposal['tool_pose'][i]

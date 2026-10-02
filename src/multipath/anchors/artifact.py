@@ -5,16 +5,30 @@ from pathlib import Path
 import numpy as np
 
 
+def reachable_entry(state):
+    """A reference pose, even with a copied boolean, is not physical evidence."""
+    origin=state.get('entry_origin')
+    if not state.get('physically_acquired_state'):
+        return False
+    if origin=='initial_state':
+        return state.get('time_s')==0
+    if origin in ('predecessor_rollout','physically_acquired_snapshot'):
+        return bool(state.get('entry_provenance'))
+    return False
+
+
 def save_anchor(root, anchor, entry, exit_state, commands, validation, provenance):
     root = Path(root)/anchor.id
     root.mkdir(parents=True, exist_ok=True)
-    success = bool(validation.get('success', False))
+    reachable=reachable_entry(entry)
+    success = bool(validation.get('success', False) and reachable)
     report = dict(asdict(anchor), core_interval=[anchor.core_start, anchor.core_end],
                   synthesis_interval=[anchor.synth_start, anchor.synth_end],
-                  entry_physically_reachable=entry.get('physically_acquired_state', False),
+                  entry_physically_reachable=reachable,entry_origin=entry.get('entry_origin'),
+                  entry_provenance=entry.get('entry_provenance'),
                   local_rollout_success=success, source_provenance=provenance,
                   contact_state={'entry':entry['contact'], 'exit':exit_state['contact']},
-                  handoff_verified=validation.get('handoff_verified',False),
+                  handoff_verified=bool(success and validation.get('handoff_verified',False)),
                   validation=validation)
     (root/'report.json').write_text(json.dumps(report, indent=2))
     (root/'entry.json').write_text(json.dumps(entry, indent=2))
@@ -29,7 +43,9 @@ def load_validated_anchor(root, anchor):
     entry=json.loads((root/'entry.json').read_text())
     exit_state=json.loads((root/'exit.json').read_text())
     if (not report['local_rollout_success'] or not report['handoff_verified'] or
-        not entry.get('physically_acquired_state') or not exit_state.get('physically_acquired_state') or
+        not reachable_entry(entry) or not exit_state.get('physically_acquired_state') or
+        not report['validation'].get('padded_rollout_complete') or
+        report['validation'].get('state_resets_within_padded_rollout') != 0 or
         report['core_interval'] != [anchor.core_start,anchor.core_end] or
         report['synthesis_interval'] != [anchor.synth_start,anchor.synth_end]):
         raise ValueError('Anchor is unvalidated, unreachable, or belongs to another schedule')

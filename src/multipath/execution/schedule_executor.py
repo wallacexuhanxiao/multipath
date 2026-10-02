@@ -115,6 +115,9 @@ def execute(scene,schedule,manifest,proposal_dir,report):
             info['transition']=transition
             if not transition['success']:raise RuntimeError('Relaxed/Anchor handoff mismatch')
         else:
+            start['entry_origin']='initial_state' if w['start']==0 else 'predecessor_rollout'
+            start['entry_provenance']={'trace':str(scene.out/'actual_trace.json'),
+                                      'source_frame':w['start'],'predecessor_segments':report['segments'][:-1]}
             a=schedule.anchors[w['anchor']];data=proposals[a.id];commands=[];validation={'success':False,'handoff_verified':False,
                    'synthesis_method':'replay','context_used':'padded local retarget and command smoothing',
                    'fallback_status':'not_needed','core_pose_errors':[]}
