@@ -38,22 +38,8 @@ def main():
         from multipath.anchors.synthesis import local_commands,fit_timed_controls,hand_limits_from_urdf
         start=predecessor_snapshot(args.predecessor_dir,anchor.synth_start,manifest['provenance'])
         (out/'acquired_snapshot.json').write_text(json.dumps(start,indent=2))
-        # A stalled native PhysX/CUDA initialization must expose its Python
-        # stack and release the allocation, not consume the entire job silently.
-        import faulthandler,time
-        faulthandler.enable()
-        faulthandler.dump_traceback_later(180,exit=True)
-        startup_time=time.monotonic()
-        print('CUDA_PROBE_BEGIN',os.environ.get('CUDA_VISIBLE_DEVICES'),flush=True)
-        import torch
-        probe=torch.ones(1,device='cuda');torch.cuda.synchronize()
-        print('CUDA_PROBE_READY',torch.cuda.get_device_name(0),float(probe.sum()),flush=True)
-        del probe
-        from isaacsim import SimulationApp
-        print('SIMULATION_APP_BEGIN',flush=True)
-        app=SimulationApp({'headless':True})
-        faulthandler.cancel_dump_traceback_later()
-        print('SIMULATION_APP_READY',time.monotonic()-startup_time,flush=True)
+        from multipath.execution.startup import start_simulation
+        app=start_simulation(out)
         scene=DevelopmentScene(args,manifest,out)
         scene.restore_development(start)
         data=dict(np.load(args.proposals/manifest['anchors'][anchor.id],allow_pickle=False))
@@ -90,7 +76,7 @@ def main():
                 result=validate_exported_core(scene,anchor,data,out/'mpc_replay',out/'mpc_core',args.artifact_dir)
             report['mpc']=result
             report['status']='mpc_passed' if result['success'] else 'mounted_mpc_failed'
-            if not result['success']:report['rl_status']='required_after_reviewing_physical_failure'
+            if not result['success']:report['rl_status']='not_attempted; review interaction failure first'
         report['m2_success']=bool(result['success'] and result.get('core_replay_success'))
         if report['m2_success']:
             report['validated_artifact_dir']=str(args.artifact_dir or scene.out/'anchors')

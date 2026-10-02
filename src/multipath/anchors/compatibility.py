@@ -14,6 +14,7 @@ def boundary_errors(actual, expected):
                                               Rotation.from_quat(np.array(target['pose'])[ [4,5,6,3] ])).magnitude())
         errors[role+'_velocity'] = float(np.max(np.abs(np.array(measured['velocity'])-target['velocity'])))
     errors['relative_transform'] = float(np.max(np.abs(np.array(actual['hand_object_transform'])-expected['hand_object_transform'])))
+    errors['relative_transform_required'] = expected['contact']['mode']=='grasped'
     errors['contact_match'] = actual['contact']['mode'] == expected['contact']['mode']
     errors['scene_match'] = actual['scene_id'] == expected['scene_id']
     return errors
@@ -23,6 +24,6 @@ def compatible(errors):
     return bool(errors['contact_match'] and errors['scene_match'] and
                 errors['arm_q'] < .08 and errors['hand_q'] < .10 and
                 errors['arm_dq'] < .3 and errors['hand_dq'] < .5 and
-                errors['relative_transform'] < .05 and
+                (errors.get('relative_transform_required',True) is False or errors['relative_transform'] < .05) and
                 all(v < (.05 if 'position' in k else .35 if 'rotation' in k else .15)
                     for k,v in errors.items() if k.endswith(('_position_m','_rotation_rad','_velocity'))))

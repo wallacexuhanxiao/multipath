@@ -5,6 +5,10 @@ import numpy as np
 def fixed_budget_path(raw, raw_dt, ticks, dt, velocity_limits, acceleration_limits,
                       initial_velocity=None, final_velocity=None):
     raw = np.asarray(raw)
+    if raw.ndim!=2 or len(raw)<2 or not np.isfinite(raw).all():
+        raise ValueError('Invalid planner positions')
+    if ticks<1 or not np.isfinite([raw_dt,dt]).all() or raw_dt<=0 or dt<=0:
+        raise ValueError('Invalid planner/source clock')
     duration = (len(raw) - 1) * float(raw_dt)
     budget = ticks * dt
     # cuRobo's optimized duration is a proposal, not a proof of minimum time.

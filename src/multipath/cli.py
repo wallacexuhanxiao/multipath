@@ -1,4 +1,4 @@
-"""Run V0 using a real, separately installed Isaac/PhysX adapter."""
+"""Historical two-Anchor adapter; Oracle V0 uses scripts/run_oracle_v0.py."""
 from __future__ import annotations
 import argparse
 import importlib

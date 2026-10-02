@@ -32,3 +32,12 @@ def test_arm_startup_preserves_measured_velocity_and_source_steps():
     assert len(fitted)==n
     np.testing.assert_allclose(velocity[0],dq,atol=1e-7)
     assert np.all(abs(acceleration)<=15*.95*(phase**2*(3-2*phase))[:,None]+1e-5)
+
+
+def test_nominal_precheck_checks_the_velocity_actually_sent():
+    controls=np.zeros((8,26));controls[:,19]=1.
+    args=(np.zeros(7),np.zeros(7),1/120,np.tile([-2.,2.],(19,1)),np.ones(7)*2,np.ones(7)*15)
+    report=control_feasibility(controls,*args)
+    assert not report['feasible'] and report['feedforward_velocity_error_rad_s']==1.
+    controls[:,19]=0.
+    assert control_feasibility(controls,*args)['feasible']

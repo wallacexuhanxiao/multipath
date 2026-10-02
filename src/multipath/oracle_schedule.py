@@ -1,6 +1,7 @@
 """Static, explicitly reviewed segmentation. No discovery or VLM dependency."""
 from dataclasses import dataclass
 import json
+import math
 from pathlib import Path
 from .anchors.schema import InteractionAnchor
 
@@ -18,11 +19,15 @@ class OracleSchedule:
         data = json.loads(Path(path).read_text())
         if data['source'] != 'oracle':
             raise ValueError('V0 requires oracle segmentation')
+        if not math.isfinite(data['fps']) or data['fps']<=0 or not isinstance(data['num_frames'],int) or data['num_frames']<=0:
+            raise ValueError('Invalid source clock')
+        if len({a['id'] for a in data['anchors']})!=len(data['anchors']):raise ValueError('Duplicate Anchor id')
         anchors = {a['id']: InteractionAnchor(**a) for a in data['anchors']}
         cursor = 0
         previous_mode = 'free'
         used = []
         for w in data['windows']:
+            if not isinstance(w['start'],int) or not isinstance(w['end'],int):raise ValueError('Schedule frames must be integers')
             if w['start'] != cursor or w['end'] <= cursor:
                 raise ValueError('Schedule must cover the source once, with no gaps')
             cursor = w['end']

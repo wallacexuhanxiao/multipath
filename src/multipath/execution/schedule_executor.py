@@ -19,11 +19,13 @@ def execute(scene,schedule,manifest,proposal_dir,report):
     proposals={a:dict(np.load(proposal_dir/p,allow_pickle=False)) for a,p in manifest['anchors'].items()}
     stop_anchor=getattr(scene.args,'through_anchor',None)
     required=[a for a in schedule.anchors.values() if not stop_anchor or a.core_start<=schedule.anchors[stop_anchor].core_start]
+    before_anchor=getattr(scene.args,'stop_before_anchor',None)
+    if before_anchor:required=[a for a in required if a.core_start<schedule.anchors[before_anchor].core_start]
     canonical={}
     if scene.args.validated_anchors:
         for a in required:
             if getattr(scene.args,'continue_development',False) and not (scene.args.validated_anchors/a.id/'report.json').exists():continue
-            canonical[a.id]=load_validated_anchor(scene.args.validated_anchors,a)
+            canonical[a.id]=load_validated_anchor(scene.args.validated_anchors,a,provenance=manifest['provenance'],fps=schedule.fps,dt=scene.dt)
     all_canonical=len(canonical)==len(schedule.anchors)
     entry_offsets={}
     held=None;hand_command=np.array(scene.state()['hand_q']);initial_q=np.array(scene.state()['arm_q'])
@@ -32,6 +34,10 @@ def execute(scene,schedule,manifest,proposal_dir,report):
                   relaxed_reference_tracking=False,anchors=[],segments=[],task_success=False,
                   full_pipeline_success=False,physical_validation_stage='final_continuous_rollout' if all_canonical else 'continuous_prefix_development')
     for wi,w in enumerate(schedule.windows):
+        if before_anchor and w.get('anchor')==before_anchor:
+            report.update(status='predecessor_prefix_complete',prefix_success=True,
+                          actual_duration_s=scene.ticks*scene.dt,full_pipeline_success=False)
+            return
         info=dict(w,budget_s=(w['end']-w['start'])/schedule.fps,success=False)
         report['segments'].append(info)
         print('ORACLE_SEGMENT',info,flush=True)

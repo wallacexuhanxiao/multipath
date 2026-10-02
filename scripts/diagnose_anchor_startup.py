@@ -18,8 +18,8 @@ def main():
     manifest=json.loads((args.proposals/'manifest.json').read_text())
     snapshot=json.loads(args.snapshot.read_text())
     controls=np.load(args.controls)['commands']
-    from isaacsim import SimulationApp
-    app=SimulationApp({'headless':True});report={'diagnostic_only':True,'full_pipeline_success':False,'cases':{}}
+    from multipath.execution.startup import start_simulation
+    app=start_simulation(out);report={'diagnostic_only':True,'full_pipeline_success':False,'cases':{}}
     try:
         from multipath.anchors.development import DevelopmentScene
         scene=DevelopmentScene(args,manifest,out)

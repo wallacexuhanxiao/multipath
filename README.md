@@ -24,14 +24,19 @@ reviewed segmentation: `configs/oracle/put_in.json`.
 
 Core and synthesis context are separate. Local proposals are **not** physical
 Anchor artifacts: these are saved only with measured entry/exit states and an
-explicit validation report. Failed replay reports the need for mounted MPC;
-the old floating-wrist MPC/RL backend is not yet connected to the mounted V0
-backend. V0 is not yet a successful end-to-end result. Diversity is deferred.
+explicit validation report. Failed replay runs mounted PhysX shooting MPC on arm + XHand, followed by
+a fresh padded rollout and exported-core replay. Floating-wrist MPC is not
+physical evidence for this mounted embodiment; RL remains deferred. V0 is not yet a successful end-to-end result. Diversity is deferred.
 
 The old VLM/reference-event compilers, full-reference source-clock runners,
 and path-exclusion implementation remain experimental/historical paths.
 
 First target: `(put in, bowl, plate) / 20231024_253`.
+
+The entrypoint acquires each predecessor prefix, synthesizes the local padded
+Anchor, verifies its exported core, and finally runs a fresh complete trajectory.
+`--stop-before-anchor` obtains a prefix without executing an unvalidated core.
+See [code audit and validation limits](docs/CODE_AUDIT_20261002.md).
 
 Current oracle V0 result: the first 1.1667-second bridge passes real PhysX
 handoff (0.00846 rad maximum joint error); Anchor synthesis is still pending.
@@ -50,6 +55,8 @@ See [physical results and run instructions](docs/MOUNTED_PIPELINE.md).
 
 ![Automatically generated obstacles and two measured paths](docs/evidence/automatic_path_diversity.png)
 
+**Historical/experimental pipeline (not the Oracle V0 entrypoint):**
+
 ```
 Single video + reconstructed digital twin
  -> VLM BC/relaxed schedule, checked against contact and task semantics
@@ -61,6 +68,12 @@ Single video + reconstructed digital twin
 ```
 
 ## Implementation
+
+Current Oracle V0 modules: `oracle_schedule.py`, `anchors/`,
+`execution/schedule_executor.py`, `execution/mounted_scene.py`, and
+`planning/timing.py`. The standalone `multipath` CLI and two-Anchor
+`orchestrator.py` below are historical adapters; run Oracle V0 through
+`hpc/run_oracle_v0.pbs` or `scripts/run_oracle_v0.py`.
 
 `src/multipath/schema.py`: anchored boundary schemas and safe artifact I/O.
 
@@ -75,7 +88,7 @@ compatibility checks.
 including observed bowl pose, matching named joints, real collision geometry
 and the exact canonical end-joint configuration.
 
-`src/multipath/orchestrator.py`: current two-BC-window V0 continuous control
+`src/multipath/orchestrator.py`: historical two-Anchor adapter control
 flow, measured transition checks, physical-correction hook and fail-closed
 acceptance.
 

@@ -1,0 +1,6 @@
+CUDA_PROBE_BEGIN GPU-2a86a7f5-c15a-8370-668f-62ac65860780
+Timeout (0:03:00)!
+Thread 0x00001555551fa740 (most recent call first):
+  File "/scratch/e0985859/egoengine_baseline/envs/sim-isaac510/lib/python3.11/site-packages/torch/cuda/__init__.py", line 372 in _lazy_init
+  File "/scratch/e0985859/multipath_v0_fc2da7b/scripts/develop_mounted_anchor.py", line 49 in main
+  File "/scratch/e0985859/multipath_v0_fc2da7b/scripts/develop_mounted_anchor.py", line 108 in <module>

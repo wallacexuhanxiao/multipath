@@ -60,3 +60,8 @@
 r22 / `643351.hopper-m-02`，完整 A1 Replay → 必要时 MPC，H200 interactive，30 分钟上限。最初固定 hopper-17，希望控制节点变量；原节点释放后已被其他作业占满，因此在新作业仍排队时取消了节点绑定。后续若换节点成功，不能单独归因于 CUDA 预初始化。
 
 最新检查：r22 尚在排队，原因 `Insufficient amount of resource: ngpus`；没有新的物理结果。输出目录 `outputs/oracle_a1_physical_replay_r22`。本轮未重复提交其他实验，也没有宣称 A1/M2 成功。
+
+
+## 2026-10-03 更新
+
+r22 已结束，3 分钟 watchdog 栈确认卡在 `torch.cuda._lazy_init`，未到 Isaac。代码审查及后续调度纠正见 [完整审查报告](../../CODE_AUDIT_20261002.md)。r23 作业 643371 尚未运行；最初错误选择 AISG_debug 的 hopper-35 已纠正为 interactive 的 hopper-24。当前仍没有新的 A1 交互结果。

@@ -41,3 +41,31 @@ def test_retiming_checks_acceleration_and_preserves_tick_count():
     raw[12:,0]=.1
     with pytest.raises(RuntimeError,match='violates dynamics'):
         fixed_budget_path(raw,1/120,24,1/120,np.ones(7)*3,np.ones(7)*15)
+
+
+def test_artifact_rejects_wrong_source_clock_and_nonfinite_commands(tmp_path):
+    from multipath.anchors.artifact import save_anchor,load_validated_anchor
+    from multipath.anchors.schema import InteractionAnchor
+    anchor=InteractionAnchor('grasp',2,4,0,6,'free','grasped')
+    entry={'time_s':2/30,'physically_acquired_state':True,'entry_origin':'predecessor_rollout',
+           'entry_provenance':{'trace':'physical.json'},'contact':{'mode':'free'}}
+    exit_state=dict(entry,time_s=4/30,contact={'mode':'grasped'})
+    validation=dict(success=True,handoff_verified=True,padded_rollout_complete=True,core_replay_success=True,
+                    state_resets_within_padded_rollout=0,state_resets_within_core_replay=0,control_dt=1/120,source_fps=30)
+    save_anchor(tmp_path,anchor,entry,exit_state,np.zeros((8,26)),validation,{'source':'one'})
+    load_validated_anchor(tmp_path,anchor,provenance={'source':'one'},fps=30,dt=1/120)
+    with pytest.raises(ValueError,match='provenance'):
+        load_validated_anchor(tmp_path,anchor,provenance={'source':'two'})
+    with pytest.raises(ValueError,match='timestep'):
+        load_validated_anchor(tmp_path,anchor,dt=1/60)
+    commands=np.zeros((8,26));commands[0,0]=np.nan
+    np.savez_compressed(tmp_path/'grasp'/'commands.npz',commands=commands)
+    with pytest.raises(ValueError):load_validated_anchor(tmp_path,anchor)
+
+
+def test_initial_anchor_development_can_use_actual_initial_state(tmp_path):
+    from multipath.anchors.development import predecessor_snapshot
+    state={'source_frame':0,'time_s':0.,'physically_acquired_state':True,'state_origin':'continuous_PhysX_rollout'}
+    (tmp_path/'actual_trace.json').write_text(json.dumps([state]))
+    (tmp_path/'pipeline_result.json').write_text(json.dumps({'source_provenance':{'source':'one'},'segments':[]}))
+    assert predecessor_snapshot(tmp_path,0,{'source':'one'})['entry_origin']=='initial_state'

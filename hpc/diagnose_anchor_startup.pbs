@@ -28,8 +28,6 @@ MP_ENV=( --env "LD_LIBRARY_PATH=/scratch/e0985859/semantic_verifier/compat_libs/
 # Equivalent MASTER_PORT arithmetic without a Bash subprocess that sources
 # NVIDIA's GPU-probing BASH_ENV during Apptainer environment initialization.
 MP_ENV+=(--bind "$ROOT/hpc/container_env/92-env-torch-distributed.sh:/.singularity.d/env/92-env-torch-distributed.sh:ro")
-singularity exec --nv -e "${MP_ENV[@]}" "$IMAGE" "$RUNTIME/envs/sim-isaac510/bin/python" -c \
- 'import os,torch; x=torch.ones(1,device="cuda"); print("CONTAINER_CUDA_READY",torch.cuda.get_device_name(0),float(x.sum()),os.environ.get("MASTER_PORT"),flush=True)' >"$OUT/startup.log" 2>&1
 singularity exec --nv -e "${MP_ENV[@]}" "$IMAGE" "$RUNTIME/envs/sim-isaac510/bin/python" -u scripts/diagnose_anchor_startup.py \
  --proposals "$MULTIPATH_PROPOSALS" --schedule "$MULTIPATH_SCHEDULE" --snapshot "$MULTIPATH_SNAPSHOT" --controls "$MULTIPATH_CONTROLS" \
  --robot-yaml "$ROOT/vendor/curobo-v077/src/curobo/content/configs/robot/franka.yml" \

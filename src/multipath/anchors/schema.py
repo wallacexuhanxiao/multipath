@@ -12,6 +12,8 @@ class InteractionAnchor:
     exit_contact: str
 
     def __post_init__(self):
+        if any(not isinstance(v,int) for v in (self.core_start,self.core_end,self.synth_start,self.synth_end)):
+            raise ValueError('Anchor frames must be integers')
         if not 0 <= self.synth_start <= self.core_start < self.core_end <= self.synth_end:
             raise ValueError('Invalid core/context intervals')
         if {self.entry_contact, self.exit_contact} - {'free', 'grasped'}:

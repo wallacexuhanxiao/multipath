@@ -16,12 +16,12 @@ def predecessor_snapshot(directory, frame, provenance):
     if result['source_provenance']!=provenance:
         raise ValueError('Snapshot and local inputs have different source provenance')
     preceding=[s for s in result['segments'] if s['start']<frame]
-    if not preceding or not all(s['success'] for s in preceding) or preceding[-1]['end']<frame:
+    if frame!=0 and (not preceding or not all(s['success'] for s in preceding) or preceding[-1]['end']<frame):
         raise ValueError('Snapshot has no successful physical predecessor chain')
     state=next(s for s in json.loads(trace_path.read_text()) if abs(s['source_frame']-frame)<1e-8)
     if not state.get('physically_acquired_state') or state.get('state_origin')!='continuous_PhysX_rollout':
         raise ValueError('Reference-constructed snapshots cannot initialize development')
-    state['entry_origin']='physically_acquired_snapshot'
+    state['entry_origin']='initial_state' if frame==0 else 'physically_acquired_snapshot'
     state['entry_provenance']={'trace':str(trace_path),'trace_sha256':hashlib.sha256(trace_path.read_bytes()).hexdigest(),
                              'result':str(result_path),'result_sha256':hashlib.sha256(result_path.read_bytes()).hexdigest(),
                              'source_frame':frame}
@@ -140,8 +140,12 @@ def replay_padded(scene,anchor,data,controls,start,folder,method,core_only=False
     except RuntimeError as error:
         validation['failures'].append(str(error))
     finally:
-        if not scene.records or scene.records[-1]['time_s']<scene.ticks*scene.dt:scene.capture('STOP',scene.ticks*scene.dt*fps)
-        scene.save()
+        try:
+            if not scene.records or scene.records[-1]['time_s']<scene.ticks*scene.dt:scene.capture('STOP',scene.ticks*scene.dt*fps)
+        except Exception as error:
+            validation['failures'].append(f'Final state capture failed: {error}')
+        try:scene.save()
+        except Exception as error:validation['failures'].append(f'Actual trace save failed: {error}')
     validation['failures']=sorted(set(validation['failures']))
     validation['success']=not validation['failures'] and validation.get('rollout_complete',False) and entry is not None and exit_state is not None
     validation['handoff_verified']=validation['success']
@@ -217,25 +221,23 @@ def mounted_mpc(scene,anchor,data,baseline,start,out,seed=0):
         duration=n*scene.dt
         scale=np.r_[np.minimum(scene.velocity*duration*.1,(upper-lower)[:7]*.02),(upper-lower)[7:]*.04]
         mean=np.zeros(19);sigma=scale.copy();best=None;best_score=float('inf')
-        # Carry the previous MPC position/velocity residual into this horizon;
-        # tracking error must not be reinterpreted as feedforward (r9 failure).
+        # Rebase each prediction on measured q/dq using the existing boundary
+        # blend; do not precheck a different start from the restored simulation.
         phase=np.arange(1,n+1)/n;blend=np.sin(np.pi*phase)**2
-        blend_velocity=np.pi*np.sin(2*np.pi*phase)/duration
-        qprevious=np.array(state['command'])[np.r_[scene.arm,scene.fingers]]
-        vprevious=np.array(state['command_velocity'])[scene.arm]
+        # Predictions execute from measured state, not the previous drive target.
+        qprevious=np.r_[state['arm_q'],state['hand_q']]
+        vprevious=np.array(state['arm_dq'])
         if begin:
             offset=qprevious-baseline[begin-1,:19]
             speed=np.r_[vprevious-baseline[begin-1,19:26],np.zeros(12)]
             base[:,:19]+=(2*phase**3-3*phase**2+1)[:,None]*offset+(phase**3-2*phase**2+phase)[:,None]*duration*speed
-            base[:,19:26]+=(6*phase**2-6*phase)[:,None]/duration*offset[:7]+(3*phase**2-4*phase+1)[:,None]*speed[:7]
-        else:
-            qprevious=np.r_[state['arm_q'],state['hand_q']];vprevious=np.array(state['arm_dq'])
         for iteration in range(2):
             candidates=[mean]+[rng.normal(mean,sigma) for _ in range(5)]
             scored=[]
             for residual in candidates:
                 trial_id+=1;control=base.copy();control[:,:19]+=blend[:,None]*residual
-                control[:,19:26]=base[:,19:26]+blend_velocity[:,None]*residual[:7]
+                # The exact sampled positions define the feedforward actually sent.
+                control[:,19:26]=np.diff(np.vstack((qprevious[:7],control[:,:7])),axis=0)/scene.dt
                 checks=control_feasibility(control,qprevious[:7],vprevious,scene.dt,np.c_[lower,upper],scene.velocity,scene.acceleration,
                     start_hand_q=qprevious[7:],hand_velocity_limits=hand_limits_from_urdf(scene))
                 feasible=checks['feasible']

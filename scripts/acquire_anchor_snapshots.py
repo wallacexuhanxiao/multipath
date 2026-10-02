@@ -20,6 +20,8 @@ def main():
     schedule=OracleSchedule.load(args.schedule)
     frames=sorted({schedule.anchors[a].synth_start for a in args.anchors})
     manifest=json.loads((args.proposals/'manifest.json').read_text())
+    if manifest['provenance']['schedule_sha256']!=hashlib.sha256(args.schedule.read_bytes()).hexdigest():
+        raise ValueError('Acquisition proposals and schedule differ')
     old=json.loads(args.command_trace.read_text())
     source_frames=np.array([r['source_frame'] for r in old])
     if frames[-1]>source_frames[-1]:raise ValueError('Historical controls do not cover requested context entries')
@@ -28,14 +30,15 @@ def main():
     if q.shape[1]!=19:raise ValueError('Historical command joint layout must be arm7 + XHand12')
     query=np.arange(1,frames[-1]+1)
     targets=np.stack([np.interp(query,source_frames,q[:,j]) for j in range(19)],axis=1)
-    from isaacsim import SimulationApp
-    app=SimulationApp({'headless':True});scene=None
+    app=None;scene=None
     report={'source':'oracle','source_fps':schedule.fps,'source_provenance':manifest['provenance'],
             'purpose':'development_snapshot_acquisition','full_pipeline_success':False,'task_success':False,
             'state_resets_between_segments':0,'historical_control_trace':str(args.command_trace),
             'historical_control_sha256':hashlib.sha256(args.command_trace.read_bytes()).hexdigest(),
             'snapshots':{},'segments':[],'status':'initializing'}
     try:
+        from multipath.execution.startup import start_simulation
+        app=start_simulation(out)
         from multipath.execution.mounted_scene import MountedScene
         from multipath.anchors.synthesis import fit_timed_controls,hand_limits_from_urdf
         scene=MountedScene(args,manifest,out);start=scene.state()
@@ -65,10 +68,14 @@ def main():
         report.update(status='failed',error=str(error))
     finally:
         if scene:
-            if scene.records[-1]['time_s']<scene.ticks*scene.dt:scene.capture('STOP',scene.ticks*scene.dt*schedule.fps)
-            scene.save();report.update(actual_duration_s=scene.ticks*scene.dt,table_z=float(scene.table['pose'][2]+.02))
+            try:
+                if not scene.records or scene.records[-1]['time_s']<scene.ticks*scene.dt:scene.capture('STOP',scene.ticks*scene.dt*schedule.fps)
+            except Exception as error:report.update(status='failed',capture_error=str(error))
+            try:scene.save()
+            except Exception as error:report.update(status='failed',trace_error=str(error))
+            report.update(actual_duration_s=scene.ticks*scene.dt,table_z=float(scene.table['pose'][2]+.02))
         (out/'pipeline_result.json').write_text(json.dumps(report,indent=2))
-        app.close()
+        if app:app.close()
     if report['status']!='acquired':raise SystemExit(1)
 
 

@@ -99,6 +99,7 @@ class MountedScene:
 
     def contact_state(self):
         forces=np.asarray(self.contacts.get_contact_force_matrix(dt=self.dt)).reshape(-1,3)
+        if not np.isfinite(forces).all():raise RuntimeError('Non-finite measured contact forces')
         magnitudes=np.linalg.norm(forces,axis=1)
         return {'mode':'grasped' if np.count_nonzero(magnitudes>.01)>=2 else 'free',
                 'touching_links':int(np.count_nonzero(magnitudes>.01)),
@@ -109,7 +110,10 @@ class MountedScene:
         wp,wq=self.wrist.get_world_pose();objects={}
         for role,obj in self.objects.items():
             p,r=obj.get_world_pose()
-            objects[role]={'pose':np.r_[p,r].tolist(),'velocity':np.r_[obj.get_linear_velocity(),obj.get_angular_velocity()].tolist()}
+            pose=np.r_[p,r];velocity=np.r_[obj.get_linear_velocity(),obj.get_angular_velocity()]
+            if not np.isfinite(pose).all() or not np.isfinite(velocity).all():
+                raise RuntimeError(f'Non-finite measured object state: {role}')
+            objects[role]={'pose':pose.tolist(),'velocity':velocity.tolist()}
         measured_effort=np.asarray(self.robot.get_measured_joint_efforts())
         relative=np.linalg.inv(pose_matrix(np.r_[wp,wq]))@pose_matrix(objects['tool']['pose'])
         return {'arm_q':q[self.arm].tolist(),'arm_dq':dq[self.arm].tolist(),
@@ -134,13 +138,14 @@ class MountedScene:
         self.qcommand[self.arm]=arm;self.qcommand[self.fingers]=hand
         self.robot.apply_action(self.Action(joint_positions=self.qcommand,joint_velocities=self.velocity_command))
         self.world.step(render=False);self.ticks+=1
-        dq=np.asarray(self.robot.get_joint_velocities())[self.arm]
+        q_all=np.asarray(self.robot.get_joint_positions());dq_all=np.asarray(self.robot.get_joint_velocities())
+        if not np.isfinite(q_all).all() or not np.isfinite(dq_all).all():
+            raise RuntimeError('Non-finite measured articulation state')
+        dq=dq_all[self.arm]
         self.max_velocity_ratio=max(self.max_velocity_ratio,float(np.max(np.abs(dq)/self.velocity)))
         self.max_acceleration_ratio=max(self.max_acceleration_ratio,float(np.max(np.abs(dq-self.previous_dq)/self.dt/self.acceleration)))
         self.previous_dq=dq.copy()
         if self.ticks%round(1/(self.dt*self.manifest['fps']))==0:self.capture(mode,frame)
-        if not np.isfinite(dq).all() or not np.isfinite(self.robot.get_joint_positions()).all():
-            raise RuntimeError('Non-finite measured articulation state')
         if self.max_velocity_ratio>1.05:
             raise RuntimeError(f'Measured actuator velocity exceeded: velocity={self.max_velocity_ratio:.3f}; dq={dq.tolist()}')
 

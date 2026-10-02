@@ -117,7 +117,9 @@ def fit_timed_controls(arm_targets,hand_targets,start_q,start_dq,start_hand,
     This is kinematic trajectory fitting, not physical MPC or a success gate.
     Only the subsequent actual object/contact rollout validates the interaction.
     """
-    tpf=int(round(1/(fps*dt)));n=len(arm_targets)*tpf
+    tpf=int(round(1/(fps*dt)))
+    if tpf<1 or abs(tpf*fps*dt-1)>1e-8:raise ValueError("Physics/source clocks not commensurate")
+    n=len(arm_targets)*tpf
     clock=np.arange(len(arm_targets)+1)/fps;query=np.arange(1,n+1)*dt
     reference=np.vstack((start_q,arm_targets))
     desired=np.stack([np.interp(query,clock,reference[:,j]) for j in range(7)],axis=1)

@@ -10,6 +10,7 @@ def main():
     p.add_argument('--schedule',type=Path,required=True)
     p.add_argument('--validated-anchors',type=Path,help='Final rollout: consume physically validated local Anchor artifacts')
     p.add_argument('--continue-development',action='store_true',help='Use available validated Anchors and develop missing cores from actual predecessor execution')
+    p.add_argument('--stop-before-anchor',help='Acquire a continuous predecessor prefix before this core')
     p.add_argument('--through-anchor',help='Stop after this Anchor for an early continuous connection experiment')
     p.add_argument('--robot-yaml',type=Path,required=True)
     p.add_argument('--xhand-urdf',type=Path,required=True)
@@ -19,6 +20,8 @@ def main():
     from multipath.oracle_schedule import OracleSchedule
     schedule=OracleSchedule.load(args.schedule)
     if args.through_anchor and args.through_anchor not in schedule.anchors:raise ValueError('Unknown stop Anchor')
+    if args.stop_before_anchor and args.stop_before_anchor not in schedule.anchors:raise ValueError('Unknown prefix boundary')
+    if args.stop_before_anchor and args.through_anchor:raise ValueError('Choose one prefix boundary')
     manifest=json.loads((args.proposals/'manifest.json').read_text())
     import hashlib
     if manifest['provenance']['schedule_sha256']!=hashlib.sha256(args.schedule.read_bytes()).hexdigest():
@@ -26,6 +29,7 @@ def main():
     if args.validated_anchors:
         from multipath.anchors.artifact import load_validated_anchor
         for anchor in schedule.anchors.values():
+            if args.stop_before_anchor and anchor.core_start>=schedule.anchors[args.stop_before_anchor].core_start:continue
             if args.through_anchor and anchor.core_start>schedule.anchors[args.through_anchor].core_start:continue
             if args.continue_development and not (args.validated_anchors/anchor.id/'report.json').exists():continue
             artifact=load_validated_anchor(args.validated_anchors,anchor)
@@ -37,7 +41,6 @@ def main():
     shutil.copy2(__file__,implementation/'run_oracle_v0.py')
     import multipath
     shutil.copytree(Path(multipath.__file__).parent,implementation/'multipath',dirs_exist_ok=True,ignore=shutil.ignore_patterns('__pycache__'))
-    from isaacsim import SimulationApp
     from dataclasses import asdict
     for anchor in schedule.anchors.values():
         folder=out/'anchors'/anchor.id;folder.mkdir(parents=True,exist_ok=True)
@@ -45,11 +48,13 @@ def main():
                      entry_physically_reachable=None,local_rollout_success=False,handoff_verified=False,contact_state=None,
                      source_provenance=manifest['provenance'],status='not_executed_dependency_pending')
         (folder/'report.json').write_text(json.dumps(pending,indent=2))
-    app=SimulationApp({'headless':True});scene=None
+    app=None;scene=None
     report={'status':'initializing','full_pipeline_success':False,'task_success':False,
             'pbs_job_id':__import__('os').environ.get('PBS_JOBID'),'source_provenance':manifest['provenance'],
             'source_sha256':manifest['provenance']['schedule_sha256']}
     try:
+        from multipath.execution.startup import start_simulation
+        app=start_simulation(out)
         from multipath.execution.mounted_scene import MountedScene
         from multipath.execution.schedule_executor import execute
         scene=MountedScene(args,manifest,out)
@@ -61,15 +66,23 @@ def main():
         report.update(status='failed',error=f'{type(error).__name__}: {error}',full_pipeline_success=False)
     finally:
         if scene:
-            if scene.records[-1]['time_s']<scene.ticks*scene.dt-1e-8:
-                scene.capture('STOP',scene.ticks*scene.dt*schedule.fps)
-            scene.save();report['actual_duration_s']=scene.ticks*scene.dt
+            try:
+                if not scene.records or scene.records[-1]['time_s']<scene.ticks*scene.dt-1e-8:
+                    scene.capture('STOP',scene.ticks*scene.dt*schedule.fps)
+            except Exception as error:
+                report['capture_error']=str(error)
+            try:scene.save()
+            except Exception as error:report['trace_error']=str(error)
+            if 'capture_error' in report or 'trace_error' in report:
+                report.update(status='recording_failed',full_pipeline_success=False,task_success=False,
+                              prefix_success=False,development_success=False)
+            report['actual_duration_s']=scene.ticks*scene.dt
             report['frames_recorded']=len(scene.records)
             report['measured_velocity_ratio']=scene.max_velocity_ratio
             report['measured_acceleration_ratio']=scene.max_acceleration_ratio
         (out/'pipeline_result.json').write_text(json.dumps(report,indent=2))
         print('ORACLE_RESULT',report['status'],report.get('error',''),flush=True)
-        app.close()
+        if app:app.close()
     if not (report['full_pipeline_success'] or report.get('prefix_success') or report.get('development_success')):raise SystemExit(1)
 
 if __name__=='__main__':main()
