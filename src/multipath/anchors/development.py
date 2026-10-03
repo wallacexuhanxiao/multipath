@@ -37,7 +37,9 @@ class DevelopmentScene(MountedScene):
         if self.record_mesh:
             super().capture(mode,frame)
         else:
-            self.records.append(dict(self.state(),mode=mode,source_frame=frame))
+            self.records.append(dict(self.state(),mode=mode,source_frame=frame,
+                command_arm_q=self.qcommand[self.arm].tolist(),command_arm_dq=self.velocity_command[self.arm].tolist(),
+                command_hand_q=self.qcommand[self.fingers].tolist(),command_hand_dq=self.velocity_command[self.fingers].tolist()))
 
     def snapshot(self):
         if self.ticks==getattr(self,'restored_tick',None):

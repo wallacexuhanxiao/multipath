@@ -36,6 +36,7 @@ def main():
             'full_pipeline_success':False,'pbs_job_id':os.environ.get('PBS_JOBID'),
             'source_provenance':manifest['provenance'],'bridge_backend_changed':False,
             'snapshot_restore_scope':'local_development_only','rl_status':'not_attempted',
+            'anchor_hand_control':'position_and_command_derivative_velocity_feedforward',
             'core_interval':[anchor.core_start,anchor.core_end],
             'synthesis_interval':[anchor.synth_start,anchor.synth_end]}
     try:

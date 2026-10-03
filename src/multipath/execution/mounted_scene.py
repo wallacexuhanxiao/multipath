@@ -126,12 +126,18 @@ class MountedScene:
         self.records.append(dict(s,mode=mode,source_frame=frame,arm_q=s['arm_q'],finger_q=s['hand_q'],
                          command=self.qcommand.tolist(),command_velocity=self.velocity_command.tolist(),
                          command_arm_q=self.qcommand[self.arm].tolist(),command_arm_dq=self.velocity_command[self.arm].tolist(),
+                         command_hand_q=self.qcommand[self.fingers].tolist(),command_hand_dq=self.velocity_command[self.fingers].tolist(),
                          tool_xyz_wxyz=s['objects']['tool']['pose'],target_xyz_wxyz=s['objects']['target']['pose']))
         self.recorder.capture()
 
     def step(self,arm,hand,mode,frame,arm_velocity):
         self.velocity_command[:]=0.
         self.velocity_command[self.arm]=arm_velocity
+        # Use the derivative of the same finger position commands as drive
+        # feedforward. A zero velocity target otherwise damps intended closing.
+        # RELAXED keeps the frozen bridge interface (constant hand posture).
+        if mode!='RELAXED':
+            self.velocity_command[self.fingers]=(np.asarray(hand)-self.qcommand[self.fingers])/self.dt
         self.qcommand[self.arm]=arm;self.qcommand[self.fingers]=hand
         self.robot.apply_action(self.Action(joint_positions=self.qcommand,joint_velocities=self.velocity_command))
         self.world.step(render=False);self.ticks+=1
