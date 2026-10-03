@@ -67,10 +67,10 @@ def fitted_cartesian_prior(scene, controls, ticks_per_frame):
 
 
 class WindowEvaluation:
-    """Existing Anchor core/contact gates, plus a dense object/contact return.
+    """Appendix C tracking score with project core/contact boundary checks.
 
-    The Cp/CR box is the current project's acceptance rule, not Eq C.4's
-    scalar boundary. Context helps synthesis without adding reference gates.
+    Padding has no reference-fidelity gate. Auxiliary contact reward is
+    optimization-only; evaluation uses object tracking alone.
     """
     def __init__(self, scene, anchor, data, start):
         self.scene, self.anchor, self.data = scene, anchor, data
@@ -80,12 +80,15 @@ class WindowEvaluation:
                 or (frame >= anchor.core_end and anchor.exit_contact == 'grasped')):
             self.held = np.asarray(start['hand_object_transform'])
         self.total_return = 0.
+        self.evaluation_return = 0.
+        self.last_reward = 0.
         self.failure = None
 
     def observe(self, frame, command):
         a = self.anchor
         measured = self.scene.state()
         reward = 0.
+        tracking_reward = 0.
         reason = None
         index = min(max(round(frame) - a.synth_start, 0), len(self.data['tool_pose']) - 1)
         if frame == a.core_start:
@@ -94,12 +97,14 @@ class WindowEvaluation:
             self.held = np.asarray(measured['hand_object_transform']) if a.entry_contact == 'grasped' else None
         if a.core_start < frame <= a.core_end:
             error = core_pose_errors(measured, self.data['tool_pose'][index])
-            reward = np.sqrt(2.) - np.hypot(error['position_m'] / .05, error['rotation_rad'] / .35)
-            if error['position_m'] > .05 or error['rotation_rad'] > .35:
+            from multipath.validation.physics import object_tracking_score
+            score = object_tracking_score(error)
+            reward = tracking_reward = score['reward']
+            if not score['feasible']:
                 reason = 'core_object_fidelity'
             # Native opposition, not proximity. No human-mimic or smoothness
             # reward; final release is checked explicitly below.
-            reward += 2. * (measured['contact']['mode'] == 'grasped')
+            reward += 2. * measured['contact'].get('opposition_contact', False)
             if self.held is not None:
                 r = retention_errors(measured, self.held)
                 if r['position_m'] > .05 or r['rotation_rad'] > .35 or not r['contact_retained']:
@@ -113,10 +118,12 @@ class WindowEvaluation:
             r = retention_errors(measured, self.held)
             if r['position_m'] > .05 or r['rotation_rad'] > .35 or not r['contact_retained']:
                 reason = 'post_context_grasp_retention'
+        self.last_reward = float(reward)
         if reason:
             self.failure = {'source_frame': float(frame), 'reason': reason}
             return False
         self.total_return += float(reward)
+        self.evaluation_return += float(tracking_reward)
         return True
 
 

@@ -15,7 +15,7 @@ from scipy.spatial.transform import Rotation
 from multipath.anchors.control_check import control_feasibility
 from multipath.anchors.mpc import WindowEvaluation, fitted_cartesian_prior
 from multipath.anchors.synthesis import hand_limits_from_urdf
-from multipath.validation.physics import core_pose_errors
+from multipath.anchors.residual_control import project_arm_command
 
 
 @dataclass(frozen=True)
@@ -55,7 +55,10 @@ class MountedResidualEnv:
             'source_provenance':scene.manifest['provenance'],'action':'wrist_xyz_rotvec_and_12_fingers',
             'action_scales':self.action_scales.tolist(),'residual_center':'fitted_local_replay',
             'dynamics_projection':'command_space_only','training_scene':'mounted_PhysX',
-            'terminal_reward':'negative_one_or_normalized_core_error_whichever_larger',
+            'objective':'Appendix C.3/C.4 weighted tracking + C.7 thumb AND finger',
+            'terminal_reward':'same_tracking_formula_no_added_failure_penalty',
+            'evaluation_reward':'object_tracking_only_C.9',
+            'tracking_parameters':{'C':1.,'lambda_p':1/.05**2,'lambda_R':1/.35**2},
             'clock_stretched':False,'state_resets_within_episode':0,'domain_randomization':False}
 
     def observation(self,state):
@@ -82,6 +85,7 @@ class MountedResidualEnv:
         self.q=np.r_[self.start['arm_q'],self.start['hand_q']].astype(float)
         self.dq=np.asarray(self.start['arm_dq'],dtype=float)
         self.previous_delta=np.zeros(19)
+        self.ik_seed=np.asarray(self.start['arm_q']).copy()
         self.objective=WindowEvaluation(self.scene,self.anchor,self.data,self.start)
         self.failure=None
         return self.observation(self.start)
@@ -97,12 +101,13 @@ class MountedResidualEnv:
         desired[7:]+=residual[6:]
         end=(self.k+1)*self.tpf
         reference=self.baseline[end-1,:19]
-        reward_before=self.objective.total_return
+        self.objective.last_reward=0.
         try:
             if not np.any(action):
                 delta=np.zeros(19)
             else:
-                arm=self.scene.solve(desired[:7],self.baseline[end-1,:7])
+                arm=self.scene.solve(desired[:7],self.ik_seed)
+                self.ik_seed=arm.copy()
                 delta=np.r_[arm,desired[7:]]-reference
             for sub in range(self.tpf):
                 tick=self.k*self.tpf+sub
@@ -116,13 +121,13 @@ class MountedResidualEnv:
                 proposed=self.baseline[tick,:19]+envelope*((1-alpha)*self.previous_delta+alpha*delta)
                 dt=self.scene.dt
                 vmax=self.scene.velocity;amax=np.broadcast_to(self.scene.acceleration,(7,))
-                low=np.maximum(self.limits[:7,0],self.q[:7]+dt*np.maximum(-vmax,self.dq-amax*dt))
-                high=np.minimum(self.limits[:7,1],self.q[:7]+dt*np.minimum(vmax,self.dq+amax*dt))
+                arm,low,high=project_arm_command(proposed[:7],self.q[:7],self.dq,
+                                                 dt,self.limits[:7],vmax,amax)
                 hand_low=np.maximum(self.limits[7:,0],self.q[7:]-self.hand_velocity*dt)
                 hand_high=np.minimum(self.limits[7:,1],self.q[7:]+self.hand_velocity*dt)
                 if np.any(low>high) or np.any(hand_low>hand_high):
                     raise RuntimeError('Residual commands cannot satisfy local actuator boundary')
-                arm=np.clip(proposed[:7],low,high);hand=np.clip(proposed[7:],hand_low,hand_high)
+                hand=np.clip(proposed[7:],hand_low,hand_high)
                 # Preserve measured initial velocity for the very first step.
                 if tick==0:
                     arm=np.asarray(self.start['arm_q'])+np.asarray(self.start['arm_dq'])*dt
@@ -142,20 +147,13 @@ class MountedResidualEnv:
         self.k+=1;self.previous_action=action
         if self.failure is None:self.previous_delta=delta
         done=self.failure is not None or self.k==self.horizon
-        reward=self.objective.total_return-reward_before
-        if self.failure is not None:
-            # A terminated bad action must not receive the same zero signal
-            # as neutral padding. Training-only penalty; acceptance unchanged.
-            severity=1.
-            if self.failure['reason']=='core_object_fidelity':
-                frame=self.failure['source_frame']
-                index=min(max(round(frame)-self.anchor.synth_start,0),len(self.data['tool_pose'])-1)
-                error=core_pose_errors(self.scene.state(),self.data['tool_pose'][index])
-                severity=max(severity,float(np.hypot(error['position_m']/.05,error['rotation_rad']/.35)))
-            reward=-severity
+        # The failed tracking frame uses the same C-error + contact formula.
+        # Execution failures before observation receive zero, no bespoke penalty.
+        reward=self.objective.last_reward
         observation=self.observation(self.scene.snapshot()) if self.failure is None else np.zeros_like(self.observation(self.start))
         success=bool(done and self.failure is None and len(self.commands)==len(self.baseline))
-        return observation,float(reward),done,{'success':success,'failure':self.failure,'source_steps':self.k}
+        return observation,float(reward),done,{'success':success,'failure':self.failure,'source_steps':self.k,
+            'evaluation_return':self.objective.evaluation_return}
 
     def save_evaluation(self,folder,result):
         folder=Path(folder);folder.mkdir(parents=True,exist_ok=True)
@@ -232,8 +230,8 @@ class LocalPPOSolver:
                 print('LOCAL_PPO_UPDATE',begin,row,flush=True);write()
                 if (iteration+1)%cfg.evaluate_every==0 or iteration+1==cfg.iterations or time.monotonic()>=self.deadline:
                     _,evaluation=rollout(True);row['evaluation']=evaluation
-                    if evaluation['return_value']>best_return:
-                        best_return=evaluation['return_value'];report['best_evaluation']=evaluation
+                    if evaluation['evaluation_return']>best_return:
+                        best_return=evaluation['evaluation_return'];report['best_evaluation']=evaluation
                         learner.save(folder/'best_policy.pt',env.metadata)
                         env.save_evaluation(folder/'best_evaluation',evaluation)
                     if evaluation['success']:

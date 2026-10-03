@@ -44,4 +44,4 @@ def test_zero_policy_does_not_retarget_or_add_settle_steps(monkeypatch,tmp_path)
         return False
     env.objective.observe=failed_observe
     _,reward,done,result=env.step(np.zeros(18))
-    assert done and not result['success'] and reward==-1.
+    assert done and not result['success'] and reward==0.

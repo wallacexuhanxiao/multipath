@@ -44,56 +44,47 @@ EgoEngine reference. No reference fidelity objective belongs in RELAXED.
   mounted physical verification are project requirements. They must survive
   the port; no GT mid-air initialization, extra settling time, or final resets.
 
-## Current multipath status — not yet an Appendix-equivalent solver
+## Current mounted implementation (2026-10-03)
 
-At `47a7b16`, `anchors/development.py::mounted_mpc` is a small diagnostic
-shooting optimizer: 6-frame commits, 12-frame lookahead, one 19-dimensional
-arm/finger offset shaped by a sine-squared envelope, 6 candidates over two
-iterations, and top-two elite updates. This is **not** the reference
-time-varying MPPI implementation. The current objective is also different.
+- Replay -> temporal MPPI -> residual PPO operates in 20-frame commits with
+  a 40-frame feasibility horizon. All modes start from measured physical state.
+- PPO observes robot/hand q and dq, wrist/object state and retargeted commands.
+  It adds 18 residuals (xyz, rotation vector, 12 finger joints). The arm is
+  controlled through continuous IK and fixed-source-clock mounted execution.
+- Separate 64x64 actor/critic networks are the user's requested small model.
+  PPO/GAE, learning rate, batch size, action scales and network sizes are
+  reproduction choices; Appendix C does not specify these numeric settings.
+- C.3/C.4 now use one scalar weighted error for both reward and termination.
+  We retain the existing project's axial budgets: C=1, lambda_p=1/.05^2,
+  lambda_R=1/.35^2. These are NOT claimed to be the paper's parameter values.
+  The resulting ellipse is stricter at corners than the old separate box;
+  this is a gate change and must be recorded when comparing runs.
+- C.7 contact bonus requires a thumb AND another finger. Link identities come
+  from the actual PhysX contact view row order; palm contact and two non-thumb
+  links cannot earn this bonus. Contact evidence alone does not prove grasp
+  retention or force closure; physical handoffs and retention still apply.
+- PPO optimization uses tracking + contact; deterministic checkpoint ranking
+  uses C.9 object-tracking return only, excluding invalid frames. The terminal
+  tracking step uses the same reward formula, with no r28 bespoke failure
+  penalty. Numerical/actuator failures before observation terminate with zero.
+- TACO human-mimic, action-smoothness rewards and domain randomization stay off.
+  No extra lifting reward is enabled; Appendix C.8 is optional by task.
+- Core-only tracking, padded context without fidelity gates, physically acquired
+  snapshots, mounted arm limits and final continuous execution are adaptations
+  required by this project. No full EgoEngine robot reference is created.
+- Discrete braking-distance projection avoids commanding a joint into a state
+  with no feasible next command at its position limit. This is an execution
+  fix, not a reward change or proof of closed-loop velocity feasibility.
+  Actual PhysX velocity checks remain active. IK warm-starts from the preceding
+  solution rather than reinitializing each policy action from the baseline.
 
-The driver first attempts an entire padded Replay and then invokes this
-optimizer. It does not yet perform Appendix C.1's per-chunk mode switching.
-Mounted residual PPO is **not implemented** (`rl_status=not_attempted`).
-Neither MPC failure nor missing RL establishes that the Appendix approach
-fails on the mounted task.
+## Validation boundary
 
-The next implementation should port the existing chunk switcher, MPPI and
-residual PPO through the mounted execution interface, rather than continue
-tuning the diagnostic optimizer. Reuse its measured-entry continuity and
-nominal command precheck, but preserve the reference solver's temporal
-action sequence and report any necessary mounted adaptation explicitly.
+M1/r10 is frozen. No successful A1 or full Oracle V0 has yet been established.
+r27/r28 trained real mounted PPO but failed the first local interaction.
+The previous any-two-link grasp signal and auxiliary-inclusive ranking were
+incorrect relative to Appendix C.7/C.9. Historical reports describe those old
+runs; they are not evidence of success under the corrected objective.
 
-Only three physical decisions remain: local padded/core validity, predecessor
-boundary reachability, and final uninterrupted 4.8-second rollout. No new
-reward sweeps, sample-specific branches, or cross-sequence tests are needed
-before Oracle V0 succeeds. M1 and the RELAXED cuRobo backend remain frozen.
-
-## Evidence boundary
-
-This comparison is a source/paper review, not a new successful physical run.
-The last completed padded A1 Replay (r23) lost grasp and failed core fidelity.
-On inspection, r24's A1 and snapshot-acquisition processes timed out during
-PyTorch import before simulation; it provides no new interaction evidence.
-
-## Implementation follow-up (2026-10-03)
-
-`anchors/mpc.py` now replaces the diagnostic fixed-offset search with:
-
-- 20-frame commits and a 40-frame lookahead, truncated at the padded boundary;
-- Replay checked first at each local boundary, then MPPI only if it fails;
-- per-source-frame wrist xyz / 12-finger residuals, Gaussian annealing and the
-  reproduction's softmax update; wrist orientation remains reference-conditioned;
-- continuous mounted IK and fixed-time fitting from measured arm/hand q/dq;
-- the existing core fidelity/contact/handoff gates on every prediction and
-  fresh execution of the selected chunk. No feasible interaction means no
-  committed prefix advance. Failed candidates can guide MPPI but cannot win;
-- explicit `local_rl_required` failure with the last accepted state and prefix.
-
-The serial diagnostic budget is six candidates and two iterations, configurable
-at the driver. This is not the reproduction's 64-environment batched throughput.
-The current core Cp/CR acceptance thresholds are unchanged. The object/contact
-reward is adapted to the core; padding has no human trajectory fidelity gate.
-Full padded Replay remains the cheap first attempt and final verification; only
-its failure invokes local chunk switching. Mounted residual PPO remains to be
-ported. Code checks do not establish physical success.
+Only local padded/core validity, predecessor boundary reachability and final
+uninterrupted execution are success gates. RELAXED has no tracking reward.

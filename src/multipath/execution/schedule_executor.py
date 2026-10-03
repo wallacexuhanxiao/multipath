@@ -1,4 +1,5 @@
 """Oracle V0: one world, local interaction commands, fixed-time cuRobo bridges."""
+from multipath.validation.physics import object_tracking_score
 import json
 import numpy as np
 from scipy.spatial.transform import Rotation
@@ -163,7 +164,7 @@ def execute(scene,schedule,manifest,proposal_dir,report):
                         measured=scene.state()
                         err=core_pose_errors(measured,data['tool_pose'][min(int(frame)-a.synth_start,len(data['tool_pose'])-1)])
                         validation['core_pose_errors'].append(err)
-                        if err['position_m']>.05 or err['rotation_rad']>.35:
+                        if not object_tracking_score(err)['feasible']:
                             raise RuntimeError('Local Anchor object interaction fidelity failed')
                         if a.entry_contact=='grasped' and a.exit_contact=='grasped':check_retention(measured,held)
                 hand_command=commands[-1,7:19].copy()

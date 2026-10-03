@@ -98,12 +98,9 @@ class MountedScene:
             planner.rollout_fn.robot_self_collision_constraint.enable_cost()
 
     def contact_state(self):
-        forces=np.asarray(self.contacts.get_contact_force_matrix(dt=self.dt)).reshape(-1,3)
-        if not np.isfinite(forces).all():raise RuntimeError('Non-finite measured contact forces')
-        magnitudes=np.linalg.norm(forces,axis=1)
-        return {'mode':'grasped' if np.count_nonzero(magnitudes>.01)>=2 else 'free',
-                'touching_links':int(np.count_nonzero(magnitudes>.01)),
-                'force_norms_n':magnitudes.tolist(), 'evidence':'PhysX hand-link/tool contact force; retention checked separately'}
+        from multipath.validation.physics import hand_tool_contact
+        return hand_tool_contact(self.contacts.prim_paths,
+                                 self.contacts.get_contact_force_matrix(dt=self.dt))
 
     def state(self):
         q=np.asarray(self.robot.get_joint_positions());dq=np.asarray(self.robot.get_joint_velocities())

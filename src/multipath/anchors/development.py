@@ -1,4 +1,5 @@
 """Local mounted synthesis. Snapshot restores exist only in this development path."""
+from multipath.validation.physics import object_tracking_score
 import hashlib
 import json
 from pathlib import Path
@@ -119,7 +120,7 @@ def replay_padded(scene,anchor,data,controls,start,folder,method,core_only=False
             if anchor.core_start<frame<=anchor.core_end:
                 error=core_pose_errors(measured,data['tool_pose'][core_index(anchor,frame,data)])
                 validation['core_pose_errors'].append(dict(source_frame=frame,**error))
-                if error['position_m']>.05 or error['rotation_rad']>.35:validation['failures'].append('core_object_fidelity')
+                if not object_tracking_score(error)['feasible']:validation['failures'].append('core_object_fidelity')
                 if held is not None:
                     r=retention_errors(measured,held)
                     if r['position_m']>.05 or r['rotation_rad']>.35 or not r['contact_retained']:

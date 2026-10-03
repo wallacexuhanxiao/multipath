@@ -1,4 +1,5 @@
 """Check the handoff after physical execution; never assign the goal state."""
+from multipath.validation.physics import object_tracking_score
 import numpy as np
 from multipath.anchors.compatibility import boundary_errors, compatible
 
@@ -13,7 +14,7 @@ def check_transition(scene,planned_q,expected_contact,expected_object=None,canon
     if expected_object is not None:
         from multipath.validation.physics import core_pose_errors
         report['object_boundary_error']=core_pose_errors(s,expected_object)
-        good=good and report['object_boundary_error']['position_m']<.05 and report['object_boundary_error']['rotation_rad']<.35
+        good=good and object_tracking_score(report['object_boundary_error'])['feasible']
     if canonical is not None:
         report['canonical_errors']=boundary_errors(s,canonical)
         good=good and compatible(report['canonical_errors'])

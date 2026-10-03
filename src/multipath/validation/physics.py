@@ -21,3 +21,36 @@ def core_pose_errors(state, expected):
     actual=pose_matrix(state['objects']['tool']['pose'])
     return {'position_m':float(np.linalg.norm(actual[:3,3]-expected[:3,3])),
             'rotation_rad':float(Rotation.from_matrix(expected[:3,:3].T@actual[:3,:3]).magnitude())}
+
+
+def object_tracking_score(errors):
+    """Appendix C.3/C.4: one weighted norm for reward and feasibility.
+
+    C=1, lambda_p=1/.05**2, lambda_R=1/.35**2 preserve the project's
+    existing axial budgets. These values are project choices, not paper values.
+    The ellipse is stricter than the former independent Cp/CR box at corners.
+    """
+    distance=float(np.hypot(errors['position_m']/.05, errors['rotation_rad']/.35))
+    return {'weighted_error':distance, 'reward':1.-distance, 'feasible':distance<=1.}
+
+
+def hand_tool_contact(paths, forces, threshold=.01):
+    """Appendix C.7 contact proxy; simultaneous thumb and another finger.
+
+    This is contact evidence, not force closure or load-bearing proof.
+    Paths must use the contact view's actual row order.
+    """
+    forces=np.asarray(forces).reshape(-1,3)
+    if len(paths)!=len(forces) or not np.isfinite(forces).all():
+        raise RuntimeError('Invalid hand contact force/path mapping')
+    magnitudes=np.linalg.norm(forces,axis=1)
+    touching=magnitudes>threshold
+    names=[p.rsplit('/',1)[-1].lower() for p in paths]
+    thumb=any(t and 'thumb' in n for n,t in zip(names,touching))
+    other=any(t and any(f in n for f in ('index','mid','ring','pinky','little')) for n,t in zip(names,touching))
+    return {'mode':'grasped' if thumb and other else 'free',
+            'thumb_contact':bool(thumb),'other_finger_contact':bool(other),
+            'opposition_contact':bool(thumb and other),
+            'touching_links':int(touching.sum()),'link_paths':list(paths),
+            'force_norms_n':magnitudes.tolist(),
+            'evidence':'PhysX thumb AND non-thumb finger/tool contact; retention checked separately'}
