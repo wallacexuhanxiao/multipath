@@ -1,0 +1,263 @@
+{
+  "anchor": "anchor_0",
+  "begin_tick": 0,
+  "source_start_frame": 29.0,
+  "source_frames": 40,
+  "source_fps": 30.0,
+  "physics_dt": 0.008333333333333333,
+  "entry_origin": "physically_acquired_snapshot",
+  "entry_provenance": {
+    "trace": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_v0_putin_r10/development/actual_trace.json",
+    "trace_sha256": "96e90e20e99137b328324c75f812f0c5408ba0ef32c36f3f6094a36e4bddfb79",
+    "result": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_v0_putin_r10/development/pipeline_result.json",
+    "result_sha256": "07bfc00e3b27daabbba2145771fede02a7fc46b6f4912629486c00b528d53a0e",
+    "source_frame": 29
+  },
+  "source_provenance": {
+    "triplet": "(put in, bowl, plate)",
+    "sequence": "20231024_253",
+    "input": "raw TACO MANO and object poses",
+    "source_video": "/scratch/e0985859/egoengine_baseline/data/taco_v1/Egocentric_RGB_Videos/(put in, bowl, plate)/20231024_253/color.mp4",
+    "schedule_sha256": "111733961ac0ad03d95087435de751c2bdf27db6f375fe153bd6f5f78283adc2",
+    "full_robot_reference_used": false,
+    "vlm_used": false,
+    "transform_world_to_robot": [
+      [
+        -0.36959298057517503,
+        0.929193775162176,
+        0.0,
+        0.574305986267124
+      ],
+      [
+        -0.9291937551424282,
+        -0.36959297261218765,
+        -0.0,
+        0.005429607853050099
+      ],
+      [
+        0.0,
+        0.0,
+        1.0,
+        -0.1883068585395813
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ]
+  },
+  "action": "wrist_xyz_rotvec_and_12_fingers",
+  "action_scales": [
+    0.02,
+    0.02,
+    0.02,
+    0.2,
+    0.2,
+    0.2,
+    0.2,
+    0.2,
+    0.2,
+    0.2,
+    0.2,
+    0.2,
+    0.2,
+    0.2,
+    0.2,
+    0.2,
+    0.2,
+    0.2
+  ],
+  "residual_center": "fitted_local_replay",
+  "dynamics_projection": "command_space_only",
+  "training_scene": "mounted_PhysX",
+  "terminal_reward": "negative_one_or_normalized_core_error_whichever_larger",
+  "clock_stretched": false,
+  "state_resets_within_episode": 0,
+  "domain_randomization": false,
+  "config": {
+    "iterations": 60,
+    "episodes_per_update": 4,
+    "max_seconds": 480.0,
+    "evaluate_every": 5,
+    "seed": 0
+  },
+  "network_hidden": [
+    64,
+    64
+  ],
+  "parameters": 24677,
+  "status": "budget_exhausted",
+  "iterations": 60,
+  "episodes": 253,
+  "success": false,
+  "zero_policy": {
+    "success": false,
+    "failure": {
+      "source_frame": 47.0,
+      "reason": "core_object_fidelity"
+    },
+    "source_steps": 18,
+    "return_value": 13.913439483524483,
+    "deterministic": true
+  },
+  "elapsed_s": 203.946256277035,
+  "best_evaluation": {
+    "success": false,
+    "failure": {
+      "source_frame": 49.0,
+      "reason": "core_object_fidelity"
+    },
+    "source_steps": 20,
+    "return_value": 15.71965779082015,
+    "deterministic": true
+  },
+  "job": "644726.hopper-m-02",
+  "code": "f087856",
+  "pbs_walltime_s": 343,
+  "pbs_exit_status": 1,
+  "training_failure_counts": {
+    "Residual commands cannot satisfy local actuator boundary": 16,
+    "Measured actuator velocity exceeded": 79,
+    "core_object_fidelity": 145
+  },
+  "training_successes": 0,
+  "best_evaluation_iteration": 20,
+  "deterministic_evaluations": [
+    {
+      "iteration": 5,
+      "success": false,
+      "failure": {
+        "source_frame": 47.0,
+        "reason": "core_object_fidelity"
+      },
+      "source_steps": 18,
+      "return_value": 14.45108096817027,
+      "deterministic": true
+    },
+    {
+      "iteration": 10,
+      "success": false,
+      "failure": {
+        "source_frame": 47.0,
+        "reason": "core_object_fidelity"
+      },
+      "source_steps": 18,
+      "return_value": 13.211034304130221,
+      "deterministic": true
+    },
+    {
+      "iteration": 15,
+      "success": false,
+      "failure": {
+        "source_frame": 47.0,
+        "reason": "core_object_fidelity"
+      },
+      "source_steps": 18,
+      "return_value": 14.787325876023672,
+      "deterministic": true
+    },
+    {
+      "iteration": 20,
+      "success": false,
+      "failure": {
+        "source_frame": 49.0,
+        "reason": "core_object_fidelity"
+      },
+      "source_steps": 20,
+      "return_value": 15.71965779082015,
+      "deterministic": true
+    },
+    {
+      "iteration": 25,
+      "success": false,
+      "failure": {
+        "source_frame": 48.0,
+        "reason": "core_object_fidelity"
+      },
+      "source_steps": 19,
+      "return_value": 13.408624755268887,
+      "deterministic": true
+    },
+    {
+      "iteration": 30,
+      "success": false,
+      "failure": {
+        "source_frame": 48.0,
+        "reason": "core_object_fidelity"
+      },
+      "source_steps": 19,
+      "return_value": 13.547978295859913,
+      "deterministic": true
+    },
+    {
+      "iteration": 35,
+      "success": false,
+      "failure": {
+        "source_frame": 48.0,
+        "reason": "core_object_fidelity"
+      },
+      "source_steps": 19,
+      "return_value": 13.35785743346944,
+      "deterministic": true
+    },
+    {
+      "iteration": 40,
+      "success": false,
+      "failure": {
+        "source_frame": 47.0,
+        "reason": "core_object_fidelity"
+      },
+      "source_steps": 18,
+      "return_value": 14.571309706734063,
+      "deterministic": true
+    },
+    {
+      "iteration": 45,
+      "success": false,
+      "failure": {
+        "source_frame": 48.0,
+        "reason": "core_object_fidelity"
+      },
+      "source_steps": 19,
+      "return_value": 13.556325147211187,
+      "deterministic": true
+    },
+    {
+      "iteration": 50,
+      "success": false,
+      "failure": {
+        "source_frame": 49.0,
+        "reason": "core_object_fidelity"
+      },
+      "source_steps": 20,
+      "return_value": 15.517699589532091,
+      "deterministic": true
+    },
+    {
+      "iteration": 55,
+      "success": false,
+      "failure": {
+        "source_frame": 47.0,
+        "reason": "core_object_fidelity"
+      },
+      "source_steps": 18,
+      "return_value": 13.363354773416127,
+      "deterministic": true
+    },
+    {
+      "iteration": 60,
+      "success": false,
+      "failure": {
+        "source_frame": 35.5,
+        "reason": "Measured actuator velocity exceeded: velocity=1.306; dq=[0.6417986154556274, 0.5814125537872314, -0.9078157544136047, 0.2842369079589844, -0.4576393663883209, 1.374949336051941, -3.408597946166992]"
+      },
+      "source_steps": 7,
+      "return_value": -1.0,
+      "deterministic": true
+    }
+  ],
+  "m2_success": false,
+  "full_pipeline_success": false
+}
