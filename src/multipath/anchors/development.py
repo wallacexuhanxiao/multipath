@@ -208,12 +208,13 @@ def mounted_mpc(scene,anchor,data,baseline,start,out,seed=0):
     is subsequently replayed from the acquired snapshot without internal resets.
     """
     from multipath.anchors.control_check import control_feasibility
-    from multipath.anchors.synthesis import hand_limits_from_urdf
+    from multipath.anchors.synthesis import fit_hand_startup,hand_limits_from_urdf
     out=Path(out);out.mkdir(parents=True,exist_ok=True)
     scene.begin_trial(out/'selected_prefix',start,mesh=False)
     fps=scene.manifest['fps'];tpf=round(1/(fps*scene.dt))
     limits=np.asarray(scene.robot._articulation_view.get_dof_limits()).reshape(-1,2)
     lower=limits[np.r_[scene.arm,scene.fingers],0];upper=limits[np.r_[scene.arm,scene.fingers],1]
+    hand_limits=np.c_[lower[7:],upper[7:]];hand_velocity=hand_limits_from_urdf(scene)
     rng=np.random.default_rng(seed);chosen=baseline.copy();history=[];trial_id=0
     for begin in range(0,len(baseline),6*tpf):
         stop=min(begin+12*tpf,len(baseline));commit=min(6*tpf,len(baseline)-begin)
@@ -236,10 +237,20 @@ def mounted_mpc(scene,anchor,data,baseline,start,out,seed=0):
             scored=[]
             for residual in candidates:
                 trial_id+=1;control=base.copy();control[:,:19]+=blend[:,None]*residual
+                # Measured hand lag can shift a limit-touching reference outside
+                # its joint bounds. Fit the proposed commands, never the state,
+                # with the same horizon and measured entry velocity. No ramp.
+                try:
+                    control[:,7:19]=fit_hand_startup(control[:,7:19],qprevious[7:],
+                        np.asarray(state['hand_dq']),scene.dt,hand_limits,hand_velocity)
+                except (RuntimeError,ValueError) as error:
+                    history.append({'trial':trial_id,'begin_tick':begin,'feasible_controls':False,
+                        'precheck':{'feasible':False,'stage':'hand_projection','error':str(error)},'score':None})
+                    continue
                 # The exact sampled positions define the feedforward actually sent.
                 control[:,19:26]=np.diff(np.vstack((qprevious[:7],control[:,:7])),axis=0)/scene.dt
                 checks=control_feasibility(control,qprevious[:7],vprevious,scene.dt,np.c_[lower,upper],scene.velocity,scene.acceleration,
-                    start_hand_q=qprevious[7:],hand_velocity_limits=hand_limits_from_urdf(scene))
+                    start_hand_q=qprevious[7:],hand_velocity_limits=hand_velocity)
                 feasible=checks['feasible']
                 trial={'trial':trial_id,'begin_tick':begin,'feasible_controls':feasible,'precheck':checks,'score':None}
                 if not feasible:history.append(trial);continue
