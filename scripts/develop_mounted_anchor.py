@@ -1,4 +1,4 @@
-"""M2 only: acquired predecessor -> padded replay -> mounted physical MPC."""
+"""Acquired predecessor -> padded Replay -> mounted MPPI -> small residual PPO."""
 import argparse
 import hashlib
 import json
@@ -15,6 +15,10 @@ def main():
     p.add_argument('--artifact-dir',type=Path,help='Publish each Anchor here only after padded and exported-core execution pass')
     p.add_argument('--mpc-candidates',type=int,default=6,help='Serial mounted prediction budget per MPPI iteration')
     p.add_argument('--mpc-iters',type=int,default=2)
+    p.add_argument('--ppo-iters',type=int,default=60)
+    p.add_argument('--ppo-episodes',type=int,default=4)
+    p.add_argument('--ppo-seconds',type=float,default=480.)
+    p.add_argument('--no-ppo',action='store_true',help='Diagnostic Replay/MPPI only; default escalates to local PPO')
     args=p.parse_args();args.validated_anchors=None
     out=args.output_dir;out.mkdir(parents=True,exist_ok=True)
     from multipath.oracle_schedule import OracleSchedule
@@ -27,7 +31,7 @@ def main():
     implementation=out/'implementation';implementation.mkdir(exist_ok=True)
     shutil.copy2(__file__,implementation/Path(__file__).name)
     shutil.copytree(Path(multipath.__file__).parent,implementation/'multipath',dirs_exist_ok=True,ignore=shutil.ignore_patterns('__pycache__'))
-    app=None;scene=None
+    app=None;scene=None;ppo=None
     report={'milestone':'M2','status':'initializing','anchor':anchor.id,'m2_success':False,
             'full_pipeline_success':False,'pbs_job_id':os.environ.get('PBS_JOBID'),
             'source_provenance':manifest['provenance'],'bridge_backend_changed':False,
@@ -72,29 +76,47 @@ def main():
         if not result['success']:
             print('MOUNTED_MPC_BEGIN',result['failures'],flush=True)
             from multipath.anchors.mpc import MPCConfig,RefinementRequired
+            if not args.no_ppo:
+                from multipath.anchors.ppo import LocalPPOSolver,PPOConfig
+                ppo=LocalPPOSolver(scene,anchor,data,out/'ppo',PPOConfig(iterations=args.ppo_iters,
+                    episodes_per_update=args.ppo_episodes,max_seconds=args.ppo_seconds))
+                report['rl_status']='enabled_on_mppi_failure'
             try:
                 refined=mounted_mpc(scene,anchor,data,controls,start,out/'mpc_search',
-                    config=MPCConfig(candidates=args.mpc_candidates,iterations=args.mpc_iters))
+                    config=MPCConfig(candidates=args.mpc_candidates,iterations=args.mpc_iters),rl_solver=ppo)
             except RefinementRequired as error:
-                report['status']='local_rl_required'
-                report['rl_status']='required_but_mounted_backend_not_implemented'
+                report['status']='local_refinement_failed'
+                report['rl_status']='trained_no_accepted_window' if ppo and ppo.reports else 'disabled' if args.no_ppo else 'not_reached'
                 report['mpc_failure']=str(error)
                 raise
-            result=replay_padded(scene,anchor,data,refined,start,out/'mpc_replay','mounted_Cartesian_MPPI')
+            report['rl_status']='trained_window_passed' if ppo and ppo.reports else 'not_needed'
+            result=replay_padded(scene,anchor,data,refined,start,out/'mpc_replay','mounted_Replay_MPPI_PPO')
             report['padded_mpc_replay']=result
             if result['success']:
                 result=validate_exported_core(scene,anchor,data,out/'mpc_replay',out/'mpc_core',args.artifact_dir)
             report['mpc']=result
             report['status']='mpc_passed' if result['success'] else 'mounted_mpc_failed'
-            if not result['success']:report['rl_status']='not_attempted; review interaction failure first'
+            if not result['success'] and ppo is not None:
+                # Search-window success does not prove full padded execution.
+                # Refine from the original acquired entry if stitching failed.
+                report['rl_status']='padded_recovery'
+                recovered=ppo(refined,start,0)
+                if recovered is not None:
+                    result=replay_padded(scene,anchor,data,recovered,start,out/'ppo_replay','mounted_residual_PPO')
+                    report['padded_ppo_replay']=result
+                    if result['success']:
+                        result=validate_exported_core(scene,anchor,data,out/'ppo_replay',out/'ppo_core',args.artifact_dir)
+                    report['ppo_replay']=result
+                report['status']='ppo_passed' if result['success'] else 'ppo_failed_validation'
         report['m2_success']=bool(result['success'] and result.get('core_replay_success'))
         if report['m2_success']:
             report['validated_artifact_dir']=str(args.artifact_dir or scene.out/'anchors')
     except Exception as error:
         import traceback;traceback.print_exc()
-        if report['status']!='local_rl_required':report['status']='failed'
+        if report['status']!='local_refinement_failed':report['status']='failed'
         report['error']=f'{type(error).__name__}: {error}'
     finally:
+        if ppo is not None:report['rl_training']=ppo.reports
         if scene:report['development_snapshot_restores']=getattr(scene,'restore_count',0)
         (out/'development_result.json').write_text(json.dumps(report,indent=2))
         print('M2_RESULT',report['status'],report.get('error',''),flush=True)

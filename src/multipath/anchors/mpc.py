@@ -120,7 +120,7 @@ class WindowEvaluation:
         return True
 
 
-def mounted_mpc(scene, anchor, data, baseline, start, out, seed=0, config=None):
+def mounted_mpc(scene, anchor, data, baseline, start, out, seed=0, config=None, rl_solver=None):
     config = config or MPCConfig()
     out = Path(out); out.mkdir(parents=True, exist_ok=True)
     fps = scene.manifest['fps']; tpf = round(1 / (fps * scene.dt))
@@ -136,7 +136,7 @@ def mounted_mpc(scene, anchor, data, baseline, start, out, seed=0, config=None):
                   wrist_orientation='fitted_local_replay', source_time_stretch=False,
                   residual_center='fitted_local_replay',zero_residual='exact_replay_controls',
                   execution='serial_mounted_PhysX', reward='core_object_tracking_plus_native_opposition',
-                  feasibility='existing_core_Cp_CR_contact_and_handoff', local_rl_implemented=False)
+                  feasibility='existing_core_Cp_CR_contact_and_handoff', local_rl_enabled=rl_solver is not None)
     (out / 'method.json').write_text(json.dumps(method, indent=2))
     state = start
 
@@ -245,6 +245,17 @@ def mounted_mpc(scene, anchor, data, baseline, start, out, seed=0, config=None):
                 print('MPPI_ITERATION', begin, iteration, 'physical_trials', trial_id, 'valid_plan', best is not None, flush=True)
             if best is not None:
                 chunk['selected'] = 'MPPI'
+        if best is None and rl_solver is not None:
+            chunk['selected']='PPO_TRAINING';flush()
+            print('LOCAL_PPO_ESCALATE',begin,flush=True)
+            proposed=rl_solver(replay,state,begin)
+            if proposed is not None:
+                value,valid=evaluate(proposed,state,begin,'PPO_VERIFY')
+                if valid:
+                    best,best_return=proposed.copy(),value
+                    chunk['selected']='PPO'
+                else:
+                    chunk['ppo_repeat_failed']=True
         if best is None:
             chunk['selected'] = 'RL_REQUIRED'; flush()
             np.savez_compressed(out/'accepted_prefix_controls.npz', commands=chosen[:begin])

@@ -1,0 +1,231 @@
+"""Small per-Anchor residual PPO on the actual mounted articulation.
+
+Training restores only a physically acquired development snapshot. A policy
+observes actual state each source frame; it never writes robot/object state.
+Selected controls still require fresh padded and exported-core execution.
+"""
+from dataclasses import asdict, dataclass
+import json
+from pathlib import Path
+import time
+
+import numpy as np
+from scipy.spatial.transform import Rotation
+
+from multipath.anchors.control_check import control_feasibility
+from multipath.anchors.mpc import WindowEvaluation, fitted_cartesian_prior
+from multipath.anchors.synthesis import hand_limits_from_urdf
+
+
+@dataclass(frozen=True)
+class PPOConfig:
+    iterations: int = 60
+    episodes_per_update: int = 4
+    max_seconds: float = 480.
+    evaluate_every: int = 5
+    seed: int = 0
+
+    def __post_init__(self):
+        if min(self.iterations,self.episodes_per_update,self.evaluate_every) < 1 or self.max_seconds <= 0:
+            raise ValueError('PPO needs a positive bounded training budget')
+
+
+class MountedResidualEnv:
+    """One serial PhysX training environment at the fixed 30 Hz source clock."""
+    action_dim = 18
+    action_scales = np.r_[np.full(3,.02),np.full(3,.2),np.full(12,.2)]
+
+    def __init__(self,scene,anchor,data,baseline,start,begin,out):
+        self.scene,self.anchor,self.data = scene,anchor,data
+        self.baseline,self.start,self.begin = baseline.copy(),start,begin
+        self.out=Path(out);self.out.mkdir(parents=True,exist_ok=True)
+        self.fps=scene.manifest['fps'];self.tpf=round(1/(self.fps*scene.dt))
+        self.horizon=len(baseline)//self.tpf
+        if len(baseline)%self.tpf or self.horizon < 1:
+            raise ValueError('PPO window must contain whole source frames')
+        self.prior=fitted_cartesian_prior(scene,baseline,self.tpf)
+        all_limits=np.asarray(scene.robot._articulation_view.get_dof_limits()).reshape(-1,2)
+        self.limits=all_limits[np.r_[scene.arm,scene.fingers]]
+        self.hand_velocity=hand_limits_from_urdf(scene)
+        self.trial=0
+        self.metadata={'anchor':anchor.id,'begin_tick':begin,'source_start_frame':anchor.synth_start+begin/self.tpf,
+            'source_frames':self.horizon,'source_fps':self.fps,'physics_dt':scene.dt,
+            'entry_origin':start.get('entry_origin'),'entry_provenance':start.get('entry_provenance'),
+            'source_provenance':scene.manifest['provenance'],'action':'wrist_xyz_rotvec_and_12_fingers',
+            'action_scales':self.action_scales.tolist(),'residual_center':'fitted_local_replay',
+            'dynamics_projection':'command_space_only','training_scene':'mounted_PhysX',
+            'clock_stretched':False,'state_resets_within_episode':0,'domain_randomization':False}
+
+    def observation(self,state):
+        i=min(self.k,self.horizon-1)
+        frame=self.anchor.synth_start+self.begin/self.tpf+i+1
+        idx=min(max(round(frame)-self.anchor.synth_start,0),len(self.data['tool_pose'])-1)
+        tool_ref=self.data['tool_pose'][idx]
+        expected=np.r_[tool_ref[:3,3],Rotation.from_matrix(tool_ref[:3,:3]).as_quat()[[3,0,1,2]]]
+        relative=np.asarray(state['hand_object_transform'])
+        rel=np.r_[relative[:3,3],Rotation.from_matrix(relative[:3,:3]).as_quat()[[3,0,1,2]]]
+        obs=np.r_[np.asarray(state['arm_q'])/3.,np.asarray(state['arm_dq'])/self.scene.velocity,
+            state['hand_q'],np.asarray(state['hand_dq'])/self.hand_velocity,
+            state['wrist_xyz_wxyz'],state['objects']['tool']['pose'],state['objects']['tool']['velocity'],
+            state['objects']['target']['pose'],rel,self.prior[i],expected,
+            self.k/self.horizon,self.previous_action]
+        if not np.isfinite(obs).all():raise RuntimeError('Non-finite PPO observation')
+        return obs.astype(np.float32)
+
+    def reset(self):
+        self.trial+=1
+        # Reuse one scratch directory; save selected/best traces explicitly.
+        self.scene.begin_trial(self.out/'episode',self.start,mesh=False)
+        self.k=0;self.commands=[];self.previous_action=np.zeros(18)
+        self.q=np.r_[self.start['arm_q'],self.start['hand_q']].astype(float)
+        self.dq=np.asarray(self.start['arm_dq'],dtype=float)
+        self.previous_delta=np.zeros(19)
+        self.objective=WindowEvaluation(self.scene,self.anchor,self.data,self.start)
+        self.failure=None
+        return self.observation(self.start)
+
+    def step(self,action):
+        action=np.asarray(action,dtype=float)
+        if action.shape!=(18,) or not np.isfinite(action).all():raise ValueError('Invalid residual PPO action')
+        action=np.clip(action,-1,1)
+        desired=self.prior[self.k].copy();residual=action*self.action_scales
+        desired[:3]+=residual[:3]
+        rotation=Rotation.from_rotvec(residual[3:6])*Rotation.from_quat(desired[[4,5,6,3]])
+        desired[3:7]=rotation.as_quat()[[3,0,1,2]]
+        desired[7:]+=residual[6:]
+        end=(self.k+1)*self.tpf
+        reference=self.baseline[end-1,:19]
+        reward_before=self.objective.total_return
+        try:
+            if not np.any(action):
+                delta=np.zeros(19)
+            else:
+                arm=self.scene.solve(desired[:7],self.baseline[end-1,:7])
+                delta=np.r_[arm,desired[7:]]-reference
+            for sub in range(self.tpf):
+                tick=self.k*self.tpf+sub
+                alpha=(sub+1)/self.tpf
+                frame=self.anchor.synth_start+(self.begin+tick+1)/self.tpf
+                # Allocate residual authority inside existing padding; no wait
+                # and no time added. Zero residual preserves the fitted replay.
+                context=max(1,self.anchor.core_start-self.anchor.synth_start)
+                phase=np.clip((self.begin+tick)/self.tpf/context,0,1)
+                envelope=phase*phase*(3-2*phase)
+                proposed=self.baseline[tick,:19]+envelope*((1-alpha)*self.previous_delta+alpha*delta)
+                dt=self.scene.dt
+                vmax=self.scene.velocity;amax=np.broadcast_to(self.scene.acceleration,(7,))
+                low=np.maximum(self.limits[:7,0],self.q[:7]+dt*np.maximum(-vmax,self.dq-amax*dt))
+                high=np.minimum(self.limits[:7,1],self.q[:7]+dt*np.minimum(vmax,self.dq+amax*dt))
+                hand_low=np.maximum(self.limits[7:,0],self.q[7:]-self.hand_velocity*dt)
+                hand_high=np.minimum(self.limits[7:,1],self.q[7:]+self.hand_velocity*dt)
+                if np.any(low>high) or np.any(hand_low>hand_high):
+                    raise RuntimeError('Residual commands cannot satisfy local actuator boundary')
+                arm=np.clip(proposed[:7],low,high);hand=np.clip(proposed[7:],hand_low,hand_high)
+                # Preserve measured initial velocity for the very first step.
+                if tick==0:
+                    arm=np.asarray(self.start['arm_q'])+np.asarray(self.start['arm_dq'])*dt
+                    hand=np.asarray(self.start['hand_q'])+np.asarray(self.start['hand_dq'])*dt
+                    if np.any(arm<low-1e-6) or np.any(arm>high+1e-6) or np.any(hand<hand_low-1e-6) or np.any(hand>hand_high+1e-6):
+                        raise RuntimeError('Measured entry velocity has no feasible first control step')
+                velocity=(arm-self.q[:7])/dt
+                command=np.r_[arm,hand,velocity]
+                self.scene.step(arm,hand,'LOCAL_PPO',frame,velocity)
+                self.commands.append(command)
+                self.q=np.r_[arm,hand];self.dq=velocity
+            self.objective.observe(frame,command)
+            self.failure=self.objective.failure
+        except (RuntimeError,ValueError) as error:
+            self.failure={'source_frame':self.anchor.synth_start+(self.begin+len(self.commands))/self.tpf,
+                          'reason':str(error)}
+        self.k+=1;self.previous_action=action
+        if self.failure is None:self.previous_delta=delta
+        done=self.failure is not None or self.k==self.horizon
+        # Same object/contact reward and termination as the MPPI acceptance;
+        # no new frame-specific reward or contact geometry heuristic.
+        reward=self.objective.total_return-reward_before
+        observation=self.observation(self.scene.snapshot()) if self.failure is None else np.zeros_like(self.observation(self.start))
+        success=bool(done and self.failure is None and len(self.commands)==len(self.baseline))
+        return observation,float(reward),done,{'success':success,'failure':self.failure,'source_steps':self.k}
+
+    def save_evaluation(self,folder,result):
+        folder=Path(folder);folder.mkdir(parents=True,exist_ok=True)
+        np.savez_compressed(folder/'commands.npz',commands=np.asarray(self.commands).reshape(-1,26))
+        (folder/'actual_trace.json').write_text(json.dumps(self.scene.records))
+        (folder/'evaluation.json').write_text(json.dumps(result,indent=2))
+
+
+class LocalPPOSolver:
+    """A small fresh model per failed window, sharing one wall-clock budget."""
+    def __init__(self,scene,anchor,data,out,config=None):
+        self.scene,self.anchor,self.data=scene,anchor,data
+        self.out=Path(out);self.out.mkdir(parents=True,exist_ok=True)
+        self.config=config or PPOConfig();self.deadline=None;self.reports=[]
+
+    def __call__(self,baseline,start,begin):
+        from multipath.anchors.ppo_model import SmallResidualPPO
+        cfg=self.config
+        if self.deadline is None:self.deadline=time.monotonic()+cfg.max_seconds
+        folder=self.out/f'chunk_{begin:04d}_attempt_{len(self.reports):02d}'
+        env=MountedResidualEnv(self.scene,self.anchor,self.data,baseline,start,begin,folder)
+        obs=env.reset();learner=SmallResidualPPO(len(obs),env.action_dim,seed=cfg.seed)
+        report=dict(env.metadata,config=asdict(cfg),network_hidden=[64,64],
+            parameters=learner.parameter_count,status='training',iterations=0,episodes=0,history=[],success=False)
+        self.reports.append(report)
+        (folder/'entry.json').write_text(json.dumps(start,indent=2))
+        np.savez_compressed(folder/'baseline.npz',commands=baseline)
+        started=time.monotonic();best_return=-np.inf
+
+        def write():
+            report['elapsed_s']=time.monotonic()-started
+            (folder/'training_result.json').write_text(json.dumps(report,indent=2))
+            (self.out/'rl_result.json').write_text(json.dumps({'windows':self.reports},indent=2))
+
+        def rollout(deterministic):
+            obs=env.reset();episode=[];total=0.
+            for _ in range(env.horizon):
+                action,info=learner.act(obs,deterministic=deterministic)
+                nxt,reward,done,result=env.step(action)
+                episode.append(dict(obs=obs,latent=info['latent'],log_prob=info['log_prob'],
+                                    value=info['value'],reward=reward,done=done))
+                obs=nxt;total+=reward
+                if done:break
+            result=dict(result,return_value=total,deterministic=deterministic)
+            if result['success']:
+                check=control_feasibility(np.asarray(env.commands),np.asarray(start['arm_q']),np.asarray(start['arm_dq']),
+                    self.scene.dt,env.limits,self.scene.velocity,self.scene.acceleration,
+                    start_hand_q=np.asarray(start['hand_q']),hand_velocity_limits=env.hand_velocity)
+                result['command_precheck']=check;result['success']=check['feasible']
+            report['episodes']+=1
+            return episode,result
+
+        # Confirm that the installed zero-mean policy really runs the baseline.
+        _,zero=rollout(True);report['zero_policy']=zero;env.save_evaluation(folder/'zero_policy',zero)
+        write();print('LOCAL_PPO_BEGIN',begin,'parameters',learner.parameter_count,'zero',zero,flush=True)
+        try:
+            for iteration in range(cfg.iterations):
+                if time.monotonic()>=self.deadline:break
+                episodes=[];results=[]
+                for _ in range(cfg.episodes_per_update):
+                    if time.monotonic()>=self.deadline:break
+                    episode,result=rollout(False);episodes.append(episode);results.append(result)
+                if not episodes:break
+                metrics=learner.update(episodes)
+                row=dict(iteration=iteration+1,mean_return=float(np.mean([r['return_value'] for r in results])),
+                    max_source_steps=max(r['source_steps'] for r in results),training_successes=sum(r['success'] for r in results),**metrics)
+                report['iterations']=iteration+1;report['history'].append(row)
+                print('LOCAL_PPO_UPDATE',begin,row,flush=True);write()
+                if (iteration+1)%cfg.evaluate_every==0 or iteration+1==cfg.iterations or time.monotonic()>=self.deadline:
+                    _,evaluation=rollout(True);row['evaluation']=evaluation
+                    if evaluation['return_value']>best_return:
+                        best_return=evaluation['return_value'];report['best_evaluation']=evaluation
+                        learner.save(folder/'best_policy.pt',env.metadata)
+                        env.save_evaluation(folder/'best_evaluation',evaluation)
+                    if evaluation['success']:
+                        report.update(success=True,status='window_passed');write()
+                        learner.save(folder/'policy.pt',env.metadata)
+                        return np.asarray(env.commands).copy()
+            report['status']='budget_exhausted';write()
+            return None
+        finally:
+            learner.save(folder/'last_policy.pt',env.metadata)
+            write()

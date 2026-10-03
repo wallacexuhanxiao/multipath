@@ -121,7 +121,7 @@ def main():
             paths.append(child / 'pipeline_result.json')
             if child.name.startswith('anchor_'):
                 paths.extend(child / stage / 'pipeline_result.json' for stage in
-                             ('replay', 'replay_core', 'mpc_replay', 'mpc_core'))
+                             ('replay', 'replay_core', 'mpc_replay', 'mpc_core', 'ppo_replay', 'ppo_core'))
     for path in paths:
         if path.exists():
             try:
