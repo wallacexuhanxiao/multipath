@@ -13,6 +13,8 @@ def main():
         p.add_argument('--'+name,type=Path,required=True)
     p.add_argument('--anchor',help='Default: first oracle Anchor')
     p.add_argument('--artifact-dir',type=Path,help='Publish each Anchor here only after padded and exported-core execution pass')
+    p.add_argument('--mpc-candidates',type=int,default=6,help='Serial mounted prediction budget per MPPI iteration')
+    p.add_argument('--mpc-iters',type=int,default=2)
     args=p.parse_args();args.validated_anchors=None
     out=args.output_dir;out.mkdir(parents=True,exist_ok=True)
     from multipath.oracle_schedule import OracleSchedule
@@ -69,8 +71,16 @@ def main():
         (out/'development_result.json').write_text(json.dumps(report,indent=2))
         if not result['success']:
             print('MOUNTED_MPC_BEGIN',result['failures'],flush=True)
-            refined=mounted_mpc(scene,anchor,data,controls,start,out/'mpc_search')
-            result=replay_padded(scene,anchor,data,refined,start,out/'mpc_replay','mounted_PhysX_shooting_MPC')
+            from multipath.anchors.mpc import MPCConfig,RefinementRequired
+            try:
+                refined=mounted_mpc(scene,anchor,data,controls,start,out/'mpc_search',
+                    config=MPCConfig(candidates=args.mpc_candidates,iterations=args.mpc_iters))
+            except RefinementRequired as error:
+                report['status']='local_rl_required'
+                report['rl_status']='required_but_mounted_backend_not_implemented'
+                report['mpc_failure']=str(error)
+                raise
+            result=replay_padded(scene,anchor,data,refined,start,out/'mpc_replay','mounted_Cartesian_MPPI')
             report['padded_mpc_replay']=result
             if result['success']:
                 result=validate_exported_core(scene,anchor,data,out/'mpc_replay',out/'mpc_core',args.artifact_dir)
@@ -82,7 +92,8 @@ def main():
             report['validated_artifact_dir']=str(args.artifact_dir or scene.out/'anchors')
     except Exception as error:
         import traceback;traceback.print_exc()
-        report.update(status='failed',error=f'{type(error).__name__}: {error}')
+        if report['status']!='local_rl_required':report['status']='failed'
+        report['error']=f'{type(error).__name__}: {error}'
     finally:
         if scene:report['development_snapshot_restores']=getattr(scene,'restore_count',0)
         (out/'development_result.json').write_text(json.dumps(report,indent=2))

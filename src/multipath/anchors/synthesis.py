@@ -51,12 +51,13 @@ def hand_limits_from_urdf(scene):
     return np.array([float(joints[name].get('velocity')) for name in RIGHT_XHAND_FINGER_JOINT_NAMES])
 
 
-def local_commands(scene,anchor,proposal,held_transform=None,entry_offset=None,*,padded=False):
+def local_wrist_targets(anchor,proposal,held_transform=None,entry_offset=None,*,padded=False):
+    """Local Cartesian/finger prior shared by Replay and residual refinement."""
     q=np.asarray(proposal['wrist_hand_q']).copy()
     # Three-frame local smoothing includes pre/post context at core boundaries.
     hand_context=np.pad(q[:,7:],((1,1),(0,0)),mode='edge')
     q[:,7:]=(hand_context[:-2]+2*hand_context[1:-1]+hand_context[2:])/4
-    seed=np.asarray(scene.state()['arm_q']); commands=[]
+    commands=[]
     start,end=(anchor.synth_start,anchor.synth_end) if padded else (anchor.core_start,anchor.core_end)
     for frame in range(start,end):
         i=min(frame+1-anchor.synth_start,len(q)-1)
@@ -68,8 +69,16 @@ def local_commands(scene,anchor,proposal,held_transform=None,entry_offset=None,*
             tool=proposal['tool_pose'][i]
             goal=tool@np.linalg.inv(held_transform)
             wrist=np.r_[goal[:3,3],Rotation.from_matrix(goal[:3,:3]).as_quat()[[3,0,1,2]]]
-        seed=scene.solve(wrist,seed)
-        commands.append(np.r_[seed,q[i,7:]])
+        commands.append(np.r_[wrist,q[i,7:]])
+    return np.asarray(commands)
+
+
+def local_commands(scene,anchor,proposal,held_transform=None,entry_offset=None,*,padded=False):
+    targets=local_wrist_targets(anchor,proposal,held_transform,entry_offset,padded=padded)
+    seed=np.asarray(scene.state()['arm_q']);commands=[]
+    for target in targets:
+        seed=scene.solve(target[:7],seed)
+        commands.append(np.r_[seed,target[7:]])
     return np.asarray(commands)
 
 

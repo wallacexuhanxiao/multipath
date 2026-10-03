@@ -25,9 +25,11 @@ export PYTHONPATH=$ROOT/src:$ENGINE/src
  --schedule "$MULTIPATH_SCHEDULE" --triplet "$MULTIPATH_TRIPLET" --sequence "$MULTIPATH_SEQUENCE" \
  --mount-report configs/franka_xhand_mount.json --output-dir "$OUT/proposals" >"$OUT/prepare.log" 2>&1
 module load singularity
+source "$ROOT/hpc/stage_torch_imports.sh"
 MP_ENV=( --env "LD_LIBRARY_PATH=/scratch/e0985859/semantic_verifier/compat_libs/x11-ubuntu22:/usr/local/cuda/compat/lib:/.singularity.d/libs"
  --env "TRITON_LIBCUDA_PATH=/usr/local/cuda/compat/lib" --env "XDG_CACHE_HOME=$OUT/cache"
- --env "PYTHONPATH=$ROOT/deps:$ROOT/src" --env PYTHONNOUSERSITE=1 --env OMNI_KIT_ACCEPT_EULA=YES
+ --bind "$MULTIPATH_IMPORT_ROOT:$MULTIPATH_IMPORT_ROOT:ro"
+ --env "PYTHONPATH=$MULTIPATH_IMPORT_ROOT:$ROOT/deps:$ROOT/src" --env PYTHONDONTWRITEBYTECODE=1 --env PYTHONNOUSERSITE=1 --env OMNI_KIT_ACCEPT_EULA=YES
  --env "PBS_JOBID=${PBS_JOBID:-unknown}" )
 [[ -z "${CUDA_VISIBLE_DEVICES:-}" ]] || MP_ENV+=(--env "CUDA_VISIBLE_DEVICES=$CUDA_VISIBLE_DEVICES")
 MP_ENV+=(--bind "$ROOT/hpc/container_env/92-env-torch-distributed.sh:/.singularity.d/env/92-env-torch-distributed.sh:ro")

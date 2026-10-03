@@ -75,3 +75,25 @@ This comparison is a source/paper review, not a new successful physical run.
 The last completed padded A1 Replay (r23) lost grasp and failed core fidelity.
 On inspection, r24's A1 and snapshot-acquisition processes timed out during
 PyTorch import before simulation; it provides no new interaction evidence.
+
+## Implementation follow-up (2026-10-03)
+
+`anchors/mpc.py` now replaces the diagnostic fixed-offset search with:
+
+- 20-frame commits and a 40-frame lookahead, truncated at the padded boundary;
+- Replay checked first at each local boundary, then MPPI only if it fails;
+- per-source-frame wrist xyz / 12-finger residuals, Gaussian annealing and the
+  reproduction's softmax update; wrist orientation remains reference-conditioned;
+- continuous mounted IK and fixed-time fitting from measured arm/hand q/dq;
+- the existing core fidelity/contact/handoff gates on every prediction and
+  fresh execution of the selected chunk. No feasible interaction means no
+  committed prefix advance. Failed candidates can guide MPPI but cannot win;
+- explicit `local_rl_required` failure with the last accepted state and prefix.
+
+The serial diagnostic budget is six candidates and two iterations, configurable
+at the driver. This is not the reproduction's 64-environment batched throughput.
+The current core Cp/CR acceptance thresholds are unchanged. The object/contact
+reward is adapted to the core; padding has no human trajectory fidelity gate.
+Full padded Replay remains the cheap first attempt and final verification; only
+its failure invokes local chunk switching. Mounted residual PPO remains to be
+ported. Code checks do not establish physical success.
