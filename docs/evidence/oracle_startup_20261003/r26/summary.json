@@ -1,0 +1,72 @@
+{
+  "job": "644419.hopper-m-02",
+  "node": "hopper-20",
+  "commit": "afd3f4c",
+  "startup": {
+    "stage": "SIMULATION_APP_READY",
+    "elapsed_s": 40.07155751623213,
+    "pbs_job_id": "644419.hopper-m-02"
+  },
+  "predictions_including_replay": 13,
+  "physical_predictions": 13,
+  "interaction_valid_predictions": 0,
+  "failure_counts": {
+    "core_object_fidelity": 13
+  },
+  "zero_vs_replay": {
+    "source_failure_frames": [
+      47.0,
+      47.0
+    ],
+    "returns": [
+      15.150773936837476,
+      15.151374288044297
+    ],
+    "max_actual_arm_q_difference_rad": 4.458427429199219e-05
+  },
+  "best_prediction": {
+    "trial": 6,
+    "begin_tick": 0,
+    "mode": "MPPI",
+    "feasible_controls": true,
+    "precheck": {
+      "feedforward_velocity_error_rad_s": 0.0,
+      "velocity_ratio": 0.9140849752932564,
+      "acceleration_ratio": 0.9500000003380649,
+      "joint_limit_violations": [],
+      "joint_limit_roundoff_tolerance_rad": [
+        2.7630806016532006e-06,
+        1.6811370642244583e-06,
+        2.7630806016532006e-06,
+        2.9294967589521548e-06,
+        2.7630806016532006e-06,
+        3.5786629268841352e-06,
+        2.7630806016532006e-06,
+        1.7452239262638614e-06,
+        1.4972686130931834e-06,
+        1.7452239262638614e-06,
+        9.5367431640625e-07,
+        1.8310545328859007e-06,
+        1.8310545328859007e-06,
+        1.8310545328859007e-06,
+        1.8501281147109694e-06,
+        1.8310545328859007e-06,
+        1.8310545328859007e-06,
+        1.8310545328859007e-06,
+        1.8310545328859007e-06
+      ],
+      "hand_velocity_ratio": 0.9092600918389092,
+      "feasible": true
+    },
+    "interaction_feasible": false,
+    "score": -21.856019096417178,
+    "failure": {
+      "source_frame": 50.0,
+      "reason": "core_object_fidelity"
+    },
+    "return": 21.856019096417178
+  },
+  "m2_success": false,
+  "full_pipeline_success": false,
+  "local_rl": "not_implemented; not_trained"
+}

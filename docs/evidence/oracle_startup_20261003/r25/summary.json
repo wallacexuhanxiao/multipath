@@ -1,0 +1,44 @@
+{
+  "job": "644408.hopper-m-02",
+  "node": "hopper-30",
+  "commit": "acf67f1",
+  "startup": {
+    "stage": "SIMULATION_APP_READY",
+    "elapsed_s": 54.880636035930365,
+    "pbs_job_id": "644408.hopper-m-02"
+  },
+  "source_interval": [
+    29,
+    82
+  ],
+  "fps": 30,
+  "source_duration_s": 1.7666666666666666,
+  "actual_duration_s": 1.7666666666666666,
+  "replay_success": false,
+  "replay_failures": [
+    "core_exit_handoff",
+    "core_object_fidelity",
+    "post_context_grasp_retention"
+  ],
+  "first_core_error": {
+    "source_frame": 47.0,
+    "position_m": 0.007051709353678424,
+    "rotation_rad": 0.42668182799039617
+  },
+  "actual_velocity_ratio": 0.960265630963205,
+  "predictions_including_replay": 13,
+  "physical_predictions": 12,
+  "interaction_valid_predictions": 0,
+  "failure_counts": {
+    "core_object_fidelity": 5,
+    "Measured actuator velocity exceeded": 6,
+    "core_entry_contact": 1,
+    "Local Anchor IK failed": 1
+  },
+  "zero_residual_bug": "MPPI sampled raw retarget and refit instead of replaying the already-fitted zero-residual baseline",
+  "fix_commit": "afd3f4c",
+  "fix_gpu_verification_job": "644419.hopper-m-02",
+  "fix_gpu_verification_run": "oracle_a1_mppi_r26",
+  "m2_success": false,
+  "full_pipeline_success": false
+}
