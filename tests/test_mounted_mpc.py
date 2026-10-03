@@ -49,6 +49,8 @@ def test_chunk_switching_never_commits_failed_interaction(monkeypatch, tmp_path,
     monkeypatch.setattr(mpc,'fit_arm_startup',lambda target,*a,**kw: target)
     monkeypatch.setattr(mpc,'fit_hand_startup',lambda target,*a,**kw: target)
     monkeypatch.setattr(mpc,'fit_timed_controls',lambda arm,hand,*a,**kw: (np.zeros((len(arm)*4,26)),{}))
+    monkeypatch.setattr(mpc,'fitted_cartesian_prior',lambda scene,controls,tpf:
+                        np.tile([0.,0.,0.,1.,0.,0.,0.]+[0.]*12,(len(controls)//tpf,1)))
     anchor = InteractionAnchor('test',0,47,0,53,'free','free')
     data = {'wrist_hand_q':np.tile([0.,0.,0.,1.,0.,0.,0.]+[0.]*12,(53,1)),
             'tool_pose':np.tile(np.eye(4),(53,1,1))}
@@ -61,6 +63,9 @@ def test_chunk_switching_never_commits_failed_interaction(monkeypatch, tmp_path,
         trials=json.loads((tmp_path/'search.json').read_text())
         assert all(t['feasible_controls'] and not t['interaction_feasible'] for t in trials)
         assert all(t['failure']['source_frame']==15 for t in trials)
+        zero=next(t for t in trials if t['mode']=='MPPI_ZERO')
+        assert zero['return']==trials[0]['return']
+        assert zero['failure']==trials[0]['failure']
     else:
         result=run()
         assert result.shape==baseline.shape

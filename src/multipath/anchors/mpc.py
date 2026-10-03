@@ -9,11 +9,12 @@ import json
 from pathlib import Path
 
 import numpy as np
+from scipy.spatial.transform import Rotation
 
 from multipath.anchors.control_check import control_feasibility
 from multipath.anchors.synthesis import (
     fit_arm_startup, fit_hand_startup, fit_timed_controls,
-    hand_limits_from_urdf, local_wrist_targets,
+    hand_limits_from_urdf,
 )
 from multipath.execution.transition import check_transition
 from multipath.validation.physics import core_pose_errors, retention_errors
@@ -49,6 +50,20 @@ def mppi_mean(samples, returns):
     weights = np.exp((scores - scores.max()) / temperature)
     weights /= weights.sum()
     return np.tensordot(weights, np.asarray(samples)[valid], axes=(0, 0))
+
+
+def fitted_cartesian_prior(scene, controls, ticks_per_frame):
+    """Lift this local fitted Replay to Cartesian targets; no full reference.
+
+    Optimizing around raw retarget and fitting again changed even the zero
+    residual's startup. The actual fitted command is the search center.
+    """
+    frames = controls[ticks_per_frame-1::ticks_per_frame]
+    state = scene.ik.kinematics.get_state(scene.tensor.to_device(frames[:,:7].copy()))
+    xyz = state.ee_position.detach().cpu().numpy()
+    flange = Rotation.from_quat(state.ee_quaternion.detach().cpu().numpy()[:,[1,2,3,0]])
+    wrist = (flange * scene.mount).as_quat()[:,[3,0,1,2]]
+    return np.c_[xyz,wrist,frames[:,7:19]]
 
 
 class WindowEvaluation:
@@ -114,14 +129,12 @@ def mounted_mpc(scene, anchor, data, baseline, start, out, seed=0, config=None):
     limits = np.asarray(scene.robot._articulation_view.get_dof_limits()).reshape(-1, 2)
     limits = limits[np.r_[scene.arm, scene.fingers]]
     hand_velocity = hand_limits_from_urdf(scene)
-    offset = np.asarray(start['wrist_xyz_wxyz'][:3]) - data['wrist_hand_q'][0, :3]
-    held = np.asarray(start['hand_object_transform']) if start['contact']['mode'] == 'grasped' else None
-    prior = local_wrist_targets(anchor, data, held, offset, padded=True)
     rng = np.random.default_rng(seed)
     chosen = baseline.copy(); history = []; chunks = []; trial_id = 0
     method = dict(asdict(config), solver='mounted_Cartesian_MPPI', lookahead_chunks=2,
                   action='per_source_frame_wrist_xyz_and_12_fingers',
-                  wrist_orientation='local_reference', source_time_stretch=False,
+                  wrist_orientation='fitted_local_replay', source_time_stretch=False,
+                  residual_center='fitted_local_replay',zero_residual='exact_replay_controls',
                   execution='serial_mounted_PhysX', reward='core_object_tracking_plus_native_opposition',
                   feasibility='existing_core_Cp_CR_contact_and_handoff', local_rl_implemented=False)
     (out / 'method.json').write_text(json.dumps(method, indent=2))
@@ -176,10 +189,14 @@ def mounted_mpc(scene, anchor, data, baseline, start, out, seed=0, config=None):
         # beyond their joint limits with a measured-to-target offset.
         replay = baseline[begin:stop].copy()
         try:
-            replay[:, :7] = fit_arm_startup(replay[:, :7], q, dq, scene.dt, scene.velocity,
-                scene.acceleration, limits[:7], startup_duration=scene.dt)
-            replay[:, 7:19] = fit_hand_startup(replay[:, 7:19], hq, hdq, scene.dt, limits[7:], hand_velocity)
-            replay[:, 19:26] = np.diff(np.vstack((q, replay[:, :7])), axis=0) / scene.dt
+            # At the original acquired entry, the baseline is already fitted.
+            # Later boundaries require a measured-state rebase, shared by both
+            # Replay and all sampled residuals.
+            if begin:
+                replay[:, :7] = fit_arm_startup(replay[:, :7], q, dq, scene.dt, scene.velocity,
+                    scene.acceleration, limits[:7], startup_duration=scene.dt)
+                replay[:, 7:19] = fit_hand_startup(replay[:, 7:19], hq, hdq, scene.dt, limits[7:], hand_velocity)
+                replay[:, 19:26] = np.diff(np.vstack((q, replay[:, :7])), axis=0) / scene.dt
             replay_return, replay_ok = evaluate(replay, state, begin, 'CHUNK_REPLAY')
         except (RuntimeError, ValueError) as error:
             replay_return, replay_ok = -np.inf, False
@@ -189,7 +206,8 @@ def mounted_mpc(scene, anchor, data, baseline, start, out, seed=0, config=None):
         if replay_ok:
             chunk['selected'] = 'REPLAY'
         else:
-            local = prior[begin//tpf:stop//tpf]
+            local = fitted_cartesian_prior(scene,replay,tpf)
+            remaining_context = max(scene.dt,(anchor.core_start-anchor.synth_start-begin/tpf)/fps)
             mean = np.zeros((len(local), 15))
             scale = np.r_[np.full(3, config.wrist_sigma_m), np.full(12, config.finger_sigma_rad)]
             for iteration in range(config.iterations):
@@ -197,6 +215,13 @@ def mounted_mpc(scene, anchor, data, baseline, start, out, seed=0, config=None):
                 samples[0] = mean
                 returns = np.full(config.candidates, -np.inf)
                 for i, residual in enumerate(samples):
+                    if not np.any(residual):
+                        # Do not silently replace the known baseline with a
+                        # new IK/fitting solution when delta is exactly zero.
+                        returns[i], valid = evaluate(replay.copy(), state, begin, 'MPPI_ZERO')
+                        if valid and returns[i] > best_return:
+                            best, best_return = replay.copy(), returns[i]
+                        continue
                     try:
                         targets = local.copy(); targets[:, :3] += residual[:, :3]; targets[:, 7:] += residual[:, 3:]
                         arm = []; seed_q = q.copy()
@@ -206,7 +231,7 @@ def mounted_mpc(scene, anchor, data, baseline, start, out, seed=0, config=None):
                         control, _ = fit_timed_controls(np.asarray(arm), targets[:, 7:], q, dq, hq,
                             fps, scene.dt, scene.velocity, scene.acceleration, limits[:7],
                             start_hand_dq=hdq, hand_joint_limits=limits[7:], hand_velocity_limits=hand_velocity,
-                            hand_startup_duration=scene.dt)
+                            hand_startup_duration=remaining_context)
                     except (RuntimeError, ValueError) as error:
                         history.append(dict(begin_tick=begin, mode='MPPI', iteration=iteration, candidate=i,
                             feasible_controls=False, interaction_feasible=False, score=None, fit_error=str(error)))

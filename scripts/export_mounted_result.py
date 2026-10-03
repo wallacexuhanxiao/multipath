@@ -20,6 +20,7 @@ FIELDS = (
     'development_snapshot_restores', 'measured_velocity_ratio',
     'measured_acceleration_ratio', 'measured_acceleration_policy',
     'collision_validation_note', 'error', 'failures', 'source_provenance',
+    'rl_status', 'mpc_failure',
 )
 
 
@@ -142,7 +143,8 @@ def main():
             report['mpc_search'] = [
                 {'begin_tick': tick, 'candidates': len(group),
                  'nominal_precheck_passed': sum(t.get('feasible_controls') is True for t in group),
-                 'physical_score_recorded': sum(t.get('score') is not None for t in group)}
+                 'physical_score_recorded': sum(t.get('score') is not None for t in group),
+                 'interaction_feasible': sum(t.get('interaction_feasible') is True for t in group)}
                 for tick in sorted({t['begin_tick'] for t in trials})
                 for group in [[t for t in trials if t['begin_tick'] == tick]]]
         except (ValueError, OSError, KeyError, TypeError) as error:
