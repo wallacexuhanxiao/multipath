@@ -1,0 +1,44 @@
+{
+  "status": "budget_exhausted",
+  "iterations": 60,
+  "episodes": 253,
+  "elapsed_s": 202.77434086997528,
+  "parameters": 24677,
+  "network_hidden": [
+    64,
+    64
+  ],
+  "config": {
+    "iterations": 60,
+    "episodes_per_update": 4,
+    "max_seconds": 480.0,
+    "evaluate_every": 5,
+    "seed": 0
+  },
+  "zero_policy": {
+    "success": false,
+    "failure": {
+      "source_frame": 47.0,
+      "reason": "core_object_fidelity"
+    },
+    "source_steps": 18,
+    "return_value": 15.151470963544078,
+    "deterministic": true
+  },
+  "best_evaluation": {
+    "success": false,
+    "failure": {
+      "source_frame": 48.0,
+      "reason": "core_object_fidelity"
+    },
+    "source_steps": 19,
+    "return_value": 20.45688258782936,
+    "deterministic": true
+  },
+  "success": false,
+  "job": "644448.hopper-m-02",
+  "commit": "1aca242",
+  "node": "hopper-26",
+  "m2_success": false,
+  "full_pipeline_success": false
+}
