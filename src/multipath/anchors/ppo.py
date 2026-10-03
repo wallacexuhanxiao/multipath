@@ -15,6 +15,7 @@ from scipy.spatial.transform import Rotation
 from multipath.anchors.control_check import control_feasibility
 from multipath.anchors.mpc import WindowEvaluation, fitted_cartesian_prior
 from multipath.anchors.synthesis import hand_limits_from_urdf
+from multipath.validation.physics import core_pose_errors
 
 
 @dataclass(frozen=True)
@@ -54,6 +55,7 @@ class MountedResidualEnv:
             'source_provenance':scene.manifest['provenance'],'action':'wrist_xyz_rotvec_and_12_fingers',
             'action_scales':self.action_scales.tolist(),'residual_center':'fitted_local_replay',
             'dynamics_projection':'command_space_only','training_scene':'mounted_PhysX',
+            'terminal_reward':'negative_one_or_normalized_core_error_whichever_larger',
             'clock_stretched':False,'state_resets_within_episode':0,'domain_randomization':False}
 
     def observation(self,state):
@@ -135,14 +137,22 @@ class MountedResidualEnv:
             self.objective.observe(frame,command)
             self.failure=self.objective.failure
         except (RuntimeError,ValueError) as error:
-            self.failure={'source_frame':self.anchor.synth_start+(self.begin+len(self.commands))/self.tpf,
+            self.failure={'source_frame':self.scene.ticks*self.scene.dt*self.fps,
                           'reason':str(error)}
         self.k+=1;self.previous_action=action
         if self.failure is None:self.previous_delta=delta
         done=self.failure is not None or self.k==self.horizon
-        # Same object/contact reward and termination as the MPPI acceptance;
-        # no new frame-specific reward or contact geometry heuristic.
         reward=self.objective.total_return-reward_before
+        if self.failure is not None:
+            # A terminated bad action must not receive the same zero signal
+            # as neutral padding. Training-only penalty; acceptance unchanged.
+            severity=1.
+            if self.failure['reason']=='core_object_fidelity':
+                frame=self.failure['source_frame']
+                index=min(max(round(frame)-self.anchor.synth_start,0),len(self.data['tool_pose'])-1)
+                error=core_pose_errors(self.scene.state(),self.data['tool_pose'][index])
+                severity=max(severity,float(np.hypot(error['position_m']/.05,error['rotation_rad']/.35)))
+            reward=-severity
         observation=self.observation(self.scene.snapshot()) if self.failure is None else np.zeros_like(self.observation(self.start))
         success=bool(done and self.failure is None and len(self.commands)==len(self.baseline))
         return observation,float(reward),done,{'success':success,'failure':self.failure,'source_steps':self.k}
@@ -201,6 +211,10 @@ class LocalPPOSolver:
         # Confirm that the installed zero-mean policy really runs the baseline.
         _,zero=rollout(True);report['zero_policy']=zero;env.save_evaluation(folder/'zero_policy',zero)
         write();print('LOCAL_PPO_BEGIN',begin,'parameters',learner.parameter_count,'zero',zero,flush=True)
+        if zero['success']:
+            report.update(success=True,status='zero_policy_passed');write()
+            learner.save(folder/'policy.pt',env.metadata)
+            return np.asarray(env.commands).copy()
         try:
             for iteration in range(cfg.iterations):
                 if time.monotonic()>=self.deadline:break
@@ -212,6 +226,8 @@ class LocalPPOSolver:
                 metrics=learner.update(episodes)
                 row=dict(iteration=iteration+1,mean_return=float(np.mean([r['return_value'] for r in results])),
                     max_source_steps=max(r['source_steps'] for r in results),training_successes=sum(r['success'] for r in results),**metrics)
+                from collections import Counter
+                row['failure_counts']=dict(Counter((r.get('failure') or {}).get('reason','passed').split(':')[0] for r in results))
                 report['iterations']=iteration+1;report['history'].append(row)
                 print('LOCAL_PPO_UPDATE',begin,row,flush=True);write()
                 if (iteration+1)%cfg.evaluate_every==0 or iteration+1==cfg.iterations or time.monotonic()>=self.deadline:

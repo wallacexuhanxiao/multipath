@@ -38,3 +38,10 @@ def test_zero_policy_does_not_retarget_or_add_settle_steps(monkeypatch,tmp_path)
     assert done and result['success']
     assert len(scene.commands)==n and scene.state()['time_s']==3/30
     np.testing.assert_allclose(scene.commands,controls,atol=1e-14)
+    env.reset()
+    def failed_observe(frame,command):
+        env.objective.failure={'source_frame':frame,'reason':'core_entry_contact'}
+        return False
+    env.objective.observe=failed_observe
+    _,reward,done,result=env.step(np.zeros(18))
+    assert done and not result['success'] and reward==-1.
