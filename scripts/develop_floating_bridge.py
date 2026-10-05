@@ -113,9 +113,13 @@ def main():
             if carry:check_retention(scene.state(),held)
             clearances=planner.measured_clearance()
             if min(clearances.values())<0:
-                report['first_collision']=dict(source_frame=frame,proxy_clearance_m=clearances)
-                (out/'failed_state.json').write_text(json.dumps(scene.snapshot(),indent=2))
-                raise RuntimeError('Actual bridge collision proxy failed')
+                collisions=planner.measured_mesh_collisions()
+                refinement=dict(source_frame=frame,proxy_clearance_m=clearances,mesh_collisions=collisions)
+                report.setdefault('proxy_overlap_refinements',[]).append(refinement)
+                if collisions:
+                    report['first_collision']=refinement
+                    (out/'failed_state.json').write_text(json.dumps(scene.snapshot(),indent=2))
+                    raise RuntimeError('Actual bridge mesh collision')
         scene.save()
         transition=scene.check_transition(np.asarray(goal['wrist_xyz_wxyz']),right.entry_contact,
             expected_object=source_target,canonical=None if args.source_entry_target else b['entry'])
@@ -135,6 +139,7 @@ def main():
         report['status']='bridge_and_core_valid' if validation['success'] and scene.restore_count==resets else 'next_core_failed'
     except Exception as error:
         import traceback;traceback.print_exc();report.update(status='failed',error=f'{type(error).__name__}: {error}')
+        if scene:(out/'failed_state.json').write_text(json.dumps(scene.snapshot(),indent=2))
     finally:
         if scene:scene.save()
         report['elapsed_s']=time.perf_counter()-started

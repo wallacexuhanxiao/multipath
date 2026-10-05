@@ -96,6 +96,38 @@ def sphere_world_clearance(pose,spheres,boxes):
     return values,worst
 
 
+def mesh_box_intersects(vertices,faces,box,closed=False):
+    """Triangle/box SAT, with containment for a closed mesh.
+
+    Used to refine a conservative sphere overlap; no distance tolerance or
+    collision threshold is relaxed.
+    """
+    b=np.asarray(box['pose']);half=np.asarray(box['dims'])/2
+    local=Rotation.from_quat(b[[4,5,6,3]]).inv().apply(vertices-b[:3])
+    all_tri=local[np.asarray(faces,dtype=int)]
+    candidate=np.all(all_tri.min(1)<=half,axis=1)&np.all(all_tri.max(1)>=-half,axis=1)
+    tri=all_tri[candidate]
+    if len(tri):
+        edges=np.roll(tri,-1,axis=1)-tri
+        axes=[np.cross(edges[:,0],edges[:,1])]
+        axes.extend(np.cross(edges[:,j],basis) for j in range(3) for basis in np.eye(3))
+        separated=np.zeros(len(tri),dtype=bool)
+        for axis in axes:
+            projection=np.einsum('nki,ni->nk',tri,axis);radius=np.abs(axis)@half
+            separated|=(projection.min(1)>radius)|(projection.max(1)<-radius)
+        if np.any(~separated):return True
+    if closed:
+        # A box completely inside a solid mesh has no surface intersections.
+        direction=np.array([1.,np.sqrt(2)/7,np.sqrt(3)/11]);edge1=all_tri[:,1]-all_tri[:,0];edge2=all_tri[:,2]-all_tri[:,0]
+        h=np.cross(direction,edge2);det=np.einsum('ni,ni->n',edge1,h);keep=np.abs(det)>1e-12
+        inverse=1/det[keep];s=-all_tri[keep,0];u=np.einsum('ni,ni->n',s,h[keep])*inverse
+        q=np.cross(s,edge1[keep]);v=q@direction*inverse;t=np.einsum('ni,ni->n',edge2[keep],q)*inverse
+        hits=np.sort(t[(u>=0)&(v>=0)&(u+v<=1)&(t>1e-12)])
+        crossings=0 if not len(hits) else 1+np.count_nonzero(np.diff(hits)>1e-9)
+        if crossings%2:return True
+    return False
+
+
 def robot_model(scene,carry,out):
     from pxr import Usd,UsdGeom
     out=Path(out);out.mkdir(parents=True,exist_ok=True)
@@ -108,11 +140,13 @@ def robot_model(scene,carry,out):
         parent=child
     xml.append('</robot>');urdf=out/'floating_wrist.urdf';urdf.write_text('\n'.join(xml))
     pose,_=scene.root_motion();rot=Rotation.from_quat(pose[[4,5,6,3]]);spheres=[];cache=UsdGeom.XformCache();measured=[]
+    scene.measured_hand_mesh_data={}
     for prim in Usd.PrimRange.Stage(scene.world.stage,Usd.TraverseInstanceProxies()):
         if not str(prim.GetPath()).startswith(scene.root+'/') or not prim.IsA(UsdGeom.Mesh):continue
         if 'collision' in str(prim.GetPath()).lower():continue
         mesh=UsdGeom.Mesh(prim);points=np.asarray(mesh.GetPointsAttr().Get());faces=usd_mesh_faces(mesh)
         trans=np.asarray(cache.GetLocalToWorldTransform(prim)).T
+        scene.measured_hand_mesh_data[str(prim.GetPath())]=(points,faces)
         scale=np.linalg.norm(trans[:3,:3],axis=0);local=cover_points(points*scale,faces=faces)
         measured.append((prim,scale,local))
         world_points=points@trans[:3,:3].T+trans[:3,3]
@@ -202,11 +236,7 @@ class FloatingPlanner:
                 groups.append(Rotation.from_quat(np.asarray(q)[[1,2,3,0]]).apply(np.array([s['center'] for s in current]))+p)
                 sizes.extend(s['radius'] for s in current)
             centers=np.concatenate(groups);radii=np.asarray(sizes)
-        boxes=dict(self.live['cuboid'])
-        for role in getattr(self,'obstacle_roles',[]):
-            p,q=self.scene.objects[role].get_world_pose();bounds=self.scene.meshes[role].bounds
-            current=Rotation.from_quat(np.asarray(q)[[1,2,3,0]])
-            boxes[role]={'dims':(bounds[1]-bounds[0]).tolist(),'pose':np.r_[p+current.apply(bounds.mean(0)),q].tolist()}
+        boxes=self.current_boxes()
         clearances={}
         for role,box in boxes.items():
             b=np.asarray(box['pose']);rotation=Rotation.from_quat(b[[4,5,6,3]])
@@ -214,6 +244,28 @@ class FloatingPlanner:
             distance=np.linalg.norm(np.maximum(offset,0),axis=1)+np.minimum(np.max(offset,axis=1),0)-radii
             clearances[role]=float(distance.min())
         return clearances
+
+    def current_boxes(self):
+        boxes=dict(self.live['cuboid'])
+        for role in getattr(self,'obstacle_roles',[]):
+            p,q=self.scene.objects[role].get_world_pose();bounds=self.scene.meshes[role].bounds
+            current=Rotation.from_quat(np.asarray(q)[[1,2,3,0]])
+            boxes[role]={'dims':(bounds[1]-bounds[0]).tolist(),'pose':np.r_[p+current.apply(bounds.mean(0)),q].tolist()}
+        return boxes
+
+    def measured_mesh_collisions(self):
+        from pxr import UsdGeom
+        cache=UsdGeom.XformCache();meshes=[]
+        for prim,_,_ in self.scene.measured_hand_collision_meshes:
+            vertices,faces=self.scene.measured_hand_mesh_data[str(prim.GetPath())]
+            matrix=np.asarray(cache.GetLocalToWorldTransform(prim)).T
+            meshes.append((str(prim.GetPath()),vertices@matrix[:3,:3].T+matrix[:3,3],faces,False))
+        if self.carry:
+            p,q=self.scene.objects['tool'].get_world_pose();mesh=self.scene.meshes['tool']
+            vertices=Rotation.from_quat(np.asarray(q)[[1,2,3,0]]).apply(mesh.vertices)+p
+            meshes.append(('tool',vertices,mesh.faces,mesh.is_watertight))
+        return [dict(mesh=name,obstacle=role) for name,vertices,faces,closed in meshes
+                for role,box in self.current_boxes().items() if mesh_box_intersects(vertices,faces,box,closed)]
 
     def measured_valid(self):
         return min(self.measured_clearance().values())>=0.

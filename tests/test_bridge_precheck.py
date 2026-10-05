@@ -46,6 +46,15 @@ def test_carried_mesh_proxy_covers_faces_without_filling_empty_interior():
         clearance=np.linalg.norm(surface[:,None]-centers,axis=2)-radii
         assert np.all(clearance.min(1)<=1e-9)
     assert np.min(np.linalg.norm(centers,axis=1)-radii)>.04
+    from multipath.planning.floating import mesh_box_intersects
+    import trimesh
+    cube=trimesh.creation.box(extents=[2.,2.,2.])
+    box=dict(dims=[.2,.2,.2],pose=[0,0,0,1,0,0,0])
+    assert mesh_box_intersects(cube.vertices,cube.faces,box,closed=True)
+    box['pose'][0]=1.
+    assert mesh_box_intersects(cube.vertices,cube.faces,box,closed=True)
+    box['pose'][0]=1.2
+    assert not mesh_box_intersects(cube.vertices,cube.faces,box,closed=True)
 
 
 def test_fixed_time_rejects_displacement_and_velocity_boundaries():
