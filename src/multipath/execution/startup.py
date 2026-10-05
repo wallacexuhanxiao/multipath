@@ -6,6 +6,15 @@ import time
 from pathlib import Path
 
 
+def watch_dependency_imports(output_dir,timeout_s=120):
+    """Cover the scientific imports that occur before SimulationApp startup."""
+    faulthandler.enable()
+    faulthandler.dump_traceback_later(timeout_s,exit=True)
+    Path(output_dir,'startup_result.json').write_text(json.dumps({'stage':'PYTHON_DEPENDENCIES_BEGIN',
+        'pbs_job_id':os.environ.get('PBS_JOBID'),'timeout_s':timeout_s},indent=2))
+    print('PYTHON_DEPENDENCIES_BEGIN',flush=True)
+
+
 def start_simulation(output_dir, timeout_s=180):
     status_path=Path(output_dir)/'startup_result.json'
     started=time.monotonic()

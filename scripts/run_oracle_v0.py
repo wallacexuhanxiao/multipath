@@ -46,6 +46,8 @@ def main():
                 raise ValueError('Canonical Anchor and local inputs have different provenance')
             if artifact['entry'].get('embodiment','mounted')!=args.embodiment:
                 raise ValueError('Canonical Anchor embodiment differs from runtime')
+    from multipath.execution.startup import watch_dependency_imports
+    watch_dependency_imports(out)
     import shutil
     implementation=out/'implementation'
     implementation.mkdir(exist_ok=True)

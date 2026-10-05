@@ -242,3 +242,20 @@ The upcoming interaction experiment uses the passed r45 bridge as its baseline.
 
 The new floating continuous executor and Hopper path are implemented and
 syntax/contract checked, but no full floating V0 success is claimed.
+
+
+## r49：启动前导入停滞
+
+r49 / 648479 已分配 GPU，但六分钟内主日志仍为空，CPU 累计约两秒，内存
+约149 MB；源码副本已写出，而 `start_simulation` 尚未打印阶段标记。
+因此没有进入 PhysX，更没有交互结果。作业已停止，未迁移或继续空等。
+
+确定的启动流程缺陷是：已有 watchdog 只从 Torch/Isaac 的显式初始化开始，
+之前的 NumPy/SciPy/相关模块导入没有覆盖。现在将导入 watchdog 移到这些
+步骤之前；超时会打印实际 Python 栈，不再出现长期无日志的初始化。
+已有节点本地 Torch 打包脚本也扩展为可包含相同安装环境的 NumPy/SciPy
+导入资源。原生库仍从原环境加载，遵守节点 /tmp noexec，不换库版本、不改
+模拟物理。预打包在 GPU 作业申请前完成。
+
+共享存储上的具体阻塞文件尚未取得运行栈，不能把某个 SciPy 文件说成已
+确认的唯一根因。下一次导入应给出明确阶段和超时栈；A1 仍未通过。

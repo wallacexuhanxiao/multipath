@@ -31,6 +31,8 @@ def main():
         'anchor_id':anchor.id,'core_interval':[anchor.core_start,anchor.core_end],
         'synthesis_interval':[anchor.synth_start,anchor.synth_end],
         'note':'Bridge to synth_start is a development predecessor; final bridge to core entry still requires verification.'}
+    from multipath.execution.startup import watch_dependency_imports
+    watch_dependency_imports(out)
     import multipath
     shutil.copytree(Path(multipath.__file__).parent,out/'implementation'/'multipath',dirs_exist_ok=True,ignore=shutil.ignore_patterns('__pycache__'))
     shutil.copy2(__file__,out/'implementation'/Path(__file__).name)
