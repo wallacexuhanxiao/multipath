@@ -153,7 +153,8 @@ class FloatingPlanner:
         limits=scene.cfg['planning'];dt=scene.dt
         # Impose command boundaries before time fitting and collision checks;
         # these are planned targets, never assignments to simulator state.
-        raw[0]=q0;raw[-1]=q1
+        if goal_twist is not None:
+            raw[0]=q0;raw[-1]=q1
         try:path,timing=fixed_budget_path(raw,float(result.interpolation_dt),ticks,dt,np.array(limits['velocity_limits']),np.array(limits['acceleration_limits']),initial_velocity=dq0,final_velocity=dq1)
         except RuntimeError:path,timing=parameterize_path(raw,ticks,dt,np.array(limits['velocity_limits']),np.array(limits['acceleration_limits']),initial_velocity=dq0,final_velocity=dq1)
         for q in path:

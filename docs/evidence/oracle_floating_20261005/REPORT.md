@@ -216,3 +216,29 @@ accepted A1 or successful full floating V0 rollout.
 Focused existing/regression checks: 21 passed in 0.57 s; Python syntax, shell
 syntax and diff checks pass. These are interface checks, not physical evidence.
 The next experiment evaluates the entire merged A1 synthesis chain once.
+
+
+## r48: planning rejection before Anchor; preserve M1 during local research
+
+Merged run r48 / 648475 failed in 71.4 s before executing the predecessor.
+Uniform fitting reports velocity ratio 0.377 / acceleration ratio 6.771;
+path-speed fallback rejects the initial tangent/velocity compatibility.
+It did not execute Replay, MPC or PPO and provides no new interaction evidence.
+The actual initial wrist pose/twist and all finger q/dq exactly match r45.
+
+Offline retiming of the saved passed r45 path succeeds with acceleration ratio
+0.50014. Overwriting that saved path's final target also succeeds, so this
+attribution does not establish the cause of r48's different planner proposal.
+Do not report a confirmed endpoint-overwrite cause. Default predecessor endpoint
+processing is restored to the earlier behavior.
+
+A generic `--predecessor-run` option now freezes a passed cuRobo development
+bridge. Reuse requires matching source provenance, scene/contact/embodiment,
+actual initial state within 1e-5, the exact source tick count, unchanged nominal
+time fitting and current collision checks. The bridge is then physically
+re-executed; no simulator state is copied or assigned. This is a RELAXED artifact,
+not a complete robot demonstration. New sources still plan their own bridge.
+The upcoming interaction experiment uses the passed r45 bridge as its baseline.
+
+The new floating continuous executor and Hopper path are implemented and
+syntax/contract checked, but no full floating V0 success is claimed.

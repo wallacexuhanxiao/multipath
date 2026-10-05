@@ -13,7 +13,9 @@ def main():
     p.add_argument('--ppo-updates',type=int,default=60)
     p.add_argument('--anchor-id',help='Develop this oracle Anchor; later entries require a real predecessor snapshot.')
     p.add_argument('--entry-snapshot',type=Path,help='Development only: physically acquired state at synth_start.')
+    p.add_argument('--predecessor-run',type=Path,help='Reuse a passed cuRobo bridge only when its actual initial state and source match.')
     args=p.parse_args();out=args.output_dir;out.mkdir(parents=True,exist_ok=True)
+    if args.entry_snapshot and args.predecessor_run:p.error('Choose a snapshot or a validated predecessor bridge')
     from multipath.oracle_schedule import OracleSchedule
     schedule=OracleSchedule.load(args.schedule);first=min(schedule.anchors.values(),key=lambda a:a.core_start)
     anchor=schedule.anchors[args.anchor_id] if args.anchor_id else first
@@ -73,7 +75,36 @@ def main():
             else:raise RuntimeError('No collision-free floating synthesis entry within local geometry extent')
             report['entry_geometry_search']=entry_candidates
             ticks=anchor.synth_start*tpf
-            if ticks:
+            if args.predecessor_run:
+                from multipath.anchors.compatibility import boundary_errors
+                from multipath.planning.timing import fixed_budget_path
+                prior=json.loads((args.predecessor_run/'development_result.json').read_text())
+                trace=json.loads((args.predecessor_run/'predecessor'/'actual_trace.json').read_text())
+                if (prior['source_provenance']!=manifest['provenance'] or not prior.get('predecessor_transition',{}).get('success')
+                    or prior['predecessor_plan']['planner']!='cuRobo_virtual_6DOF'):
+                    raise ValueError('Predecessor run is not a passed cuRobo bridge for this source')
+                errors=boundary_errors(scene.state(),trace[0])
+                if (not errors['scene_match'] or not errors['embodiment_match'] or not errors['contact_match'] or
+                    any(value>1e-5 for key,value in errors.items() if isinstance(value,float))):
+                    raise ValueError(f'Cached bridge initial state differs: {errors}')
+                commands=np.load(args.predecessor_run/'predecessor_commands.npz',allow_pickle=False)['commands']
+                if commands.shape!=(ticks,25) or not validate_commands(scene,commands,scene.state())['feasible']:
+                    raise ValueError('Cached bridge commands do not match this source budget')
+                q0=pose_coordinates(scene.state()['wrist_xyz_wxyz']);path=[q0]
+                for pose in commands[:,:7]:path.append(pose_coordinates(pose,path[-1]))
+                path=np.asarray(path)
+                twist=np.asarray(scene.state()['wrist_twist']);eps=1e-4
+                from scipy.spatial.transform import Rotation
+                advanced=np.asarray(scene.state()['wrist_xyz_wxyz']).copy();advanced[:3]+=eps*twist[:3]
+                advanced[3:]=(Rotation.from_rotvec(eps*twist[3:])*Rotation.from_quat(advanced[[4,5,6,3]])).as_quat()[[3,0,1,2]]
+                dq0=(pose_coordinates(advanced,q0)-q0)/eps
+                _,timing=fixed_budget_path(path,scene.dt,ticks,scene.dt,np.asarray(scene.cfg['planning']['velocity_limits']),
+                                           np.asarray(scene.cfg['planning']['acceleration_limits']),initial_velocity=dq0)
+                for configuration in path:
+                    if not planner.valid(configuration):raise ValueError('Cached bridge fails current collision model')
+                timing.update(planner='cuRobo_virtual_6DOF',cached_validated_predecessor=str(args.predecessor_run),
+                              source_time_stretch=False,reference_tracking=False,initial_state_errors=errors)
+            elif ticks:
                 commands,timing=planner.plan(target,ticks)
             else:
                 commands=np.empty((0,25));timing={'budget_s':0.,'planner':'none_initial_anchor'}

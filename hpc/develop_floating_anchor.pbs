@@ -32,6 +32,7 @@ SOLVER_ARGS=(--mpc-candidates "${MULTIPATH_MPC_CANDIDATES:-64}" --mpc-iters "${M
 [[ "${MULTIPATH_MPC_ONLY:-0}" != 1 ]] || SOLVER_ARGS+=(--mpc-only)
 [[ -z "${MULTIPATH_ANCHOR_ID:-}" ]] || SOLVER_ARGS+=(--anchor-id "$MULTIPATH_ANCHOR_ID")
 [[ -z "${MULTIPATH_ENTRY_SNAPSHOT:-}" ]] || SOLVER_ARGS+=(--entry-snapshot "$MULTIPATH_ENTRY_SNAPSHOT")
+[[ -z "${MULTIPATH_PREDECESSOR_RUN:-}" ]] || SOLVER_ARGS+=(--predecessor-run "$MULTIPATH_PREDECESSOR_RUN")
 singularity exec --nv -e "${MP_ENV[@]}" "$IMAGE" "$RUNTIME/envs/sim-isaac510/bin/python" -u scripts/develop_floating_anchor.py \
  --proposals "$MULTIPATH_PROPOSALS" --schedule "$MULTIPATH_SCHEDULE" \
  --floating-config "$ROOT/configs/floating_xhand.json" \

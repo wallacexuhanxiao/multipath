@@ -1,0 +1,11 @@
+{
+  "pbs_job_id": "648475.hopper-m-02",
+  "elapsed_s": 71.42257298005279,
+  "status": "failed",
+  "error": "Boundary velocity is incompatible with the geometric path",
+  "m2_success": false,
+  "full_pipeline_success": false,
+  "anchor_started": false,
+  "initial_state_matches_r45": true,
+  "offline_endpoint_attribution_reproduces_failure": false
+}
