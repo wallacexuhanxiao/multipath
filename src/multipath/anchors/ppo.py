@@ -225,6 +225,20 @@ class LocalPPOSolver:
                 for _ in range(cfg.episodes_per_update):
                     if time.monotonic()>=self.deadline:break
                     episode,result=rollout(False);episodes.append(episode);results.append(result)
+                    if result['success']:
+                        # We synthesize one executable command trajectory.
+                        # A physically valid sampled episode is useful even
+                        # when the mean policy has not converged. Subsequent
+                        # commit, padded Replay and core Replay still validate it.
+                        commands=np.asarray(env.commands).copy()
+                        env.save_evaluation(folder/'sampled_candidate',result)
+                        report.update(success=True,status='sampled_controls_passed',
+                            iterations=iteration+1,sampled_candidate=result,
+                            policy_deterministic_success=False,
+                            selection='measured_sampled_commands; fresh_Replay_required')
+                        learner.save(folder/'candidate_policy.pt',env.metadata)
+                        write();print('LOCAL_PPO_SAMPLED_CONTROLS_PASSED',begin,iteration+1,flush=True)
+                        return commands
                 if not episodes:break
                 metrics=learner.update(episodes)
                 row=dict(iteration=iteration+1,mean_return=float(np.mean([r['return_value'] for r in results])),

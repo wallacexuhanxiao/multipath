@@ -79,10 +79,18 @@ def local_controls(scene,anchor,data,start):
     return controls
 
 
+def hand_command_boundary(start):
+    # Contact can deflect a finger from its drive target. That preload is
+    # already present; holding it is not a new high-speed position command.
+    if start.get('contact',{}).get('mode')=='grasped' and 'command_hand_q' in start:
+        return np.asarray(start['command_hand_q'])
+    return np.asarray(start['hand_q'])
+
+
 def validate_commands(scene,commands,start):
     c=np.asarray(commands)
     if c.ndim!=2 or c.shape[1]!=25 or len(c)==0 or not np.isfinite(c).all():return {'feasible':False,'reason':'invalid floating controls'}
-    q=np.vstack((start['hand_q'],c[:,7:19]));ratio=float(np.max(np.abs(np.diff(q,axis=0)/scene.dt)/scene.hand_velocity))
+    q=np.vstack((hand_command_boundary(start),c[:,7:19]));ratio=float(np.max(np.abs(np.diff(q,axis=0)/scene.dt)/scene.hand_velocity))
     in_bounds=bool(np.all(c[:,7:19]>=scene.hand_limits[:,0]-1e-6) and np.all(c[:,7:19]<=scene.hand_limits[:,1]+1e-6))
     return {'feasible':bool(in_bounds and ratio<=1.0001),'hand_velocity_ratio':ratio,'hand_joint_bounds':in_bounds}
 

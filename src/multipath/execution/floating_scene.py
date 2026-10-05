@@ -123,7 +123,8 @@ class FloatingScene:
         return {'embodiment':self.embodiment,'wrist_xyz_wxyz':pose.tolist(),'wrist_twist':twist.tolist(),'hand_q':q.tolist(),'hand_dq':dq.tolist(),
             'objects':objects,'hand_object_transform':(np.linalg.inv(pose_matrix(pose))@pose_matrix(objects['tool']['pose'])).tolist(),
             'contact':hand_tool_contact(self.contacts.prim_paths,self.contacts.get_contact_force_matrix(dt=self.dt)),
-            'scene_id':self.scene_id,'time_s':self.ticks*self.dt,'physically_acquired_state':True,'state_origin':'continuous_PhysX_rollout'}
+            'scene_id':self.scene_id,'time_s':self.ticks*self.dt,'physically_acquired_state':True,'state_origin':'continuous_PhysX_rollout',
+            'command_wrist':self.command_pose.tolist(),'command_twist':self.command_twist.tolist(),'command_hand_q':self.hand_command.tolist()}
 
     def capture(self,mode,frame):
         self.records.append(dict(self.state(),mode=mode,source_frame=frame,command_wrist=self.command_pose.tolist(),
@@ -155,11 +156,18 @@ class FloatingScene:
         q=np.asarray(self.robot.get_joint_positions()).copy();dq=np.zeros_like(q)
         q[self.fingers]=state['hand_q'];dq[self.fingers]=state['hand_dq']
         self.robot.set_joint_positions(q);self.robot.set_joint_velocities(dq)
-        self.robot.apply_action(self.Action(joint_positions=q,joint_velocities=dq))
+        # Restore a grasp's actual recorded preload as well as q/dq. Replacing
+        # a deflected finger's drive target with measured q releases the grip.
+        preserve=state['contact']['mode']=='grasped'
+        drive=q.copy()
+        if preserve:drive[self.fingers]=state.get('command_hand_q',state['hand_q'])
+        self.robot.apply_action(self.Action(joint_positions=drive,joint_velocities=np.zeros_like(dq) if preserve else dq))
         for role,obj in self.objects.items():
             s=state['objects'][role];obj.set_world_pose(position=np.asarray(s['pose'][:3]),orientation=np.asarray(s['pose'][3:]));obj.set_linear_velocity(np.asarray(s['velocity'][:3]));obj.set_angular_velocity(np.asarray(s['velocity'][3:]))
         self.ticks=round(state['time_s']/self.dt);self.lineage=state['entry_provenance'];self.restore_count+=1
-        self.command_pose=pose.copy();self.command_twist=twist.copy();self.hand_command=np.asarray(state['hand_q']).copy()
+        self.command_pose=np.asarray(state.get('command_wrist',pose) if preserve else pose).copy()
+        self.command_twist=np.asarray(state.get('command_twist',twist) if preserve else twist).copy()
+        self.hand_command=drive[self.fingers].copy()
         self.restored_tick=self.ticks
         self.restored_state=dict(state,command_wrist=self.command_pose.tolist(),command_twist=self.command_twist.tolist(),
                                  command_hand_q=self.hand_command.tolist())

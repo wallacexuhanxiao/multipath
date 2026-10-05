@@ -85,3 +85,16 @@ def test_padded_takeover_matches_measured_velocity_without_changing_core():
     np.testing.assert_allclose(c[0,19:25],start['wrist_twist'],atol=1e-10)
     np.testing.assert_allclose((c[0,7:19]-start['hand_q'])/scene.dt,start['hand_dq'],atol=1e-10)
     np.testing.assert_allclose(c[7,:19],ref[2],atol=1e-10)
+
+
+def test_grasp_preload_is_not_counted_as_a_new_command_jump():
+    from multipath.anchors.floating import validate_commands
+    from multipath.anchors.floating_search import apply_residual
+    scene=SimpleNamespace(dt=.01,hand_limits=np.tile([-2.,2.],(12,1)),hand_velocity=np.ones(12))
+    start={'wrist_xyz_wxyz':[0.,0.,0.,1.,0.,0.,0.],'hand_q':np.zeros(12),
+           'command_hand_q':np.full(12,.1),'contact':{'mode':'grasped'}}
+    baseline=np.zeros((4,25));baseline[:,3]=1.;baseline[:,7:19]=.1
+    assert validate_commands(scene,baseline,start)['feasible']
+    residual=np.zeros((1,18));residual[0,0]=.001
+    command=apply_residual(scene,baseline,start,residual,4,np.ones(5))
+    np.testing.assert_allclose(command[:,7:19],baseline[:,7:19])

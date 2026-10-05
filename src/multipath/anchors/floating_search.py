@@ -8,7 +8,7 @@ from pathlib import Path
 import numpy as np
 from scipy.spatial.transform import Rotation
 from multipath.anchors.mpc import WindowEvaluation,mppi_mean,RefinementRequired
-from multipath.anchors.floating import controls_from_poses,validate_commands,object_relative_command,object_relative_handoff
+from multipath.anchors.floating import controls_from_poses,validate_commands,object_relative_command,object_relative_handoff,hand_command_boundary
 from multipath.anchors.ppo import MountedResidualEnv,LocalPPOSolver,PPOConfig
 from multipath.planning.timing import physics_ticks_per_frame
 from multipath.validation.physics import object_tracking_parameters
@@ -20,7 +20,7 @@ def apply_residual(scene,baseline,start,residual,tpf,envelope):
     delta=np.vstack((np.zeros(18),residual));grid=np.arange(len(delta))
     interp=np.stack([np.interp(sample,grid,delta[:,j]) for j in range(18)],axis=1)
     interp*=np.asarray(envelope)[:,None]
-    poses=np.vstack((start['wrist_xyz_wxyz'],baseline[:,:7]));hands=np.vstack((start['hand_q'],baseline[:,7:19]))
+    poses=np.vstack((start['wrist_xyz_wxyz'],baseline[:,:7]));hands=np.vstack((hand_command_boundary(start),baseline[:,7:19]))
     poses[:,:3]+=interp[:,:3]
     rotations=Rotation.from_rotvec(interp[:,3:6])*Rotation.from_quat(poses[:,[4,5,6,3]])
     poses[:,3:]=rotations.as_quat()[:,[3,0,1,2]];hands+=interp[:,6:]
