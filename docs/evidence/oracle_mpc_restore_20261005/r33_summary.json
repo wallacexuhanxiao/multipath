@@ -1,0 +1,30 @@
+{
+  "job": "647446.hopper-m-02",
+  "run": "oracle_a1_qp_profile_r33",
+  "code": "90e51db",
+  "m2_success": false,
+  "initial_ik_s": 0.8209846089594066,
+  "initial_fit_s": 0.35858177801128477,
+  "mpc_search_s": 17.328,
+  "kit_shutdown_s": 74.411,
+  "physical_trials": 11,
+  "ik_failures": 2,
+  "velocity_failures": 3,
+  "tracking_failures": 8,
+  "furthest_tracking_failure_frame": 49.0,
+  "ik_s": {
+    "min": 0.64383016503416,
+    "median": 0.9961820224998519,
+    "max": 1.4399065379984677
+  },
+  "fit_s": {
+    "min": 0.25048120704013854,
+    "median": 0.26422944001387805,
+    "max": 0.3032013549236581
+  },
+  "physical_evaluation_s": {
+    "min": 0.369742595939897,
+    "median": 0.4022491299547255,
+    "max": 0.45978291996289045
+  }
+}

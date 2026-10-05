@@ -56,3 +56,22 @@ interactive H200 with a 20-minute allocation. This is a timing/interaction probe
 full serial 64 x 3 is not restarted without measuring its cost.
 
 A1 remains unvalidated. No additional temporal budget or state patch was added.
+
+
+## r33 actual result
+
+Job 647446, code 90e51db, H200 hopper-30. Kit shutdown at 74.4 seconds;
+MPC search 17.328 seconds. Initial IK 0.821 s; initial fit 0.359 s.
+Per generated candidate IK 0.64–1.44 s, fit 0.25–0.30 s, physical
+prediction 0.37–0.46 s. No full-window SLSQP speedup ratio is inferred.
+
+Thirteen evaluation/search entries: two IK failures, eleven physical trials.
+The physical trials had three measured velocity failures and eight core object
+tracking failures. Baseline fails at frame 46; furthest candidate reaches frame
+49 before tracking failure. A1 is not physically validated. The measured speed
+improvement does not constitute an interaction improvement.
+
+r34 (647510.hopper-m-02) runs the full 64 x 3 MPC with
+existing small PPO fallback and a 20-minute interactive H200 allocation.
+Estimated first-chunk MPC ~5 minutes from r33; longer successful prefixes can
+cost more. This is an estimate, not a measured full-search runtime.
