@@ -54,6 +54,15 @@ def displacement_bounds(v0,v1,budget,velocity_limits,acceleration_limits):
     return np.array(low),np.array(high)
 
 
+def discrete_displacement_bounds(v0,v1,budget,dt,velocity_limits,acceleration_limits):
+    """Envelope for the executor's exact first/last discrete command slope."""
+    ticks=round(budget/dt);k=np.arange(ticks)[:,None]
+    v0=np.asarray(v0);v1=np.asarray(v1);vmax=np.asarray(velocity_limits);amax=np.asarray(acceleration_limits)
+    high=np.minimum(vmax,np.minimum(v0+amax*dt*k,v1+amax*dt*(ticks-1-k)))
+    low=np.maximum(-vmax,np.maximum(v0-amax*dt*k,v1-amax*dt*(ticks-1-k)))
+    return low.sum(0)*dt,high.sum(0)*dt
+
+
 def coordinate_velocity(pose, twist, near=None):
     pose=np.asarray(pose,dtype=float);twist=np.asarray(twist,dtype=float)
     q=pose_coordinates(pose,near);eps=1e-5;next_pose=pose.copy()
@@ -96,7 +105,7 @@ def bridge_precheck(start,goal,budget,planning):
                 limits_provenance='configured nominal planning budget; not hardware ratings')
 
 
-def project_boundary_target(start,target,budget,planning):
+def project_boundary_target(start,target,budget,planning,dt=None):
     """A deterministic resynthesis target, never a physical state artifact.
 
     Project the oracle target into its necessary joint-time envelope. The
@@ -112,7 +121,8 @@ def project_boundary_target(start,target,budget,planning):
     desired=pose_coordinates(target['wrist_xyz_wxyz'],q0)
     for _ in range(4):
         v1=coordinate_velocity(goal['wrist_xyz_wxyz'],goal['wrist_twist'],q0)
-        low,high=displacement_bounds(v0,v1,budget,vmax,amax)
+        low,high=(displacement_bounds(v0,v1,budget,vmax,amax) if dt is None else
+                  discrete_displacement_bounds(v0,v1,budget,dt,vmax,amax))
         if np.any(low>high):return goal
         q=q0+np.clip(desired-q0,low,high)
         goal['wrist_xyz_wxyz']=coordinates_pose(q).tolist()

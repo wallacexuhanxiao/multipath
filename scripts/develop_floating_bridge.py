@@ -44,7 +44,7 @@ def main():
     projected_source_error=None
     if args.source_entry_target:
         budget=(window['end']-window['start'])/schedule.fps
-        goal=project_boundary_target(a['exit'],goal,budget,config['planning'])
+        goal=project_boundary_target(a['exit'],goal,budget,config['planning'],dt=dt)
         from multipath.execution.mounted_scene import pose_matrix
         from multipath.validation.physics import core_pose_errors,object_tracking_score
         tool=pose_matrix(goal['wrist_xyz_wxyz'])@np.asarray(a['exit']['hand_object_transform'])
@@ -93,7 +93,7 @@ def main():
             for _ in range(12):
                 clearances,worst=sphere_world_clearance(goal['wrist_xyz_wxyz'],planner.nominal_spheres,planner.live['cuboid'])
                 report['goal_clearance_projection'].append(clearances)
-                if worst[0]>=1e-4:break
+                if worst[0]>=1e-4-1e-8:break
                 pose=np.asarray(goal['wrist_xyz_wxyz']).copy();pose[:3]+=(1e-4-worst[0])*worst[1]
                 goal['wrist_xyz_wxyz']=pose.tolist()
             else:raise RuntimeError('No collision-free oracle boundary proposal')

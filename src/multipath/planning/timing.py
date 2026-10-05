@@ -37,6 +37,39 @@ def fixed_budget_path(raw, raw_dt, ticks, dt, velocity_limits, acceleration_limi
                   'time_scale':budget/max(duration,dt), 'command_velocity_ratio':vr, 'command_acceleration_ratio':ar}
 
 
+def boundary_fitted_path(raw,ticks,dt,velocity_limits,acceleration_limits,
+                         initial_velocity=None,final_velocity=None):
+    """Fit cuRobo positions with fixed source time and two moving boundaries.
+
+    Minimize L1 deviation from the resampled geometric plan under linear joint
+    velocity/acceleration constraints. The caller must collision-check every
+    resulting configuration; changing the geometric fit is not a physics pass.
+    """
+    from scipy.optimize import linprog
+    raw=np.asarray(raw);n=ticks+1
+    if ticks<3:raise RuntimeError('Moving boundary fitting requires at least three physics intervals')
+    desired=np.stack([np.interp(np.linspace(0,len(raw)-1,n),np.arange(len(raw)),raw[:,j]) for j in range(raw.shape[1])],axis=1)
+    first=np.zeros(raw.shape[1]) if initial_velocity is None else np.asarray(initial_velocity)
+    last=np.zeros(raw.shape[1]) if final_velocity is None else np.asarray(final_velocity)
+    identity=np.eye(n);d1=np.diff(identity,axis=0);d2=np.diff(identity,n=2,axis=0)
+    matrix=np.vstack((np.c_[d1,np.zeros_like(d1)],np.c_[-d1,np.zeros_like(d1)],
+                      np.c_[d2,np.zeros_like(d2)],np.c_[-d2,np.zeros_like(d2)],
+                      np.c_[identity,-identity],np.c_[-identity,-identity]))
+    path=np.empty_like(desired)
+    for j in range(raw.shape[1]):
+        rhs=np.r_[np.full(2*(n-1),velocity_limits[j]*dt),np.full(2*(n-2),acceleration_limits[j]*dt**2),desired[:,j],-desired[:,j]]
+        bounds=[(None,None)]*n+[(0,None)]*n
+        for k,value in [(0,raw[0,j]),(1,raw[0,j]+first[j]*dt),
+                        (n-2,raw[-1,j]-last[j]*dt),(n-1,raw[-1,j])]:bounds[k]=(value,value)
+        result=linprog(np.r_[np.zeros(n),np.ones(n)],A_ub=matrix,b_ub=rhs,bounds=bounds,method='highs')
+        if not result.success:raise RuntimeError(f'No fixed-time boundary trajectory in coordinate {j}')
+        path[:,j]=result.x[:n]
+    _,check=fixed_budget_path(path,dt,ticks,dt,velocity_limits,acceleration_limits,first,last)
+    check.update(parameterization='endpoint_constrained_geometric_fit',
+        geometry_max_adjustment=float(np.max(np.abs(path-desired))),boundary_velocities_preserved=True)
+    return path,check
+
+
 def parameterize_path(raw,ticks,dt,velocity_limits,acceleration_limits,
                       initial_velocity=None,final_velocity=None):
     """Forward/backward reachability in squared path speed; source budget fixed.

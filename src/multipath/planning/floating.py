@@ -7,7 +7,7 @@ from pathlib import Path
 import numpy as np
 from scipy.spatial.transform import Rotation
 from scipy.interpolate import CubicHermiteSpline
-from multipath.planning.timing import fixed_budget_path,parameterize_path
+from multipath.planning.timing import fixed_budget_path,parameterize_path,boundary_fitted_path
 
 
 def pose_coordinates(pose,near=None):
@@ -120,7 +120,7 @@ class FloatingPlanner:
         from curobo.types.base import TensorDeviceType
         from curobo.wrap.reacher.motion_gen import MotionGen,MotionGenConfig
         from curobo.geom.sdf.world import CollisionCheckerType
-        self.scene=scene;self.tensor=TensorDeviceType(device='cuda:0');self.carry=carry
+        self.scene=scene;self.tensor=TensorDeviceType(device='cuda:0');self.carry=carry;self.out=Path(out)
         cfg,self.sphere_count=robot_model(scene,carry,out)
         live={'cuboid':{'table':scene.table}}
         for role in (['target'] if carry else ['tool','target']):
@@ -207,8 +207,14 @@ class FloatingPlanner:
         # these are planned targets, never assignments to simulator state.
         if goal_twist is not None:
             raw[0]=q0;raw[-1]=q1
+        np.savez_compressed(self.out/'raw_geometric_path.npz',
+                            positions=raw,initial_velocity=dq0,final_velocity=np.zeros(6) if dq1 is None else dq1)
         try:path,timing=fixed_budget_path(raw,float(result.interpolation_dt),ticks,dt,np.array(limits['velocity_limits']),np.array(limits['acceleration_limits']),initial_velocity=dq0,final_velocity=dq1)
-        except RuntimeError:path,timing=parameterize_path(raw,ticks,dt,np.array(limits['velocity_limits']),np.array(limits['acceleration_limits']),initial_velocity=dq0,final_velocity=dq1)
+        except RuntimeError as compression_error:
+            try:path,timing=parameterize_path(raw,ticks,dt,np.array(limits['velocity_limits']),np.array(limits['acceleration_limits']),initial_velocity=dq0,final_velocity=dq1)
+            except RuntimeError as path_error:
+                path,timing=boundary_fitted_path(raw,ticks,dt,np.array(limits['velocity_limits']),np.array(limits['acceleration_limits']),initial_velocity=dq0,final_velocity=dq1)
+                timing['previous_fit_rejections']=[str(compression_error),str(path_error)]
         for q in path:
             if not self.valid(q):raise RuntimeError('Floating resampled path collision')
         poses=np.asarray([coordinates_pose(q) for q in path])

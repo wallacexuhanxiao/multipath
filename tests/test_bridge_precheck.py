@@ -3,6 +3,29 @@ from multipath.planning.bridge import bridge_precheck
 from scipy.spatial.transform import Rotation
 
 
+def test_moving_boundaries_fit_without_stretching_source_time():
+    import numpy as np
+    import pytest
+    from multipath.planning.timing import boundary_fitted_path,parameterize_path
+    raw=np.linspace([0.,0.],[.04,.02],25)
+    first=np.array([.2,-.1]);last=np.array([.1,.2]);dt=1/120
+    velocity=np.ones(2);acceleration=np.full(2,5.)
+    # Real bridge failure: a single scalar path speed cannot express these
+    # boundary velocity directions. Fit geometry instead, then check collision.
+    with pytest.raises(RuntimeError,match='incompatible'):
+        parameterize_path(raw,24,dt,velocity,acceleration,first,last)
+    path,report=boundary_fitted_path(raw,24,dt,velocity,acceleration,first,last)
+    np.testing.assert_allclose(path[[0,-1]],raw[[0,-1]],atol=1e-10)
+    np.testing.assert_allclose((path[1]-path[0])/dt,first,atol=1e-10)
+    np.testing.assert_allclose((path[-1]-path[-2])/dt,last,atol=1e-10)
+    assert report['budget_s']==.2
+    assert report['command_velocity_ratio']<=1.0001
+    assert report['command_acceleration_ratio']<=1.0001
+    with pytest.raises(RuntimeError,match='No fixed-time'):
+        boundary_fitted_path(np.linspace([0.,0.],[.3,.02],25),24,dt,
+                             velocity,acceleration,first,last)
+
+
 def state(pitch,twist):
     quat=Rotation.from_euler('ZYX',[0,pitch,0]).as_quat()[[3,0,1,2]]
     return dict(wrist_xyz_wxyz=[0,0,1,*quat],wrist_twist=twist,hand_q=[0]*12,
