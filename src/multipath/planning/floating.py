@@ -152,7 +152,11 @@ class FloatingPlanner:
 
     def plan(self,goal,ticks,goal_twist=None,goal_state=None):
         from curobo.wrap.reacher.motion_gen import MotionGenPlanConfig
-        scene=self.scene;start=scene.state();q0=pose_coordinates(start['wrist_xyz_wxyz']);q1=pose_coordinates(goal,q0)
+        # Native contact buffers are stale immediately after a development
+        # restore. snapshot() retains the real acquisition's contact/drive
+        # boundary until the first executed step; continuous runs use the
+        # current measured state. No solver contact state is fabricated.
+        scene=self.scene;start=scene.snapshot();q0=pose_coordinates(start['wrist_xyz_wxyz']);q1=pose_coordinates(goal,q0)
         # Joint parameterization derivatives are obtained from the measured spatial twist.
         twist=np.asarray(start['wrist_twist']);eps=1e-4
         pose=np.asarray(start['wrist_xyz_wxyz']);advanced=pose.copy();advanced[:3]+=eps*twist[:3]

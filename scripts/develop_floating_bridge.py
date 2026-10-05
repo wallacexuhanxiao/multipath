@@ -30,6 +30,10 @@ def main():
         pbs_job_id=os.environ.get('PBS_JOBID'),from_anchor=left.id,to_anchor=right.id,
         source_interval=[window['start'],window['end']],boundary_precheck=check,
         source_time_stretch=False,vlm_used=False,complete_robot_reference_required=False)
+    import shutil,multipath
+    implementation=out/'implementation';implementation.mkdir(exist_ok=True)
+    shutil.copy2(__file__,implementation/Path(__file__).name)
+    shutil.copytree(Path(multipath.__file__).parent,implementation/'multipath',dirs_exist_ok=True,ignore=shutil.ignore_patterns('__pycache__'))
     app=None;scene=None;started=time.perf_counter()
     try:
         if args.preflight_only or not check['feasible']:return
