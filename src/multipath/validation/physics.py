@@ -9,7 +9,8 @@ def object_tracking_parameters():
     return {'C':1., 'lambda_p':1/OBJECT_POSITION_TOLERANCE_M**2,
             'lambda_R':1/OBJECT_ROTATION_TOLERANCE_RAD**2,
             'position_tolerance_m':OBJECT_POSITION_TOLERANCE_M,
-            'rotation_tolerance_rad':OBJECT_ROTATION_TOLERANCE_RAD}
+            'rotation_tolerance_rad':OBJECT_ROTATION_TOLERANCE_RAD,
+            'acceptance':'independent_position_and_rotation_limits'}
 
 
 def retention_errors(state, held_transform):
@@ -34,15 +35,19 @@ def core_pose_errors(state, expected):
 
 
 def object_tracking_score(errors):
-    """Appendix C.3/C.4: one weighted norm for reward and feasibility.
+    """Weighted object reward and the project's explicit pose tolerances.
 
     Project axial tolerances are 5 cm / 30 degrees, shared by Replay, MPC,
     PPO and core handoff. These are project choices, not paper values.
-    The ellipse is stricter than the former independent Cp/CR box at corners.
+    Reward retains the Appendix-style weighted norm. Acceptance checks each
+    requested tolerance directly, so position error cannot shrink the allowed
+    rotation below 30 degrees (or vice versa).
     """
     distance=float(np.hypot(errors['position_m']/OBJECT_POSITION_TOLERANCE_M,
                             errors['rotation_rad']/OBJECT_ROTATION_TOLERANCE_RAD))
-    return {'weighted_error':distance, 'reward':1.-distance, 'feasible':distance<=1.}
+    feasible=(errors['position_m']<=OBJECT_POSITION_TOLERANCE_M and
+              errors['rotation_rad']<=OBJECT_ROTATION_TOLERANCE_RAD)
+    return {'weighted_error':distance, 'reward':1.-distance, 'feasible':bool(feasible)}
 
 
 def hand_tool_contact(paths, forces, threshold=.01):

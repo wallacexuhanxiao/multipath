@@ -12,9 +12,10 @@ def test_contact_requires_thumb_and_another_finger():
     assert not hand_tool_contact(paths,[[1,0,0],[0,0,0],[0,0,0],[1,0,0]])['opposition_contact']
 
 
-def test_tracking_reward_and_termination_share_boundary():
+def test_tracking_reward_and_explicit_axis_tolerances():
     score=object_tracking_score({'position_m':.04,'rotation_rad':np.deg2rad(24.)})
-    assert score['reward']<0 and not score['feasible']
+    assert score['reward']<0 and score['feasible']
+    assert not object_tracking_score({'position_m':.051,'rotation_rad':0.})['feasible']
     score=object_tracking_score({'position_m':.03,'rotation_rad':.14})
     assert score['reward']>0 and score['feasible']
     assert object_tracking_score({'position_m':0.,'rotation_rad':np.deg2rad(30.)})['feasible']
