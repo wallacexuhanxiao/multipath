@@ -1,0 +1,612 @@
+{
+  "embodiment": "floating_xhand",
+  "m2_success": true,
+  "full_pipeline_success": false,
+  "source_provenance": {
+    "triplet": "(put in, bowl, plate)",
+    "sequence": "20231024_253",
+    "input": "raw TACO MANO and object poses",
+    "source_video": "/scratch/e0985859/egoengine_baseline/data/taco_v1/Egocentric_RGB_Videos/(put in, bowl, plate)/20231024_253/color.mp4",
+    "schedule_sha256": "111733961ac0ad03d95087435de751c2bdf27db6f375fe153bd6f5f78283adc2",
+    "full_robot_reference_used": false,
+    "vlm_used": false,
+    "transform_world_to_robot": [
+      [
+        -0.36959298057517503,
+        0.929193775162176,
+        0.0,
+        0.574305986267124
+      ],
+      [
+        -0.9291937551424282,
+        -0.36959297261218765,
+        -0.0,
+        0.005429607853050099
+      ],
+      [
+        0.0,
+        0.0,
+        1.0,
+        -0.1883068585395813
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ]
+  },
+  "pbs_job_id": "648833.hopper-m-02",
+  "source_duration_s": 4.8,
+  "vlm_used": false,
+  "complete_robot_reference_required": false,
+  "source_time_stretch": false,
+  "development_only": true,
+  "anchor_id": "anchor_0",
+  "core_interval": [
+    35,
+    76
+  ],
+  "synthesis_interval": [
+    29,
+    82
+  ],
+  "note": "Bridge to synth_start is a development predecessor; final bridge to core entry still requires verification.",
+  "core_entry_target": {
+    "source": "TACO_oracle_boundary",
+    "source_frame": 35,
+    "tool_pose": [
+      [
+        0.08907006843145966,
+        0.9958782755116713,
+        -0.017116932497678806,
+        0.51982208285344
+      ],
+      [
+        -0.9949578242986448,
+        0.08975689427932228,
+        0.044751832419086056,
+        -0.17872853657542379
+      ],
+      [
+        0.046103738248348236,
+        0.013044589199125767,
+        0.9988515377044678,
+        0.38948983907699586
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "retargeted_wrist_hand": [
+      0.3164689741560743,
+      -0.2255285763890432,
+      0.4592505699138517,
+      0.8111980825170603,
+      -0.23211986567162768,
+      -0.48809780418389626,
+      -0.2232455429165141,
+      0.763194473162471,
+      1.1089354466744523,
+      -0.175,
+      0.175,
+      0.49983633339952005,
+      1.2766224887647837,
+      1.1705154868847647,
+      1.3243744266712894,
+      1.4039655450425772,
+      1.6270480395242202,
+      1.3646170911771616,
+      1.7847723044087052
+    ],
+    "context_snapshot_is_canonical_entry": false
+  },
+  "initial_hand_origin": "first_local_synthesis_context_pregrasp; free_initial_state",
+  "predecessor_snapshot": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_floating_a1_a2_reachedcore_r58/anchor_0/acquired_snapshot.json",
+  "exit_bridge_constraints": "measured virtual-coordinate velocity within configured nominal planning budget",
+  "initial_controls": {
+    "path": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_bridge_boundary_r70/proposal/commands.npz",
+    "sha256": "83d644b34333e3fca93372bc27e7cbc506cbe4fd0318238f05323b6f7ef15f99",
+    "before_projection": {
+      "feasible": true,
+      "hand_velocity_ratio": 1.000000000000001,
+      "hand_joint_bounds": true
+    },
+    "physical_acceptance": false
+  },
+  "command_precheck": {
+    "feasible": true,
+    "hand_velocity_ratio": 1.000000000000001,
+    "hand_joint_bounds": true
+  },
+  "padded_replay": {
+    "success": false,
+    "failure": {
+      "source_frame": 70.0,
+      "reason": "core_object_fidelity"
+    },
+    "failures": [
+      {
+        "source_frame": 70.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 71.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 72.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 73.0,
+        "reason": "core_object_fidelity"
+      }
+    ],
+    "padded_rollout_complete": true,
+    "tracking_failures_collected": true,
+    "core_entry_acquired": true,
+    "core_exit_acquired": true,
+    "state_resets_within_rollout": 0,
+    "source_fps": 30.0,
+    "control_dt": 0.008333333333333333,
+    "tracking_parameters": {
+      "C": 1.0,
+      "lambda_p": 399.99999999999994,
+      "lambda_R": 3.6475626111241604,
+      "position_tolerance_m": 0.05,
+      "rotation_tolerance_rad": 0.5235987755982988,
+      "acceptance": "independent_position_and_rotation_limits"
+    },
+    "embodiment": "floating_xhand",
+    "command_format": "wrist_xyz_wxyz_hand12_twist6",
+    "actual_end_frame": 82.0,
+    "core_entry_source_boundary": {
+      "source_frame": 35,
+      "position_m": 0.002793293847009686,
+      "rotation_rad": 0.04793205385584383,
+      "accepted": true
+    },
+    "bridge_exit_velocity_ratio": 0.6261929600774133
+  },
+  "refined_padded_replay": {
+    "success": false,
+    "failure": {
+      "source_frame": 76.0,
+      "reason": "core_exit_handoff"
+    },
+    "failures": [
+      {
+        "source_frame": 76.0,
+        "reason": "core_exit_handoff"
+      }
+    ],
+    "padded_rollout_complete": false,
+    "tracking_failures_collected": false,
+    "core_entry_acquired": true,
+    "core_exit_acquired": true,
+    "state_resets_within_rollout": 0,
+    "source_fps": 30.0,
+    "control_dt": 0.008333333333333333,
+    "tracking_parameters": {
+      "C": 1.0,
+      "lambda_p": 399.99999999999994,
+      "lambda_R": 3.6475626111241604,
+      "position_tolerance_m": 0.05,
+      "rotation_tolerance_rad": 0.5235987755982988,
+      "acceptance": "independent_position_and_rotation_limits"
+    },
+    "embodiment": "floating_xhand",
+    "command_format": "wrist_xyz_wxyz_hand12_twist6",
+    "actual_end_frame": 76.0,
+    "core_entry_source_boundary": {
+      "source_frame": 35,
+      "position_m": 0.0027933564497652193,
+      "rotation_rad": 0.04793208403096092,
+      "accepted": true
+    },
+    "bridge_exit_velocity_ratio": 0.8050389993297102
+  },
+  "whole_anchor_replay_attempts": [
+    {
+      "success": false,
+      "failure": {
+        "source_frame": 81.0,
+        "reason": "post_context_grasp_retention"
+      },
+      "failures": [
+        {
+          "source_frame": 81.0,
+          "reason": "post_context_grasp_retention"
+        }
+      ],
+      "padded_rollout_complete": false,
+      "tracking_failures_collected": false,
+      "core_entry_acquired": true,
+      "core_exit_acquired": true,
+      "state_resets_within_rollout": 0,
+      "source_fps": 30.0,
+      "control_dt": 0.008333333333333333,
+      "tracking_parameters": {
+        "C": 1.0,
+        "lambda_p": 399.99999999999994,
+        "lambda_R": 3.6475626111241604,
+        "position_tolerance_m": 0.05,
+        "rotation_tolerance_rad": 0.5235987755982988,
+        "acceptance": "independent_position_and_rotation_limits"
+      },
+      "embodiment": "floating_xhand",
+      "command_format": "wrist_xyz_wxyz_hand12_twist6",
+      "actual_end_frame": 81.0,
+      "core_entry_source_boundary": {
+        "source_frame": 35,
+        "position_m": 0.0027933564497652193,
+        "rotation_rad": 0.04793208403096092,
+        "accepted": true
+      },
+      "bridge_exit_velocity_ratio": 0.772239519900945,
+      "trace": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_bridge_boundary_mpc_r71/anchor_0/whole_anchor_replay/candidate_000/actual_trace.json"
+    },
+    {
+      "success": false,
+      "failure": {
+        "source_frame": 69.0,
+        "reason": "core_object_fidelity"
+      },
+      "failures": [
+        {
+          "source_frame": 69.0,
+          "reason": "core_object_fidelity"
+        }
+      ],
+      "padded_rollout_complete": false,
+      "tracking_failures_collected": false,
+      "core_entry_acquired": true,
+      "core_exit_acquired": false,
+      "state_resets_within_rollout": 0,
+      "source_fps": 30.0,
+      "control_dt": 0.008333333333333333,
+      "tracking_parameters": {
+        "C": 1.0,
+        "lambda_p": 399.99999999999994,
+        "lambda_R": 3.6475626111241604,
+        "position_tolerance_m": 0.05,
+        "rotation_tolerance_rad": 0.5235987755982988,
+        "acceptance": "independent_position_and_rotation_limits"
+      },
+      "embodiment": "floating_xhand",
+      "command_format": "wrist_xyz_wxyz_hand12_twist6",
+      "actual_end_frame": 69.0,
+      "core_entry_source_boundary": {
+        "source_frame": 35,
+        "position_m": 0.0027933564497652193,
+        "rotation_rad": 0.04793208403096092,
+        "accepted": true
+      },
+      "trace": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_bridge_boundary_mpc_r71/anchor_0/whole_anchor_replay/candidate_001/actual_trace.json"
+    },
+    {
+      "success": true,
+      "failure": null,
+      "failures": [],
+      "padded_rollout_complete": true,
+      "tracking_failures_collected": false,
+      "core_entry_acquired": true,
+      "core_exit_acquired": true,
+      "state_resets_within_rollout": 0,
+      "source_fps": 30.0,
+      "control_dt": 0.008333333333333333,
+      "tracking_parameters": {
+        "C": 1.0,
+        "lambda_p": 399.99999999999994,
+        "lambda_R": 3.6475626111241604,
+        "position_tolerance_m": 0.05,
+        "rotation_tolerance_rad": 0.5235987755982988,
+        "acceptance": "independent_position_and_rotation_limits"
+      },
+      "embodiment": "floating_xhand",
+      "command_format": "wrist_xyz_wxyz_hand12_twist6",
+      "actual_end_frame": 82.0,
+      "core_entry_source_boundary": {
+        "source_frame": 35,
+        "position_m": 0.0027933564497652193,
+        "rotation_rad": 0.04793208403096092,
+        "accepted": true
+      },
+      "bridge_exit_velocity_ratio": 0.4605311541302133,
+      "trace": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_bridge_boundary_mpc_r71/anchor_0/whole_anchor_replay/candidate_002/actual_trace.json"
+    }
+  ],
+  "whole_anchor_padded_replay": {
+    "success": true,
+    "failure": null,
+    "failures": [],
+    "padded_rollout_complete": true,
+    "tracking_failures_collected": false,
+    "core_entry_acquired": true,
+    "core_exit_acquired": true,
+    "state_resets_within_rollout": 0,
+    "source_fps": 30.0,
+    "control_dt": 0.008333333333333333,
+    "tracking_parameters": {
+      "C": 1.0,
+      "lambda_p": 399.99999999999994,
+      "lambda_R": 3.6475626111241604,
+      "position_tolerance_m": 0.05,
+      "rotation_tolerance_rad": 0.5235987755982988,
+      "acceptance": "independent_position_and_rotation_limits"
+    },
+    "embodiment": "floating_xhand",
+    "command_format": "wrist_xyz_wxyz_hand12_twist6",
+    "actual_end_frame": 82.0,
+    "core_entry_source_boundary": {
+      "source_frame": 35,
+      "position_m": 0.0027933564497652193,
+      "rotation_rad": 0.04793208403096092,
+      "accepted": true
+    },
+    "bridge_exit_velocity_ratio": 0.4605311541302133
+  },
+  "core_entry_acquisition": "physical_padding_execution; no_reset_at_core_boundary",
+  "core_replay": {
+    "success": true,
+    "failure": null,
+    "failures": [],
+    "padded_rollout_complete": true,
+    "tracking_failures_collected": false,
+    "core_entry_acquired": true,
+    "core_exit_acquired": true,
+    "state_resets_within_rollout": 0,
+    "source_fps": 30.0,
+    "control_dt": 0.008333333333333333,
+    "tracking_parameters": {
+      "C": 1.0,
+      "lambda_p": 399.99999999999994,
+      "lambda_R": 3.6475626111241604,
+      "position_tolerance_m": 0.05,
+      "rotation_tolerance_rad": 0.5235987755982988,
+      "acceptance": "independent_position_and_rotation_limits"
+    },
+    "embodiment": "floating_xhand",
+    "command_format": "wrist_xyz_wxyz_hand12_twist6",
+    "actual_end_frame": 76.0,
+    "core_entry_source_boundary": {
+      "source_frame": 35,
+      "position_m": 0.0027933564497652193,
+      "rotation_rad": 0.04793208403096092,
+      "accepted": true
+    },
+    "bridge_exit_velocity_ratio": 0.4605311541302133
+  },
+  "core_exit_repeatability": {
+    "embodiment_match": true,
+    "wrist_position_m": 0.0,
+    "wrist_rotation_rad": 0.0,
+    "wrist_velocity": 0.0,
+    "hand_q": 0.0,
+    "hand_dq": 0.0,
+    "target_position_m": 0.0,
+    "target_rotation_rad": 0.0,
+    "target_velocity": 0.0,
+    "tool_position_m": 0.0,
+    "tool_rotation_rad": 0.0,
+    "tool_velocity": 0.0,
+    "relative_transform": 0.0,
+    "relative_transform_required": true,
+    "contact_match": true,
+    "scene_match": true
+  },
+  "anchor": {
+    "id": "anchor_0",
+    "core_start": 35,
+    "core_end": 76,
+    "synth_start": 29,
+    "synth_end": 82,
+    "entry_contact": "free",
+    "exit_contact": "grasped",
+    "core_interval": [
+      35,
+      76
+    ],
+    "synthesis_interval": [
+      29,
+      82
+    ],
+    "entry_physically_reachable": true,
+    "entry_origin": "predecessor_rollout",
+    "entry_provenance": {
+      "trace": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_bridge_boundary_mpc_r71/anchor_0/core_entry_acquisition/actual_trace.json",
+      "source_frame": 35.0,
+      "predecessor": {
+        "trace": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_floating_a1_a2_reachedcore_r58/anchor_0/predecessor/actual_trace.json",
+        "source_frame": 29.0,
+        "predecessor": {
+          "trace": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_floating_a1_a2_reachedcore_r58/anchor_0/predecessor/actual_trace.json",
+          "trace_sha256": "a4b9cd292971399f0a43f43f7e37baada31f8b67c8050b2252d2cb9f172f9f09",
+          "source_frame": 29,
+          "planner": "cuRobo",
+          "predecessor_success": true
+        }
+      }
+    },
+    "local_rollout_success": true,
+    "source_provenance": {
+      "triplet": "(put in, bowl, plate)",
+      "sequence": "20231024_253",
+      "input": "raw TACO MANO and object poses",
+      "source_video": "/scratch/e0985859/egoengine_baseline/data/taco_v1/Egocentric_RGB_Videos/(put in, bowl, plate)/20231024_253/color.mp4",
+      "schedule_sha256": "111733961ac0ad03d95087435de751c2bdf27db6f375fe153bd6f5f78283adc2",
+      "full_robot_reference_used": false,
+      "vlm_used": false,
+      "transform_world_to_robot": [
+        [
+          -0.36959298057517503,
+          0.929193775162176,
+          0.0,
+          0.574305986267124
+        ],
+        [
+          -0.9291937551424282,
+          -0.36959297261218765,
+          -0.0,
+          0.005429607853050099
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          -0.1883068585395813
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    },
+    "contact_state": {
+      "entry": {
+        "mode": "free",
+        "thumb_contact": false,
+        "other_finger_contact": false,
+        "opposition_contact": false,
+        "touching_links": 0,
+        "link_paths": [
+          "/xhand_right/right_hand_link",
+          "/xhand_right/right_hand_ee_link",
+          "/xhand_right/right_hand_index_bend_link",
+          "/xhand_right/right_hand_index_rota_link1",
+          "/xhand_right/right_hand_index_rota_link2",
+          "/xhand_right/right_hand_index_rota_tip",
+          "/xhand_right/right_hand_mid_link1",
+          "/xhand_right/right_hand_mid_link2",
+          "/xhand_right/right_hand_mid_tip",
+          "/xhand_right/right_hand_pinky_link1",
+          "/xhand_right/right_hand_pinky_link2",
+          "/xhand_right/right_hand_pinky_tip",
+          "/xhand_right/right_hand_ring_link1",
+          "/xhand_right/right_hand_ring_link2",
+          "/xhand_right/right_hand_ring_tip",
+          "/xhand_right/right_hand_thumb_bend_link",
+          "/xhand_right/right_hand_thumb_rota_link1",
+          "/xhand_right/right_hand_thumb_rota_link2",
+          "/xhand_right/right_hand_thumb_rota_tip"
+        ],
+        "force_norms_n": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "evidence": "PhysX thumb AND non-thumb finger/tool contact; retention checked separately"
+      },
+      "exit": {
+        "mode": "grasped",
+        "thumb_contact": true,
+        "other_finger_contact": true,
+        "opposition_contact": true,
+        "touching_links": 2,
+        "link_paths": [
+          "/xhand_right/right_hand_link",
+          "/xhand_right/right_hand_ee_link",
+          "/xhand_right/right_hand_index_bend_link",
+          "/xhand_right/right_hand_index_rota_link1",
+          "/xhand_right/right_hand_index_rota_link2",
+          "/xhand_right/right_hand_index_rota_tip",
+          "/xhand_right/right_hand_mid_link1",
+          "/xhand_right/right_hand_mid_link2",
+          "/xhand_right/right_hand_mid_tip",
+          "/xhand_right/right_hand_pinky_link1",
+          "/xhand_right/right_hand_pinky_link2",
+          "/xhand_right/right_hand_pinky_tip",
+          "/xhand_right/right_hand_ring_link1",
+          "/xhand_right/right_hand_ring_link2",
+          "/xhand_right/right_hand_ring_tip",
+          "/xhand_right/right_hand_thumb_bend_link",
+          "/xhand_right/right_hand_thumb_rota_link1",
+          "/xhand_right/right_hand_thumb_rota_link2",
+          "/xhand_right/right_hand_thumb_rota_tip"
+        ],
+        "force_norms_n": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          6.534942150115967,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          5.770118236541748,
+          0.0
+        ],
+        "evidence": "PhysX thumb AND non-thumb finger/tool contact; retention checked separately"
+      }
+    },
+    "handoff_verified": true,
+    "validation": {
+      "success": true,
+      "failure": null,
+      "failures": [],
+      "padded_rollout_complete": true,
+      "tracking_failures_collected": false,
+      "core_entry_acquired": true,
+      "core_exit_acquired": true,
+      "state_resets_within_rollout": 0,
+      "source_fps": 30.0,
+      "control_dt": 0.008333333333333333,
+      "tracking_parameters": {
+        "C": 1.0,
+        "lambda_p": 399.99999999999994,
+        "lambda_R": 3.6475626111241604,
+        "position_tolerance_m": 0.05,
+        "rotation_tolerance_rad": 0.5235987755982988,
+        "acceptance": "independent_position_and_rotation_limits"
+      },
+      "embodiment": "floating_xhand",
+      "command_format": "wrist_xyz_wxyz_hand12_twist6",
+      "actual_end_frame": 82.0,
+      "core_entry_source_boundary": {
+        "source_frame": 35,
+        "position_m": 0.0027933564497652193,
+        "rotation_rad": 0.04793208403096092,
+        "accepted": true
+      },
+      "bridge_exit_velocity_ratio": 0.4605311541302133,
+      "core_replay_success": true,
+      "state_resets_within_padded_rollout": 0,
+      "state_resets_within_core_replay": 0,
+      "handoff_verified": true
+    }
+  },
+  "status": "anchor_valid",
+  "elapsed_s": 117.83618048764765
+}

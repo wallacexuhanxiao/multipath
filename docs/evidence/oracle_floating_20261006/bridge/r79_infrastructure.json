@@ -1,0 +1,11 @@
+{
+  "job_id": "649038.hopper-m-02",
+  "node": "hopper-27",
+  "exit_status": 124,
+  "wall_time_s": 187,
+  "physics_started": false,
+  "phase": "native import cache warming",
+  "native_libraries": 154,
+  "bridge_success": false,
+  "evidence": "r79_job_output.txt"
+}

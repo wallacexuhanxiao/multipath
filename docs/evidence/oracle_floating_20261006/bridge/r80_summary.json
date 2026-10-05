@@ -1,0 +1,27 @@
+{
+  "job_id": "649045.hopper-m-02",
+  "status": "failed",
+  "planned_source_interval": [
+    76,
+    82
+  ],
+  "planned_duration_s": 0.2,
+  "actual_executed_duration_s": 0.10833333333333334,
+  "stop_source_frame": 79.25,
+  "retention": {
+    "position_m": 0.019593140322223323,
+    "rotation_rad": 0.3583243790923939,
+    "contact_retained": true
+  },
+  "retention_rotation_degrees": 20.530474618639925,
+  "rotation_limit_rad": 0.35,
+  "proxy_refinements": 6,
+  "exact_mesh_intersections": 0,
+  "no_resets_after_development_start_code_derived": true,
+  "bridge_success": false,
+  "a2_executed": false,
+  "full_pipeline_success": false,
+  "source_time_stretch": false,
+  "video": "outputs/oracle_bridge_physics_r80/bridge/floating_xhand_actual.mp4",
+  "video_source": "measured PhysX mesh world transforms; endpoint captures at source fps"
+}

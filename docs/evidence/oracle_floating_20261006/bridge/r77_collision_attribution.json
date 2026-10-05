@@ -1,0 +1,76 @@
+{
+  "frames": [
+    {
+      "source_frame": 76,
+      "worst": [
+        {
+          "mesh": "/World/tool/geometry/mesh",
+          "obstacle": "table",
+          "proxy_clearance_m": -0.010677890218042416,
+          "vertex_box_distance_m": 2.3950097107379442e-06
+        },
+        {
+          "mesh": "/World/tool/geometry/mesh",
+          "obstacle": "target",
+          "proxy_clearance_m": 0.016709492715952658,
+          "vertex_box_distance_m": 0.04844101827749157
+        },
+        {
+          "mesh": "/xhand_right/right_hand_pinky_link2/visuals/right_hand_pinky_link2/node_STL_BINARY_/mesh",
+          "obstacle": "table",
+          "proxy_clearance_m": 0.12654248185448974,
+          "vertex_box_distance_m": 0.13453389296503301
+        },
+        {
+          "mesh": "/xhand_right/right_hand_pinky_link1/visuals/right_hand_pinky_link1/node_STL_BINARY_/mesh",
+          "obstacle": "table",
+          "proxy_clearance_m": 0.1291169735486454,
+          "vertex_box_distance_m": 0.137718867158606
+        },
+        {
+          "mesh": "/xhand_right/right_hand_link/visuals/right_hand_link/node_STL_BINARY_/mesh",
+          "obstacle": "table",
+          "proxy_clearance_m": 0.13972873735815533,
+          "vertex_box_distance_m": 0.15667919406862493
+        }
+      ],
+      "warning": "USD initial capture is stale immediately after snapshot restore; use native actual_trace object pose for initial geometry"
+    },
+    {
+      "source_frame": 77,
+      "worst": [
+        {
+          "mesh": "/World/tool/geometry/mesh",
+          "obstacle": "target",
+          "proxy_clearance_m": 0.003922231100858559,
+          "vertex_box_distance_m": 0.039658047679816136
+        },
+        {
+          "mesh": "/World/tool/geometry/mesh",
+          "obstacle": "table",
+          "proxy_clearance_m": 0.027321199502481113,
+          "vertex_box_distance_m": 0.06305701622934574
+        },
+        {
+          "mesh": "/xhand_right/right_hand_thumb_rota_link2/visuals/right_hand_thumb_rota_link2/node_STL_BINARY_/mesh",
+          "obstacle": "target",
+          "proxy_clearance_m": 0.09260893273512458,
+          "vertex_box_distance_m": 0.10574594952187631
+        },
+        {
+          "mesh": "/xhand_right/right_hand_thumb_rota_link2/visuals/right_hand_thumb_rota_link2/node_STL_BINARY_/mesh",
+          "obstacle": "table",
+          "proxy_clearance_m": 0.10665709327214962,
+          "vertex_box_distance_m": 0.11940742621393437
+        },
+        {
+          "mesh": "/xhand_right/right_hand_thumb_rota_tip/visuals/right_hand_thumb_rota_tip/node_STL_BINARY_/mesh",
+          "obstacle": "target",
+          "proxy_clearance_m": 0.10852061135154167,
+          "vertex_box_distance_m": 0.11093489455006957
+        }
+      ]
+    }
+  ],
+  "scope": "recorded source boundaries; collision step may fall between frames"
+}

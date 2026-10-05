@@ -1,0 +1,109 @@
+{
+  "status": "failed",
+  "development_only": true,
+  "full_pipeline_success": false,
+  "bridge_success": false,
+  "next_core_success": false,
+  "source_provenance": {
+    "triplet": "(put in, bowl, plate)",
+    "sequence": "20231024_253",
+    "input": "raw TACO MANO and object poses",
+    "source_video": "/scratch/e0985859/egoengine_baseline/data/taco_v1/Egocentric_RGB_Videos/(put in, bowl, plate)/20231024_253/color.mp4",
+    "schedule_sha256": "111733961ac0ad03d95087435de751c2bdf27db6f375fe153bd6f5f78283adc2",
+    "full_robot_reference_used": false,
+    "vlm_used": false,
+    "transform_world_to_robot": [
+      [
+        -0.36959298057517503,
+        0.929193775162176,
+        0.0,
+        0.574305986267124
+      ],
+      [
+        -0.9291937551424282,
+        -0.36959297261218765,
+        -0.0,
+        0.005429607853050099
+      ],
+      [
+        0.0,
+        0.0,
+        1.0,
+        -0.1883068585395813
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ]
+  },
+  "pbs_job_id": "648888.hopper-m-02",
+  "from_anchor": "anchor_0",
+  "to_anchor": "anchor_1",
+  "source_interval": [
+    76,
+    82
+  ],
+  "boundary_precheck": {
+    "feasible": true,
+    "reasons": [],
+    "budget_s": 0.2,
+    "minimum_duration_velocity_only_s": 0.08086213002845591,
+    "minimum_duration_velocity_change_only_s": 0.050935111430838724,
+    "coordinate_displacement": [
+      -0.027291192913173223,
+      0.08086213002845591,
+      -0.007662135087755262,
+      0.016384058675653845,
+      0.23251925908461923,
+      -0.203022351487544
+    ],
+    "initial_coordinate_velocity": [
+      0.06623164594543596,
+      0.08490446158776475,
+      -0.057336833447774176,
+      0.6390131932931808,
+      0.1652684850084185,
+      0.02819659981057043
+    ],
+    "terminal_coordinate_velocity": [
+      -0.09047421506980234,
+      0.265972420707139,
+      -0.12910705086133234,
+      0.5992050737146926,
+      0.8072234308542646,
+      -0.7358300716520104
+    ],
+    "hand_q_max_difference_rad": 0.0,
+    "reachable_displacement_lower": [
+      -0.05119642056861028,
+      -0.013273031479526855,
+      -0.06838684022553118,
+      -0.02615176185947307,
+      -0.04588237253879929,
+      -0.21103440127237416
+    ],
+    "reachable_displacement_upper": [
+      0.04634790674373701,
+      0.08344840793850762,
+      0.031098063363709877,
+      0.2737954152610478,
+      0.24038075571133596,
+      0.06950770690408614
+    ],
+    "limits_provenance": "configured nominal planning budget; not hardware ratings"
+  },
+  "source_time_stretch": false,
+  "vlm_used": false,
+  "complete_robot_reference_required": false,
+  "goal_kind": "oracle_boundary_target_only",
+  "source_boundary_frame": 82,
+  "proposed_boundary_source_error": {
+    "position_m": 0.013270651689446923,
+    "rotation_rad": 0.237461735995178
+  },
+  "error": "RuntimeError: Floating cuRobo failed: MotionGenStatus.GRAPH_FAIL",
+  "elapsed_s": 40.97000175190624
+}

@@ -1,0 +1,15 @@
+{
+  "source": "recorded actual PhysX visual meshes; reconstructed planning proxies",
+  "sphere_count": 256,
+  "old_tracking_margin_m": 0.12734084255607592,
+  "clearances": {
+    "table": {
+      "nominal_proxy_m": -0.010677888768564375,
+      "with_old_margin_m": -0.1380187313246403
+    },
+    "target": {
+      "nominal_proxy_m": 0.01670944751766094,
+      "with_old_margin_m": -0.11063139503841497
+    }
+  }
+}

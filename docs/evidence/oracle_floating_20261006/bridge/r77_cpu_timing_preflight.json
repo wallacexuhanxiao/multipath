@@ -1,0 +1,15 @@
+{
+  "budget_s": 0.2,
+  "curobo_duration_s": 0.2,
+  "time_scale": 1.0,
+  "command_velocity_ratio": 0.6147588291932338,
+  "command_acceleration_ratio": 1.0000000000003162,
+  "parameterization": "endpoint_constrained_geometric_fit",
+  "geometry_max_adjustment": 0.03642081215886872,
+  "boundary_velocities_preserved": true,
+  "kind": "CPU necessary dynamics only; not cuRobo or physical evidence",
+  "goal_clearance": {
+    "table": 0.02349896852200615,
+    "target": 9.999999999996123e-05
+  }
+}

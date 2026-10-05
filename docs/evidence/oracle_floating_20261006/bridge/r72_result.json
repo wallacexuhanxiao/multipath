@@ -1,0 +1,188 @@
+{
+  "embodiment": "floating_xhand",
+  "m2_success": false,
+  "full_pipeline_success": false,
+  "source_provenance": {
+    "triplet": "(put in, bowl, plate)",
+    "sequence": "20231024_253",
+    "input": "raw TACO MANO and object poses",
+    "source_video": "/scratch/e0985859/egoengine_baseline/data/taco_v1/Egocentric_RGB_Videos/(put in, bowl, plate)/20231024_253/color.mp4",
+    "schedule_sha256": "111733961ac0ad03d95087435de751c2bdf27db6f375fe153bd6f5f78283adc2",
+    "full_robot_reference_used": false,
+    "vlm_used": false,
+    "transform_world_to_robot": [
+      [
+        -0.36959298057517503,
+        0.929193775162176,
+        0.0,
+        0.574305986267124
+      ],
+      [
+        -0.9291937551424282,
+        -0.36959297261218765,
+        -0.0,
+        0.005429607853050099
+      ],
+      [
+        0.0,
+        0.0,
+        1.0,
+        -0.1883068585395813
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ]
+  },
+  "pbs_job_id": "648848.hopper-m-02",
+  "source_duration_s": 4.8,
+  "vlm_used": false,
+  "complete_robot_reference_required": false,
+  "source_time_stretch": false,
+  "development_only": true,
+  "anchor_id": "anchor_1",
+  "core_interval": [
+    82,
+    101
+  ],
+  "synthesis_interval": [
+    76,
+    107
+  ],
+  "note": "Bridge to synth_start is a development predecessor; final bridge to core entry still requires verification.",
+  "core_entry_target": {
+    "source": "TACO_oracle_boundary",
+    "source_frame": 82,
+    "tool_pose": [
+      [
+        0.6479592346154572,
+        0.7157980402699076,
+        -0.26034990394715113,
+        0.5671140330898625
+      ],
+      [
+        -0.31274156256095,
+        0.5616957491645428,
+        0.7659573760080802,
+        -0.044656442875193145
+      ],
+      [
+        0.6945081949234009,
+        -0.4148868918418884,
+        0.5878156423568726,
+        0.4752395844459534
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "retargeted_wrist_hand": [
+      0.4290220613095929,
+      -0.10155019147156073,
+      0.5590097405161117,
+      0.5765865871995416,
+      -0.46648356800860064,
+      -0.5746478257860691,
+      0.3460070296379749,
+      0.9746735433775965,
+      1.3616002906040006,
+      -0.175,
+      0.175,
+      0.6471807958338651,
+      0.3394955442635705,
+      1.2427746424879262,
+      1.60708576958438,
+      1.420469545762397,
+      1.6949385667920038,
+      1.3698685546805442,
+      1.92
+    ],
+    "context_snapshot_is_canonical_entry": false
+  },
+  "initial_hand_origin": "first_local_synthesis_context_pregrasp; free_initial_state",
+  "predecessor_snapshot": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_bridge_boundary_mpc_r71/anchor_0/anchors/anchor_0/exit.json",
+  "entry_bridge_constraints": "necessary fixed-time boundary conditions; final cuRobo and actual bridge still required",
+  "local_wrist_target": "source_object_pose_with_measured_grasp",
+  "entry_blend_deadline_source_frame": 82,
+  "command_precheck": {
+    "feasible": true,
+    "hand_velocity_ratio": 1.0000000000000002,
+    "hand_joint_bounds": true
+  },
+  "padded_replay": {
+    "success": false,
+    "failure": {
+      "source_frame": 79.0,
+      "reason": "pre_context_grasp_retention"
+    },
+    "failures": [
+      {
+        "source_frame": 79.0,
+        "reason": "pre_context_grasp_retention"
+      }
+    ],
+    "padded_rollout_complete": false,
+    "tracking_failures_collected": true,
+    "core_entry_acquired": false,
+    "core_exit_acquired": false,
+    "state_resets_within_rollout": 0,
+    "source_fps": 30.0,
+    "control_dt": 0.008333333333333333,
+    "tracking_parameters": {
+      "C": 1.0,
+      "lambda_p": 399.99999999999994,
+      "lambda_R": 3.6475626111241604,
+      "position_tolerance_m": 0.05,
+      "rotation_tolerance_rad": 0.5235987755982988,
+      "acceptance": "independent_position_and_rotation_limits"
+    },
+    "embodiment": "floating_xhand",
+    "command_format": "wrist_xyz_wxyz_hand12_twist6",
+    "actual_end_frame": 79.0
+  },
+  "window_refinement_failure": {
+    "reason": "Floating Replay/MPPI/PPO failed at source frame 76.0",
+    "proposal_only": true,
+    "next": "fresh_padded_replay_then_whole_anchor_PPO_if_needed"
+  },
+  "refined_padded_replay": {
+    "success": false,
+    "failure": {
+      "source_frame": 79.0,
+      "reason": "pre_context_grasp_retention"
+    },
+    "failures": [
+      {
+        "source_frame": 79.0,
+        "reason": "pre_context_grasp_retention"
+      }
+    ],
+    "padded_rollout_complete": false,
+    "tracking_failures_collected": false,
+    "core_entry_acquired": false,
+    "core_exit_acquired": false,
+    "state_resets_within_rollout": 0,
+    "source_fps": 30.0,
+    "control_dt": 0.008333333333333333,
+    "tracking_parameters": {
+      "C": 1.0,
+      "lambda_p": 399.99999999999994,
+      "lambda_R": 3.6475626111241604,
+      "position_tolerance_m": 0.05,
+      "rotation_tolerance_rad": 0.5235987755982988,
+      "acceptance": "independent_position_and_rotation_limits"
+    },
+    "embodiment": "floating_xhand",
+    "command_format": "wrist_xyz_wxyz_hand12_twist6",
+    "actual_end_frame": 79.0
+  },
+  "status": "failed",
+  "error": "Floating padded interaction failed",
+  "elapsed_s": 100.91540232859552
+}

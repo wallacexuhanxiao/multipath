@@ -1,0 +1,12 @@
+{
+  "source_frame": 77.75,
+  "tool_vertex_box_clearance_m": {
+    "table": 0.05355281355436127,
+    "target": 0.030153844961982874
+  },
+  "retention": {
+    "position_m": 0.01013230856183366,
+    "rotation_rad": 0.1993282474101737,
+    "contact_retained": true
+  }
+}
