@@ -68,13 +68,16 @@ def local_controls(scene,anchor,data,start):
     phase=np.clip(np.arange(len(sample))/padding,0,1);tangent=phase-2*phase**2+phase**3
     rotation=Rotation.from_rotvec(tangent[:,None]/tangent[1]*first.as_rotvec())*rotation
     pose[:,3:]=rotation.as_quat()[:,[3,0,1,2]]
-    hand=_entry_curve(hand,start['hand_q'],start.get('hand_dq',np.zeros(12)),scene.dt,padding)
+    hand_start=hand_command_boundary(start)
+    preserve_preload=start.get('contact',{}).get('mode')=='grasped' and 'command_hand_q' in start
+    hand_start_velocity=np.zeros(12) if preserve_preload else start.get('hand_dq',np.zeros(12))
+    hand=_entry_curve(hand,hand_start,hand_start_velocity,scene.dt,padding)
     hand=np.clip(hand,scene.hand_limits[:,0],scene.hand_limits[:,1])
     # Finger slew is constrained; no arm IK or joint-space projection exists.
     for k in range(1,len(hand)):
         hand[k]=np.clip(hand[k],hand[k-1]-scene.hand_velocity*scene.dt,hand[k-1]+scene.hand_velocity*scene.dt)
     controls=controls_from_poses(pose,hand,scene.dt)
-    if np.max(np.abs((controls[0,7:19]-start['hand_q'])/scene.dt-start.get('hand_dq',np.zeros(12))))>1e-5:
+    if np.max(np.abs((controls[0,7:19]-hand_start)/scene.dt-hand_start_velocity))>1e-5:
         raise ValueError('Measured hand velocity has no feasible continuous first command')
     return controls
 

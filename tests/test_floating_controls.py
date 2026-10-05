@@ -98,3 +98,9 @@ def test_grasp_preload_is_not_counted_as_a_new_command_jump():
     residual=np.zeros((1,18));residual[0,0]=.001
     command=apply_residual(scene,baseline,start,residual,4,np.ones(5))
     np.testing.assert_allclose(command[:,7:19],baseline[:,7:19])
+    anchor=SimpleNamespace(synth_start=0,core_start=2,core_end=4,synth_end=5)
+    scene.dt=1/120;scene.manifest={'fps':30}
+    ref=np.zeros((5,19));ref[:,3]=1.;ref[:,7:]=.1
+    controls=local_controls(scene,anchor,{'wrist_hand_q':ref},start)
+    assert validate_commands(scene,controls,start)['feasible']
+    np.testing.assert_allclose(controls[0,7:19],start['command_hand_q'])
