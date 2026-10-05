@@ -8,15 +8,26 @@ def main():
     for name in ('proposals','schedule','xhand-urdf','object-cache','output-dir','floating-config'):
         p.add_argument('--'+name,type=Path,required=True)
     p.add_argument('--replay-only',action='store_true')
+    p.add_argument('--mpc-only',action='store_true',help='Short physical attribution run; default still escalates to residual PPO.')
     p.add_argument('--mpc-candidates',type=int,default=64);p.add_argument('--mpc-iters',type=int,default=3)
+    p.add_argument('--ppo-updates',type=int,default=60)
+    p.add_argument('--anchor-id',help='Develop this oracle Anchor; later entries require a real predecessor snapshot.')
+    p.add_argument('--entry-snapshot',type=Path,help='Development only: physically acquired state at synth_start.')
     args=p.parse_args();out=args.output_dir;out.mkdir(parents=True,exist_ok=True)
     from multipath.oracle_schedule import OracleSchedule
-    schedule=OracleSchedule.load(args.schedule);anchor=min(schedule.anchors.values(),key=lambda a:a.core_start)
+    schedule=OracleSchedule.load(args.schedule);first=min(schedule.anchors.values(),key=lambda a:a.core_start)
+    anchor=schedule.anchors[args.anchor_id] if args.anchor_id else first
+    if anchor.id!=first.id and not args.entry_snapshot:
+        raise ValueError('Non-initial Anchor development requires a physically acquired predecessor snapshot')
     manifest=json.loads((args.proposals/'manifest.json').read_text())
     if manifest['provenance']['schedule_sha256']!=hashlib.sha256(args.schedule.read_bytes()).hexdigest():raise ValueError('Schedule provenance mismatch')
+    if manifest['num_frames']!=schedule.num_frames or manifest['fps']!=schedule.fps:
+        raise ValueError('Proposal/source clocks differ')
     report={'embodiment':'floating_xhand','m2_success':False,'full_pipeline_success':False,'source_provenance':manifest['provenance'],
         'pbs_job_id':os.environ.get('PBS_JOBID'),'source_duration_s':schedule.num_frames/schedule.fps,'vlm_used':False,
         'complete_robot_reference_required':False,'source_time_stretch':False,'development_only':True,
+        'anchor_id':anchor.id,'core_interval':[anchor.core_start,anchor.core_end],
+        'synthesis_interval':[anchor.synth_start,anchor.synth_end],
         'note':'Bridge to synth_start is a development predecessor; final bridge to core entry still requires verification.'}
     import multipath
     shutil.copytree(Path(multipath.__file__).parent,out/'implementation'/'multipath',dirs_exist_ok=True,ignore=shutil.ignore_patterns('__pycache__'))
@@ -27,55 +38,80 @@ def main():
         from multipath.execution.startup import start_simulation
         from multipath.execution.floating_scene import FloatingScene
         from multipath.planning.floating import FloatingPlanner,pose_coordinates
-        from multipath.anchors.floating import local_controls,rollout,validate_commands
+        from multipath.anchors.floating import local_controls,rollout,validate_commands,validate_local_data
+        from multipath.planning.timing import physics_ticks_per_frame
         from multipath.anchors.artifact import save_anchor
         data=dict(np.load(args.proposals/manifest['anchors'][anchor.id],allow_pickle=False))
-        initial=data['wrist_hand_q'][0,:7].copy()
+        validate_local_data(anchor,data);tpf=physics_ticks_per_frame(schedule.fps,FloatingScene.dt)
+        initial_data=data if anchor.id==first.id else dict(np.load(args.proposals/manifest['anchors'][first.id],allow_pickle=False))
+        initial=initial_data['wrist_hand_q'][0,:7].copy()
         # A collision-separated nominal ready pose, initialized before source t=0.
-        extent=float(np.linalg.norm(np.ptp(data['human_joints'][0],axis=0)))
+        extent=float(np.linalg.norm(np.ptp(initial_data['human_joints'][0],axis=0)))
         initial[2]+=max(.1,extent)
-        app=start_simulation(out);scene=FloatingScene(args,manifest,out/'predecessor',initial,initial_hand=data['wrist_hand_q'][0,7:])
+        app=start_simulation(out);scene=FloatingScene(args,manifest,out/'predecessor',initial,initial_hand=initial_data['wrist_hand_q'][0,7:])
         report['initial_hand_origin']='first_local_synthesis_context_pregrasp; free_initial_state'
         print('FLOATING_SCENE_READY',time.perf_counter()-started,flush=True)
-        planner=FloatingPlanner(scene,False,out/'planner')
-        target=data['wrist_hand_q'][0,:7].copy()
-        entry_candidates=[];reference_target=target.copy()
-        for height in np.linspace(0,max(extent,float(np.linalg.norm(scene.meshes['tool'].extents))),9):
-            target=reference_target.copy();target[2]+=height
-            feasible=planner.valid(pose_coordinates(target))
-            entry_candidates.append({'offset_z_m':float(height),'collision_free':feasible})
-            if feasible:break
-        else:raise RuntimeError('No collision-free floating synthesis entry within local geometry extent')
-        report['entry_geometry_search']=entry_candidates
-        ticks=round(anchor.synth_start/schedule.fps/scene.dt)
-        commands,timing=planner.plan(target,ticks);report['predecessor_plan']=timing
-        print('FLOATING_PLAN_READY',timing,flush=True)
-        np.savez_compressed(out/'predecessor_commands.npz',commands=commands)
-        for i,command in enumerate(commands):
-            frame=(i+1)*scene.dt*schedule.fps;scene.step_control(command,'RELAXED',frame)
-            if (i+1)%round(1/(scene.dt*schedule.fps))==0:
-                if not planner.measured_valid():raise RuntimeError('Measured floating bridge collision')
-        transition=scene.check_transition(target,anchor.entry_contact);report['predecessor_transition']=transition
-        scene.save()
-        if not transition['success']:raise RuntimeError('Floating bridge handoff failed')
-        scene.lineage={'trace':str(scene.out/'actual_trace.json'),'trace_sha256':hashlib.sha256((scene.out/'actual_trace.json').read_bytes()).hexdigest(),
-            'source_frame':anchor.synth_start,'planner':'cuRobo','predecessor_success':True}
-        entry=scene.snapshot();(out/'acquired_snapshot.json').write_text(json.dumps(entry,indent=2))
+        if args.entry_snapshot:
+            acquired=json.loads(args.entry_snapshot.read_text())
+            if acquired.get('source_provenance')!=manifest['provenance']:
+                raise ValueError('Snapshot source provenance mismatch')
+            if not np.isclose(acquired['time_s'],anchor.synth_start/schedule.fps,rtol=0,atol=1e-8):
+                raise ValueError('Snapshot must be acquired at this Anchor synth_start')
+            acquired=dict(acquired,entry_origin='physically_acquired_snapshot')
+            scene.restore_development(acquired);entry=scene.snapshot()
+            report['predecessor_snapshot']=str(args.entry_snapshot)
+            (out/'acquired_snapshot.json').write_text(json.dumps(entry,indent=2))
+        else:
+            planner=FloatingPlanner(scene,False,out/'planner')
+            target=data['wrist_hand_q'][0,:7].copy()
+            entry_candidates=[];reference_target=target.copy()
+            for height in np.linspace(0,max(extent,float(np.linalg.norm(scene.meshes['tool'].extents))),9):
+                target=reference_target.copy();target[2]+=height
+                feasible=planner.valid(pose_coordinates(target))
+                entry_candidates.append({'offset_z_m':float(height),'collision_free':feasible})
+                if feasible:break
+            else:raise RuntimeError('No collision-free floating synthesis entry within local geometry extent')
+            report['entry_geometry_search']=entry_candidates
+            ticks=anchor.synth_start*tpf
+            if ticks:
+                commands,timing=planner.plan(target,ticks)
+            else:
+                commands=np.empty((0,25));timing={'budget_s':0.,'planner':'none_initial_anchor'}
+            report['predecessor_plan']=timing
+            print('FLOATING_PLAN_READY',timing,flush=True)
+            np.savez_compressed(out/'predecessor_commands.npz',commands=commands)
+            for i,command in enumerate(commands):
+                frame=(i+1)*scene.dt*schedule.fps;scene.step_control(command,'RELAXED',frame)
+                if (i+1)%tpf==0:
+                    if not planner.measured_valid():raise RuntimeError('Measured floating bridge collision')
+            transition=scene.check_transition(target,anchor.entry_contact);report['predecessor_transition']=transition
+            scene.save()
+            if not transition['success']:raise RuntimeError('Floating bridge handoff failed')
+            scene.lineage={'trace':str(scene.out/'actual_trace.json'),'trace_sha256':hashlib.sha256((scene.out/'actual_trace.json').read_bytes()).hexdigest(),
+                'source_frame':anchor.synth_start,'planner':'cuRobo','predecessor_success':True}
+            entry=scene.snapshot();(out/'acquired_snapshot.json').write_text(json.dumps(entry,indent=2))
         print('FLOATING_PREDECESSOR_PASSED',flush=True)
         controls=local_controls(scene,anchor,data,entry);check=validate_commands(scene,controls,entry);report['command_precheck']=check
         if not check['feasible']:raise RuntimeError('Floating local command precheck failed')
         np.savez_compressed(out/'local_controls.npz',commands=controls)
-        validation,core_entry,core_exit=rollout(scene,anchor,data,controls,entry,out/'replay')
+        validation,core_entry,core_exit=rollout(scene,anchor,data,controls,entry,out/'replay',collect_tracking_failures=True)
         report['padded_replay']=validation
         if not validation['success'] and not args.replay_only:
             from multipath.anchors.floating_search import refine
-            controls=refine(scene,anchor,data,controls,entry,out/'refinement',args.mpc_candidates,args.mpc_iters)
+            from multipath.anchors.ppo import PPOConfig
+            controls=refine(scene,anchor,data,controls,entry,out/'refinement',args.mpc_candidates,args.mpc_iters,
+                            use_ppo=not args.mpc_only,ppo_config=PPOConfig(iterations=args.ppo_updates))
+            np.savez_compressed(out/'refined_controls.npz',commands=controls)
             validation,core_entry,core_exit=rollout(scene,anchor,data,controls,entry,out/'refined_replay')
             report['refined_padded_replay']=validation
         if not validation['success']:raise RuntimeError('Floating padded interaction failed')
-        tpf=round(1/(scene.dt*schedule.fps));core=controls[(anchor.core_start-anchor.synth_start)*tpf:(anchor.core_end-anchor.synth_start)*tpf]
-        core_result,_,_=rollout(scene,anchor,data,core,core_entry,out/'exported_core',mode='EXPORTED_CORE',core_only=True)
+        core=controls[(anchor.core_start-anchor.synth_start)*tpf:(anchor.core_end-anchor.synth_start)*tpf]
+        padded_exit=core_exit
+        core_result,_,core_exit=rollout(scene,anchor,data,core,core_entry,out/'exported_core',mode='EXPORTED_CORE',core_only=True)
         report['core_replay']=core_result
+        if not core_result['success'] or core_exit is None:raise RuntimeError('Exported core physical replay failed')
+        from multipath.anchors.compatibility import boundary_errors
+        report['core_exit_repeatability']=boundary_errors(core_exit,padded_exit)
         valid=dict(validation,padded_rollout_complete=validation['success'],core_replay_success=core_result['success'],
             state_resets_within_padded_rollout=validation['state_resets_within_rollout'],state_resets_within_core_replay=core_result['state_resets_within_rollout'],
             handoff_verified=core_result['success'])

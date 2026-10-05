@@ -29,3 +29,18 @@ def test_residual_cannot_accelerate_into_unbrakeable_joint_limit():
         assert abs(command[0])<=1+1e-9
         q,dq=command,velocity
     assert q[0]>.99 and abs(dq[0])<1e-5
+
+
+def test_release_anchor_allows_contact_change_inside_core():
+    from types import SimpleNamespace
+    from multipath.anchors.schema import InteractionAnchor
+    from multipath.anchors.mpc import WindowEvaluation
+    state={'time_s':0.,'contact':{'mode':'grasped'},'hand_object_transform':np.eye(4),
+           'objects':{'tool':{'pose':[0,0,0,1,0,0,0]}}}
+    measured=dict(state,contact={'mode':'free'})
+    scene=SimpleNamespace(manifest={'fps':30},state=lambda:measured)
+    data={'tool_pose':np.tile(np.eye(4),(6,1,1))}
+    release=WindowEvaluation(scene,InteractionAnchor('release',0,4,0,6,'grasped','free'),data,state)
+    assert release.observe(1,np.zeros(25))
+    hold=WindowEvaluation(scene,InteractionAnchor('hold',0,4,0,6,'grasped','grasped'),data,state)
+    assert not hold.observe(1,np.zeros(25)) and hold.failure['reason']=='core_grasp_retention'

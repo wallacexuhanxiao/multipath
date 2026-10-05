@@ -12,13 +12,22 @@ def main():
     p.add_argument('--continue-development',action='store_true',help='Use available validated Anchors and develop missing cores from actual predecessor execution')
     p.add_argument('--stop-before-anchor',help='Acquire a continuous predecessor prefix before this core')
     p.add_argument('--through-anchor',help='Stop after this Anchor for an early continuous connection experiment')
-    p.add_argument('--robot-yaml',type=Path,required=True)
+    p.add_argument('--embodiment',choices=['mounted','floating_xhand'],default='mounted')
+    p.add_argument('--floating-config',type=Path)
+    p.add_argument('--robot-yaml',type=Path)
     p.add_argument('--xhand-urdf',type=Path,required=True)
     p.add_argument('--object-cache',type=Path,required=True)
     p.add_argument('--output-dir',type=Path,required=True)
     args=p.parse_args();out=args.output_dir;out.mkdir(parents=True,exist_ok=True)
+    if args.embodiment=='mounted' and not args.robot_yaml:p.error('mounted requires --robot-yaml')
+    if args.embodiment=='floating_xhand' and not args.floating_config:p.error('floating_xhand requires --floating-config')
+    if args.embodiment=='floating_xhand' and (args.continue_development or not (args.validated_anchors or args.stop_before_anchor)):
+        p.error('floating continuous execution requires validated Anchors; synthesize them locally first')
     from multipath.oracle_schedule import OracleSchedule
     schedule=OracleSchedule.load(args.schedule)
+    if (args.embodiment=='floating_xhand' and not args.validated_anchors and
+        args.stop_before_anchor!=min(schedule.anchors.values(),key=lambda a:a.core_start).id):
+        p.error('Later floating prefixes require validated predecessor Anchors')
     if args.through_anchor and args.through_anchor not in schedule.anchors:raise ValueError('Unknown stop Anchor')
     if args.stop_before_anchor and args.stop_before_anchor not in schedule.anchors:raise ValueError('Unknown prefix boundary')
     if args.stop_before_anchor and args.through_anchor:raise ValueError('Choose one prefix boundary')
@@ -35,6 +44,8 @@ def main():
             artifact=load_validated_anchor(args.validated_anchors,anchor)
             if artifact['report']['source_provenance']!=manifest['provenance']:
                 raise ValueError('Canonical Anchor and local inputs have different provenance')
+            if artifact['entry'].get('embodiment','mounted')!=args.embodiment:
+                raise ValueError('Canonical Anchor embodiment differs from runtime')
     import shutil
     implementation=out/'implementation'
     implementation.mkdir(exist_ok=True)
@@ -55,11 +66,22 @@ def main():
     try:
         from multipath.execution.startup import start_simulation
         app=start_simulation(out)
-        from multipath.execution.mounted_scene import MountedScene
-        from multipath.execution.schedule_executor import execute
-        scene=MountedScene(args,manifest,out)
+        if args.embodiment=='floating_xhand':
+            import numpy as np
+            from multipath.execution.floating_scene import FloatingScene
+            from multipath.execution.floating_executor import execute
+            first=min(schedule.anchors.values(),key=lambda a:a.core_start)
+            data=dict(np.load(args.proposals/manifest['anchors'][first.id],allow_pickle=False))
+            initial=data['wrist_hand_q'][0,:7].copy()
+            initial[2]+=max(.1,float(np.linalg.norm(np.ptp(data['human_joints'][0],axis=0))))
+            scene=FloatingScene(args,manifest,out,initial,initial_hand=data['wrist_hand_q'][0,7:])
+            report.update(embodiment=scene.embodiment,assembly_self_collision=False)
+        else:
+            from multipath.execution.mounted_scene import MountedScene
+            from multipath.execution.schedule_executor import execute
+            scene=MountedScene(args,manifest,out)
         report.update(mount_xyzw=manifest['mount_xyzw'],scene_translation_xyz=[0,0,0],physics='PhysX CPU',
-                      initial_state=scene.state(),initial_ready_search=scene.ready_search,table_z=float(scene.table['pose'][2]+.02))
+                      initial_state=scene.state(),initial_ready_search=getattr(scene,'ready_search',None),table_z=float(scene.table['pose'][2]+.02))
         execute(scene,schedule,manifest,args.proposals,report)
     except Exception as error:
         import traceback;traceback.print_exc()
@@ -78,8 +100,9 @@ def main():
                               prefix_success=False,development_success=False)
             report['actual_duration_s']=scene.ticks*scene.dt
             report['frames_recorded']=len(scene.records)
-            report['measured_velocity_ratio']=scene.max_velocity_ratio
-            report['measured_acceleration_ratio']=scene.max_acceleration_ratio
+            if args.embodiment=='mounted':
+                report['measured_velocity_ratio']=scene.max_velocity_ratio
+                report['measured_acceleration_ratio']=scene.max_acceleration_ratio
         (out/'pipeline_result.json').write_text(json.dumps(report,indent=2))
         print('ORACLE_RESULT',report['status'],report.get('error',''),flush=True)
         if app:app.close()

@@ -1,0 +1,139 @@
+{
+  "status": "failed",
+  "error": "Floating padded interaction failed",
+  "elapsed_s": 61.49027604807634,
+  "pbs_job_id": "648438.hopper-m-02",
+  "m2_success": false,
+  "full_pipeline_success": false,
+  "padded_replay": {
+    "success": false,
+    "failure": {
+      "source_frame": 49.0,
+      "reason": "core_object_fidelity"
+    },
+    "failures": [
+      {
+        "source_frame": 49.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 50.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 51.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 52.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 53.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 54.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 55.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 56.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 57.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 58.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 59.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 60.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 61.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 62.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 63.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 64.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 65.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 66.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 67.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 68.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 69.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 70.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 71.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 72.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 73.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 74.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 75.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 76.0,
+        "reason": "core_exit_handoff"
+      }
+    ],
+    "padded_rollout_complete": false,
+    "tracking_failures_collected": true,
+    "core_entry_acquired": true,
+    "core_exit_acquired": true,
+    "state_resets_within_rollout": 0,
+    "source_fps": 30.0,
+    "control_dt": 0.008333333333333333,
+    "embodiment": "floating_xhand",
+    "command_format": "wrist_xyz_wxyz_hand12_twist6",
+    "actual_end_frame": 76.0
+  }
+}

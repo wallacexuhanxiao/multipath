@@ -1,0 +1,195 @@
+{
+  "status": "failed",
+  "error": "Floating Replay/MPPI (PPO disabled for attribution) failed at source frame 29.0",
+  "elapsed_s": 47.798262818017974,
+  "pbs_job_id": "648444.hopper-m-02",
+  "m2_success": false,
+  "full_pipeline_success": false,
+  "padded_replay": {
+    "success": false,
+    "failure": {
+      "source_frame": 49.0,
+      "reason": "core_object_fidelity"
+    },
+    "failures": [
+      {
+        "source_frame": 49.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 50.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 51.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 52.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 53.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 54.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 55.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 56.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 57.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 58.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 59.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 60.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 61.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 62.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 63.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 64.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 65.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 66.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 67.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 68.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 69.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 70.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 71.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 72.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 73.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 74.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 75.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 76.0,
+        "reason": "core_exit_handoff"
+      }
+    ],
+    "padded_rollout_complete": false,
+    "tracking_failures_collected": true,
+    "core_entry_acquired": true,
+    "core_exit_acquired": true,
+    "state_resets_within_rollout": 0,
+    "source_fps": 30.0,
+    "control_dt": 0.008333333333333333,
+    "embodiment": "floating_xhand",
+    "command_format": "wrist_xyz_wxyz_hand12_twist6",
+    "actual_end_frame": 76.0
+  },
+  "search": [
+    {
+      "begin_tick": 0,
+      "candidate": "measured_grasp",
+      "success": false,
+      "failure": {
+        "source_frame": 51.0,
+        "reason": "core_object_fidelity"
+      },
+      "score": 18.947653645297684,
+      "proposal": "measured_grasp_object_relative",
+      "grasp_acquired_frame": 45.75,
+      "target_handoff": {
+        "frame": 45.75,
+        "duration_s": 0.07843190157687122,
+        "position_offset": [
+          0.0030846959359793202,
+          -0.0022179897444741525,
+          -0.018487793622503135
+        ],
+        "rotation_offset": [
+          0.09651401181015934,
+          -0.12361236265193873,
+          0.003358878349994392
+        ]
+      }
+    },
+    {
+      "begin_tick": 0,
+      "iteration": 0,
+      "candidate": 0,
+      "success": false,
+      "failure": {
+        "source_frame": 49.0,
+        "reason": "core_object_fidelity"
+      },
+      "score": 16.388562570089373,
+      "proposal": "pose_residual",
+      "grasp_acquired_frame": null,
+      "target_handoff": null
+    },
+    {
+      "begin_tick": 0,
+      "iteration": 0,
+      "candidate": 1,
+      "success": false,
+      "failure": {
+        "source_frame": 49.0,
+        "reason": "core_object_fidelity"
+      },
+      "score": 9.110498678630831,
+      "proposal": "pose_residual",
+      "grasp_acquired_frame": null,
+      "target_handoff": null
+    }
+  ]
+}

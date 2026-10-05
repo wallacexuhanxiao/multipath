@@ -2,6 +2,15 @@
 import numpy as np
 
 
+def physics_ticks_per_frame(fps, dt):
+    if not np.isfinite([fps,dt]).all() or fps<=0 or dt<=0:
+        raise ValueError('Invalid source/physics clock')
+    ticks=round(1/(fps*dt))
+    if ticks<1 or abs(ticks*fps*dt-1)>1e-8:
+        raise ValueError('Physics/source clocks not commensurate')
+    return ticks
+
+
 def fixed_budget_path(raw, raw_dt, ticks, dt, velocity_limits, acceleration_limits,
                       initial_velocity=None, final_velocity=None):
     raw = np.asarray(raw)

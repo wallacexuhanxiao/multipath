@@ -1,0 +1,52 @@
+{
+  "status": "failed",
+  "error": "Floating Replay/MPPI/PPO failed at source frame 29.0",
+  "elapsed_s": 264.68198260851204,
+  "pbs_job_id": "648405.hopper-m-02",
+  "padded_replay": {
+    "success": false,
+    "failure": {
+      "source_frame": 49.0,
+      "reason": "core_object_fidelity"
+    },
+    "core_entry_acquired": true,
+    "core_exit_acquired": false,
+    "state_resets_within_rollout": 0,
+    "source_fps": 30.0,
+    "control_dt": 0.008333333333333333,
+    "embodiment": "floating_xhand",
+    "command_format": "wrist_xyz_wxyz_hand12_twist6",
+    "actual_end_frame": 49.0
+  },
+  "mpc_candidates": 192,
+  "mpc_successes": 0,
+  "mpc_furthest_failure_frame": 51.0,
+  "ppo": {
+    "iterations": 60,
+    "episodes": 253,
+    "elapsed_s": 117.10202021710575,
+    "best_evaluation": {
+      "success": false,
+      "failure": {
+        "source_frame": 51.0,
+        "reason": "core_object_fidelity"
+      },
+      "source_steps": 22,
+      "evaluation_return": 10.721765016536834,
+      "return_value": 16.46557418002665,
+      "deterministic": true
+    },
+    "zero_policy": {
+      "success": false,
+      "failure": {
+        "source_frame": 49.0,
+        "reason": "core_object_fidelity"
+      },
+      "source_steps": 20,
+      "evaluation_return": 10.121360341112467,
+      "return_value": 16.087642440403815,
+      "deterministic": true
+    },
+    "success": false
+  }
+}

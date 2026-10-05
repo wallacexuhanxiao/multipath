@@ -93,6 +93,10 @@ class WindowEvaluation:
         tracking_reward = 0.
         reason = None
         index = min(max(round(frame) - a.synth_start, 0), len(self.data['tool_pose']) - 1)
+        if frame < a.core_start and self.held is not None:
+            r=retention_errors(measured,self.held)
+            if r['position_m']>.05 or r['rotation_rad']>.35 or not r['contact_retained']:
+                reason='pre_context_grasp_retention'
         if frame == a.core_start:
             if measured['contact']['mode'] != a.entry_contact:
                 reason = 'core_entry_contact'
@@ -107,7 +111,10 @@ class WindowEvaluation:
             # Native opposition, not proximity. No human-mimic or smoothness
             # reward; final release is checked explicitly below.
             reward += 2. * measured['contact'].get('opposition_contact', False)
-            if self.held is not None:
+            # Release Anchors must be allowed to change contact inside CORE.
+            # Requiring retention until the exact exit frame makes release
+            # interactions fail by construction. Stable grasp Anchors retain it.
+            if self.held is not None and a.exit_contact == 'grasped':
                 r = retention_errors(measured, self.held)
                 if r['position_m'] > .05 or r['rotation_rad'] > .35 or not r['contact_retained']:
                     reason = 'core_grasp_retention'

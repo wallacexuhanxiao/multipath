@@ -1,6 +1,6 @@
 {
   "embodiment": "floating_xhand",
-  "controller_provenance": "previous EgoEngine XHand reproduction external-wrench PD; same gains, force clamps and gravity feedforward",
+  "controller_provenance": "previous EgoEngine XHand reproduction external-wrench PD gains, force clamps and gravity feedforward; source-clock world linear and angular velocity targets are both tracked",
   "controller": {
     "wrist_kp": 300.0,
     "wrist_kd": 12.0,

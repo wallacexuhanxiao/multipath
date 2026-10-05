@@ -23,6 +23,7 @@ def predecessor_snapshot(directory, frame, provenance):
     if not state.get('physically_acquired_state') or state.get('state_origin')!='continuous_PhysX_rollout':
         raise ValueError('Reference-constructed snapshots cannot initialize development')
     state['entry_origin']='initial_state' if frame==0 else 'physically_acquired_snapshot'
+    state['source_provenance']=provenance
     state['entry_provenance']={'trace':str(trace_path),'trace_sha256':hashlib.sha256(trace_path.read_bytes()).hexdigest(),
                              'result':str(result_path),'result_sha256':hashlib.sha256(result_path.read_bytes()).hexdigest(),
                              'source_frame':frame}

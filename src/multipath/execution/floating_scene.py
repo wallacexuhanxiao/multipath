@@ -28,6 +28,8 @@ class FloatingScene:
         from isaacsim.core.utils.types import ArticulationAction
         from pxr import UsdPhysics
         self.args,self.manifest,self.out=args,manifest,Path(out)
+        from multipath.planning.timing import physics_ticks_per_frame
+        self.tpf=physics_ticks_per_frame(manifest['fps'],self.dt)
         self.out.mkdir(parents=True,exist_ok=True)
         self.cfg=json.loads(Path(args.floating_config).read_text())
         self.Action=ArticulationAction
@@ -96,8 +98,10 @@ class FloatingScene:
         rotation=Rotation.from_quat(np.asarray(pose)[[4,5,6,3]])*Rotation.from_quat(actual[[4,5,6,3]]).inv()
         error=rotation.as_quat();error*=1 if error[3]>=0 else -1
         force=np.clip(cfg['wrist_kp']*(pose[:3]-actual[:3])+cfg['wrist_kd']*(twist[:3]-velocity[:3]),-cfg['wrist_max_force'],cfg['wrist_max_force'])
-        # Preserve the previous reproduction's angular damping and gravity feedforward.
-        torque=np.clip(2*cfg['wrist_kp_rot']*error[:3]-cfg['wrist_kd_rot']*velocity[3:],-cfg['wrist_max_torque'],cfg['wrist_max_torque'])
+        # The source-clock interface supplies a world-frame six-dimensional
+        # twist. Damping must track its angular target as well as its linear
+        # target; damping towards zero silently discards half that interface.
+        torque=np.clip(2*cfg['wrist_kp_rot']*error[:3]+cfg['wrist_kd_rot']*(twist[3:]-velocity[3:]),-cfg['wrist_max_torque'],cfg['wrist_max_torque'])
         force+=np.array([0,0,9.81])*np.asarray(self.av.get_masses()).sum()
         n=self.av.max_links
         forces=np.zeros((1,n,3),dtype=np.float32);torques=np.zeros_like(forces)
@@ -127,12 +131,15 @@ class FloatingScene:
         if self.record_mesh:self.recorder.capture()
 
     def step_control(self,command,mode,frame):
+        if not np.isclose(frame,(self.ticks+1)*self.dt*self.manifest['fps'],rtol=0,atol=1e-8):
+            raise ValueError('Command source frame differs from actual physics clock')
         self._drive(command[:7],command[7:19],command[19:25]);self.world.step(render=False);self.ticks+=1
-        if self.ticks%round(1/(self.dt*self.manifest['fps']))==0:self.capture(mode,frame)
+        if self.ticks%self.tpf==0:self.capture(mode,frame)
 
     def snapshot(self):
         if self.ticks==getattr(self,'restored_tick',None):return dict(self.restored_state)
         return dict(self.state(),entry_origin='predecessor_rollout',
+            source_provenance=self.manifest['provenance'],
             entry_provenance={'trace':str(self.out/'actual_trace.json'),'source_frame':self.ticks*self.dt*self.manifest['fps'],'predecessor':dict(self.lineage)},
             command_wrist=self.command_pose.tolist(),command_twist=self.command_twist.tolist(),command_hand_q=self.hand_command.tolist())
 
@@ -153,7 +160,9 @@ class FloatingScene:
             s=state['objects'][role];obj.set_world_pose(position=np.asarray(s['pose'][:3]),orientation=np.asarray(s['pose'][3:]));obj.set_linear_velocity(np.asarray(s['velocity'][:3]));obj.set_angular_velocity(np.asarray(s['velocity'][3:]))
         self.ticks=round(state['time_s']/self.dt);self.lineage=state['entry_provenance'];self.restore_count+=1
         self.command_pose=pose.copy();self.command_twist=twist.copy();self.hand_command=np.asarray(state['hand_q']).copy()
-        self.restored_tick=self.ticks;self.restored_state=dict(state)
+        self.restored_tick=self.ticks
+        self.restored_state=dict(state,command_wrist=self.command_pose.tolist(),command_twist=self.command_twist.tolist(),
+                                 command_hand_q=self.hand_command.tolist())
 
     def begin_recording(self,out,mesh=False):
         self.out=Path(out);self.out.mkdir(parents=True,exist_ok=True);self.records=[];self.record_mesh=mesh;self.record_start_tick=self.ticks

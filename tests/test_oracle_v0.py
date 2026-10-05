@@ -69,3 +69,29 @@ def test_initial_anchor_development_can_use_actual_initial_state(tmp_path):
     (tmp_path/'actual_trace.json').write_text(json.dumps([state]))
     (tmp_path/'pipeline_result.json').write_text(json.dumps({'source_provenance':{'source':'one'},'segments':[]}))
     assert predecessor_snapshot(tmp_path,0,{'source':'one'})['entry_origin']=='initial_state'
+
+
+def test_floating_final_run_does_not_treat_unset_prefix_as_a_stop(monkeypatch,tmp_path):
+    from types import SimpleNamespace
+    from multipath.execution import floating_executor as runtime
+    initial=dict(wrist_xyz_wxyz=[0,0,1,1,0,0,0],wrist_twist=[0.]*6,hand_q=[0.]*12,
+                 time_s=0.,contact={'mode':'free'},objects={'tool':{'pose':[0,0,0,1,0,0,0],'velocity':[0.]*6}})
+    class Scene:
+        dt=1/120;restore_count=0;embodiment='floating_xhand';ticks=0;out=tmp_path
+        args=SimpleNamespace(validated_anchors=None,stop_before_anchor=None,through_anchor=None)
+        hand_command=np.zeros(12)
+        def state(self):return dict(initial,time_s=self.ticks*self.dt)
+        def step_control(self,command,mode,frame):
+            assert mode=='RELAXED';self.ticks+=1
+        def check_transition(self,*args,**kwargs):return {'success':True}
+    class Planner:
+        def __init__(self,*args):pass
+        def plan(self,goal,ticks,twist):return np.zeros((ticks,25)),{'budget_s':ticks/120}
+        def measured_valid(self):return True
+    monkeypatch.setattr(runtime,'FloatingPlanner',Planner)
+    contract={'position_tolerance_m':.05,'rotation_tolerance_rad':.35,'stable_speed_m_s':.03}
+    schedule=SimpleNamespace(fps=30,num_frames=1,anchors={},windows=[{'start':0,'end':1,'mode':'RELAXED','contact':'free'}],metadata={'task_contract':contract})
+    scene=Scene();report={}
+    runtime.execute(scene,schedule,{'provenance':{},'final_objects':{'tool':[0,0,0,1,0,0,0]}},tmp_path,report)
+    assert scene.ticks==4 and report['segments'][0]['success']
+    assert not report['full_pipeline_success'] and not report.get('prefix_success',False)

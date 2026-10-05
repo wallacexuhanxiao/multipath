@@ -32,6 +32,15 @@ then padded Replay, MPPI/PPO if needed, and exported-core replay. This developme
 prefix does not yet establish the final bridge to the canonical core entry or
 the complete 4.8 s rollout. Floating A1 remains under physical validation.
 
+The floating continuous executor is now wired into `scripts/run_oracle_v0.py`
+with `--embodiment floating_xhand --floating-config configs/floating_xhand.json`.
+It consumes validated local artifacts and executes every segment without restores.
+`MULTIPATH_EMBODIMENT=floating_xhand` selects the same backend in
+`hpc/run_oracle_v0.pbs`. This wiring is not a passed full-rollout result.
+Later local development uses `--anchor-id` and `--entry-snapshot`, where the
+snapshot must come from a successful physical predecessor prefix at synth_start.
+See the [consolidated flow review](docs/FLOATING_FLOW_AUDIT_20261005.md).
+
 The mounted backend and its passed r10 bridge are preserved at
 `hpc/run_oracle_v0.pbs`. Floating success will not constitute mounted-arm
 reachability evidence. Multi-path remains deferred until continuous Oracle V0.

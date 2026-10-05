@@ -53,3 +53,35 @@ def test_sampled_pose_residual_keeps_nominal_velocity_feedforward():
     controls=apply_residual(scene,baseline,start,residual,4,np.ones(9))
     np.testing.assert_allclose(controls[:,19:25],baseline[:,19:25])
     assert controls[3,0]>.019 and controls[-1,0]<-.019
+
+
+def test_measured_grasp_proposal_does_not_jump_the_existing_drive_target():
+    from multipath.anchors.floating import object_relative_command,object_relative_handoff
+    anchor=SimpleNamespace(synth_start=0,core_end=10,synth_end=12)
+    tool=np.tile(np.eye(4),(13,1,1));tool[:,0,3]=np.arange(13)*.002
+    tool[:,:3,:3]=Rotation.from_rotvec(np.c_[np.zeros((13,2)),np.arange(13)*.04]).as_matrix()
+    pose=np.r_[[.024,0,0],Rotation.from_rotvec([0,0,.18]).as_quat()[[3,0,1,2]]]
+    scene=SimpleNamespace(dt=1/120,manifest={'fps':30},command_pose=pose,hand_command=np.zeros(12),command_twist=np.zeros(6),
+        cfg={'planning':{'velocity_limits':[1,1,1,3,3,3]}})
+    previous=np.r_[pose,np.zeros(18)];data={'tool_pose':tool};held=np.eye(4)
+    handoff=object_relative_handoff(scene,anchor,data,2.,held)
+    entry=object_relative_command(scene,anchor,data,2.,previous,held,handoff)
+    np.testing.assert_allclose(entry[:7],pose,atol=1e-10)
+    np.testing.assert_allclose(object_relative_command(scene,anchor,data,2.25,previous,held,handoff)[19:25],scene.command_twist,atol=1e-10)
+    first=object_relative_command(scene,anchor,data,2.25,previous,held,handoff)
+    assert np.linalg.norm(first[:3]-pose[:3])<.005
+    end=2+handoff['duration_s']*30
+    np.testing.assert_allclose(object_relative_command(scene,anchor,data,end,previous,held,handoff)[:7],
+                               object_relative_command(scene,anchor,data,end,previous,held)[:7],atol=1e-10)
+
+
+def test_padded_takeover_matches_measured_velocity_without_changing_core():
+    anchor=SimpleNamespace(synth_start=0,core_start=2,core_end=4,synth_end=5)
+    scene=SimpleNamespace(dt=1/120,manifest={'fps':30},hand_limits=np.tile([-2,2],(12,1)),hand_velocity=np.full(12,10.))
+    ref=np.zeros((5,19));ref[:,3]=1.;ref[:,0]=np.arange(5)*.01
+    start={'wrist_xyz_wxyz':[.02,0,0,1,0,0,0],'wrist_twist':[.1,.02,0,0,.1,.02],
+           'hand_q':np.full(12,.1),'hand_dq':np.full(12,.2)}
+    c=local_controls(scene,anchor,{'wrist_hand_q':ref},start)
+    np.testing.assert_allclose(c[0,19:25],start['wrist_twist'],atol=1e-10)
+    np.testing.assert_allclose((c[0,7:19]-start['hand_q'])/scene.dt,start['hand_dq'],atol=1e-10)
+    np.testing.assert_allclose(c[7,:19],ref[2],atol=1e-10)

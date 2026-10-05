@@ -36,8 +36,22 @@ MP_ENV+=(--bind "$ROOT/hpc/container_env/92-env-torch-distributed.sh:/.singulari
 COMMON=( --proposals "$OUT/proposals" --schedule "$MULTIPATH_SCHEDULE"
  --robot-yaml "$ROOT/vendor/curobo-v077/src/curobo/content/configs/robot/franka.yml"
  --xhand-urdf "$ENGINE/assets/xhand/spider/xhand_right.urdf" --object-cache "$ENGINE/outputs/sim_usd" )
+EMBODIMENT=${MULTIPATH_EMBODIMENT:-mounted}
+[[ "$EMBODIMENT" == mounted || "$EMBODIMENT" == floating_xhand ]] || exit 2
+PREFIX_ARGS=(--continue-development)
+if [[ "$EMBODIMENT" == floating_xhand ]]; then
+ COMMON+=(--embodiment floating_xhand --floating-config "$ROOT/configs/floating_xhand.json")
+ PREFIX_ARGS=()
+fi
 run_sim() {
  singularity exec --nv -e "${MP_ENV[@]}" "$IMAGE" "$RUNTIME/envs/sim-isaac510/bin/python" -u "$@"
+}
+check_result() {
+ "$RUNTIME/envs/retarget/bin/python" - "$1" "$2" <<'PYCODE'
+import json,sys
+result=json.load(open(sys.argv[1]))
+raise SystemExit(0 if result.get(sys.argv[2]) is True else 1)
+PYCODE
 }
 mapfile -t ANCHORS < <("$RUNTIME/envs/retarget/bin/python" -c 'import json,sys; print("\n".join(a["id"] for a in sorted(json.load(open(sys.argv[1]))["anchors"],key=lambda a:a["core_start"])))' "$MULTIPATH_SCHEDULE")
 mkdir -p "$OUT/anchors"
@@ -45,10 +59,31 @@ for anchor in "${ANCHORS[@]}"; do
  # Acquire the padded entry by continuous execution of validated predecessors.
  # Stop before the unsynthesized core; never use an unvalidated core as proof.
  run_sim scripts/run_oracle_v0.py "${COMMON[@]}" --validated-anchors "$OUT/anchors" \
-  --continue-development --stop-before-anchor "$anchor" --output-dir "$OUT/prefix_$anchor" >"$OUT/prefix_$anchor.log" 2>&1
- run_sim scripts/develop_mounted_anchor.py "${COMMON[@]}" --anchor "$anchor" \
-  --predecessor-dir "$OUT/prefix_$anchor" --artifact-dir "$OUT/anchors" --output-dir "$OUT/$anchor" >"$OUT/$anchor.log" 2>&1
+  "${PREFIX_ARGS[@]}" --stop-before-anchor "$anchor" --output-dir "$OUT/prefix_$anchor" >"$OUT/prefix_$anchor.log" 2>&1
+ check_result "$OUT/prefix_$anchor/pipeline_result.json" prefix_success
+ if [[ "$EMBODIMENT" == floating_xhand ]]; then
+  "$RUNTIME/envs/retarget/bin/python" - "$OUT" "$MULTIPATH_SCHEDULE" "$anchor" <<'PYCODE'
+import json,sys
+from pathlib import Path
+from multipath.oracle_schedule import OracleSchedule
+from multipath.anchors.development import predecessor_snapshot
+root=Path(sys.argv[1]);anchor=OracleSchedule.load(sys.argv[2]).anchors[sys.argv[3]]
+provenance=json.load(open(root/'proposals/manifest.json'))['provenance']
+state=predecessor_snapshot(root/('prefix_'+anchor.id),anchor.synth_start,provenance)
+(root/(anchor.id+'_entry.json')).write_text(json.dumps(state,indent=2))
+PYCODE
+  run_sim scripts/develop_floating_anchor.py --proposals "$OUT/proposals" --schedule "$MULTIPATH_SCHEDULE" \
+   --xhand-urdf "$ENGINE/assets/xhand/spider/xhand_right.urdf" --object-cache "$ENGINE/outputs/sim_usd" \
+   --floating-config "$ROOT/configs/floating_xhand.json" --anchor-id "$anchor" \
+   --entry-snapshot "$OUT/${anchor}_entry.json" --output-dir "$OUT/$anchor" >"$OUT/$anchor.log" 2>&1
+  check_result "$OUT/$anchor/development_result.json" m2_success
+  cp -r "$OUT/$anchor/anchors/$anchor" "$OUT/anchors/"
+ else
+  run_sim scripts/develop_mounted_anchor.py "${COMMON[@]}" --anchor "$anchor" \
+   --predecessor-dir "$OUT/prefix_$anchor" --artifact-dir "$OUT/anchors" --output-dir "$OUT/$anchor" >"$OUT/$anchor.log" 2>&1
+ fi
 done
 # A fresh uninterrupted rollout after every padded/core artifact passes.
 run_sim scripts/run_oracle_v0.py "${COMMON[@]}" --validated-anchors "$OUT/anchors" \
  --output-dir "$OUT/final" >"$OUT/final.log" 2>&1
+check_result "$OUT/final/pipeline_result.json" full_pipeline_success

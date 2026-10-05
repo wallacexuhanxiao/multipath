@@ -1,0 +1,27 @@
+{
+  "status": "failed",
+  "error": "Floating Replay/MPPI (PPO disabled for attribution) failed at source frame 29.0",
+  "elapsed_s": 51.51206043548882,
+  "pbs_job_id": "648432.hopper-m-02",
+  "m2_success": false,
+  "full_pipeline_success": false,
+  "source_time_stretch": false,
+  "relative_proposal": {
+    "begin_tick": 0,
+    "candidate": "measured_grasp",
+    "success": false,
+    "failure": {
+      "source_frame": 51.0,
+      "reason": "core_object_fidelity"
+    },
+    "score": 15.290665883121804,
+    "proposal": "measured_grasp_object_relative",
+    "grasp_acquired_frame": 46.25
+  },
+  "remaining_search_candidates": 2,
+  "initial_replay_failure": {
+    "source_frame": 49.0,
+    "reason": "core_object_fidelity"
+  },
+  "development_only": true
+}

@@ -38,13 +38,16 @@ def robot_model(scene,carry,out):
         xml.append(f'<link name="{child}"/><joint name="{name}" type="{"prismatic" if i<3 else "revolute"}"><parent link="{parent}"/><child link="{child}"/><axis xyz="{axis}"/><limit lower="{-limit}" upper="{limit}" velocity="{scene.cfg["planning"]["velocity_limits"][i]}" effort="100"/></joint>')
         parent=child
     xml.append('</robot>');urdf=out/'floating_wrist.urdf';urdf.write_text('\n'.join(xml))
-    pose,_=scene.root_motion();rot=Rotation.from_quat(pose[[4,5,6,3]]);spheres=[];cache=UsdGeom.XformCache()
+    pose,_=scene.root_motion();rot=Rotation.from_quat(pose[[4,5,6,3]]);spheres=[];cache=UsdGeom.XformCache();measured=[]
     for prim in Usd.PrimRange.Stage(scene.world.stage,Usd.TraverseInstanceProxies()):
         if not str(prim.GetPath()).startswith(scene.root+'/') or not prim.IsA(UsdGeom.Mesh):continue
         if 'collision' in str(prim.GetPath()).lower():continue
         points=np.asarray(UsdGeom.Mesh(prim).GetPointsAttr().Get());trans=np.asarray(cache.GetLocalToWorldTransform(prim)).T
-        points=points@trans[:3,:3].T+trans[:3,3]
-        spheres+=cover_points(rot.inv().apply(points-pose[:3]))
+        scale=np.linalg.norm(trans[:3,:3],axis=0);local=cover_points(points*scale)
+        measured.append((prim,scale,local))
+        world_points=points@trans[:3,:3].T+trans[:3,3]
+        spheres+=cover_points(rot.inv().apply(world_points-pose[:3]))
+    scene.measured_hand_collision_meshes=measured
     if carry:
         p,q=scene.objects['tool'].get_world_pose()
         points=Rotation.from_quat(np.asarray(q)[[1,2,3,0]]).apply(scene.meshes['tool'].vertices)+p
@@ -77,6 +80,7 @@ class FloatingPlanner:
         for role in (['target'] if carry else ['tool','target']):
             p,q=scene.objects[role].get_world_pose();bounds=scene.meshes[role].bounds;rot=Rotation.from_quat(np.asarray(q)[[1,2,3,0]])
             live['cuboid'][role]={'dims':(bounds[1]-bounds[0]).tolist(),'pose':np.r_[p+rot.apply(bounds.mean(0)),q].tolist()}
+        self.obstacle_roles=['target'] if carry else ['tool','target']
         self.nominal_spheres=cfg['kinematics']['collision_spheres']['wrist']
         self.live=live
         self.planner=MotionGen(MotionGenConfig.load_from_robot_config(cfg,live,tensor_args=self.tensor,interpolation_dt=scene.dt,
@@ -102,13 +106,31 @@ class FloatingPlanner:
         pose,_=self.scene.root_motion();r=Rotation.from_quat(pose[[4,5,6,3]])
         centers=r.apply(np.asarray([s['center'] for s in self.nominal_spheres]))+pose[:3]
         radii=np.asarray([s['radius'] for s in self.nominal_spheres])
-        for box in self.live['cuboid'].values():
+        if hasattr(self.scene,'measured_hand_collision_meshes'):
+            from pxr import UsdGeom
+            cache=UsdGeom.XformCache();groups=[];sizes=[]
+            for prim,scale,local_spheres in self.scene.measured_hand_collision_meshes:
+                matrix=np.asarray(cache.GetLocalToWorldTransform(prim)).T
+                local=np.asarray([s['center'] for s in local_spheres])
+                groups.append(local@(matrix[:3,:3]/scale).T+matrix[:3,3])
+                sizes.extend(s['radius'] for s in local_spheres)
+            if self.carry:
+                p,q=self.scene.objects['tool'].get_world_pose()
+                current=cover_points(Rotation.from_quat(np.asarray(q)[[1,2,3,0]]).apply(self.scene.meshes['tool'].vertices)+p)
+                groups.append(np.asarray([s['center'] for s in current]));sizes.extend(s['radius'] for s in current)
+            centers=np.concatenate(groups);radii=np.asarray(sizes)
+        boxes=dict(self.live['cuboid'])
+        for role in getattr(self,'obstacle_roles',[]):
+            p,q=self.scene.objects[role].get_world_pose();bounds=self.scene.meshes[role].bounds
+            current=Rotation.from_quat(np.asarray(q)[[1,2,3,0]])
+            boxes[role]={'dims':(bounds[1]-bounds[0]).tolist(),'pose':np.r_[p+current.apply(bounds.mean(0)),q].tolist()}
+        for box in boxes.values():
             b=np.asarray(box['pose']);rotation=Rotation.from_quat(b[[4,5,6,3]])
             local=rotation.inv().apply(centers-b[:3]);outside=np.maximum(np.abs(local)-np.asarray(box['dims'])/2,0.)
             if np.any(np.linalg.norm(outside,axis=1)<radii):return False
         return True
 
-    def plan(self,goal,ticks):
+    def plan(self,goal,ticks,goal_twist=None):
         from curobo.wrap.reacher.motion_gen import MotionGenPlanConfig
         scene=self.scene;start=scene.state();q0=pose_coordinates(start['wrist_xyz_wxyz']);q1=pose_coordinates(goal,q0)
         # Joint parameterization derivatives are obtained from the measured spatial twist.
@@ -116,18 +138,31 @@ class FloatingPlanner:
         pose=np.asarray(start['wrist_xyz_wxyz']);advanced=pose.copy();advanced[:3]+=eps*twist[:3]
         advanced[3:]=(Rotation.from_rotvec(eps*twist[3:])*Rotation.from_quat(pose[[4,5,6,3]])).as_quat()[[3,0,1,2]]
         dq0=(pose_coordinates(advanced,q0)-q0)/eps
+        dq1=None
+        if goal_twist is not None:
+            terminal=np.asarray(goal).copy();target_twist=np.asarray(goal_twist)
+            terminal[:3]+=eps*target_twist[:3]
+            terminal[3:]=(Rotation.from_rotvec(eps*target_twist[3:])*Rotation.from_quat(terminal[[4,5,6,3]])).as_quat()[[3,0,1,2]]
+            dq1=(pose_coordinates(terminal,q1)-q1)/eps
         begin=self.js(q0);begin.velocity=self.tensor.to_device(dq0.copy())[None]
-        result=self.planner.plan_single_js(begin,self.js(q1),MotionGenPlanConfig(max_attempts=6,enable_graph_attempt=2))
+        end=self.js(q1)
+        if dq1 is not None:end.velocity=self.tensor.to_device(dq1.copy())[None]
+        result=self.planner.plan_single_js(begin,end,MotionGenPlanConfig(max_attempts=6,enable_graph_attempt=2))
         if not bool(result.success.item()):raise RuntimeError(f'Floating cuRobo failed: {result.status}')
-        raw=result.get_interpolated_plan().position.detach().cpu().numpy().reshape(-1,6)
+        raw=result.get_interpolated_plan().position.detach().cpu().numpy().reshape(-1,6).copy()
         limits=scene.cfg['planning'];dt=scene.dt
-        try:path,timing=fixed_budget_path(raw,float(result.interpolation_dt),ticks,dt,np.array(limits['velocity_limits']),np.array(limits['acceleration_limits']),initial_velocity=dq0)
-        except RuntimeError:path,timing=parameterize_path(raw,ticks,dt,np.array(limits['velocity_limits']),np.array(limits['acceleration_limits']),initial_velocity=dq0)
+        # Impose command boundaries before time fitting and collision checks;
+        # these are planned targets, never assignments to simulator state.
+        raw[0]=q0;raw[-1]=q1
+        try:path,timing=fixed_budget_path(raw,float(result.interpolation_dt),ticks,dt,np.array(limits['velocity_limits']),np.array(limits['acceleration_limits']),initial_velocity=dq0,final_velocity=dq1)
+        except RuntimeError:path,timing=parameterize_path(raw,ticks,dt,np.array(limits['velocity_limits']),np.array(limits['acceleration_limits']),initial_velocity=dq0,final_velocity=dq1)
         for q in path:
             if not self.valid(q):raise RuntimeError('Floating resampled path collision')
         poses=np.asarray([coordinates_pose(q) for q in path])
         from multipath.anchors.floating import controls_from_poses
-        commands=controls_from_poses(poses,np.repeat(np.asarray(start['hand_q'])[None],len(poses),axis=0),dt)
+        # Preserve the active drive target/preload, rather than commanding the
+        # measured contact-deflected hand posture with zero closing error.
+        commands=controls_from_poses(poses,np.repeat(np.asarray(scene.hand_command)[None],len(poses),axis=0),dt)
         timing.update(planner='cuRobo_virtual_6DOF',hand_collision_spheres=self.sphere_count,carried_object_collision=self.carry,
             reference_tracking=False,source_time_stretch=False,arm_model_used=False,tracking_margin_m=scene.planning_tracking_margin_m)
         return commands,timing
