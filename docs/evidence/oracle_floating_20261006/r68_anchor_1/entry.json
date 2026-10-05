@@ -1,0 +1,248 @@
+{
+  "embodiment": "floating_xhand",
+  "wrist_xyz_wxyz": [
+    0.46323078870773315,
+    -0.011078853160142899,
+    0.605285108089447,
+    -0.6152540445327759,
+    0.6923441886901855,
+    0.1622285097837448,
+    -0.3403002619743347
+  ],
+  "wrist_twist": [
+    0.09871000214943623,
+    0.8254495296336392,
+    0.19104629007587404,
+    -5.183157920837402,
+    3.4746885299682617,
+    0.49455955624580383
+  ],
+  "hand_q": [
+    1.0083338022232056,
+    1.1103360652923584,
+    -0.002372696530073881,
+    0.13797518610954285,
+    0.7464013695716858,
+    0.17064982652664185,
+    1.055488109588623,
+    1.5726412534713745,
+    1.272691011428833,
+    1.7897865772247314,
+    1.1667795181274414,
+    1.759343147277832
+  ],
+  "hand_dq": [
+    0.3269687592983246,
+    -0.17332185804843903,
+    -4.410743713378906e-06,
+    -0.22556734085083008,
+    -0.14825868606567383,
+    0.4202549457550049,
+    -0.22837525606155396,
+    3.327482223510742,
+    0.18396902084350586,
+    0.6417288184165955,
+    0.9727789163589478,
+    0.8977692127227783
+  ],
+  "objects": {
+    "target": {
+      "pose": [
+        0.5468897223472595,
+        0.05764216184616089,
+        0.368747740983963,
+        0.7789028286933899,
+        -5.820766091346741e-09,
+        -4.110461304662749e-09,
+        0.6271447539329529
+      ],
+      "velocity": [
+        -9.326331564807333e-07,
+        2.505321162971086e-06,
+        -1.6745241282478673e-06,
+        -3.3662399800959975e-06,
+        -1.0899957487708889e-05,
+        -1.0622300578688737e-05
+      ]
+    },
+    "tool": {
+      "pose": [
+        0.5497259497642517,
+        -0.07352133840322495,
+        0.46954652667045593,
+        0.8122668862342834,
+        -0.47824081778526306,
+        -0.20438602566719055,
+        -0.26407331228256226
+      ],
+      "velocity": [
+        -0.32760486006736755,
+        0.35903400182724,
+        0.2847088873386383,
+        -3.7533011436462402,
+        2.2618207931518555,
+        2.7535629272460938
+      ]
+    }
+  },
+  "hand_object_transform": [
+    [
+      0.24712546027808405,
+      0.8880109235248091,
+      0.3877700434316197,
+      0.05859999029164556
+    ],
+    [
+      -0.6689850355144268,
+      0.4458612400521319,
+      -0.5946988959775661,
+      0.12572056664585307
+    ],
+    [
+      -0.7009907482557141,
+      -0.11244711788120837,
+      0.7042496833794839,
+      -0.10279017265882145
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "contact": {
+    "mode": "grasped",
+    "thumb_contact": true,
+    "other_finger_contact": true,
+    "opposition_contact": true,
+    "touching_links": 2,
+    "link_paths": [
+      "/xhand_right/right_hand_link",
+      "/xhand_right/right_hand_ee_link",
+      "/xhand_right/right_hand_index_bend_link",
+      "/xhand_right/right_hand_index_rota_link1",
+      "/xhand_right/right_hand_index_rota_link2",
+      "/xhand_right/right_hand_index_rota_tip",
+      "/xhand_right/right_hand_mid_link1",
+      "/xhand_right/right_hand_mid_link2",
+      "/xhand_right/right_hand_mid_tip",
+      "/xhand_right/right_hand_pinky_link1",
+      "/xhand_right/right_hand_pinky_link2",
+      "/xhand_right/right_hand_pinky_tip",
+      "/xhand_right/right_hand_ring_link1",
+      "/xhand_right/right_hand_ring_link2",
+      "/xhand_right/right_hand_ring_tip",
+      "/xhand_right/right_hand_thumb_bend_link",
+      "/xhand_right/right_hand_thumb_rota_link1",
+      "/xhand_right/right_hand_thumb_rota_link2",
+      "/xhand_right/right_hand_thumb_rota_tip"
+    ],
+    "force_norms_n": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      20.67908477783203,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      19.55178451538086,
+      0.0
+    ],
+    "evidence": "PhysX thumb AND non-thumb finger/tool contact; retention checked separately"
+  },
+  "scene_id": "46c0da50521244ae9424101969544f5ca9ea1068b57b2ffa5706494dd13a0523",
+  "time_s": 2.7333333333333334,
+  "physically_acquired_state": true,
+  "state_origin": "continuous_PhysX_rollout",
+  "command_wrist": [
+    0.46106816711846255,
+    0.006580046070016443,
+    0.6040572353094888,
+    0.5511663678003276,
+    -0.707644097261056,
+    -0.13743001700629348,
+    0.4202004962431969
+  ],
+  "command_twist": [
+    -0.06514929592572827,
+    0.30843370891560584,
+    -0.06895408605863018,
+    -1.2949932934108113,
+    0.27914768195934014,
+    0.6128568817084745
+  ],
+  "command_hand_q": [
+    1.24181020694668,
+    1.3389064928975805,
+    -0.09652118384838104,
+    0.1457217712083527,
+    0.7022642973730244,
+    0.4877149242290505,
+    1.281349981550843,
+    1.8630799488049852,
+    1.5263717390890856,
+    1.9199998378753662,
+    1.5737457077184522,
+    1.8697805093655313
+  ],
+  "entry_origin": "predecessor_rollout",
+  "source_provenance": {
+    "triplet": "(put in, bowl, plate)",
+    "sequence": "20231024_253",
+    "input": "raw TACO MANO and object poses",
+    "source_video": "/scratch/e0985859/egoengine_baseline/data/taco_v1/Egocentric_RGB_Videos/(put in, bowl, plate)/20231024_253/color.mp4",
+    "schedule_sha256": "111733961ac0ad03d95087435de751c2bdf27db6f375fe153bd6f5f78283adc2",
+    "full_robot_reference_used": false,
+    "vlm_used": false,
+    "transform_world_to_robot": [
+      [
+        -0.36959298057517503,
+        0.929193775162176,
+        0.0,
+        0.574305986267124
+      ],
+      [
+        -0.9291937551424282,
+        -0.36959297261218765,
+        -0.0,
+        0.005429607853050099
+      ],
+      [
+        0.0,
+        0.0,
+        1.0,
+        -0.1883068585395813
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ]
+  },
+  "entry_provenance": {
+    "trace": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_floating_a2_closure_search_r68/anchor_1/core_entry_acquisition/actual_trace.json",
+    "source_frame": 82.0,
+    "predecessor": {
+      "trace": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_floating_a1_a2_reachedcore_r58/anchor_0/replay/actual_trace.json",
+      "trace_sha256": "fb083d78d46a674118503396efd0173bea814d1c7a8bb552982d59a803f81160",
+      "result": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_floating_a1_a2_reachedcore_r58/anchor_0/replay/local_result.json",
+      "result_sha256": "10ad0769dd27a85d496909b44cdf1dbe6654b18c59d9e485a904064e7ae737a7",
+      "source_frame": 76,
+      "purpose": "local_synthesis_context_only; not_canonical_entry_target",
+      "canonical_target_source_frame": 82
+    }
+  }
+}

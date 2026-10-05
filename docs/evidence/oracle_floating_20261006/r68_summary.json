@@ -1,0 +1,52 @@
+{
+  "experiment": "r68",
+  "pbs_job_id": "648809.hopper-m-02",
+  "code_commit": "6a2d8b0",
+  "status": "anchor_valid",
+  "method": "retarget -> padded Replay (failed core_object_fidelity) -> floating MPPI -> fresh padded Replay -> physically executed padding -> exported-core Replay",
+  "ppo_used": false,
+  "elapsed_compute_s": 105.0293798170751,
+  "core_interval": [
+    82,
+    101
+  ],
+  "synthesis_interval": [
+    76,
+    107
+  ],
+  "core_source_duration_s": 0.6333333333333333,
+  "padded_source_duration_s": 1.0333333333333334,
+  "source_time_stretch": false,
+  "padded_success": true,
+  "core_success": true,
+  "core_entry_source_boundary": {
+    "source_frame": 82,
+    "position_m": 0.034175115836200566,
+    "rotation_rad": 0.3147479387333565,
+    "accepted": true
+  },
+  "state_resets_within_padded_rollout": 0,
+  "state_resets_within_core_replay": 0,
+  "search_candidates": 193,
+  "successful_candidates": 7,
+  "local_entry_reachability": "r58 physically acquired frame76 context -> physical synthesis padding -> measured frame82; not a verified cuRobo bridge",
+  "full_pipeline_success": false,
+  "connection_preflight": {
+    "from": "r58 A1 actual core exit at frame76",
+    "to": "r68 A2 actual canonical core entry at frame82",
+    "budget_s": 0.2,
+    "curobo_attempted": false,
+    "status": "blocked_by_existing_hand_posture_gate",
+    "hand_q_max_difference_rad": 0.23741257190704346,
+    "hand_dq_max_difference_rad_s": 3.1078494787216187,
+    "hand_drive_max_difference_rad": 0.4877149242290505,
+    "relative_transform_max_element_difference": 0.06810315316712914,
+    "relative_translation_difference_m": 0.005983923316527646,
+    "relative_rotation_difference_rad": 0.07515228539985774,
+    "wrist_distance_m": 0.13262609529496008,
+    "wrist_rotation_difference_rad": 0.8609262423706803,
+    "note": "Differences compare two distinct source-time boundaries; they do not prove dynamic infeasibility. Existing grasped bridge freezes hand drive, and rejects posture differences >0.10 rad. No gate relaxation or state assignment used."
+  },
+  "video_padded": "outputs/oracle_floating_a2_closure_search_r68/anchor_1/refined_replay/floating_xhand_actual.mp4",
+  "video_core": "outputs/oracle_floating_a2_closure_search_r68/anchor_1/exported_core/floating_xhand_actual.mp4"
+}

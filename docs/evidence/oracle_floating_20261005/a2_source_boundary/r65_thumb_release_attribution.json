@@ -1,0 +1,152 @@
+{
+  "source": "actual PhysX trace and executed command",
+  "trace": "outputs/oracle_floating_a2_continuous_fallback_r65/anchor_1/whole_anchor_ppo/chunk_0000_attempt_00/best_evaluation/actual_trace.json",
+  "acquired_thumb_command": 1.2326154708862305,
+  "acquired_thumb_actual": 0.9674160480499268,
+  "rows": [
+    {
+      "source_frame": 91.0,
+      "thumb_command": 1.3290038778265405,
+      "thumb_actual": 0.9982384443283081,
+      "thumb_command_error": 0.3307654334982324,
+      "thumb_contact_force_sum_n": 23.171226501464844,
+      "contact": "grasped",
+      "wrist_command": [
+        0.4123211787106176,
+        0.0031536976580069497,
+        0.5366234694071756,
+        -0.5713991187573362,
+        0.6959281421880611,
+        0.3413737532066007,
+        -0.2695385475505355
+      ],
+      "object_pose": [
+        0.5453256368637085,
+        -0.011494951322674751,
+        0.4392364025115967,
+        0.8546549081802368,
+        -0.42654144763946533,
+        -0.23160262405872345,
+        -0.18435725569725037
+      ]
+    },
+    {
+      "source_frame": 92.0,
+      "thumb_command": 1.312999894470646,
+      "thumb_actual": 1.0225136280059814,
+      "thumb_command_error": 0.2904862664646646,
+      "thumb_contact_force_sum_n": 50.235843658447266,
+      "contact": "grasped",
+      "wrist_command": [
+        0.44498463646750297,
+        0.0531454785259695,
+        0.5618735376195765,
+        -0.6683042503210127,
+        0.49358207379002794,
+        0.18450726564456302,
+        -0.5250745036281722
+      ],
+      "object_pose": [
+        0.5471929907798767,
+        -0.008041607216000557,
+        0.4355003535747528,
+        0.8743075728416443,
+        -0.37736570835113525,
+        -0.22727589309215546,
+        -0.20378130674362183
+      ]
+    },
+    {
+      "source_frame": 93.0,
+      "thumb_command": 1.2138378065895328,
+      "thumb_actual": 1.0255963802337646,
+      "thumb_command_error": 0.18824142635576813,
+      "thumb_contact_force_sum_n": 14.931238174438477,
+      "contact": "grasped",
+      "wrist_command": [
+        0.43119150404461715,
+        0.0601837874106859,
+        0.5696993545124609,
+        -0.5535925966349019,
+        0.6620523322764196,
+        0.28274845579968516,
+        -0.4186588790665664
+      ],
+      "object_pose": [
+        0.5461048483848572,
+        -0.007799676153808832,
+        0.435626357793808,
+        0.8700564503669739,
+        -0.3844655156135559,
+        -0.21701380610466003,
+        -0.21930113434791565
+      ]
+    },
+    {
+      "source_frame": 94.0,
+      "thumb_command": 1.076279453809595,
+      "thumb_actual": 1.0205494165420532,
+      "thumb_command_error": 0.05573003726754178,
+      "thumb_contact_force_sum_n": 28.94126319885254,
+      "contact": "grasped",
+      "wrist_command": [
+        0.4508041419819061,
+        0.023117251735003376,
+        0.5457308554543022,
+        -0.53953914167647,
+        0.6315261483522248,
+        0.07948258886545286,
+        -0.5511395073968727
+      ],
+      "object_pose": [
+        0.5438748002052307,
+        -0.005145034287124872,
+        0.4369715750217438,
+        0.8602595329284668,
+        -0.39373546838760376,
+        -0.24502259492874146,
+        -0.2118721753358841
+      ]
+    },
+    {
+      "source_frame": 95.0,
+      "thumb_command": 0.7886127871429285,
+      "thumb_actual": 0.9950375556945801,
+      "thumb_command_error": -0.2064247685516516,
+      "thumb_contact_force_sum_n": 0.0,
+      "contact": "free",
+      "wrist_command": [
+        0.4379857458433511,
+        0.0050935339373063765,
+        0.5823758257171787,
+        -0.5851095162875836,
+        0.5942008850003234,
+        0.47620892582976004,
+        -0.2789215322892959
+      ],
+      "object_pose": [
+        0.5442978739738464,
+        -0.0023004806134849787,
+        0.4362275004386902,
+        0.8686344027519226,
+        -0.38716059923171997,
+        -0.2371029257774353,
+        -0.19840183854103088
+      ]
+    }
+  ],
+  "controlled_replay": {
+    "experiment": "r66",
+    "same_wrist_commands": true,
+    "success": false,
+    "failed_frame": 91,
+    "reason": "core_grasp_retention",
+    "interpretation": "Thumb protection alone was insufficient; preload error sign incorrectly restricted further middle-finger closure."
+  },
+  "followup": {
+    "experiment": "r68",
+    "closure_semantics_corrected": true,
+    "fresh_padded_success": true,
+    "core_replay_success": true
+  }
+}
