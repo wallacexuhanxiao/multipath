@@ -86,6 +86,15 @@ if [[ -n "${MULTIPATH_LOCAL_ANCHOR:-}" ]]; then
   --entry-snapshot "$MULTIPATH_ENTRY_SNAPSHOT" --output-dir "$OUT/$anchor" "${SOLVER_ARGS[@]}" "${LOCAL_ARGS[@]}" >"$OUT/$anchor.log" 2>&1
  check_result "$OUT/$anchor/development_result.json" m2_success
  cp -r "$OUT/$anchor/anchors/$anchor" "$OUT/anchors/"
+ if [[ -n "${MULTIPATH_CONNECT_FROM_ANCHOR:-}" ]]; then
+  run_sim scripts/develop_floating_bridge.py --proposals "$PROPOSALS" --schedule "$MULTIPATH_SCHEDULE" \
+   --from-anchor "$MULTIPATH_CONNECT_FROM_ANCHOR" --to-anchor "$anchor" \
+   --from-artifacts "${MULTIPATH_CONNECT_FROM_ARTIFACTS:?validated preceding Anchor}" --to-artifacts "$OUT/anchors" \
+   --floating-config "$ROOT/configs/floating_xhand.json" \
+   --xhand-urdf "$ENGINE/assets/xhand/spider/xhand_right.urdf" --object-cache "$ENGINE/outputs/sim_usd" \
+   --output-dir "$OUT/connection" >"$OUT/connection.log" 2>&1
+  check_result "$OUT/connection/bridge_result.json" next_core_success
+ fi
  exit 0
 fi
 for anchor in "${ANCHORS[@]}"; do
