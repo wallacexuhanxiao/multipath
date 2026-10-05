@@ -62,8 +62,12 @@ def execute(scene,schedule,manifest,proposal_dir,report):
                 info.update(end=terminal_frame,budget_s=(terminal_frame-window['start'])/schedule.fps,
                             development_prefix=True,canonical_goal=False)
             else:goal=canonical[later['anchor']]['entry'] if later else initial
-            if carry and later and not prefix and np.max(np.abs(np.asarray(goal['hand_q'])-scene.state()['hand_q']))>.10:
-                raise RuntimeError('Canonical entry requires a different hand posture; resynthesize the local entry')
+            if later and not prefix:
+                from multipath.planning.bridge import bridge_precheck
+                check=bridge_precheck(start,goal,(terminal_frame-window['start'])/schedule.fps,scene.cfg['planning'])
+                info['boundary_precheck']=check
+                if not check['feasible']:
+                    raise RuntimeError(f'Canonical bridge boundaries require local resynthesis: {check["reasons"]}')
             planner=FloatingPlanner(scene,carry,scene.out/f'planner_{window["start"]}')
             if prefix and not carry:
                 reference=np.asarray(goal['wrist_xyz_wxyz']).copy()
