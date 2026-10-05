@@ -109,10 +109,11 @@ def refine(scene,anchor,data,baseline,start,out,candidates=64,iterations=3,use_p
                             initialization_proposal=dict(prior_origin),initialization_is_acceptance=False)
         return env
     ppo=LocalPPOSolver(scene,anchor,data,out/'ppo',ppo_config or PPOConfig(),env_factory=ppo_env) if use_ppo else None
-    def evaluate(control,boundary,begin,label,folder,object_relative=False):
+    def evaluate(control,boundary,begin,label,folder,object_relative=False,prefix_ticks=None):
         check=validate_commands(scene,control,boundary)
-        if not check['feasible']:return -np.inf,False,{'precheck':check}
+        if not check['feasible']:return -np.inf,False,{'precheck':check},None
         scene.begin_trial(folder,boundary,mesh=object_relative);objective=WindowEvaluation(scene,anchor,data,boundary)
+        prefix=None
         executed_control=np.array(control).copy();held=None;acquired_frame=None;handoff=None;contact_run=0;executed=0
         if object_relative and boundary['contact']['mode']=='grasped':held=np.asarray(boundary['hand_object_transform'])
         try:
@@ -135,6 +136,8 @@ def refine(scene,anchor,data,baseline,start,out,candidates=64,iterations=3,use_p
                         # persistent retention already applies to entry-grasped Anchors.
                 scene.step_control(c,label,frame);executed=j+1
                 if (j+1)%tpf==0 and not objective.observe(frame,c):break
+                if j+1==prefix_ticks:
+                    prefix={'state':scene.snapshot(),'trace':list(scene.records)}
         except (RuntimeError,ValueError) as error:objective.failure={'reason':str(error)};objective.total_return=-np.inf
         scene.save()
         if object_relative:
@@ -149,12 +152,23 @@ def refine(scene,anchor,data,baseline,start,out,candidates=64,iterations=3,use_p
         return objective.total_return,objective.failure is None and executed==len(control),{'failure':objective.failure,'score':objective.total_return,
             'proposal':'measured_grasp_object_relative' if object_relative else 'pose_residual',
             'grasp_acquired_frame':acquired_frame,'target_handoff':handoff,'physics_steps_executed':executed,
-            'prediction_complete':executed==len(control)}
+            'prediction_complete':executed==len(control)},prefix
+    def retain_prefix(prefix,commands,begin):
+        if prefix is None:raise RefinementRequired('Successful prediction did not record its physical prefix')
+        folder=out/f'committed_{begin}';folder.mkdir(parents=True,exist_ok=True)
+        acquired=dict(prefix['state'])
+        acquired['entry_provenance']=dict(acquired['entry_provenance'],trace=str(folder/'actual_trace.json'),
+                                        acquisition='selected_physical_prediction_prefix')
+        (folder/'actual_trace.json').write_text(json.dumps(prefix['trace']))
+        (folder/'prefix_state.json').write_text(json.dumps(acquired,indent=2))
+        np.savez_compressed(folder/'commands.npz',commands=commands[:len(prefix['trace'])*tpf])
+        return acquired
     for begin in range(0,len(baseline),20*tpf):
         stop=min(begin+40*tpf,len(baseline));commit=min(20*tpf,len(baseline)-begin)
         replay=project_hand_commands(scene,chosen[begin:stop],state)
-        score,valid,info=evaluate(replay,state,begin,'CHUNK_REPLAY',out/f'replay_{begin}')
+        score,valid,info,prefix=evaluate(replay,state,begin,'CHUNK_REPLAY',out/f'replay_{begin}',prefix_ticks=commit)
         best=replay if valid else None;best_score=score if valid else -np.inf
+        best_state=retain_prefix(prefix,replay,begin) if valid else None
         seed=replay.copy();seed_score=score;prior_origin.clear();prior_origin.update(proposal='local_replay',score=float(score),failure=info.get('failure'))
         mean=np.zeros((len(replay)//tpf,18));scale=np.r_[np.full(3,.02),np.full(3,.2),np.full(12,.25)]
         phase=np.clip((begin+np.arange(len(replay)+1))/max(1,(anchor.core_start-anchor.synth_start)*tpf),0,1);envelope=phase**2*(3-2*phase)
@@ -162,11 +176,12 @@ def refine(scene,anchor,data,baseline,start,out,candidates=64,iterations=3,use_p
             # First test the existing observed grasp-transform constraint as a
             # physical MPC proposal; the failed Replay contributes no state.
             proposal=replay.copy()
-            value,ok,info=evaluate(proposal,state,begin,'OBJECT_RELATIVE_MPPI',out/f'object_relative_{begin}',object_relative=True)
+            value,ok,info,prefix=evaluate(proposal,state,begin,'OBJECT_RELATIVE_MPPI',out/f'object_relative_{begin}',object_relative=True,prefix_ticks=commit)
             history.append(dict(begin_tick=begin,candidate='measured_grasp',success=ok,**info))
             (out/'search.json').write_text(json.dumps(history,indent=2))
             print('FLOATING_OBJECT_RELATIVE',begin,'valid',ok,'failure',info.get('failure'),flush=True)
-            if ok:best,best_score=proposal.copy(),value
+            if ok:
+                best,best_score=proposal.copy(),value;best_state=retain_prefix(prefix,best,begin)
             if value>seed_score:
                 seed,seed_score=proposal.copy(),value;prior_origin.update(proposal=info['proposal'],score=float(value),failure=info.get('failure'))
         if not valid and best is None:
@@ -175,22 +190,30 @@ def refine(scene,anchor,data,baseline,start,out,candidates=64,iterations=3,use_p
                 returns=np.full(candidates,-np.inf)
                 for i,residual in enumerate(samples):
                     control=replay.copy() if not np.any(residual) else apply_residual(scene,replay,state,residual,tpf,envelope)
-                    returns[i],ok,info=evaluate(control,state,begin,'LOCAL_MPPI',out/'candidate')
+                    returns[i],ok,info,prefix=evaluate(control,state,begin,'LOCAL_MPPI',out/'candidate',prefix_ticks=commit)
                     history.append(dict(begin_tick=begin,iteration=iteration,candidate=i,success=ok,**info))
-                    if ok and returns[i]>best_score:best,best_score=control.copy(),returns[i]
+                    if ok and returns[i]>best_score:
+                        best,best_score=control.copy(),returns[i];best_state=retain_prefix(prefix,best,begin)
                     if returns[i]>seed_score:
                         seed,seed_score=control.copy(),returns[i];prior_origin.update(proposal=info['proposal'],score=float(returns[i]),failure=info.get('failure'))
                 updated=mppi_mean(samples,returns)
                 if updated is not None:mean=updated
                 (out/'search.json').write_text(json.dumps(history,indent=2))
                 print('FLOATING_MPPI',begin,iteration,'valid',best is not None,'elapsed_s',round(time.perf_counter()-started,2),flush=True)
-        if best is None and ppo is not None:best=ppo(seed,state,begin)
+        if best is None and ppo is not None:
+            best=ppo(seed,state,begin)
+            if best is not None:
+                _,ok,info,prefix=evaluate(best,state,begin,'PPO_PHYSICAL_PREDICTION',out/f'ppo_prediction_{begin}',prefix_ticks=commit)
+                if not ok:raise RefinementRequired(f'Floating PPO commands failed physical prediction: {info}')
+                best_state=retain_prefix(prefix,best,begin)
         if best is None:
             methods='Replay/MPPI/PPO' if use_ppo else 'Replay/MPPI (PPO disabled for attribution)'
             raise RefinementRequired(f'Floating {methods} failed at source frame {anchor.synth_start+begin/tpf}')
-        _,ok,info=evaluate(best[:commit],state,begin,'LOCAL_COMMIT',out/f'committed_{begin}')
-        if not ok:raise RefinementRequired(f'Floating selected controls failed commit: {info}')
+        # Continue local development from the prefix actually reached inside the
+        # selected physical prediction, rather than replaying it a second time.
+        # This development restore is never final trajectory acceptance: a fresh
+        # uninterrupted padded rollout and exported-core rollout are mandatory.
         # Retain the physically evaluated lookahead as the next MPC prior.
         # Reverting to raw Replay here can jump back after a grasp correction.
-        state=scene.snapshot();chosen[begin:stop]=best
+        state=best_state;chosen[begin:stop]=best
     return chosen
