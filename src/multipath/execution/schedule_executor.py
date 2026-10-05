@@ -154,7 +154,8 @@ def execute(scene,schedule,manifest,proposal_dir,report):
                          scene.velocity,scene.acceleration,joint_limits,start_hand_dq=np.array(start['hand_dq']),
                          hand_velocity_limits=hand_limits_from_urdf(scene),
                          hand_startup_duration=(a.core_start-a.synth_start)/schedule.fps,
-                         hand_joint_limits=np.asarray(scene.robot._articulation_view.get_dof_limits()).reshape(-1,2)[scene.fingers])
+                         hand_joint_limits=np.asarray(scene.robot._articulation_view.get_dof_limits()).reshape(-1,2)[scene.fingers],
+                         core_interval_s=(0.,(a.core_end-a.core_start)/schedule.fps))
                     validation.update(fitting)
                 validation.update(control_dt=scene.dt,source_fps=schedule.fps)
                 for k,cmd in enumerate(commands):

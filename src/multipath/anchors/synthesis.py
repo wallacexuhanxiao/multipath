@@ -8,7 +8,7 @@ import numpy as np
 from scipy.spatial.transform import Rotation
 
 
-def fit_hand_startup(desired,start_q,start_dq,dt,limits,velocity_limits,*,startup_duration=None):
+def fit_hand_startup(desired,start_q,start_dq,dt,limits,velocity_limits,*,startup_duration=None,frame_weights=None):
     """Fit XHand commands within physical joint/speed bounds from measured q,dq.
 
     When context duration is given, allocate that duration to ramp toward the
@@ -17,6 +17,7 @@ def fit_hand_startup(desired,start_q,start_dq,dt,limits,velocity_limits,*,startu
     """
     from scipy.optimize import minimize,LinearConstraint,Bounds
     from scipy.sparse import diags
+    weights=np.ones(len(desired)) if frame_weights is None else np.asarray(frame_weights)
     n=len(desired);d=diags([np.ones(n),-np.ones(n-1)],[0,-1],shape=(n,n)).toarray()
     dd=d@d;result=np.empty_like(desired)
     for j in range(desired.shape[1]):
@@ -32,8 +33,8 @@ def fit_hand_startup(desired,start_q,start_dq,dt,limits,velocity_limits,*,startu
             constraints.append(LinearConstraint(dd/(acceleration*dt**2),-1-ac,1-ac))
         def objective(q):
             residual=q-target;dv=smooth@q+constant
-            return .5*np.sum(residual**2)+.005*np.sum(dv**2)
-        def gradient(q):return q-target+.01*smooth.T@(smooth@q+constant)
+            return .5*np.sum(weights*residual**2)+.005*np.sum(dv**2)
+        def gradient(q):return weights*(q-target)+.01*smooth.T@(smooth@q+constant)
         solution=minimize(objective,np.zeros(n),jac=gradient,method='SLSQP',
             bounds=Bounds(limits[j,0]-start_q[j],limits[j,1]-start_q[j]),
             constraints=constraints,options={'maxiter':150,'ftol':1e-9})
@@ -82,7 +83,7 @@ def local_commands(scene,anchor,proposal,held_transform=None,entry_offset=None,*
     return np.asarray(commands)
 
 
-def fit_arm_startup(desired,start_q,start_dq,dt,velocity_limits,acceleration_limits,joint_limits,*,startup_duration=None):
+def fit_arm_startup(desired,start_q,start_dq,dt,velocity_limits,acceleration_limits,joint_limits,*,startup_duration=None,frame_weights=None):
     """Local arm fit with measured entry velocity and a context-timed ramp.
 
     An acceleration envelope reduces simultaneous arm/hand startup demand.
@@ -91,6 +92,7 @@ def fit_arm_startup(desired,start_q,start_dq,dt,velocity_limits,acceleration_lim
     from scipy.optimize import minimize, LinearConstraint, Bounds
     from scipy.sparse import diags
     n=len(desired)
+    weights=np.ones(n) if frame_weights is None else np.asarray(frame_weights)
     difference=diags([np.ones(n),-np.ones(n-1)],[0,-1],shape=(n,n)).toarray()
     second=difference@difference
     result=np.empty_like(desired)
@@ -108,8 +110,8 @@ def fit_arm_startup(desired,start_q,start_dq,dt,velocity_limits,acceleration_lim
             envelope=phase**2*(3-2*phase)
             low[n:]=-envelope-aconst;high[n:]=envelope-aconst
         target=desired[:,j]-start_q[j]
-        opt=minimize(lambda q:.5*np.sum((q-target)**2),np.zeros(n),
-                     jac=lambda q:q-target,method='SLSQP',
+        opt=minimize(lambda q:.5*np.sum(weights*(q-target)**2),np.zeros(n),
+                     jac=lambda q:weights*(q-target),method='SLSQP',
                      bounds=Bounds(joint_limits[j,0]-start_q[j],joint_limits[j,1]-start_q[j]),
                      constraints=[LinearConstraint(matrix,low,high)],
                      options={'maxiter':150,'ftol':1e-8})
@@ -120,7 +122,7 @@ def fit_arm_startup(desired,start_q,start_dq,dt,velocity_limits,acceleration_lim
 
 def fit_timed_controls(arm_targets,hand_targets,start_q,start_dq,start_hand,
                        fps,dt,velocity_limits,acceleration_limits,joint_limits,
-                       *,start_hand_dq=None,hand_joint_limits=None,hand_velocity_limits=None,hand_startup_duration=None):
+                       *,start_hand_dq=None,hand_joint_limits=None,hand_velocity_limits=None,hand_startup_duration=None,core_interval_s=None):
     """Mounted retargeting with velocity/acceleration constraints at physics rate.
 
     This is kinematic trajectory fitting, not physical MPC or a success gate.
@@ -130,18 +132,24 @@ def fit_timed_controls(arm_targets,hand_targets,start_q,start_dq,start_hand,
     if tpf<1 or abs(tpf*fps*dt-1)>1e-8:raise ValueError("Physics/source clocks not commensurate")
     n=len(arm_targets)*tpf
     clock=np.arange(len(arm_targets)+1)/fps;query=np.arange(1,n+1)*dt
+    # Context supports synthesis; only the oracle core must track closely.
+    # This changes fitting priority, never the source clock or hard bounds.
+    core=np.ones(n,dtype=bool) if core_interval_s is None else ((query>core_interval_s[0])&(query<=core_interval_s[1]))
+    weights=np.where(core,1.,.05)
     reference=np.vstack((start_q,arm_targets))
     desired=np.stack([np.interp(query,clock,reference[:,j]) for j in range(7)],axis=1)
     hand_ref=np.vstack((start_hand,hand_targets))
     hand=np.stack([np.interp(query,clock,hand_ref[:,j]) for j in range(hand_ref.shape[1])],axis=1)
     if hand_joint_limits is not None:
-        hand=fit_hand_startup(hand,start_hand,start_hand_dq,dt,hand_joint_limits,hand_velocity_limits,startup_duration=hand_startup_duration)
+        hand=fit_hand_startup(hand,start_hand,start_hand_dq,dt,hand_joint_limits,hand_velocity_limits,startup_duration=hand_startup_duration,frame_weights=weights)
     result=fit_arm_startup(desired,start_q,start_dq,dt,velocity_limits,acceleration_limits,joint_limits,
-                           startup_duration=hand_startup_duration)
+                           startup_duration=hand_startup_duration,frame_weights=weights)
     velocity=np.diff(np.vstack((start_q,result)),axis=0)/dt
     acceleration=np.diff(np.vstack((start_dq,velocity)),axis=0)/dt
     vr=float(np.max(np.abs(velocity)/velocity_limits));ar=float(np.max(np.abs(acceleration)/acceleration_limits))
     if vr>1.0001 or ar>1.0001:raise RuntimeError('Local retarget optimizer violated dynamics')
     return np.c_[result,hand,velocity],{'method':'continuous_IK_and_constrained_local_retarget',
                     'control_dt':dt,'startup_context_s':hand_startup_duration,'target_joint_rmse_rad':float(np.sqrt(np.mean((desired-result)**2))),
-                    'command_velocity_ratio':vr,'command_acceleration_ratio':ar}
+                    'command_velocity_ratio':vr,'command_acceleration_ratio':ar,
+                    'fitting_context_weight':.05,'core_interval_s':core_interval_s,
+                    'core_arm_target_rmse_rad':float(np.sqrt(np.mean((desired[core]-result[core])**2))) if core.any() else None}

@@ -190,6 +190,10 @@ def mounted_mpc(scene, anchor, data, baseline, start, out, seed=0, config=None, 
         commit = min(config.chunk_frames * tpf, len(baseline) - begin)
         chunk = dict(begin_tick=begin, end_tick=begin+commit, prediction_end_tick=stop, selected=None)
         chunks.append(chunk)
+        core_interval=((anchor.core_start-anchor.synth_start-begin/tpf)/fps,
+                       (anchor.core_end-anchor.synth_start-begin/tpf)/fps)
+        local_clock=np.arange(1,stop-begin+1)*scene.dt
+        weights=np.where((local_clock>core_interval[0])&(local_clock<=core_interval[1]),1.,.05)
         q = np.asarray(state['arm_q']); dq = np.asarray(state['arm_dq'])
         hq = np.asarray(state['hand_q']); hdq = np.asarray(state['hand_dq'])
         # Refit commands from actual q/dq, instead of shifting hand targets
@@ -201,8 +205,8 @@ def mounted_mpc(scene, anchor, data, baseline, start, out, seed=0, config=None, 
             # Replay and all sampled residuals.
             if begin:
                 replay[:, :7] = fit_arm_startup(replay[:, :7], q, dq, scene.dt, scene.velocity,
-                    scene.acceleration, limits[:7], startup_duration=scene.dt)
-                replay[:, 7:19] = fit_hand_startup(replay[:, 7:19], hq, hdq, scene.dt, limits[7:], hand_velocity)
+                    scene.acceleration, limits[:7], startup_duration=scene.dt,frame_weights=weights)
+                replay[:, 7:19] = fit_hand_startup(replay[:, 7:19], hq, hdq, scene.dt, limits[7:], hand_velocity,frame_weights=weights)
                 replay[:, 19:26] = np.diff(np.vstack((q, replay[:, :7])), axis=0) / scene.dt
             replay_return, replay_ok = evaluate(replay, state, begin, 'CHUNK_REPLAY')
         except (RuntimeError, ValueError) as error:
@@ -238,7 +242,7 @@ def mounted_mpc(scene, anchor, data, baseline, start, out, seed=0, config=None, 
                         control, _ = fit_timed_controls(np.asarray(arm), targets[:, 7:], q, dq, hq,
                             fps, scene.dt, scene.velocity, scene.acceleration, limits[:7],
                             start_hand_dq=hdq, hand_joint_limits=limits[7:], hand_velocity_limits=hand_velocity,
-                            hand_startup_duration=remaining_context)
+                            hand_startup_duration=remaining_context,core_interval_s=core_interval)
                     except (RuntimeError, ValueError) as error:
                         history.append(dict(begin_tick=begin, mode='MPPI', iteration=iteration, candidate=i,
                             feasible_controls=False, interaction_feasible=False, score=None, fit_error=str(error)))

@@ -58,7 +58,10 @@ def main():
         controls,fitting=fit_timed_controls(targets[:,:7],targets[:,7:],np.array(start['arm_q']),
              np.array(start['arm_dq']),np.array(start['hand_q']),schedule.fps,scene.dt,scene.velocity,scene.acceleration,limits,
              start_hand_dq=np.array(start['hand_dq']),hand_velocity_limits=hand_limits_from_urdf(scene),hand_startup_duration=(anchor.core_start-anchor.synth_start)/schedule.fps,
-             hand_joint_limits=np.asarray(scene.robot._articulation_view.get_dof_limits()).reshape(-1,2)[scene.fingers])
+             hand_joint_limits=np.asarray(scene.robot._articulation_view.get_dof_limits()).reshape(-1,2)[scene.fingers],
+             core_interval_s=((anchor.core_start-anchor.synth_start)/schedule.fps,(anchor.core_end-anchor.synth_start)/schedule.fps))
+        np.savez_compressed(out/'local_target_fit.npz',targets=targets,commands=controls,
+                            source_frames=np.arange(anchor.synth_start+1,anchor.synth_end+1))
         report['kinematic_initialization']=fitting
         from multipath.anchors.control_check import control_feasibility
         all_limits=np.asarray(scene.robot._articulation_view.get_dof_limits()).reshape(-1,2)[np.r_[scene.arm,scene.fingers]]
