@@ -117,7 +117,6 @@ class WindowEvaluation:
                 reason = 'core_object_fidelity'
             # Native opposition, not proximity. No human-mimic or smoothness
             # reward; final release is checked explicitly below.
-            reward += 2. * measured['contact'].get('opposition_contact', False)
             # Release Anchors must be allowed to change contact inside CORE.
             # Requiring retention until the exact exit frame makes release
             # interactions fail by construction. Stable grasp Anchors retain it.
@@ -136,6 +135,11 @@ class WindowEvaluation:
             r = retention_errors(measured, self.held)
             if r['position_m'] > .05 or r['rotation_rad'] > .35 or not r['contact_retained']:
                 reason = 'post_context_grasp_retention'
+        # Padding has no human-trajectory fidelity objective, but preserving a
+        # required physical grasp still needs a learning signal. Zero returns
+        # for all early retention failures made the local PPO fallback blind.
+        if a.core_start<frame<=a.core_end or self.held is not None:
+            reward+=2.*measured['contact'].get('opposition_contact',False)
         self.last_reward = float(reward)
         # Include the failed boundary's measured score: otherwise every
         # pre-context candidate missing the boundary receives the same zero.

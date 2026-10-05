@@ -110,6 +110,10 @@ def test_grasp_preload_is_not_counted_as_a_new_command_jump():
     anchor.entry_contact=anchor.exit_contact='grasped'
     ref[:,7:]=.4
     controls=local_controls(scene,anchor,{'wrist_hand_q':ref},start)
+    assert np.all(controls[:,7:19]>=np.asarray(start['command_hand_q'])-1e-10)
+    assert controls[-1,7]>.1
+    ref[:,7:]=0.
+    controls=local_controls(scene,anchor,{'wrist_hand_q':ref},start)
     np.testing.assert_allclose(controls[:,7:19],np.tile(start['command_hand_q'],(len(controls),1)))
 
 

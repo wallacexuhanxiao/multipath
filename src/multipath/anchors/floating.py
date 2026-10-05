@@ -73,11 +73,13 @@ def local_controls(scene,anchor,data,start):
     hand_start_velocity=np.zeros(12) if preserve_preload else start.get('hand_dq',np.zeros(12))
     hand=_entry_curve(hand,hand_start,hand_start_velocity,scene.dt,padding)
     if anchor.entry_contact==anchor.exit_contact=='grasped' and preserve_preload:
-        # A persistent-grasp Anchor transports an already acquired grip. The
-        # retargeted fingers need not reproduce that physical contact geometry;
-        # retain its measured drive preload as the nominal interaction control.
-        # MPPI/PPO can still apply bounded finger residuals if physics needs them.
-        hand[:]=hand_start
+        # Keep contact-loaded joints from releasing their acquired preload,
+        # while allowing the retarget to strengthen or adapt the grasp. Holding
+        # all fingers rigidly discarded useful closing motion in physical replay.
+        preload=hand_start-np.asarray(start['hand_q'])
+        positive=preload>1e-6;negative=preload<-1e-6
+        hand[:,positive]=np.maximum(hand[:,positive],hand_start[positive])
+        hand[:,negative]=np.minimum(hand[:,negative],hand_start[negative])
     hand=np.clip(hand,scene.hand_limits[:,0],scene.hand_limits[:,1])
     # Finger slew is constrained; no arm IK or joint-space projection exists.
     for k in range(1,len(hand)):
