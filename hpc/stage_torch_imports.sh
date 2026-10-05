@@ -11,3 +11,4 @@ trap 'rm -rf -- "$MULTIPATH_IMPORT_ROOT"' EXIT
 echo "TORCH_IMPORT_STAGE_BEGIN archive=$MP_TORCH_ARCHIVE destination=$MULTIPATH_IMPORT_ROOT"
 timeout 90 tar -xzf "$MP_TORCH_ARCHIVE" -C "$MULTIPATH_IMPORT_ROOT"
 echo "TORCH_IMPORT_STAGE_READY destination=$MULTIPATH_IMPORT_ROOT"
+timeout 180 "$RUNTIME/envs/retarget/bin/python" "$ROOT/hpc/warm_native_imports.py" "$MULTIPATH_IMPORT_ROOT"
