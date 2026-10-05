@@ -219,7 +219,13 @@ def refine(scene,anchor,data,baseline,start,out,candidates=64,iterations=3,use_p
                 best_state=retain_prefix(ppo.selected_prefix,best,begin)
         if best is None:
             methods='Replay/MPPI/PPO' if use_ppo else 'Replay/MPPI (PPO disabled for attribution)'
-            raise RefinementRequired(f'Floating {methods} failed at source frame {anchor.synth_start+begin/tpf}')
+            error=RefinementRequired(f'Floating {methods} failed at source frame {anchor.synth_start+begin/tpf}')
+            # Keep the already acquired prefix and best failed future proposal
+            # for a continuous whole-Anchor physical replay. This is not a
+            # validated trajectory or a state transition.
+            proposal=chosen.copy();proposal[begin:stop]=seed
+            error.controls=proposal
+            raise error
         # Continue local development from the prefix actually reached inside the
         # selected physical prediction, rather than replaying it a second time.
         # This development restore is never final trajectory acceptance: a fresh

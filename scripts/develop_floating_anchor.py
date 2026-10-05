@@ -150,8 +150,17 @@ def main():
         if not validation['success'] and not args.replay_only:
             from multipath.anchors.floating_search import refine
             from multipath.anchors.ppo import PPOConfig
-            controls=refine(scene,anchor,data,controls,entry,out/'refinement',args.mpc_candidates,args.mpc_iters,
-                            use_ppo=not args.mpc_only,ppo_config=PPOConfig(iterations=args.ppo_updates))
+            from multipath.anchors.mpc import RefinementRequired
+            try:
+                controls=refine(scene,anchor,data,controls,entry,out/'refinement',args.mpc_candidates,args.mpc_iters,
+                                use_ppo=not args.mpc_only,ppo_config=PPOConfig(iterations=args.ppo_updates))
+            except RefinementRequired as error:
+                if args.mpc_only or not hasattr(error,'controls'):raise
+                # A failed snapshot-started window is useful initialization,
+                # not an excuse to skip continuous whole-Anchor synthesis.
+                controls=project_hand_commands(scene,error.controls,entry)
+                report['window_refinement_failure']={'reason':str(error),'proposal_only':True,
+                    'next':'fresh_padded_replay_then_whole_anchor_PPO_if_needed'}
             np.savez_compressed(out/'refined_controls.npz',commands=controls)
             validation,core_entry,core_exit=rollout(scene,anchor,data,controls,entry,out/'refined_replay')
             report['refined_padded_replay']=validation
