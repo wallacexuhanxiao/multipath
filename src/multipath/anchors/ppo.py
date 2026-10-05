@@ -170,12 +170,13 @@ class MountedResidualEnv:
 
 class LocalPPOSolver:
     """A small fresh model per failed window, sharing one wall-clock budget."""
-    def __init__(self,scene,anchor,data,out,config=None,env_factory=None,accept_controls=None):
+    def __init__(self,scene,anchor,data,out,config=None,env_factory=None,accept_controls=None,allow_physical_prefix=False):
         self.scene,self.anchor,self.data=scene,anchor,data
         self.out=Path(out);self.out.mkdir(parents=True,exist_ok=True)
         self.config=config or PPOConfig();self.deadline=None;self.reports=[]
         self.env_factory=env_factory or MountedResidualEnv
         self.accept_controls=accept_controls
+        self.allow_physical_prefix=allow_physical_prefix
 
     def __call__(self,baseline,start,begin):
         self.selected_prefix=None
@@ -220,6 +221,28 @@ class LocalPPOSolver:
             write()
             return ok
 
+        def physical_prefix(result):
+            # A failed future prediction does not invalidate a prefix that
+            # passed every observed physical/core gate. Use it for local MPC
+            # development only; the final whole padded/core Replay is unchanged.
+            prefix=getattr(env,'physical_prefix',None)
+            if not self.allow_physical_prefix or prefix is None or result['success']:
+                return None
+            commands=env.continuation_proposal()
+            count=len(prefix['trace'])*env.tpf
+            from multipath.anchors.floating import validate_commands
+            if not validate_commands(self.scene,commands,start)['feasible']:return None
+            selected=folder/'physical_prefix';selected.mkdir(exist_ok=True)
+            (selected/'actual_trace.json').write_text(json.dumps(prefix['trace']))
+            (selected/'state.json').write_text(json.dumps(prefix['state'],indent=2))
+            np.savez_compressed(selected/'commands.npz',commands=commands[:count])
+            report.update(status='physical_prefix_selected',success=False,
+                          selection='local_development_prefix; fresh_padded_and_core_required',
+                          committed_source_frames=count//env.tpf,future_prediction_failure=result.get('failure'))
+            self.selected_prefix=prefix;write()
+            learner.save(folder/'prefix_policy.pt',env.metadata)
+            return commands
+
         # Confirm that the installed zero-mean policy really runs the baseline.
         _,zero=rollout(True);report['zero_policy']=zero;env.save_evaluation(folder/'zero_policy',zero)
         write();print('LOCAL_PPO_BEGIN',begin,'parameters',learner.parameter_count,'zero',zero,flush=True)
@@ -228,6 +251,8 @@ class LocalPPOSolver:
             learner.save(folder/'policy.pt',env.metadata)
             self.selected_prefix=getattr(env,'physical_prefix',None)
             return np.asarray(env.commands).copy()
+        prefix=physical_prefix(zero)
+        if prefix is not None:return prefix
         try:
             for iteration in range(cfg.iterations):
                 if time.monotonic()>=self.deadline:break
@@ -235,6 +260,8 @@ class LocalPPOSolver:
                 for _ in range(cfg.episodes_per_update):
                     if time.monotonic()>=self.deadline:break
                     episode,result=rollout(False);episodes.append(episode);results.append(result)
+                    prefix=physical_prefix(result)
+                    if prefix is not None:return prefix
                     if result['success']:
                         # We synthesize one executable command trajectory.
                         # A physically valid sampled episode is useful even
@@ -262,6 +289,8 @@ class LocalPPOSolver:
                 print('LOCAL_PPO_UPDATE',begin,row,flush=True);write()
                 if (iteration+1)%cfg.evaluate_every==0 or iteration+1==cfg.iterations or time.monotonic()>=self.deadline:
                     _,evaluation=rollout(True);row['evaluation']=evaluation
+                    prefix=physical_prefix(evaluation)
+                    if prefix is not None:return prefix
                     if evaluation['evaluation_return']>best_return:
                         best_return=evaluation['evaluation_return'];report['best_evaluation']=evaluation
                         learner.save(folder/'best_policy.pt',env.metadata)

@@ -72,6 +72,17 @@ class FloatingResidualEnv(MountedResidualEnv):
 
     def command_precheck(self):return validate_commands(self.scene,np.asarray(self.commands),self.start)
 
+    def continuation_proposal(self):
+        # Unknown future policy actions are an initialization only. Continue
+        # the last residual to avoid jumping back to raw retarget after commit.
+        residuals=np.asarray(self.residuals)
+        if not np.any(residuals):return self.baseline.copy()
+        residuals=np.concatenate((residuals,np.repeat(residuals[-1:],self.horizon-len(residuals),axis=0)))
+        phase=np.clip((self.begin+np.arange(len(self.baseline)+1))/max(1,(self.anchor.core_start-self.anchor.synth_start)*self.tpf),0,1)
+        controls=apply_residual(self.scene,self.baseline,self.start,residuals,self.tpf,phase**2*(3-2*phase))
+        count=min(len(self.commands),len(controls));controls[:count]=self.commands[:count]
+        return controls
+
     def step(self,action):
         action=np.clip(np.asarray(action,dtype=float),-1,1)
         if action.shape!=(18,) or not np.isfinite(action).all():raise ValueError('Invalid floating PPO action')
@@ -110,7 +121,7 @@ def refine(scene,anchor,data,baseline,start,out,candidates=64,iterations=3,use_p
         env.metadata.update(residual_center='best_physically_evaluated_local_command_proposal',
                             initialization_proposal=dict(prior_origin),initialization_is_acceptance=False)
         return env
-    ppo=LocalPPOSolver(scene,anchor,data,out/'ppo',ppo_config or PPOConfig(),env_factory=ppo_env) if use_ppo else None
+    ppo=LocalPPOSolver(scene,anchor,data,out/'ppo',ppo_config or PPOConfig(),env_factory=ppo_env,allow_physical_prefix=True) if use_ppo else None
     def evaluate(control,boundary,begin,label,folder,object_relative=False,prefix_ticks=None):
         check=validate_commands(scene,control,boundary)
         if not check['feasible']:return -np.inf,False,{'precheck':check},None
