@@ -90,7 +90,7 @@ def local_controls(scene,anchor,data,start):
     controls=controls_from_poses(pose,hand,scene.dt)
     if np.max(np.abs((controls[0,7:19]-hand_start)/scene.dt-hand_start_velocity))>1e-5:
         raise ValueError('Measured hand velocity has no feasible continuous first command')
-    return controls
+    return project_hand_commands(scene,controls,start,anchor)
 
 
 def hand_command_boundary(start):
@@ -133,7 +133,14 @@ def project_hand_commands(scene,commands,start,anchor=None):
     """
     controls=np.asarray(commands).copy();previous=hand_command_boundary(start)
     low,high=grasp_command_bounds(scene,start,anchor)
-    for c in controls:
+    # A transport-compatible padding may stabilize an existing grasp, but must
+    # not synthesize a new finger posture that the frozen-grasp bridge cannot
+    # supply. CORE remains free to adapt its fingers under the contact bounds.
+    padding=0
+    if getattr(scene,'bridge_entry_start',None) is not None and anchor is not None:
+        padding=max(0,round((anchor.core_start/scene.manifest['fps']-start['time_s'])/scene.dt))
+    for k,c in enumerate(controls):
+        if k<padding:c[7:19]=hand_command_boundary(start)
         c[7:19]=np.clip(c[7:19],low,high)
         c[7:19]=np.clip(c[7:19],previous-scene.hand_velocity*scene.dt,previous+scene.hand_velocity*scene.dt)
         previous=c[7:19].copy()
@@ -197,6 +204,15 @@ def rollout(scene,anchor,data,commands,start,out,mode='LOCAL_PADDED',core_only=F
         errors=core_pose_errors(entry,data['tool_pose'][anchor.core_start-anchor.synth_start])
         result['core_entry_source_boundary']=dict(source_frame=anchor.core_start,**errors,
                                                   accepted=object_tracking_score(errors)['feasible'])
+        predecessor=getattr(scene,'bridge_entry_start',None)
+        if predecessor is not None:
+            from multipath.planning.bridge import bridge_precheck
+            result['bridge_entry_precheck']=bridge_precheck(predecessor,entry,
+                anchor.core_start/scene.manifest['fps']-predecessor['time_s'],scene.cfg['planning'])
+    if exit_state is not None and getattr(scene,'bridge_exit_constraints',False):
+        from multipath.planning.bridge import coordinate_velocity
+        speed=coordinate_velocity(exit_state['wrist_xyz_wxyz'],exit_state['wrist_twist'])
+        result['bridge_exit_velocity_ratio']=float(np.max(np.abs(speed)/scene.cfg['planning']['velocity_limits']))
     (Path(out)/'local_result.json').write_text(json.dumps(result,indent=2))
     return result,entry,exit_state
 

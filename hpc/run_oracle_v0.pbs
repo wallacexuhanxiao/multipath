@@ -47,7 +47,7 @@ if [[ "$EMBODIMENT" == floating_xhand ]]; then
  PREFIX_ARGS=()
 fi
 run_sim() {
- singularity exec --nv -e "${MP_ENV[@]}" "$IMAGE" "$RUNTIME/envs/sim-isaac510/bin/python" -u "$@"
+ singularity exec --nv -e "${MP_ENV[@]}" --env OMP_NUM_THREADS=2 --env OPENBLAS_NUM_THREADS=2 --env MKL_NUM_THREADS=2 "$IMAGE" "$RUNTIME/envs/sim-isaac510/bin/python" -u "$@"
 }
 check_result() {
  "$RUNTIME/envs/retarget/bin/python" - "$1" "$2" <<'PYCODE'
@@ -78,6 +78,8 @@ if [[ -n "${MULTIPATH_LOCAL_ANCHOR:-}" ]]; then
  LOCAL_ARGS=()
  [[ -z "${MULTIPATH_INITIAL_CONTROLS:-}" ]] || LOCAL_ARGS+=(--initial-controls "$MULTIPATH_INITIAL_CONTROLS")
  [[ "${MULTIPATH_REPLAY_ONLY:-0}" != 1 ]] || LOCAL_ARGS+=(--replay-only)
+ [[ "${MULTIPATH_BRIDGE_COMPATIBLE_ENTRY:-0}" != 1 ]] || LOCAL_ARGS+=(--bridge-compatible-entry)
+ [[ "${MULTIPATH_BRIDGE_COMPATIBLE_EXIT:-0}" != 1 ]] || LOCAL_ARGS+=(--bridge-compatible-exit)
  run_sim scripts/develop_floating_anchor.py --proposals "$PROPOSALS" --schedule "$MULTIPATH_SCHEDULE" \
   --xhand-urdf "$ENGINE/assets/xhand/spider/xhand_right.urdf" --object-cache "$ENGINE/outputs/sim_usd" \
   --floating-config "$ROOT/configs/floating_xhand.json" --anchor-id "$anchor" \

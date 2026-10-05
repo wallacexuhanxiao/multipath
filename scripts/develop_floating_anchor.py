@@ -15,6 +15,8 @@ def main():
     p.add_argument('--entry-snapshot',type=Path,help='Development only: physically acquired state at synth_start.')
     p.add_argument('--predecessor-run',type=Path,help='Reuse a passed cuRobo bridge only when its actual initial state and source match.')
     p.add_argument('--initial-controls',type=Path,help='Existing padded local command proposal; still requires fresh physical validation.')
+    p.add_argument('--bridge-compatible-entry',action='store_true',help='Preserve predecessor hand drive through padding and require a necessary fixed-time bridge boundary precheck.')
+    p.add_argument('--bridge-compatible-exit',action='store_true',help='Require measured core-exit wrist velocity inside the configured bridge planning budget.')
     args=p.parse_args();out=args.output_dir;out.mkdir(parents=True,exist_ok=True)
     if args.entry_snapshot and args.predecessor_run:p.error('Choose a snapshot or a validated predecessor bridge')
     from multipath.oracle_schedule import OracleSchedule
@@ -129,6 +131,13 @@ def main():
                 'source_frame':anchor.synth_start,'planner':'cuRobo','predecessor_success':True}
             entry=scene.snapshot();(out/'acquired_snapshot.json').write_text(json.dumps(entry,indent=2))
         print('FLOATING_PREDECESSOR_PASSED',flush=True)
+        scene.bridge_exit_constraints=args.bridge_compatible_exit
+        if args.bridge_compatible_exit:report['exit_bridge_constraints']='measured virtual-coordinate velocity within configured nominal planning budget'
+        if args.bridge_compatible_entry:
+            if anchor.entry_contact!=anchor.exit_contact or anchor.entry_contact!='grasped':
+                raise ValueError('Bridge-compatible entry synthesis requires a persistent-grasp Anchor')
+            scene.bridge_entry_start=dict(entry)
+            report['entry_bridge_constraints']='necessary fixed-time boundary conditions; final cuRobo and actual bridge still required'
         if args.initial_controls:
             controls=np.load(args.initial_controls,allow_pickle=False)['commands']
             if controls.shape!=((anchor.synth_end-anchor.synth_start)*tpf,25) or not np.isfinite(controls).all():

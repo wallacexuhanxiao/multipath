@@ -107,6 +107,21 @@ class WindowEvaluation:
             if not score['feasible']:reason='core_entry_source_boundary'
             if measured['contact']['mode'] != a.entry_contact:
                 reason = 'core_entry_contact'
+            predecessor=getattr(self.scene,'bridge_entry_start',None)
+            if predecessor is not None:
+                from multipath.planning.bridge import bridge_precheck
+                budget=a.core_start/self.scene.manifest['fps']-predecessor['time_s']
+                check=bridge_precheck(predecessor,measured,budget,self.scene.cfg['planning'])
+                self.scene.last_bridge_entry_precheck=check
+                if not check['feasible']:
+                    if reason is None:reason='core_entry_bridge_boundary'
+                    limit=np.asarray(self.scene.cfg['planning']['velocity_limits'])
+                    violation=max(check['minimum_duration_velocity_only_s']/budget,
+                                  check['minimum_duration_velocity_change_only_s']/budget,
+                                  max(np.abs(check['initial_coordinate_velocity'])/limit),
+                                  max(np.abs(check['terminal_coordinate_velocity'])/limit),
+                                  check['hand_q_max_difference_rad']/.10)-1
+                    reward-=2*max(0.,violation)
             self.held = np.asarray(measured['hand_object_transform']) if a.entry_contact == 'grasped' else None
         if a.core_start < frame <= a.core_end:
             error = core_pose_errors(measured, self.data['tool_pose'][index])
@@ -130,6 +145,14 @@ class WindowEvaluation:
                        check_transition(self.scene, command[:7], a.exit_contact, self.data['tool_pose'][index]))
             if not handoff['success']:
                 reason = 'core_exit_handoff'
+            if getattr(self.scene,'bridge_exit_constraints',False):
+                from multipath.planning.bridge import coordinate_velocity
+                velocity=coordinate_velocity(measured['wrist_xyz_wxyz'],measured['wrist_twist'])
+                ratio=float(np.max(np.abs(velocity)/self.scene.cfg['planning']['velocity_limits']))
+                self.scene.last_bridge_exit_velocity_ratio=ratio
+                if ratio>1.0001:
+                    if reason is None:reason='core_exit_bridge_velocity'
+                    reward-=2*(ratio-1)
             self.held = np.asarray(measured['hand_object_transform']) if a.exit_contact == 'grasped' else None
         if frame > a.core_end and self.held is not None:
             r = retention_errors(measured, self.held)

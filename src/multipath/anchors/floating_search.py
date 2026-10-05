@@ -33,7 +33,7 @@ def apply_residual(scene,baseline,start,residual,tpf,envelope,anchor=None):
     # Keep the nominal source/bridge command twist and let physical feedback
     # execute the sampled pose target. RELAXED planning is unaffected.
     controls[:,19:25]=baseline[:,19:25]
-    return controls
+    return project_hand_commands(scene,controls,start,anchor)
 
 
 class FloatingResidualEnv(MountedResidualEnv):
