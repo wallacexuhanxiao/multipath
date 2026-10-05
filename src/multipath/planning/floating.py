@@ -47,6 +47,25 @@ def cover_points(points,cell=.025):
     return [{'center':(center+(lo+(np.asarray(i)+.5)*width)@axes).tolist(),'radius':radius} for i in np.ndindex(*counts)]
 
 
+def sphere_world_clearance(pose,spheres,boxes):
+    """Minimum signed box clearance and its world translation gradient."""
+    pose=np.asarray(pose);rotation=Rotation.from_quat(pose[[4,5,6,3]])
+    centers=rotation.apply(np.array([s['center'] for s in spheres]))+pose[:3]
+    radii=np.array([s['radius'] for s in spheres]);values={};worst=None
+    for role,box in boxes.items():
+        b=np.asarray(box['pose']);r=Rotation.from_quat(b[[4,5,6,3]])
+        local=r.inv().apply(centers-b[:3]);offset=np.abs(local)-np.asarray(box['dims'])/2
+        outside=np.maximum(offset,0);norm=np.linalg.norm(outside,axis=1)
+        distance=norm+np.minimum(np.max(offset,axis=1),0)-radii
+        i=int(np.argmin(distance));values[role]=float(distance[i])
+        if worst is None or distance[i]<worst[0]:
+            if norm[i]>1e-12:gradient=np.sign(local[i])*outside[i]/norm[i]
+            else:
+                axis=int(np.argmax(offset[i]));gradient=np.zeros(3);gradient[axis]=1 if local[i,axis]>=0 else -1
+            worst=(float(distance[i]),r.apply(gradient))
+    return values,worst
+
+
 def robot_model(scene,carry,out):
     from pxr import Usd,UsdGeom
     out=Path(out);out.mkdir(parents=True,exist_ok=True)

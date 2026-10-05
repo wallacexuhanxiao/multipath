@@ -87,6 +87,23 @@ def main():
         start=scene.snapshot();carry=window['contact']=='grasped';held=np.asarray(start['hand_object_transform'])
         if carry:check_retention(start,held)
         planner=FloatingPlanner(scene,carry,out/'planner')
+        if args.source_entry_target:
+            from multipath.planning.floating import sphere_world_clearance
+            report['goal_clearance_projection']=[]
+            for _ in range(12):
+                clearances,worst=sphere_world_clearance(goal['wrist_xyz_wxyz'],planner.nominal_spheres,planner.live['cuboid'])
+                report['goal_clearance_projection'].append(clearances)
+                if worst[0]>=1e-4:break
+                pose=np.asarray(goal['wrist_xyz_wxyz']).copy();pose[:3]+=(1e-4-worst[0])*worst[1]
+                goal['wrist_xyz_wxyz']=pose.tolist()
+            else:raise RuntimeError('No collision-free oracle boundary proposal')
+            revised=bridge_precheck(start,goal,check['budget_s'],config['planning'])
+            target_tool=pose_matrix(goal['wrist_xyz_wxyz'])@np.asarray(start['hand_object_transform'])
+            target_pose=np.r_[target_tool[:3,3],Rotation.from_matrix(target_tool[:3,:3]).as_quat()[[3,0,1,2]]]
+            source_error=core_pose_errors({'objects':{'tool':{'pose':target_pose.tolist()}}},source_target)
+            report['collision_corrected_source_error']=source_error;report['collision_corrected_boundary_precheck']=revised
+            if not revised['feasible'] or not object_tracking_score(source_error)['feasible']:
+                raise RuntimeError('Collision-free target violates fixed source boundary or time budget')
         commands,timing=planner.plan(np.asarray(goal['wrist_xyz_wxyz']),round(check['budget_s']/dt),
                                    np.asarray(goal['wrist_twist']),goal_state=goal)
         report['planning']=timing;np.savez_compressed(out/'bridge_commands.npz',commands=commands)
