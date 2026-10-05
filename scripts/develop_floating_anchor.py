@@ -132,7 +132,7 @@ def main():
             entry=scene.snapshot();(out/'acquired_snapshot.json').write_text(json.dumps(entry,indent=2))
         print('FLOATING_PREDECESSOR_PASSED',flush=True)
         scene.bridge_exit_constraints=args.bridge_compatible_exit
-        if args.bridge_compatible_exit:report['exit_bridge_constraints']='measured virtual-coordinate velocity within configured nominal planning budget'
+        if args.bridge_compatible_exit:report['exit_bridge_constraints']='configured boundary velocity budget and collision-free carried object for grasped exits'
         if args.bridge_compatible_entry:
             if anchor.entry_contact!=anchor.exit_contact or anchor.entry_contact!='grasped':
                 raise ValueError('Bridge-compatible entry synthesis requires a persistent-grasp Anchor')

@@ -213,7 +213,7 @@ def rollout(scene,anchor,data,commands,start,out,mode='LOCAL_PADDED',core_only=F
         from multipath.planning.bridge import coordinate_velocity,carried_object_clearance
         speed=coordinate_velocity(exit_state['wrist_xyz_wxyz'],exit_state['wrist_twist'])
         result['bridge_exit_velocity_ratio']=float(np.max(np.abs(speed)/scene.cfg['planning']['velocity_limits']))
-        result['bridge_exit_carried_object_clearance_m']=carried_object_clearance(scene,exit_state)
+        if anchor.exit_contact=='grasped':result['bridge_exit_carried_object_clearance_m']=carried_object_clearance(scene,exit_state)
     (Path(out)/'local_result.json').write_text(json.dumps(result,indent=2))
     return result,entry,exit_state
 

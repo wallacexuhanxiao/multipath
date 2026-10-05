@@ -153,11 +153,12 @@ class WindowEvaluation:
                 if ratio>1.0001:
                     if reason is None:reason='core_exit_bridge_velocity'
                     reward-=2*(ratio-1)
-                clearance=carried_object_clearance(self.scene,measured)
-                self.scene.last_bridge_exit_clearance=clearance
-                if min(clearance.values())<0:
-                    if reason is None:reason='core_exit_carried_object_collision'
-                    reward-=2*max(0.,-min(clearance.values()))/.025
+                if a.exit_contact=='grasped':
+                    clearance=carried_object_clearance(self.scene,measured)
+                    self.scene.last_bridge_exit_clearance=clearance
+                    if min(clearance.values())<0:
+                        if reason is None:reason='core_exit_carried_object_collision'
+                        reward-=2*max(0.,-min(clearance.values()))/.025
             self.held = np.asarray(measured['hand_object_transform']) if a.exit_contact == 'grasped' else None
         if frame > a.core_end and self.held is not None:
             r = retention_errors(measured, self.held)
