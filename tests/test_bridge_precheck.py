@@ -16,3 +16,12 @@ def test_fixed_time_rejects_displacement_and_velocity_boundaries():
     assert check['minimum_duration_velocity_only_s']>.27
     assert 'terminal_velocity_exceeds_planning_budget' in check['reasons']
     assert 'boundary_velocity_change_exceeds_acceleration_budget' in check['reasons']
+    # Both separate checks pass, but opposing momentum still makes the turn
+    # impossible in 0.2 s. This is the observed inter-Anchor failure mode.
+    start=state(0,[0,0,0,1.3,0,0]);goal=state(0,[0,0,0,-.8,0,0])
+    goal['wrist_xyz_wxyz'][3:]=Rotation.from_euler('ZYX',[0,0,-.36]).as_quat()[[3,0,1,2]].tolist()
+    check=bridge_precheck(start,goal,.2,
+                         dict(velocity_limits=[1,1,1,3,3,3],acceleration_limits=[5,5,5,15,15,15]))
+    assert check['minimum_duration_velocity_only_s']<.2
+    assert check['minimum_duration_velocity_change_only_s']<.2
+    assert 'displacement_exceeds_acceleration_reachability' in check['reasons']

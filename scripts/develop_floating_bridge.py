@@ -40,7 +40,16 @@ def main():
                   command_hand_q=a['exit']['command_hand_q'],contact={'mode':right.entry_contact},
                   scene_id=a['exit']['scene_id'],physically_acquired_state=False,
                   state_origin='oracle_boundary_target_only')
-    from multipath.planning.bridge import bridge_precheck
+    from multipath.planning.bridge import bridge_precheck,project_boundary_target
+    projected_source_error=None
+    if args.source_entry_target:
+        budget=(window['end']-window['start'])/schedule.fps
+        goal=project_boundary_target(a['exit'],goal,budget,config['planning'])
+        from multipath.execution.mounted_scene import pose_matrix
+        from multipath.validation.physics import core_pose_errors,object_tracking_score
+        tool=pose_matrix(goal['wrist_xyz_wxyz'])@np.asarray(a['exit']['hand_object_transform'])
+        tool_pose=np.r_[tool[:3,3],Rotation.from_matrix(tool[:3,:3]).as_quat()[[3,0,1,2]]]
+        projected_source_error=core_pose_errors({'objects':{'tool':{'pose':tool_pose.tolist()}}},source_target)
     check=bridge_precheck(a['exit'],goal,(window['end']-window['start'])/schedule.fps,config['planning'])
     report=dict(status='preflight_passed_physics_pending' if check['feasible'] else 'boundary_rejected',development_only=True,full_pipeline_success=False,
         bridge_success=False,next_core_success=False,source_provenance=manifest['provenance'],
@@ -49,6 +58,11 @@ def main():
         source_time_stretch=False,vlm_used=False,complete_robot_reference_required=False,
         goal_kind='oracle_boundary_target_only' if args.source_entry_target else 'physically_validated_canonical_entry',
         source_boundary_frame=right.core_start)
+    if projected_source_error is not None:
+        report['proposed_boundary_source_error']=projected_source_error
+        if not object_tracking_score(projected_source_error)['feasible']:
+            check['feasible']=False;check['reasons'].append('projected_boundary_misses_oracle_condition')
+            report['status']='boundary_rejected'
     import shutil,multipath
     implementation=out/'implementation';implementation.mkdir(exist_ok=True)
     shutil.copy2(__file__,implementation/Path(__file__).name)
