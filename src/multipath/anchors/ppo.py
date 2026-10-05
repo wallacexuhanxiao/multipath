@@ -155,26 +155,32 @@ class MountedResidualEnv:
         return observation,float(reward),done,{'success':success,'failure':self.failure,'source_steps':self.k,
             'evaluation_return':self.objective.evaluation_return}
 
+    def command_precheck(self):
+        return control_feasibility(np.asarray(self.commands),np.asarray(self.start['arm_q']),np.asarray(self.start['arm_dq']),
+            self.scene.dt,self.limits,self.scene.velocity,self.scene.acceleration,
+            start_hand_q=np.asarray(self.start['hand_q']),hand_velocity_limits=self.hand_velocity)
+
     def save_evaluation(self,folder,result):
         folder=Path(folder);folder.mkdir(parents=True,exist_ok=True)
-        np.savez_compressed(folder/'commands.npz',commands=np.asarray(self.commands).reshape(-1,26))
+        np.savez_compressed(folder/'commands.npz',commands=np.asarray(self.commands).reshape(-1,self.baseline.shape[1]))
         (folder/'actual_trace.json').write_text(json.dumps(self.scene.records))
         (folder/'evaluation.json').write_text(json.dumps(result,indent=2))
 
 
 class LocalPPOSolver:
     """A small fresh model per failed window, sharing one wall-clock budget."""
-    def __init__(self,scene,anchor,data,out,config=None):
+    def __init__(self,scene,anchor,data,out,config=None,env_factory=None):
         self.scene,self.anchor,self.data=scene,anchor,data
         self.out=Path(out);self.out.mkdir(parents=True,exist_ok=True)
         self.config=config or PPOConfig();self.deadline=None;self.reports=[]
+        self.env_factory=env_factory or MountedResidualEnv
 
     def __call__(self,baseline,start,begin):
         from multipath.anchors.ppo_model import SmallResidualPPO
         cfg=self.config
         if self.deadline is None:self.deadline=time.monotonic()+cfg.max_seconds
         folder=self.out/f'chunk_{begin:04d}_attempt_{len(self.reports):02d}'
-        env=MountedResidualEnv(self.scene,self.anchor,self.data,baseline,start,begin,folder)
+        env=self.env_factory(self.scene,self.anchor,self.data,baseline,start,begin,folder)
         obs=env.reset();learner=SmallResidualPPO(len(obs),env.action_dim,seed=cfg.seed)
         report=dict(env.metadata,config=asdict(cfg),network_hidden=[64,64],
             parameters=learner.parameter_count,status='training',iterations=0,episodes=0,history=[],success=False)
@@ -199,9 +205,7 @@ class LocalPPOSolver:
                 if done:break
             result=dict(result,return_value=total,deterministic=deterministic)
             if result['success']:
-                check=control_feasibility(np.asarray(env.commands),np.asarray(start['arm_q']),np.asarray(start['arm_dq']),
-                    self.scene.dt,env.limits,self.scene.velocity,self.scene.acceleration,
-                    start_hand_q=np.asarray(start['hand_q']),hand_velocity_limits=env.hand_velocity)
+                check=env.command_precheck()
                 result['command_precheck']=check;result['success']=check['feasible']
             report['episodes']+=1
             return episode,result

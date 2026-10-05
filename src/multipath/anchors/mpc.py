@@ -112,7 +112,9 @@ class WindowEvaluation:
                 if r['position_m'] > .05 or r['rotation_rad'] > .35 or not r['contact_retained']:
                     reason = 'core_grasp_retention'
         if frame == a.core_end:
-            handoff = check_transition(self.scene, command[:7], a.exit_contact, self.data['tool_pose'][index])
+            transition = getattr(self.scene, 'check_transition', None)
+            handoff = (transition(command[:7], a.exit_contact, self.data['tool_pose'][index]) if transition else
+                       check_transition(self.scene, command[:7], a.exit_contact, self.data['tool_pose'][index]))
             if not handoff['success']:
                 reason = 'core_exit_handoff'
             self.held = np.asarray(measured['hand_object_transform']) if a.exit_contact == 'grasped' else None

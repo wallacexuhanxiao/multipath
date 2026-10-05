@@ -5,7 +5,14 @@ from scipy.spatial.transform import Rotation
 
 def boundary_errors(actual, expected):
     errors = {}
-    for key in ('arm_q','hand_q','arm_dq','hand_dq'):
+    floating=expected.get('embodiment')=='floating_xhand'
+    errors['embodiment_match']=actual.get('embodiment')==expected.get('embodiment')
+    if floating:
+        a=np.asarray(actual['wrist_xyz_wxyz']);b=np.asarray(expected['wrist_xyz_wxyz'])
+        errors['wrist_position_m']=float(np.linalg.norm(a[:3]-b[:3]))
+        errors['wrist_rotation_rad']=float((Rotation.from_quat(a[[4,5,6,3]])*Rotation.from_quat(b[[4,5,6,3]]).inv()).magnitude())
+        errors['wrist_velocity']=float(np.max(np.abs(np.asarray(actual['wrist_twist'])-expected['wrist_twist'])))
+    for key in (('hand_q','hand_dq') if floating else ('arm_q','hand_q','arm_dq','hand_dq')):
         errors[key] = float(np.max(np.abs(np.array(actual[key])-expected[key])))
     for role, target in expected['objects'].items():
         measured = actual['objects'][role]
@@ -22,8 +29,8 @@ def boundary_errors(actual, expected):
 
 def compatible(errors):
     return bool(errors['contact_match'] and errors['scene_match'] and
-                errors['arm_q'] < .08 and errors['hand_q'] < .10 and
-                errors['arm_dq'] < .3 and errors['hand_dq'] < .5 and
+                errors.get('embodiment_match',True) and errors.get('arm_q',0.) < .08 and errors['hand_q'] < .10 and
+                errors.get('arm_dq',0.) < .3 and errors['hand_dq'] < .5 and
                 (errors.get('relative_transform_required',True) is False or errors['relative_transform'] < .05) and
                 all(v < (.05 if 'position' in k else .35 if 'rotation' in k else .15)
                     for k,v in errors.items() if k.endswith(('_position_m','_rotation_rad','_velocity'))))

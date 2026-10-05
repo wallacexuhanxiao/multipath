@@ -1,0 +1,133 @@
+"""cuRobo transport of a floating wrist with frozen measured hand geometry.
+
+The six virtual joints are a planning parameterization only. PhysX executes
+external wrenches on the real floating hand; no virtual joint drives exist there.
+"""
+from pathlib import Path
+import numpy as np
+from scipy.spatial.transform import Rotation
+from multipath.planning.timing import fixed_budget_path,parameterize_path
+
+
+def pose_coordinates(pose,near=None):
+    pose=np.asarray(pose);angles=Rotation.from_quat(pose[[4,5,6,3]]).as_euler('ZYX')
+    if near is not None:angles+=2*np.pi*np.round((np.asarray(near)[3:]-angles)/(2*np.pi))
+    return np.r_[pose[:3],angles]
+
+
+def coordinates_pose(q):
+    q=np.asarray(q);return np.r_[q[:3],Rotation.from_euler('ZYX',q[3:]).as_quat()[[3,0,1,2]]]
+
+
+def cover_points(points,cell=.025):
+    center=points.mean(0);_,_,axes=np.linalg.svd(points-center,full_matrices=False)
+    coords=(points-center)@axes.T;lo=coords.min(0);hi=coords.max(0)
+    counts=np.maximum(1,np.ceil((hi-lo)/cell).astype(int));width=(hi-lo)/counts
+    radius=float(np.linalg.norm(width)*.5+.001)
+    return [{'center':(center+(lo+(np.asarray(i)+.5)*width)@axes).tolist(),'radius':radius} for i in np.ndindex(*counts)]
+
+
+def robot_model(scene,carry,out):
+    from pxr import Usd,UsdGeom
+    out=Path(out);out.mkdir(parents=True,exist_ok=True)
+    names=['tx','ty','tz','yaw','pitch','roll'];axes=['1 0 0','0 1 0','0 0 1','0 0 1','0 1 0','1 0 0']
+    xml=['<robot name="floating_wrist"><link name="base"/>'];parent='base'
+    for i,(name,axis) in enumerate(zip(names,axes)):
+        child='wrist' if i==5 else 'virtual_'+name
+        limit=2 if i<3 else 6.28318530718
+        xml.append(f'<link name="{child}"/><joint name="{name}" type="{"prismatic" if i<3 else "revolute"}"><parent link="{parent}"/><child link="{child}"/><axis xyz="{axis}"/><limit lower="{-limit}" upper="{limit}" velocity="{scene.cfg["planning"]["velocity_limits"][i]}" effort="100"/></joint>')
+        parent=child
+    xml.append('</robot>');urdf=out/'floating_wrist.urdf';urdf.write_text('\n'.join(xml))
+    pose,_=scene.root_motion();rot=Rotation.from_quat(pose[[4,5,6,3]]);spheres=[];cache=UsdGeom.XformCache()
+    for prim in Usd.PrimRange.Stage(scene.world.stage,Usd.TraverseInstanceProxies()):
+        if not str(prim.GetPath()).startswith(scene.root+'/') or not prim.IsA(UsdGeom.Mesh):continue
+        if 'collision' in str(prim.GetPath()).lower():continue
+        points=np.asarray(UsdGeom.Mesh(prim).GetPointsAttr().Get());trans=np.asarray(cache.GetLocalToWorldTransform(prim)).T
+        points=points@trans[:3,:3].T+trans[:3,3]
+        spheres+=cover_points(rot.inv().apply(points-pose[:3]))
+    if carry:
+        p,q=scene.objects['tool'].get_world_pose()
+        points=Rotation.from_quat(np.asarray(q)[[1,2,3,0]]).apply(scene.meshes['tool'].vertices)+p
+        spheres+=cover_points(rot.inv().apply(points-pose[:3]))
+    if not spheres:raise RuntimeError('Floating planner has no hand collision geometry')
+    # Inflate by the measured ready-state tracking offset, including rotation
+    # swept at the outer hand radius. PhysX still checks the actual bridge.
+    command=np.asarray(scene.command_pose)
+    angle=float((Rotation.from_quat(command[[4,5,6,3]])*rot.inv()).magnitude())
+    radius=max(np.linalg.norm(s['center'])+s['radius'] for s in spheres)
+    margin=float(np.linalg.norm(command[:3]-pose[:3])+2*radius*np.sin(angle/2))
+    scene.planning_tracking_margin_m=margin
+    kin={'urdf_path':str(urdf.resolve()),'asset_root_path':str(out.resolve()),'base_link':'base','ee_link':'wrist',
+        'collision_link_names':['wrist'],'collision_spheres':{'wrist':spheres},'collision_sphere_buffer':margin,
+        'self_collision_ignore':{},'self_collision_buffer':{},'use_global_cumul':True,
+        'mesh_link_names':[],'lock_joints':{},'cspace':{'joint_names':names,'retract_config':pose_coordinates(pose).tolist(),
+        'null_space_weight':[1.]*6,'cspace_distance_weight':[1.]*6,'max_acceleration':scene.cfg['planning']['acceleration_limits'],
+        'max_jerk':500.,'velocity_scale':1.,'acceleration_scale':1.,'jerk_scale':1.}}
+    return {'kinematics':kin},len(spheres)
+
+
+class FloatingPlanner:
+    def __init__(self,scene,carry,out):
+        from curobo.types.base import TensorDeviceType
+        from curobo.wrap.reacher.motion_gen import MotionGen,MotionGenConfig
+        from curobo.geom.sdf.world import CollisionCheckerType
+        self.scene=scene;self.tensor=TensorDeviceType(device='cuda:0');self.carry=carry
+        cfg,self.sphere_count=robot_model(scene,carry,out)
+        live={'cuboid':{'table':scene.table}}
+        for role in (['target'] if carry else ['tool','target']):
+            p,q=scene.objects[role].get_world_pose();bounds=scene.meshes[role].bounds;rot=Rotation.from_quat(np.asarray(q)[[1,2,3,0]])
+            live['cuboid'][role]={'dims':(bounds[1]-bounds[0]).tolist(),'pose':np.r_[p+rot.apply(bounds.mean(0)),q].tolist()}
+        self.nominal_spheres=cfg['kinematics']['collision_spheres']['wrist']
+        self.live=live
+        self.planner=MotionGen(MotionGenConfig.load_from_robot_config(cfg,live,tensor_args=self.tensor,interpolation_dt=scene.dt,
+            self_collision_check=False,self_collision_opt=False,collision_checker_type=CollisionCheckerType.PRIMITIVE,use_cuda_graph=False))
+        # Catch a virtual-coordinate convention mismatch before physical use.
+        pose,_=scene.root_motion();q=pose_coordinates(pose)
+        fk=self.planner.kinematics.get_state(self.tensor.to_device(q.copy())[None])
+        actual=np.r_[fk.ee_position.detach().cpu().numpy()[0],fk.ee_quaternion.detach().cpu().numpy()[0]]
+        error=(Rotation.from_quat(actual[[4,5,6,3]])*Rotation.from_quat(pose[[4,5,6,3]]).inv()).magnitude()
+        if np.linalg.norm(actual[:3]-pose[:3])>1e-5 or error>1e-4:raise RuntimeError('Virtual wrist FK convention mismatch')
+
+    def js(self,q):
+        from curobo.types.robot import JointState
+        return JointState.from_position(self.tensor.to_device(np.asarray(q).copy())[None],joint_names=self.planner.joint_names)
+
+    def valid(self,q):
+        try:return bool(self.planner.check_start_state(self.js(q))[0])
+        finally:self.planner.rollout_fn.primitive_collision_constraint.enable_cost()
+
+    def measured_valid(self):
+        # Tracking margin is for commanded paths. Do not count it a second time
+        # against measured states; check the underlying physical geometry here.
+        pose,_=self.scene.root_motion();r=Rotation.from_quat(pose[[4,5,6,3]])
+        centers=r.apply(np.asarray([s['center'] for s in self.nominal_spheres]))+pose[:3]
+        radii=np.asarray([s['radius'] for s in self.nominal_spheres])
+        for box in self.live['cuboid'].values():
+            b=np.asarray(box['pose']);rotation=Rotation.from_quat(b[[4,5,6,3]])
+            local=rotation.inv().apply(centers-b[:3]);outside=np.maximum(np.abs(local)-np.asarray(box['dims'])/2,0.)
+            if np.any(np.linalg.norm(outside,axis=1)<radii):return False
+        return True
+
+    def plan(self,goal,ticks):
+        from curobo.wrap.reacher.motion_gen import MotionGenPlanConfig
+        scene=self.scene;start=scene.state();q0=pose_coordinates(start['wrist_xyz_wxyz']);q1=pose_coordinates(goal,q0)
+        # Joint parameterization derivatives are obtained from the measured spatial twist.
+        twist=np.asarray(start['wrist_twist']);eps=1e-4
+        pose=np.asarray(start['wrist_xyz_wxyz']);advanced=pose.copy();advanced[:3]+=eps*twist[:3]
+        advanced[3:]=(Rotation.from_rotvec(eps*twist[3:])*Rotation.from_quat(pose[[4,5,6,3]])).as_quat()[[3,0,1,2]]
+        dq0=(pose_coordinates(advanced,q0)-q0)/eps
+        begin=self.js(q0);begin.velocity=self.tensor.to_device(dq0.copy())[None]
+        result=self.planner.plan_single_js(begin,self.js(q1),MotionGenPlanConfig(max_attempts=6,enable_graph_attempt=2))
+        if not bool(result.success.item()):raise RuntimeError(f'Floating cuRobo failed: {result.status}')
+        raw=result.get_interpolated_plan().position.detach().cpu().numpy().reshape(-1,6)
+        limits=scene.cfg['planning'];dt=scene.dt
+        try:path,timing=fixed_budget_path(raw,float(result.interpolation_dt),ticks,dt,np.array(limits['velocity_limits']),np.array(limits['acceleration_limits']),initial_velocity=dq0)
+        except RuntimeError:path,timing=parameterize_path(raw,ticks,dt,np.array(limits['velocity_limits']),np.array(limits['acceleration_limits']),initial_velocity=dq0)
+        for q in path:
+            if not self.valid(q):raise RuntimeError('Floating resampled path collision')
+        poses=np.asarray([coordinates_pose(q) for q in path])
+        from multipath.anchors.floating import controls_from_poses
+        commands=controls_from_poses(poses,np.repeat(np.asarray(start['hand_q'])[None],len(poses),axis=0),dt)
+        timing.update(planner='cuRobo_virtual_6DOF',hand_collision_spheres=self.sphere_count,carried_object_collision=self.carry,
+            reference_tracking=False,source_time_stretch=False,arm_model_used=False,tracking_margin_m=scene.planning_tracking_margin_m)
+        return commands,timing

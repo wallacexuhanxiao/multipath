@@ -64,7 +64,7 @@ def load_validated_anchor(root, anchor, *, provenance=None, fps=None, dt=None):
     commands=np.load(root/'commands.npz',allow_pickle=False)['commands']
     dt=report['validation']['control_dt'];fps=report['validation']['source_fps']
     if not (np.isfinite(dt) and dt>0 and np.isfinite(fps) and fps>0):raise ValueError('Invalid Anchor clock')
-    if (commands.ndim!=2 or commands.shape[1]!=26 or not np.isfinite(commands).all() or
+    if (commands.ndim!=2 or commands.shape[1]!=(25 if entry.get('embodiment')=='floating_xhand' else 26) or not np.isfinite(commands).all() or
         len(commands)!=round((anchor.core_end-anchor.core_start)/(fps*dt))):
         raise ValueError('Anchor commands do not match source duration')
     if (not np.isclose(entry['time_s'],anchor.core_start/fps,rtol=0,atol=1e-8) or

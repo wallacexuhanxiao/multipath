@@ -1,0 +1,123 @@
+"""Replay -> Cartesian MPPI -> small residual PPO for floating XHand.
+
+Same source clock, core objective and contact evidence as the mounted path;
+no arm IK, arm dynamic fitting, or full robot reference dependency.
+"""
+import json,time
+from pathlib import Path
+import numpy as np
+from scipy.spatial.transform import Rotation
+from multipath.anchors.mpc import WindowEvaluation,mppi_mean,RefinementRequired
+from multipath.anchors.floating import controls_from_poses,validate_commands
+from multipath.anchors.ppo import MountedResidualEnv,LocalPPOSolver,PPOConfig
+
+
+def apply_residual(scene,baseline,start,residual,tpf,envelope):
+    """Interpolate world-frame wrist residuals and enforce hand joint/speed bounds."""
+    ticks=len(baseline);sample=np.arange(ticks+1)/tpf
+    delta=np.vstack((np.zeros(18),residual));grid=np.arange(len(delta))
+    interp=np.stack([np.interp(sample,grid,delta[:,j]) for j in range(18)],axis=1)
+    interp*=np.asarray(envelope)[:,None]
+    poses=np.vstack((start['wrist_xyz_wxyz'],baseline[:,:7]));hands=np.vstack((start['hand_q'],baseline[:,7:19]))
+    poses[:,:3]+=interp[:,:3]
+    rotations=Rotation.from_rotvec(interp[:,3:6])*Rotation.from_quat(poses[:,[4,5,6,3]])
+    poses[:,3:]=rotations.as_quat()[:,[3,0,1,2]];hands+=interp[:,6:]
+    hands=np.clip(hands,scene.hand_limits[:,0],scene.hand_limits[:,1])
+    for k in range(1,len(hands)):hands[k]=np.clip(hands[k],hands[k-1]-scene.hand_velocity*scene.dt,hands[k-1]+scene.hand_velocity*scene.dt)
+    return controls_from_poses(poses,hands,scene.dt)
+
+
+class FloatingResidualEnv(MountedResidualEnv):
+    def __init__(self,scene,anchor,data,baseline,start,begin,out):
+        self.scene,self.anchor,self.data=scene,anchor,data
+        self.baseline,self.start,self.begin=baseline.copy(),start,begin
+        self.out=Path(out);self.out.mkdir(parents=True,exist_ok=True)
+        self.fps=scene.manifest['fps'];self.tpf=round(1/(self.fps*scene.dt));self.horizon=len(baseline)//self.tpf
+        self.prior=baseline[self.tpf-1::self.tpf,:19].copy();self.hand_velocity=scene.hand_velocity;self.trial=0
+        self.metadata={'anchor':anchor.id,'begin_tick':begin,'source_start_frame':anchor.synth_start+begin/self.tpf,
+            'source_frames':self.horizon,'source_fps':self.fps,'physics_dt':scene.dt,'entry_origin':start.get('entry_origin'),
+            'entry_provenance':start.get('entry_provenance'),'source_provenance':scene.manifest['provenance'],
+            'action':'wrist_xyz_rotvec_and_12_fingers','action_scales':self.action_scales.tolist(),'residual_center':'local_floating_replay',
+            'training_scene':'floating_PhysX','objective':'Appendix weighted object tracking + thumb AND finger contact',
+            'clock_stretched':False,'state_resets_within_episode':0,'domain_randomization':False,'arm_ik_used':False}
+
+    def observation(self,state):
+        i=min(self.k,self.horizon-1);idx=min(round(self.begin/self.tpf+i+1),len(self.data['tool_pose'])-1);ref=self.data['tool_pose'][idx]
+        expected=np.r_[ref[:3,3],Rotation.from_matrix(ref[:3,:3]).as_quat()[[3,0,1,2]]]
+        obs=np.r_[state['wrist_xyz_wxyz'],state['wrist_twist'],state['hand_q'],np.asarray(state['hand_dq'])/self.hand_velocity,
+            state['objects']['tool']['pose'],state['objects']['tool']['velocity'],state['objects']['target']['pose'],
+            np.asarray(state['hand_object_transform'])[:3].reshape(-1),self.prior[i],expected,self.k/self.horizon,self.previous_action]
+        if not np.isfinite(obs).all():raise RuntimeError('Non-finite floating PPO observation')
+        return obs.astype(np.float32)
+
+    def reset(self):
+        self.trial+=1;self.scene.begin_trial(self.out/'episode',self.start,mesh=False)
+        self.k=0;self.commands=[];self.previous_action=np.zeros(18);self.residuals=[]
+        self.objective=WindowEvaluation(self.scene,self.anchor,self.data,self.start);self.failure=None
+        return self.observation(self.start)
+
+    def command_precheck(self):return validate_commands(self.scene,np.asarray(self.commands),self.start)
+
+    def step(self,action):
+        action=np.clip(np.asarray(action,dtype=float),-1,1)
+        if action.shape!=(18,) or not np.isfinite(action).all():raise ValueError('Invalid floating PPO action')
+        self.residuals.append(action*self.action_scales)
+        end=(self.k+1)*self.tpf
+        phase=np.clip((self.begin+np.arange(end+1))/max(1,(self.anchor.core_start-self.anchor.synth_start)*self.tpf),0,1)
+        envelope=phase**2*(3-2*phase)
+        # Exact zero policy keeps the original controls and their feedforward.
+        candidate=(self.baseline[:end].copy() if not np.any(self.residuals) else
+            apply_residual(self.scene,self.baseline[:end],self.start,np.asarray(self.residuals),self.tpf,envelope))
+        self.objective.last_reward=0.
+        try:
+            for tick in range(self.k*self.tpf,end):
+                c=candidate[tick];frame=self.anchor.synth_start+(self.begin+tick+1)/self.tpf
+                self.scene.step_control(c,'LOCAL_PPO',frame);self.commands.append(c)
+            self.objective.observe(frame,c);self.failure=self.objective.failure
+        except (RuntimeError,ValueError) as error:self.failure={'source_frame':self.scene.ticks*self.scene.dt*self.fps,'reason':str(error)}
+        self.k+=1;self.previous_action=action
+        done=self.failure is not None or self.k==self.horizon
+        obs=self.observation(self.scene.snapshot())
+        return obs,float(self.objective.last_reward),done,{'success':bool(done and self.failure is None and len(self.commands)==len(self.baseline)),
+            'failure':self.failure,'source_steps':self.k,'evaluation_return':self.objective.evaluation_return}
+
+
+def refine(scene,anchor,data,baseline,start,out,candidates=64,iterations=3):
+    out=Path(out);out.mkdir(parents=True,exist_ok=True);history=[];rng=np.random.default_rng(0)
+    tpf=round(1/(scene.dt*scene.manifest['fps']));chosen=baseline.copy();state=start;started=time.perf_counter()
+    ppo=LocalPPOSolver(scene,anchor,data,out/'ppo',PPOConfig(),env_factory=FloatingResidualEnv)
+    def evaluate(control,boundary,begin,label,folder):
+        check=validate_commands(scene,control,boundary)
+        if not check['feasible']:return -np.inf,False,{'precheck':check}
+        scene.begin_trial(folder,boundary,mesh=False);objective=WindowEvaluation(scene,anchor,data,boundary)
+        try:
+            for j,c in enumerate(control):
+                frame=anchor.synth_start+(begin+j+1)/tpf;scene.step_control(c,label,frame)
+                if (j+1)%tpf==0 and not objective.observe(frame,c):break
+        except (RuntimeError,ValueError) as error:objective.failure={'reason':str(error)};objective.total_return=-np.inf
+        scene.save();return objective.total_return,objective.failure is None,{'failure':objective.failure,'score':objective.total_return}
+    for begin in range(0,len(baseline),20*tpf):
+        stop=min(begin+40*tpf,len(baseline));commit=min(20*tpf,len(baseline)-begin);replay=baseline[begin:stop].copy()
+        score,valid,info=evaluate(replay,state,begin,'CHUNK_REPLAY',out/f'replay_{begin}')
+        best=replay if valid else None;best_score=score if valid else -np.inf
+        mean=np.zeros((len(replay)//tpf,18));scale=np.r_[np.full(3,.02),np.full(3,.2),np.full(12,.25)]
+        phase=np.clip((begin+np.arange(len(replay)+1))/max(1,(anchor.core_start-anchor.synth_start)*tpf),0,1);envelope=phase**2*(3-2*phase)
+        if not valid:
+            for iteration in range(iterations):
+                samples=rng.normal(size=(candidates,*mean.shape))*scale*(.5**iteration)+mean;samples[0]=mean
+                returns=np.full(candidates,-np.inf)
+                for i,residual in enumerate(samples):
+                    control=replay.copy() if not np.any(residual) else apply_residual(scene,replay,state,residual,tpf,envelope)
+                    returns[i],ok,info=evaluate(control,state,begin,'LOCAL_MPPI',out/'candidate')
+                    history.append(dict(begin_tick=begin,iteration=iteration,candidate=i,success=ok,**info))
+                    if ok and returns[i]>best_score:best,best_score=control.copy(),returns[i]
+                updated=mppi_mean(samples,returns)
+                if updated is not None:mean=updated
+                (out/'search.json').write_text(json.dumps(history,indent=2))
+                print('FLOATING_MPPI',begin,iteration,'valid',best is not None,'elapsed_s',round(time.perf_counter()-started,2),flush=True)
+        if best is None:best=ppo(replay,state,begin)
+        if best is None:raise RefinementRequired(f'Floating Replay/MPPI/PPO failed at source frame {anchor.synth_start+begin/tpf}')
+        _,ok,info=evaluate(best[:commit],state,begin,'LOCAL_COMMIT',out/f'committed_{begin}')
+        if not ok:raise RefinementRequired(f'Floating selected controls failed commit: {info}')
+        state=scene.snapshot();chosen[begin:begin+commit]=best[:commit]
+    return chosen

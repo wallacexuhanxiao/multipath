@@ -16,29 +16,37 @@ New-semantics multi-solution acceptance is still under validation; the old
 place-on-board diversity result is not evidence for the corrected task.
 See [implementation and current limits](docs/SOURCE_CLOCK_DIVERSITY.md).
 
-**V0 (current work):** static oracle Interaction Anchors → local padded
-human-to-XHand retarget → physical Anchor replay/synthesis → cuRobo only in
-RELAXED intervals → uninterrupted source-timed PhysX execution. V0 does not
-use VLM or a complete robot reference. Entry point: `hpc/run_oracle_v0.pbs`;
-reviewed segmentation: `configs/oracle/put_in.json`.
+**V0 (current work, floating XHand):** static oracle Interaction Anchors →
+local padded human-to-XHand retarget → physical Replay / Cartesian MPPI /
+small residual PPO → cuRobo wrist planning only in RELAXED intervals.
+V0 uses no VLM or complete robot reference. The active local development entry
+is `hpc/develop_floating_anchor.pbs` / `scripts/develop_floating_anchor.py`;
+reviewed segmentation remains `configs/oracle/put_in.json`.
 
-Core and synthesis context are separate. Local proposals are **not** physical
-Anchor artifacts: these are saved only with measured entry/exit states and an
-explicit validation report. Failed replay runs mounted PhysX shooting MPC on arm + XHand, followed by
-a fresh padded rollout and exported-core replay. Floating-wrist MPC is not
-physical evidence for this mounted embodiment; RL remains deferred. V0 is not yet a successful end-to-end result. Diversity is deferred.
+The floating controller applies external force/torque to the wrist and drives
+finger joints. Objects move through PhysX contact. cuRobo uses a virtual six-DOF
+wrist model with measured full-hand and carried-object collision geometry;
+these virtual joints are not a physical robot arm. Source time is immutable.
+Current integration starts with a physical bridge to the first synthesis window,
+then padded Replay, MPPI/PPO if needed, and exported-core replay. This development
+prefix does not yet establish the final bridge to the canonical core entry or
+the complete 4.8 s rollout. Floating A1 remains under physical validation.
+
+The mounted backend and its passed r10 bridge are preserved at
+`hpc/run_oracle_v0.pbs`. Floating success will not constitute mounted-arm
+reachability evidence. Multi-path remains deferred until continuous Oracle V0.
 
 The old VLM/reference-event compilers, full-reference source-clock runners,
 and path-exclusion implementation remain experimental/historical paths.
 
 First target: `(put in, bowl, plate) / 20231024_253`.
 
-The entrypoint acquires each predecessor prefix, synthesizes the local padded
+The mounted entrypoint acquires each predecessor prefix, synthesizes the local padded
 Anchor, verifies its exported core, and finally runs a fresh complete trajectory.
 `--stop-before-anchor` obtains a prefix without executing an unvalidated core.
 See [code audit and validation limits](docs/CODE_AUDIT_20261002.md).
 
-Current oracle V0 result: the first 1.1667-second bridge passes real PhysX
+Previous mounted oracle V0 result: the first 1.1667-second bridge passes real PhysX
 handoff (0.00846 rad maximum joint error); Anchor synthesis is still pending.
 See [progress and actual comparison video](docs/evidence/oracle_v0_20261002/REPORT.md).
 
@@ -70,8 +78,8 @@ Single video + reconstructed digital twin
 ## Implementation
 
 Current Oracle V0 modules: `oracle_schedule.py`, `anchors/`,
-`execution/schedule_executor.py`, `execution/mounted_scene.py`, and
-`planning/timing.py`. The standalone `multipath` CLI and two-Anchor
+`execution/floating_scene.py`, `anchors/floating.py`, `anchors/floating_search.py`,
+`planning/floating.py`, and the preserved mounted executor modules. The standalone `multipath` CLI and two-Anchor
 `orchestrator.py` below are historical adapters; run Oracle V0 through
 `hpc/run_oracle_v0.pbs` or `scripts/run_oracle_v0.py`.
 

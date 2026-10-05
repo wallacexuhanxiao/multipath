@@ -59,7 +59,8 @@ def main():
     renderer=mujoco.Renderer(model,height=720,width=960)
     cam=mujoco.MjvCamera();cam.lookat[:]=[.4,-.03,.4];cam.distance=1.65;cam.azimuth=135;cam.elevation=-25
     positions=np.stack(positions,axis=1);rotations=np.stack(rotations,axis=1)
-    video=out/'mounted_xhand_bc_curobo_actual.mp4'
+    floating=report.get('embodiment')=='floating_xhand'
+    video=out/('floating_xhand_actual.mp4' if floating else 'mounted_xhand_bc_curobo_actual.mp4')
     writer=cv2.VideoWriter(str(video),cv2.VideoWriter_fourcc(*'mp4v'),fps/args.stride,(960,720))
     if not writer.isOpened():raise RuntimeError('VideoWriter failed')
     for frame in range(0,video_frames,args.stride):
@@ -74,7 +75,7 @@ def main():
         mujoco.mj_forward(model,data);renderer.update_scene(data,camera=cam)
         bgr=renderer.render()[:,:,::-1].copy();item=trace[frame]
         cv2.putText(bgr,f"Actual PhysX | {item['mode']} | t={item['time_s']:.2f}s | source {item['source_frame']:.1f}",(15,28),cv2.FONT_HERSHEY_SIMPLEX,.57,(245,245,245),1,cv2.LINE_AA)
-        cv2.putText(bgr,'Measured arm, XHand and objects; task success evaluated separately',(15,700),cv2.FONT_HERSHEY_SIMPLEX,.48,(235,235,235),1,cv2.LINE_AA)
+        cv2.putText(bgr,('Measured floating XHand and objects; local experiment' if floating else 'Measured arm, XHand and objects; task success evaluated separately'),(15,700),cv2.FONT_HERSHEY_SIMPLEX,.48,(235,235,235),1,cv2.LINE_AA)
         if exclusions and active:
             cv2.putText(bgr,'Pink: virtual planning obstacles | Cyan: prior measured wrist path',(15,53),cv2.FONT_HERSHEY_SIMPLEX,.5,(245,200,235),1,cv2.LINE_AA)
         writer.write(bgr)
