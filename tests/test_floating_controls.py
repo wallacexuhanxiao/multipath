@@ -108,13 +108,33 @@ def test_grasp_preload_is_not_counted_as_a_new_command_jump():
     start['contact']['mode']='free'
     assert validate_commands(scene,baseline,start)['feasible']
     anchor.entry_contact=anchor.exit_contact='grasped'
+    start['hand_object_transform']=np.eye(4)
+    data={'wrist_hand_q':ref,'tool_pose':np.tile(np.eye(4),(len(ref),1,1))}
     ref[:,7:]=.4
-    controls=local_controls(scene,anchor,{'wrist_hand_q':ref},start)
+    controls=local_controls(scene,anchor,data,start)
     assert np.all(controls[:,7:19]>=np.asarray(start['command_hand_q'])-1e-10)
     assert controls[-1,7]>.1
     ref[:,7:]=0.
-    controls=local_controls(scene,anchor,{'wrist_hand_q':ref},start)
+    controls=local_controls(scene,anchor,data,start)
     np.testing.assert_allclose(controls[:,7:19],np.tile(start['command_hand_q'],(len(controls),1)))
+
+
+def test_carry_anchor_uses_acquired_grasp_and_finishes_context_at_core():
+    from multipath.execution.mounted_scene import pose_matrix
+    anchor=SimpleNamespace(synth_start=0,core_start=3,core_end=5,synth_end=6,
+                           entry_contact='grasped',exit_contact='grasped')
+    scene=SimpleNamespace(dt=1/120,manifest={'fps':30},hand_limits=np.tile([-2,2],(12,1)),hand_velocity=np.full(12,10.))
+    ref=np.zeros((6,19));ref[:,3]=1.
+    objects=np.tile(np.eye(4),(6,1,1));objects[:,0,3]=np.arange(6)*.01
+    objects[:,:3,:3]=Rotation.from_rotvec(np.c_[np.zeros((6,2)),np.arange(6)*.04]).as_matrix()
+    held=np.eye(4);held[:3,3]=[.1,.02,0];held[:3,:3]=Rotation.from_rotvec([.1,.2,-.3]).as_matrix()
+    start={'wrist_xyz_wxyz':[.02,0,0,1,0,0,0],'wrist_twist':[.1,.02,0,0,.1,.02],
+           'hand_q':np.zeros(12),'hand_dq':np.zeros(12),'hand_object_transform':held}
+    controls=local_controls(scene,anchor,{'wrist_hand_q':ref,'tool_pose':objects},start)
+    np.testing.assert_allclose(controls[0,19:25],start['wrist_twist'],atol=1e-10)
+    # Source boundary is reached without assuming the human/robot grasp matches.
+    np.testing.assert_allclose(pose_matrix(controls[11,:7])@held,objects[3],atol=1e-10)
+    np.testing.assert_allclose(pose_matrix(controls[19,:7])@held,objects[5],atol=1e-10)
 
 
 def test_relaxed_pregrasp_boundary_uses_fixed_time_and_rejects_short_budget():

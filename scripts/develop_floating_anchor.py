@@ -137,7 +137,11 @@ def main():
                 'sha256':hashlib.sha256(args.initial_controls.read_bytes()).hexdigest(),
                 'before_projection':validate_commands(scene,controls,entry),'physical_acceptance':False}
             controls=project_hand_commands(scene,controls,entry)
-        else:controls=local_controls(scene,anchor,data,entry)
+        else:
+            controls=local_controls(scene,anchor,data,entry)
+            report['local_wrist_target']=('source_object_pose_with_measured_grasp' if anchor.entry_contact==anchor.exit_contact=='grasped'
+                                         else 'local_human_retarget')
+            report['entry_blend_deadline_source_frame']=anchor.core_start
         check=validate_commands(scene,controls,entry);report['command_precheck']=check
         if not check['feasible']:raise RuntimeError('Floating local command precheck failed')
         np.savez_compressed(out/'local_controls.npz',commands=controls)

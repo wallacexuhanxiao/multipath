@@ -46,6 +46,16 @@ def local_controls(scene,anchor,data,start):
     fps=scene.manifest['fps'];tpf=physics_ticks_per_frame(fps,scene.dt);frames=np.arange(anchor.synth_start,anchor.synth_end+1)
     # Stored proposals contain [synth_start,synth_end); terminal uses last local target.
     reference=np.asarray(data['wrist_hand_q']);ref=np.vstack((reference,reference[-1]))
+    if anchor.entry_contact==anchor.exit_contact=='grasped':
+        # The robot's acquired grasp need not equal the human retarget's grasp.
+        # Condition local wrist targets on the source object interaction and
+        # the actual hand-object transform. Entry blending below ends inside
+        # padding; it must not postpone the canonical source boundary into CORE.
+        held=np.asarray(start['hand_object_transform'])
+        objects=np.asarray(data['tool_pose']);objects=np.concatenate((objects,objects[-1:]))
+        wrists=objects@np.linalg.inv(held)
+        ref=ref.copy();ref[:,:3]=wrists[:,:3,3]
+        ref[:,3:7]=Rotation.from_matrix(wrists[:,:3,:3]).as_quat()[:,[3,0,1,2]]
     sample=np.arange((len(frames)-1)*tpf+1)/tpf
     source=np.arange(len(ref))
     pose=np.empty((len(sample),7));pose[:,:3]=np.stack([np.interp(sample,source,ref[:,j]) for j in range(3)],axis=1)
