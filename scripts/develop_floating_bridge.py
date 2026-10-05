@@ -25,7 +25,7 @@ def main():
     config=json.loads(args.floating_config.read_text())
     from multipath.planning.bridge import bridge_precheck
     check=bridge_precheck(a['exit'],b['entry'],(window['end']-window['start'])/schedule.fps,config['planning'])
-    report=dict(status='boundary_rejected',development_only=True,full_pipeline_success=False,
+    report=dict(status='preflight_passed_physics_pending' if check['feasible'] else 'boundary_rejected',development_only=True,full_pipeline_success=False,
         bridge_success=False,next_core_success=False,source_provenance=manifest['provenance'],
         pbs_job_id=os.environ.get('PBS_JOBID'),from_anchor=left.id,to_anchor=right.id,
         source_interval=[window['start'],window['end']],boundary_precheck=check,
@@ -47,15 +47,15 @@ def main():
         scene=FloatingScene(args,manifest,out/'initialization',initial,initial_hand=data['wrist_hand_q'][0,7:])
         scene.restore_development(a['exit']);scene.begin_recording(out/'bridge',mesh=True)
         scene.capture('INITIAL',window['start']);resets=scene.restore_count
-        start=scene.snapshot();held=np.asarray(start['hand_object_transform'])
-        check_retention(start,held)
-        planner=FloatingPlanner(scene,window['contact']=='grasped',out/'planner')
+        start=scene.snapshot();carry=window['contact']=='grasped';held=np.asarray(start['hand_object_transform'])
+        if carry:check_retention(start,held)
+        planner=FloatingPlanner(scene,carry,out/'planner')
         commands,timing=planner.plan(np.asarray(b['entry']['wrist_xyz_wxyz']),round(check['budget_s']/dt),
                                    np.asarray(b['entry']['wrist_twist']),goal_state=b['entry'])
         report['planning']=timing;np.savez_compressed(out/'bridge_commands.npz',commands=commands)
         for k,c in enumerate(commands):
             frame=window['start']+(k+1)*dt*schedule.fps;scene.step_control(c,'RELAXED',frame)
-            check_retention(scene.state(),held)
+            if carry:check_retention(scene.state(),held)
             if not planner.measured_valid():raise RuntimeError('Actual bridge collision')
         scene.save()
         transition=scene.check_transition(np.asarray(b['entry']['wrist_xyz_wxyz']),right.entry_contact,canonical=b['entry'])

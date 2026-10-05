@@ -59,6 +59,18 @@ PYCODE
 mapfile -t ANCHORS < <("$RUNTIME/envs/retarget/bin/python" -c 'import json,sys; print("\n".join(a["id"] for a in sorted(json.load(open(sys.argv[1]))["anchors"],key=lambda a:a["core_start"])))' "$MULTIPATH_SCHEDULE")
 mkdir -p "$OUT/anchors"
 SOLVER_ARGS=(--mpc-candidates "${MULTIPATH_MPC_CANDIDATES:-64}" --mpc-iters "${MULTIPATH_MPC_ITERS:-3}" --ppo-updates "${MULTIPATH_PPO_UPDATES:-60}")
+if [[ -n "${MULTIPATH_BRIDGE_FROM:-}" ]]; then
+ [[ "$EMBODIMENT" == floating_xhand ]]
+ run_sim scripts/develop_floating_bridge.py --proposals "$PROPOSALS" --schedule "$MULTIPATH_SCHEDULE" \
+  --from-anchor "$MULTIPATH_BRIDGE_FROM" --to-anchor "${MULTIPATH_BRIDGE_TO:?next Anchor}" \
+  --from-artifacts "${MULTIPATH_BRIDGE_FROM_ARTIFACTS:?validated preceding Anchor}" \
+  --to-artifacts "${MULTIPATH_BRIDGE_TO_ARTIFACTS:?validated next Anchor}" \
+  --floating-config "$ROOT/configs/floating_xhand.json" \
+  --xhand-urdf "$ENGINE/assets/xhand/spider/xhand_right.urdf" --object-cache "$ENGINE/outputs/sim_usd" \
+  --output-dir "$OUT" >"$OUT/bridge.log" 2>&1
+ check_result "$OUT/bridge_result.json" next_core_success
+ exit 0
+fi
 if [[ -n "${MULTIPATH_LOCAL_ANCHOR:-}" ]]; then
  [[ "$EMBODIMENT" == floating_xhand ]]
  : "${MULTIPATH_ENTRY_SNAPSHOT:?physically acquired local-development entry}"
