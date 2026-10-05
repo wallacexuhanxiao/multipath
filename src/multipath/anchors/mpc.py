@@ -23,8 +23,8 @@ from multipath.validation.physics import core_pose_errors, retention_errors
 @dataclass(frozen=True)
 class MPCConfig:
     chunk_frames: int = 20
-    candidates: int = 6
-    iterations: int = 2
+    candidates: int = 64
+    iterations: int = 3
     wrist_sigma_m: float = .02
     finger_sigma_rad: float = .25
     wrist_rotation_sigma_rad: float = .2
@@ -140,8 +140,8 @@ def mounted_mpc(scene, anchor, data, baseline, start, out, seed=0, config=None, 
     rng = np.random.default_rng(seed)
     chosen = baseline.copy(); history = []; chunks = []; trial_id = 0
     method = dict(asdict(config), solver='mounted_Cartesian_MPPI', lookahead_chunks=2,
-                  action='per_source_frame_wrist_xyz_and_12_fingers',
-                  wrist_orientation='fitted_local_replay', source_time_stretch=False,
+                  action='per_source_frame_wrist_xyz_rotvec_and_12_fingers',
+                  wrist_orientation='world_frame_rotation_residual_about_fitted_replay', source_time_stretch=False,
                   residual_center='fitted_local_replay',zero_residual='exact_replay_controls',
                   execution='serial_mounted_PhysX', reward='core_object_tracking_plus_native_opposition',
                   feasibility='existing_core_Cp_CR_contact_and_handoff', local_rl_enabled=rl_solver is not None)
