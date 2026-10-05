@@ -24,7 +24,7 @@ def test_world_angular_feedforward_and_fixed_clock():
 
 
 def test_padding_correction_ends_before_core():
-    anchor=SimpleNamespace(synth_start=0,core_start=2,core_end=4,synth_end=5)
+    anchor=SimpleNamespace(synth_start=0,core_start=2,core_end=4,synth_end=5,entry_contact="free",exit_contact="grasped")
     scene=SimpleNamespace(dt=1/120,manifest={'fps':30},hand_limits=np.tile([-2,2],(12,1)),hand_velocity=np.full(12,10.))
     ref=np.zeros((5,19));ref[:,3]=1.;ref[:,0]=np.arange(5)*.01
     start={'wrist_xyz_wxyz':[.2,0,0,1,0,0,0],'hand_q':np.zeros(12)}
@@ -76,7 +76,7 @@ def test_measured_grasp_proposal_does_not_jump_the_existing_drive_target():
 
 
 def test_padded_takeover_matches_measured_velocity_without_changing_core():
-    anchor=SimpleNamespace(synth_start=0,core_start=2,core_end=4,synth_end=5)
+    anchor=SimpleNamespace(synth_start=0,core_start=2,core_end=4,synth_end=5,entry_contact="free",exit_contact="grasped")
     scene=SimpleNamespace(dt=1/120,manifest={'fps':30},hand_limits=np.tile([-2,2],(12,1)),hand_velocity=np.full(12,10.))
     ref=np.zeros((5,19));ref[:,3]=1.;ref[:,0]=np.arange(5)*.01
     start={'wrist_xyz_wxyz':[.02,0,0,1,0,0,0],'wrist_twist':[.1,.02,0,0,.1,.02],
@@ -98,7 +98,7 @@ def test_grasp_preload_is_not_counted_as_a_new_command_jump():
     residual=np.zeros((1,18));residual[0,0]=.001
     command=apply_residual(scene,baseline,start,residual,4,np.ones(5))
     np.testing.assert_allclose(command[:,7:19],baseline[:,7:19])
-    anchor=SimpleNamespace(synth_start=0,core_start=2,core_end=4,synth_end=5)
+    anchor=SimpleNamespace(synth_start=0,core_start=2,core_end=4,synth_end=5,entry_contact="free",exit_contact="grasped")
     scene.dt=1/120;scene.manifest={'fps':30}
     ref=np.zeros((5,19));ref[:,3]=1.;ref[:,7:]=.1
     controls=local_controls(scene,anchor,{'wrist_hand_q':ref},start)
@@ -107,6 +107,10 @@ def test_grasp_preload_is_not_counted_as_a_new_command_jump():
     # A transient absence of opposition does not erase the previous drive.
     start['contact']['mode']='free'
     assert validate_commands(scene,baseline,start)['feasible']
+    anchor.entry_contact=anchor.exit_contact='grasped'
+    ref[:,7:]=.4
+    controls=local_controls(scene,anchor,{'wrist_hand_q':ref},start)
+    np.testing.assert_allclose(controls[:,7:19],np.tile(start['command_hand_q'],(len(controls),1)))
 
 
 def test_relaxed_pregrasp_boundary_uses_fixed_time_and_rejects_short_budget():
