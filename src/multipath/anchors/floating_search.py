@@ -65,7 +65,7 @@ class FloatingResidualEnv(MountedResidualEnv):
 
     def reset(self):
         self.trial+=1;self.scene.begin_trial(self.out/'episode',self.start,mesh=False)
-        self.k=0;self.commands=[];self.previous_action=np.zeros(18);self.residuals=[]
+        self.k=0;self.commands=[];self.previous_action=np.zeros(18);self.residuals=[];self.physical_prefix=None
         self.objective=WindowEvaluation(self.scene,self.anchor,self.data,self.start);self.failure=None
         self.last_observation=self.observation(self.start)
         return self.last_observation
@@ -90,6 +90,8 @@ class FloatingResidualEnv(MountedResidualEnv):
             self.objective.observe(frame,c);self.failure=self.objective.failure
         except (RuntimeError,ValueError) as error:self.failure={'source_frame':self.scene.ticks*self.scene.dt*self.fps,'reason':str(error)}
         self.k+=1;self.previous_action=action
+        if self.failure is None and self.k==min(20,self.horizon):
+            self.physical_prefix={'state':self.scene.snapshot(),'trace':list(self.scene.records)}
         done=self.failure is not None or self.k==self.horizon
         obs=self.observation(self.scene.snapshot()) if self.failure is None else np.zeros_like(self.last_observation)
         self.last_observation=obs
@@ -203,9 +205,7 @@ def refine(scene,anchor,data,baseline,start,out,candidates=64,iterations=3,use_p
         if best is None and ppo is not None:
             best=ppo(seed,state,begin)
             if best is not None:
-                _,ok,info,prefix=evaluate(best,state,begin,'PPO_PHYSICAL_PREDICTION',out/f'ppo_prediction_{begin}',prefix_ticks=commit)
-                if not ok:raise RefinementRequired(f'Floating PPO commands failed physical prediction: {info}')
-                best_state=retain_prefix(prefix,best,begin)
+                best_state=retain_prefix(ppo.selected_prefix,best,begin)
         if best is None:
             methods='Replay/MPPI/PPO' if use_ppo else 'Replay/MPPI (PPO disabled for attribution)'
             raise RefinementRequired(f'Floating {methods} failed at source frame {anchor.synth_start+begin/tpf}')

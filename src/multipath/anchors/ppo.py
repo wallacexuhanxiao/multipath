@@ -177,6 +177,7 @@ class LocalPPOSolver:
         self.env_factory=env_factory or MountedResidualEnv
 
     def __call__(self,baseline,start,begin):
+        self.selected_prefix=None
         from multipath.anchors.ppo_model import SmallResidualPPO
         cfg=self.config
         if self.deadline is None:self.deadline=time.monotonic()+cfg.max_seconds
@@ -217,6 +218,7 @@ class LocalPPOSolver:
         if zero['success']:
             report.update(success=True,status='zero_policy_passed');write()
             learner.save(folder/'policy.pt',env.metadata)
+            self.selected_prefix=getattr(env,'physical_prefix',None)
             return np.asarray(env.commands).copy()
         try:
             for iteration in range(cfg.iterations):
@@ -238,6 +240,7 @@ class LocalPPOSolver:
                             selection='measured_sampled_commands; fresh_Replay_required')
                         learner.save(folder/'candidate_policy.pt',env.metadata)
                         write();print('LOCAL_PPO_SAMPLED_CONTROLS_PASSED',begin,iteration+1,flush=True)
+                        self.selected_prefix=getattr(env,'physical_prefix',None)
                         return commands
                 if not episodes:break
                 metrics=learner.update(episodes)
@@ -256,6 +259,7 @@ class LocalPPOSolver:
                     if evaluation['success']:
                         report.update(success=True,status='window_passed');write()
                         learner.save(folder/'policy.pt',env.metadata)
+                        self.selected_prefix=getattr(env,'physical_prefix',None)
                         return np.asarray(env.commands).copy()
             report['status']='budget_exhausted';write()
             return None
