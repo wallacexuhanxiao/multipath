@@ -59,6 +59,18 @@ PYCODE
 mapfile -t ANCHORS < <("$RUNTIME/envs/retarget/bin/python" -c 'import json,sys; print("\n".join(a["id"] for a in sorted(json.load(open(sys.argv[1]))["anchors"],key=lambda a:a["core_start"])))' "$MULTIPATH_SCHEDULE")
 mkdir -p "$OUT/anchors"
 SOLVER_ARGS=(--mpc-candidates "${MULTIPATH_MPC_CANDIDATES:-64}" --mpc-iters "${MULTIPATH_MPC_ITERS:-3}" --ppo-updates "${MULTIPATH_PPO_UPDATES:-60}")
+if [[ -n "${MULTIPATH_LOCAL_ANCHOR:-}" ]]; then
+ [[ "$EMBODIMENT" == floating_xhand ]]
+ : "${MULTIPATH_ENTRY_SNAPSHOT:?physically acquired local-development entry}"
+ anchor=$MULTIPATH_LOCAL_ANCHOR
+ run_sim scripts/develop_floating_anchor.py --proposals "$PROPOSALS" --schedule "$MULTIPATH_SCHEDULE" \
+  --xhand-urdf "$ENGINE/assets/xhand/spider/xhand_right.urdf" --object-cache "$ENGINE/outputs/sim_usd" \
+  --floating-config "$ROOT/configs/floating_xhand.json" --anchor-id "$anchor" \
+  --entry-snapshot "$MULTIPATH_ENTRY_SNAPSHOT" --output-dir "$OUT/$anchor" "${SOLVER_ARGS[@]}" >"$OUT/$anchor.log" 2>&1
+ check_result "$OUT/$anchor/development_result.json" m2_success
+ cp -r "$OUT/$anchor/anchors/$anchor" "$OUT/anchors/"
+ exit 0
+fi
 for anchor in "${ANCHORS[@]}"; do
  if [[ "$EMBODIMENT" == floating_xhand && "$anchor" == "${ANCHORS[0]}" && -n "${MULTIPATH_PREDECESSOR_RUN:-}" ]]; then
   FIRST_ARGS=()
