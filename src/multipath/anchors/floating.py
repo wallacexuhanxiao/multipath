@@ -82,15 +82,8 @@ def local_controls(scene,anchor,data,start):
     preserve_preload='command_hand_q' in start
     hand_start_velocity=np.zeros(12) if preserve_preload else start.get('hand_dq',np.zeros(12))
     hand=_entry_curve(hand,hand_start,hand_start_velocity,scene.dt,padding)
-    if anchor.entry_contact==anchor.exit_contact=='grasped' and preserve_preload:
-        # Keep contact-loaded joints from releasing their acquired preload,
-        # while allowing the retarget to strengthen or adapt the grasp. Holding
-        # all fingers rigidly discarded useful closing motion in physical replay.
-        preload=hand_start-np.asarray(start['hand_q'])
-        positive=preload>1e-6;negative=preload<-1e-6
-        hand[:,positive]=np.maximum(hand[:,positive],hand_start[positive])
-        hand[:,negative]=np.minimum(hand[:,negative],hand_start[negative])
-    hand=np.clip(hand,scene.hand_limits[:,0],scene.hand_limits[:,1])
+    low,high=grasp_command_bounds(scene,start,anchor)
+    hand=np.clip(hand,low,high)
     # Finger slew is constrained; no arm IK or joint-space projection exists.
     for k in range(1,len(hand)):
         hand[k]=np.clip(hand[k],hand[k-1]-scene.hand_velocity*scene.dt,hand[k-1]+scene.hand_velocity*scene.dt)
@@ -108,15 +101,37 @@ def hand_command_boundary(start):
     return np.asarray(start['hand_q'])
 
 
-def project_hand_commands(scene,commands,start):
+def grasp_command_bounds(scene,start,anchor=None):
+    """Preserve acquired preload only in physically contacting fingers.
+
+    This projects command proposals, not simulator state. Acquisition/release
+    Anchors keep their full action space; persistent grasp Anchors can strengthen
+    preload and move non-contacting fingers, but cannot command its release.
+    """
+    low,high=np.asarray(scene.hand_limits,dtype=float).T.copy()
+    if (anchor is None or anchor.entry_contact!=anchor.exit_contact or anchor.entry_contact!='grasped'
+            or 'command_hand_q' not in start):return low,high
+    from multipath.xhand import RIGHT_XHAND_FINGER_JOINT_NAMES
+    contact=start['contact'];groups=('thumb','index','mid','ring','pinky')
+    active={g for path,force in zip(contact.get('link_paths',[]),contact.get('force_norms_n',[]))
+            if force>.01 for g in groups if g in path.rsplit('/',1)[-1]}
+    loaded=np.array([any(g in name for g in active) for name in RIGHT_XHAND_FINGER_JOINT_NAMES])
+    target=hand_command_boundary(start);preload=target-np.asarray(start['hand_q'])
+    positive=loaded&(preload>1e-6);negative=loaded&(preload<-1e-6)
+    low[positive]=np.maximum(low[positive],target[positive]);high[negative]=np.minimum(high[negative],target[negative])
+    return low,high
+
+
+def project_hand_commands(scene,commands,start,anchor=None):
     """Keep the recorded drive boundary and joint slew inside source time.
 
     This changes a proposal, not physics evidence: fresh padded/core Replay
     must still succeed before its commands become a validated artifact.
     """
     controls=np.asarray(commands).copy();previous=hand_command_boundary(start)
+    low,high=grasp_command_bounds(scene,start,anchor)
     for c in controls:
-        c[7:19]=np.clip(c[7:19],scene.hand_limits[:,0],scene.hand_limits[:,1])
+        c[7:19]=np.clip(c[7:19],low,high)
         c[7:19]=np.clip(c[7:19],previous-scene.hand_velocity*scene.dt,previous+scene.hand_velocity*scene.dt)
         previous=c[7:19].copy()
     return controls

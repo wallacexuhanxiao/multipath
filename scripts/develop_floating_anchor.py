@@ -136,7 +136,7 @@ def main():
             report['initial_controls']={'path':str(args.initial_controls),
                 'sha256':hashlib.sha256(args.initial_controls.read_bytes()).hexdigest(),
                 'before_projection':validate_commands(scene,controls,entry),'physical_acceptance':False}
-            controls=project_hand_commands(scene,controls,entry)
+            controls=project_hand_commands(scene,controls,entry,anchor)
         else:
             controls=local_controls(scene,anchor,data,entry)
             report['local_wrist_target']=('source_object_pose_with_measured_grasp' if anchor.entry_contact==anchor.exit_contact=='grasped'
@@ -158,7 +158,7 @@ def main():
                 if args.mpc_only or not hasattr(error,'controls'):raise
                 # A failed snapshot-started window is useful initialization,
                 # not an excuse to skip continuous whole-Anchor synthesis.
-                controls=project_hand_commands(scene,error.controls,entry)
+                controls=project_hand_commands(scene,error.controls,entry,anchor)
                 report['window_refinement_failure']={'reason':str(error),'proposal_only':True,
                     'next':'fresh_padded_replay_then_whole_anchor_PPO_if_needed'}
             np.savez_compressed(out/'refined_controls.npz',commands=controls)

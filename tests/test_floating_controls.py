@@ -108,6 +108,8 @@ def test_grasp_preload_is_not_counted_as_a_new_command_jump():
     start['contact']['mode']='free'
     assert validate_commands(scene,baseline,start)['feasible']
     anchor.entry_contact=anchor.exit_contact='grasped'
+    start['contact']={'mode':'grasped','link_paths':[f'/hand/right_hand_{g}_tip' for g in ['thumb','index','mid','ring','pinky']],
+                      'force_norms_n':[1.]*5}
     start['hand_object_transform']=np.eye(4)
     data={'wrist_hand_q':ref,'tool_pose':np.tile(np.eye(4),(len(ref),1,1))}
     ref[:,7:]=.4
@@ -117,6 +119,27 @@ def test_grasp_preload_is_not_counted_as_a_new_command_jump():
     ref[:,7:]=0.
     controls=local_controls(scene,anchor,data,start)
     np.testing.assert_allclose(controls[:,7:19],np.tile(start['command_hand_q'],(len(controls),1)))
+
+
+def test_search_residual_cannot_unload_contacting_fingers_but_release_can():
+    from multipath.anchors.floating_search import apply_residual
+    scene=SimpleNamespace(dt=.01,hand_limits=np.tile([-2,2],(12,1)),hand_velocity=np.full(12,20.))
+    target=np.full(12,.1);target[6:8]=-.1
+    start={'wrist_xyz_wxyz':[0,0,0,1,0,0,0],'hand_q':np.zeros(12),'command_hand_q':target,
+           'contact':{'mode':'grasped','link_paths':['/hand/right_hand_thumb_rota_link2','/hand/right_hand_mid_link2'],
+                      'force_norms_n':[29.,20.]}}
+    baseline=np.zeros((8,25));baseline[:,3]=1.;baseline[:,7:19]=target
+    residual=np.zeros((2,18));residual[:,6:]=-0.3;residual[:,12:14]=.3
+    hold=SimpleNamespace(entry_contact='grasped',exit_contact='grasped')
+    command=apply_residual(scene,baseline,start,residual,4,np.ones(9),hold)
+    np.testing.assert_allclose(command[:,7:10],np.tile(target[:3],(8,1)))
+    np.testing.assert_allclose(command[:,13:15],np.tile(target[6:8],(8,1)))
+    assert command[-1,10]<0. # Non-contacting index remains free to adapt.
+    np.testing.assert_allclose(command[:,:7],baseline[:,:7])
+    np.testing.assert_allclose(command[:,19:25],baseline[:,19:25])
+    release=SimpleNamespace(entry_contact='grasped',exit_contact='free')
+    command=apply_residual(scene,baseline,start,residual,4,np.ones(9),release)
+    assert command[-1,7]<0. and command[-1,13]>0.
 
 
 def test_carry_anchor_uses_acquired_grasp_and_finishes_context_at_core():

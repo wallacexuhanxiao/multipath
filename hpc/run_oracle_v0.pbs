@@ -63,10 +63,13 @@ if [[ -n "${MULTIPATH_LOCAL_ANCHOR:-}" ]]; then
  [[ "$EMBODIMENT" == floating_xhand ]]
  : "${MULTIPATH_ENTRY_SNAPSHOT:?physically acquired local-development entry}"
  anchor=$MULTIPATH_LOCAL_ANCHOR
+ LOCAL_ARGS=()
+ [[ -z "${MULTIPATH_INITIAL_CONTROLS:-}" ]] || LOCAL_ARGS+=(--initial-controls "$MULTIPATH_INITIAL_CONTROLS")
+ [[ "${MULTIPATH_REPLAY_ONLY:-0}" != 1 ]] || LOCAL_ARGS+=(--replay-only)
  run_sim scripts/develop_floating_anchor.py --proposals "$PROPOSALS" --schedule "$MULTIPATH_SCHEDULE" \
   --xhand-urdf "$ENGINE/assets/xhand/spider/xhand_right.urdf" --object-cache "$ENGINE/outputs/sim_usd" \
   --floating-config "$ROOT/configs/floating_xhand.json" --anchor-id "$anchor" \
-  --entry-snapshot "$MULTIPATH_ENTRY_SNAPSHOT" --output-dir "$OUT/$anchor" "${SOLVER_ARGS[@]}" >"$OUT/$anchor.log" 2>&1
+  --entry-snapshot "$MULTIPATH_ENTRY_SNAPSHOT" --output-dir "$OUT/$anchor" "${SOLVER_ARGS[@]}" "${LOCAL_ARGS[@]}" >"$OUT/$anchor.log" 2>&1
  check_result "$OUT/$anchor/development_result.json" m2_success
  cp -r "$OUT/$anchor/anchors/$anchor" "$OUT/anchors/"
  exit 0

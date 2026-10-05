@@ -8,13 +8,13 @@ from pathlib import Path
 import numpy as np
 from scipy.spatial.transform import Rotation
 from multipath.anchors.mpc import WindowEvaluation,mppi_mean,RefinementRequired
-from multipath.anchors.floating import controls_from_poses,validate_commands,object_relative_command,object_relative_handoff,hand_command_boundary,project_hand_commands
+from multipath.anchors.floating import controls_from_poses,validate_commands,object_relative_command,object_relative_handoff,hand_command_boundary,project_hand_commands,grasp_command_bounds
 from multipath.anchors.ppo import MountedResidualEnv,LocalPPOSolver,PPOConfig
 from multipath.planning.timing import physics_ticks_per_frame
 from multipath.validation.physics import object_tracking_parameters
 
 
-def apply_residual(scene,baseline,start,residual,tpf,envelope):
+def apply_residual(scene,baseline,start,residual,tpf,envelope,anchor=None):
     """Interpolate world-frame wrist residuals and enforce hand joint/speed bounds."""
     ticks=len(baseline);sample=np.arange(ticks+1)/tpf
     delta=np.vstack((np.zeros(18),residual));grid=np.arange(len(delta))
@@ -24,7 +24,8 @@ def apply_residual(scene,baseline,start,residual,tpf,envelope):
     poses[:,:3]+=interp[:,:3]
     rotations=Rotation.from_rotvec(interp[:,3:6])*Rotation.from_quat(poses[:,[4,5,6,3]])
     poses[:,3:]=rotations.as_quat()[:,[3,0,1,2]];hands+=interp[:,6:]
-    hands=np.clip(hands,scene.hand_limits[:,0],scene.hand_limits[:,1])
+    low,high=grasp_command_bounds(scene,start,anchor)
+    hands=np.clip(hands,low,high)
     for k in range(1,len(hands)):hands[k]=np.clip(hands[k],hands[k-1]-scene.hand_velocity*scene.dt,hands[k-1]+scene.hand_velocity*scene.dt)
     controls=controls_from_poses(poses,hands,scene.dt)
     # Appendix reproduction samples pose/finger residuals; it does not add
@@ -38,20 +39,21 @@ def apply_residual(scene,baseline,start,residual,tpf,envelope):
 class FloatingResidualEnv(MountedResidualEnv):
     def __init__(self,scene,anchor,data,baseline,start,begin,out):
         self.scene,self.anchor,self.data=scene,anchor,data
-        self.baseline,self.start,self.begin=baseline.copy(),start,begin
+        self.baseline,self.start,self.begin=project_hand_commands(scene,baseline,start,anchor),start,begin
         self.out=Path(out);self.out.mkdir(parents=True,exist_ok=True)
         self.fps=scene.manifest['fps'];self.tpf=physics_ticks_per_frame(self.fps,scene.dt);self.horizon=len(baseline)//self.tpf
         if self.horizon<1 or len(baseline)%self.tpf or not validate_commands(scene,baseline,start)['feasible']:
             raise ValueError('PPO requires feasible whole-source-frame local commands')
         if not np.isclose(start['time_s']*self.fps,anchor.synth_start+begin/self.tpf,atol=1e-8,rtol=0):
             raise ValueError('PPO entry does not match local source time')
-        self.prior=baseline[self.tpf-1::self.tpf,:19].copy();self.hand_velocity=scene.hand_velocity;self.trial=0
+        self.prior=self.baseline[self.tpf-1::self.tpf,:19].copy();self.hand_velocity=scene.hand_velocity;self.trial=0
         self.metadata={'anchor':anchor.id,'begin_tick':begin,'source_start_frame':anchor.synth_start+begin/self.tpf,
             'source_frames':self.horizon,'source_fps':self.fps,'physics_dt':scene.dt,'entry_origin':start.get('entry_origin'),
             'entry_provenance':start.get('entry_provenance'),'source_provenance':scene.manifest['provenance'],
             'action':'wrist_xyz_rotvec_and_12_fingers','action_scales':self.action_scales.tolist(),'residual_center':'local_floating_replay',
             'training_scene':'floating_PhysX','residual_velocity_feedforward':'nominal_replay_unchanged','objective':'Appendix weighted object tracking + thumb AND finger contact',
             'tracking_parameters':object_tracking_parameters(),
+            'finger_projection':'URDF_limits_slew_and_native_contact_preload',
             'clock_stretched':False,'state_resets_within_episode':0,'domain_randomization':False,'arm_ik_used':False}
 
     def observation(self,state):
@@ -79,7 +81,7 @@ class FloatingResidualEnv(MountedResidualEnv):
         if not np.any(residuals):return self.baseline.copy()
         residuals=np.concatenate((residuals,np.repeat(residuals[-1:],self.horizon-len(residuals),axis=0)))
         phase=np.clip((self.begin+np.arange(len(self.baseline)+1))/max(1,(self.anchor.core_start-self.anchor.synth_start)*self.tpf),0,1)
-        controls=apply_residual(self.scene,self.baseline,self.start,residuals,self.tpf,phase**2*(3-2*phase))
+        controls=apply_residual(self.scene,self.baseline,self.start,residuals,self.tpf,phase**2*(3-2*phase),self.anchor)
         count=min(len(self.commands),len(controls));controls[:count]=self.commands[:count]
         return controls
 
@@ -92,7 +94,7 @@ class FloatingResidualEnv(MountedResidualEnv):
         envelope=phase**2*(3-2*phase)
         # Exact zero policy keeps the original controls and their feedforward.
         candidate=(self.baseline[:end].copy() if not np.any(self.residuals) else
-            apply_residual(self.scene,self.baseline[:end],self.start,np.asarray(self.residuals),self.tpf,envelope))
+            apply_residual(self.scene,self.baseline[:end],self.start,np.asarray(self.residuals),self.tpf,envelope,self.anchor))
         self.objective.last_reward=0.
         try:
             for tick in range(self.k*self.tpf,end):
@@ -178,7 +180,7 @@ def refine(scene,anchor,data,baseline,start,out,candidates=64,iterations=3,use_p
         return acquired
     for begin in range(0,len(baseline),20*tpf):
         stop=min(begin+40*tpf,len(baseline));commit=min(20*tpf,len(baseline)-begin)
-        replay=project_hand_commands(scene,chosen[begin:stop],state)
+        replay=project_hand_commands(scene,chosen[begin:stop],state,anchor)
         score,valid,info,prefix=evaluate(replay,state,begin,'CHUNK_REPLAY',out/f'replay_{begin}',prefix_ticks=commit)
         best=replay if valid else None;best_score=score if valid else -np.inf
         best_state=retain_prefix(prefix,replay,begin) if valid else None
@@ -202,7 +204,7 @@ def refine(scene,anchor,data,baseline,start,out,candidates=64,iterations=3,use_p
                 samples=rng.normal(size=(candidates,*mean.shape))*scale*(.5**iteration)+mean;samples[0]=mean
                 returns=np.full(candidates,-np.inf)
                 for i,residual in enumerate(samples):
-                    control=replay.copy() if not np.any(residual) else apply_residual(scene,replay,state,residual,tpf,envelope)
+                    control=replay.copy() if not np.any(residual) else apply_residual(scene,replay,state,residual,tpf,envelope,anchor)
                     returns[i],ok,info,prefix=evaluate(control,state,begin,'LOCAL_MPPI',out/'candidate',prefix_ticks=commit)
                     history.append(dict(begin_tick=begin,iteration=iteration,candidate=i,success=ok,**info))
                     if ok and returns[i]>best_score:
