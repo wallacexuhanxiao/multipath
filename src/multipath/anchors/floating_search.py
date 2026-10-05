@@ -8,7 +8,7 @@ from pathlib import Path
 import numpy as np
 from scipy.spatial.transform import Rotation
 from multipath.anchors.mpc import WindowEvaluation,mppi_mean,RefinementRequired
-from multipath.anchors.floating import controls_from_poses,validate_commands,object_relative_command,object_relative_handoff,hand_command_boundary
+from multipath.anchors.floating import controls_from_poses,validate_commands,object_relative_command,object_relative_handoff,hand_command_boundary,project_hand_commands
 from multipath.anchors.ppo import MountedResidualEnv,LocalPPOSolver,PPOConfig
 from multipath.planning.timing import physics_ticks_per_frame
 from multipath.validation.physics import object_tracking_parameters
@@ -151,7 +151,8 @@ def refine(scene,anchor,data,baseline,start,out,candidates=64,iterations=3,use_p
             'grasp_acquired_frame':acquired_frame,'target_handoff':handoff,'physics_steps_executed':executed,
             'prediction_complete':executed==len(control)}
     for begin in range(0,len(baseline),20*tpf):
-        stop=min(begin+40*tpf,len(baseline));commit=min(20*tpf,len(baseline)-begin);replay=chosen[begin:stop].copy()
+        stop=min(begin+40*tpf,len(baseline));commit=min(20*tpf,len(baseline)-begin)
+        replay=project_hand_commands(scene,chosen[begin:stop],state)
         score,valid,info=evaluate(replay,state,begin,'CHUNK_REPLAY',out/f'replay_{begin}')
         best=replay if valid else None;best_score=score if valid else -np.inf
         seed=replay.copy();seed_score=score;prior_origin.clear();prior_origin.update(proposal='local_replay',score=float(score),failure=info.get('failure'))

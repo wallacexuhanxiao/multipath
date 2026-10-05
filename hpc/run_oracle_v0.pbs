@@ -61,12 +61,14 @@ mkdir -p "$OUT/anchors"
 SOLVER_ARGS=(--mpc-candidates "${MULTIPATH_MPC_CANDIDATES:-64}" --mpc-iters "${MULTIPATH_MPC_ITERS:-3}" --ppo-updates "${MULTIPATH_PPO_UPDATES:-60}")
 for anchor in "${ANCHORS[@]}"; do
  if [[ "$EMBODIMENT" == floating_xhand && "$anchor" == "${ANCHORS[0]}" && -n "${MULTIPATH_PREDECESSOR_RUN:-}" ]]; then
+  FIRST_ARGS=()
+  [[ -z "${MULTIPATH_INITIAL_CONTROLS:-}" ]] || FIRST_ARGS+=(--initial-controls "$MULTIPATH_INITIAL_CONTROLS")
   # Freeze the already passed cuRobo predecessor, but physically execute it
   # again. The development driver checks its initial state and source budget.
   run_sim scripts/develop_floating_anchor.py --proposals "$PROPOSALS" --schedule "$MULTIPATH_SCHEDULE" \
    --xhand-urdf "$ENGINE/assets/xhand/spider/xhand_right.urdf" --object-cache "$ENGINE/outputs/sim_usd" \
    --floating-config "$ROOT/configs/floating_xhand.json" --anchor-id "$anchor" \
-   --predecessor-run "$MULTIPATH_PREDECESSOR_RUN" --output-dir "$OUT/$anchor" "${SOLVER_ARGS[@]}" >"$OUT/$anchor.log" 2>&1
+   --predecessor-run "$MULTIPATH_PREDECESSOR_RUN" --output-dir "$OUT/$anchor" "${SOLVER_ARGS[@]}" "${FIRST_ARGS[@]}" >"$OUT/$anchor.log" 2>&1
   check_result "$OUT/$anchor/development_result.json" m2_success
   cp -r "$OUT/$anchor/anchors/$anchor" "$OUT/anchors/"
   [[ "$anchor" != "${MULTIPATH_THROUGH_ANCHOR:-}" ]] || break

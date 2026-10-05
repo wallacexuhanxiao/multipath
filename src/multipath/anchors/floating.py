@@ -69,7 +69,7 @@ def local_controls(scene,anchor,data,start):
     rotation=Rotation.from_rotvec(tangent[:,None]/tangent[1]*first.as_rotvec())*rotation
     pose[:,3:]=rotation.as_quat()[:,[3,0,1,2]]
     hand_start=hand_command_boundary(start)
-    preserve_preload=start.get('contact',{}).get('mode')=='grasped' and 'command_hand_q' in start
+    preserve_preload='command_hand_q' in start
     hand_start_velocity=np.zeros(12) if preserve_preload else start.get('hand_dq',np.zeros(12))
     hand=_entry_curve(hand,hand_start,hand_start_velocity,scene.dt,padding)
     hand=np.clip(hand,scene.hand_limits[:,0],scene.hand_limits[:,1])
@@ -85,9 +85,23 @@ def local_controls(scene,anchor,data,start):
 def hand_command_boundary(start):
     # Contact can deflect a finger from its drive target. That preload is
     # already present; holding it is not a new high-speed position command.
-    if start.get('contact',{}).get('mode')=='grasped' and 'command_hand_q' in start:
+    if 'command_hand_q' in start:
         return np.asarray(start['command_hand_q'])
     return np.asarray(start['hand_q'])
+
+
+def project_hand_commands(scene,commands,start):
+    """Keep the recorded drive boundary and joint slew inside source time.
+
+    This changes a proposal, not physics evidence: fresh padded/core Replay
+    must still succeed before its commands become a validated artifact.
+    """
+    controls=np.asarray(commands).copy();previous=hand_command_boundary(start)
+    for c in controls:
+        c[7:19]=np.clip(c[7:19],scene.hand_limits[:,0],scene.hand_limits[:,1])
+        c[7:19]=np.clip(c[7:19],previous-scene.hand_velocity*scene.dt,previous+scene.hand_velocity*scene.dt)
+        previous=c[7:19].copy()
+    return controls
 
 
 def validate_commands(scene,commands,start):

@@ -14,6 +14,7 @@ def main():
     p.add_argument('--anchor-id',help='Develop this oracle Anchor; later entries require a real predecessor snapshot.')
     p.add_argument('--entry-snapshot',type=Path,help='Development only: physically acquired state at synth_start.')
     p.add_argument('--predecessor-run',type=Path,help='Reuse a passed cuRobo bridge only when its actual initial state and source match.')
+    p.add_argument('--initial-controls',type=Path,help='Existing padded local command proposal; still requires fresh physical validation.')
     args=p.parse_args();out=args.output_dir;out.mkdir(parents=True,exist_ok=True)
     if args.entry_snapshot and args.predecessor_run:p.error('Choose a snapshot or a validated predecessor bridge')
     from multipath.oracle_schedule import OracleSchedule
@@ -42,7 +43,7 @@ def main():
         from multipath.execution.startup import start_simulation
         from multipath.execution.floating_scene import FloatingScene
         from multipath.planning.floating import FloatingPlanner,pose_coordinates
-        from multipath.anchors.floating import local_controls,rollout,validate_commands,validate_local_data
+        from multipath.anchors.floating import local_controls,rollout,validate_commands,validate_local_data,project_hand_commands
         from multipath.planning.timing import physics_ticks_per_frame
         from multipath.anchors.artifact import save_anchor
         data=dict(np.load(args.proposals/manifest['anchors'][anchor.id],allow_pickle=False))
@@ -124,7 +125,16 @@ def main():
                 'source_frame':anchor.synth_start,'planner':'cuRobo','predecessor_success':True}
             entry=scene.snapshot();(out/'acquired_snapshot.json').write_text(json.dumps(entry,indent=2))
         print('FLOATING_PREDECESSOR_PASSED',flush=True)
-        controls=local_controls(scene,anchor,data,entry);check=validate_commands(scene,controls,entry);report['command_precheck']=check
+        if args.initial_controls:
+            controls=np.load(args.initial_controls,allow_pickle=False)['commands']
+            if controls.shape!=((anchor.synth_end-anchor.synth_start)*tpf,25) or not np.isfinite(controls).all():
+                raise ValueError('Initial controls must contain only this padded Anchor at its source clock')
+            report['initial_controls']={'path':str(args.initial_controls),
+                'sha256':hashlib.sha256(args.initial_controls.read_bytes()).hexdigest(),
+                'before_projection':validate_commands(scene,controls,entry),'physical_acceptance':False}
+            controls=project_hand_commands(scene,controls,entry)
+        else:controls=local_controls(scene,anchor,data,entry)
+        check=validate_commands(scene,controls,entry);report['command_precheck']=check
         if not check['feasible']:raise RuntimeError('Floating local command precheck failed')
         np.savez_compressed(out/'local_controls.npz',commands=controls)
         validation,core_entry,core_exit=rollout(scene,anchor,data,controls,entry,out/'replay',collect_tracking_failures=True)

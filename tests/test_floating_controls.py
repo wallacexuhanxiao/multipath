@@ -104,3 +104,6 @@ def test_grasp_preload_is_not_counted_as_a_new_command_jump():
     controls=local_controls(scene,anchor,{'wrist_hand_q':ref},start)
     assert validate_commands(scene,controls,start)['feasible']
     np.testing.assert_allclose(controls[0,7:19],start['command_hand_q'])
+    # A transient absence of opposition does not erase the previous drive.
+    start['contact']['mode']='free'
+    assert validate_commands(scene,baseline,start)['feasible']

@@ -158,7 +158,7 @@ class FloatingScene:
         self.robot.set_joint_positions(q);self.robot.set_joint_velocities(dq)
         # Restore a grasp's actual recorded preload as well as q/dq. Replacing
         # a deflected finger's drive target with measured q releases the grip.
-        preserve=state['contact']['mode']=='grasped'
+        preserve='command_hand_q' in state
         drive=q.copy()
         if preserve:drive[self.fingers]=state.get('command_hand_q',state['hand_q'])
         self.robot.apply_action(self.Action(joint_positions=drive,joint_velocities=np.zeros_like(dq) if preserve else dq))
