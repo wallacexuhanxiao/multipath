@@ -1,0 +1,376 @@
+{
+  "status": "failed",
+  "error": "Floating Replay/MPPI/PPO failed at source frame 29.0",
+  "elapsed_s": 259.47208565846086,
+  "pbs_job_id": "648514.hopper-m-02",
+  "m2_success": false,
+  "full_pipeline_success": false,
+  "core_interval": [
+    35,
+    76
+  ],
+  "synthesis_interval": [
+    29,
+    82
+  ],
+  "source_provenance": {
+    "triplet": "(put in, bowl, plate)",
+    "sequence": "20231024_253",
+    "input": "raw TACO MANO and object poses",
+    "source_video": "/scratch/e0985859/egoengine_baseline/data/taco_v1/Egocentric_RGB_Videos/(put in, bowl, plate)/20231024_253/color.mp4",
+    "schedule_sha256": "111733961ac0ad03d95087435de751c2bdf27db6f375fe153bd6f5f78283adc2",
+    "full_robot_reference_used": false,
+    "vlm_used": false,
+    "transform_world_to_robot": [
+      [
+        -0.36959298057517503,
+        0.929193775162176,
+        0.0,
+        0.574305986267124
+      ],
+      [
+        -0.9291937551424282,
+        -0.36959297261218765,
+        -0.0,
+        0.005429607853050099
+      ],
+      [
+        0.0,
+        0.0,
+        1.0,
+        -0.1883068585395813
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ]
+  },
+  "source_time_stretch": false,
+  "command_precheck": {
+    "feasible": true,
+    "hand_velocity_ratio": 0.9999999999999993,
+    "hand_joint_bounds": true
+  },
+  "commit": "57a2638",
+  "predecessor_passed": true,
+  "predecessor_actual_initial_errors": {
+    "embodiment_match": true,
+    "wrist_position_m": 0.0,
+    "wrist_rotation_rad": 0.0,
+    "wrist_velocity": 0.0,
+    "hand_q": 0.0,
+    "hand_dq": 0.0,
+    "target_position_m": 0.0,
+    "target_rotation_rad": 0.0,
+    "target_velocity": 0.0,
+    "tool_position_m": 0.0,
+    "tool_rotation_rad": 0.0,
+    "tool_velocity": 0.0,
+    "relative_transform": 0.0,
+    "relative_transform_required": false,
+    "contact_match": true,
+    "scene_match": true
+  },
+  "predecessor_fixed_budget_s": 0.9666666666666667,
+  "padded_replay": {
+    "success": false,
+    "failure": {
+      "source_frame": 49.0,
+      "reason": "core_object_fidelity"
+    },
+    "failures": [
+      {
+        "source_frame": 49.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 50.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 51.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 52.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 53.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 54.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 55.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 56.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 57.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 58.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 59.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 60.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 61.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 62.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 63.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 64.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 65.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 66.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 67.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 68.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 69.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 70.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 71.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 72.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 73.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 74.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 75.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 76.0,
+        "reason": "core_exit_handoff"
+      }
+    ],
+    "padded_rollout_complete": false,
+    "tracking_failures_collected": true,
+    "core_entry_acquired": true,
+    "core_exit_acquired": true,
+    "state_resets_within_rollout": 0,
+    "source_fps": 30.0,
+    "control_dt": 0.008333333333333333,
+    "embodiment": "floating_xhand",
+    "command_format": "wrist_xyz_wxyz_hand12_twist6",
+    "actual_end_frame": 76.0
+  },
+  "physics_frames": [
+    {
+      "source_frame": 35,
+      "contact_mode": "free",
+      "object_error": {
+        "position_m": 0.002793293847009686,
+        "rotation_rad": 0.04793205385584382
+      },
+      "tracking": {
+        "weighted_error": 0.14790520466924778,
+        "reward": 0.8520947953307523,
+        "feasible": true
+      }
+    },
+    {
+      "source_frame": 47,
+      "contact_mode": "grasped",
+      "object_error": {
+        "position_m": 0.0011915015780181145,
+        "rotation_rad": 0.11112458015898496
+      },
+      "tracking": {
+        "weighted_error": 0.3183918320152873,
+        "reward": 0.6816081679847127,
+        "feasible": true
+      }
+    },
+    {
+      "source_frame": 49,
+      "contact_mode": "grasped",
+      "object_error": {
+        "position_m": 0.008137855894767856,
+        "rotation_rad": 0.4362532165535963
+      },
+      "tracking": {
+        "weighted_error": 1.257019082163199,
+        "reward": -0.257019082163199,
+        "feasible": false
+      }
+    },
+    {
+      "source_frame": 51,
+      "contact_mode": "grasped",
+      "object_error": {
+        "position_m": 0.040719618907698124,
+        "rotation_rad": 0.5569474789709016
+      },
+      "tracking": {
+        "weighted_error": 1.7875688088196784,
+        "reward": -0.7875688088196784,
+        "feasible": false
+      }
+    },
+    {
+      "source_frame": 76,
+      "contact_mode": "grasped",
+      "object_error": {
+        "position_m": 0.0535411885710624,
+        "rotation_rad": 0.8585824738955244
+      },
+      "tracking": {
+        "weighted_error": 2.67662618781221,
+        "reward": -1.67662618781221,
+        "feasible": false
+      }
+    }
+  ],
+  "diagnostic_replay_lift_m": 0.054930806159973145,
+  "mpc": {
+    "stochastic_candidates": 192,
+    "object_relative_candidates": 1,
+    "successes": 0,
+    "max_failure_frame": 52.0,
+    "failure_counts": {
+      "core_object_fidelity": 193
+    },
+    "object_relative": {
+      "begin_tick": 0,
+      "candidate": "measured_grasp",
+      "success": false,
+      "failure": {
+        "source_frame": 51.0,
+        "reason": "core_object_fidelity"
+      },
+      "score": 14.900588789028456,
+      "proposal": "measured_grasp_object_relative",
+      "grasp_acquired_frame": 46.75,
+      "target_handoff": {
+        "frame": 46.75,
+        "duration_s": 0.11399636657527368,
+        "position_offset": [
+          -0.005043531944437019,
+          0.0015645358520310626,
+          -0.025562105390920853
+        ],
+        "rotation_offset": [
+          0.07730425170239753,
+          -0.21351198307887997,
+          -0.02042968722014943
+        ],
+        "position_tangent": [
+          -0.0779100783308997,
+          0.35396335311447386,
+          -0.05661480029694593
+        ],
+        "rotation_tangent": [
+          -0.09449656445567331,
+          -1.058822685528647,
+          -2.8412147373599486
+        ]
+      },
+      "physics_steps_executed": 88,
+      "prediction_complete": false
+    }
+  },
+  "ppo": {
+    "status": "budget_exhausted",
+    "success": false,
+    "iterations": 60,
+    "episodes": 253,
+    "elapsed_s": 122.6544521972537,
+    "network_hidden": [
+      64,
+      64
+    ],
+    "parameters": 24293,
+    "zero_policy": {
+      "success": false,
+      "failure": {
+        "source_frame": 50.0,
+        "reason": "core_object_fidelity"
+      },
+      "source_steps": 21,
+      "evaluation_return": 10.39597574108524,
+      "return_value": 23.951246323622723,
+      "deterministic": true
+    },
+    "best_evaluation": {
+      "success": false,
+      "failure": {
+        "source_frame": 50.0,
+        "reason": "core_object_fidelity"
+      },
+      "source_steps": 21,
+      "evaluation_return": 10.705028049775938,
+      "return_value": 24.416637620778335,
+      "deterministic": true
+    },
+    "initialization_proposal": {
+      "proposal": "pose_residual",
+      "score": 22.411864441043562,
+      "failure": {
+        "source_frame": 50.0,
+        "reason": "core_object_fidelity"
+      }
+    }
+  },
+  "actual_state_video": {
+    "path": "/Users/apple/Desktop/semantic verifier/multipath/outputs/oracle_floating_a1_scientific_bundle_r50/replay/floating_xhand_actual.mp4",
+    "frames": 47,
+    "fps": 30,
+    "scope": "failed local diagnostic; not complete V0"
+  },
+  "focused_checks": {
+    "passed": 21,
+    "elapsed_s": 0.53
+  }
+}

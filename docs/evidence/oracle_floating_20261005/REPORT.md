@@ -259,3 +259,31 @@ r49 / 648479 已分配 GPU，但六分钟内主日志仍为空，CPU 累计约�
 
 共享存储上的具体阻塞文件尚未取得运行栈，不能把某个 SciPy 文件说成已
 确认的唯一根因。下一次导入应给出明确阶段和超时栈；A1 仍未通过。
+# r50 consolidated validation, 2026-10-05
+
+The consolidated control/state/timing/execution fixes were tested together in
+job 648514 (interactive, H200, 20-minute allocation). The measured development
+runtime was 259.47 seconds. Scientific imports, CUDA, Isaac and scene creation
+completed; scene readiness was 46.93 seconds. The frozen r45 cuRobo predecessor
+was validated against the exact current initial state and physically executed
+again in its unchanged 0.9667-second budget. It passed.
+
+A1 did not pass. Replay first failed object fidelity at source frame 49;
+192 residual MPPI candidates and one measured-grasp proposal all failed object
+fidelity, with the furthest candidate failing at frame 52. The 64×64, 24,293
+parameter residual PPO ran 60 updates / 253 episodes in 122.65 seconds; its best
+deterministic evaluation still failed at frame 50. No valid core artifact or
+full 4.8-second trajectory was produced.
+
+Replay had thumb AND finger contact at frame 49, but object rotation error was
+0.436 rad (position error 8.14 mm). Diagnostic replay continued through frame 76
+without treating tracking failures as success. The bowl was raised 54.93 mm,
+but its final errors were 53.54 mm / 0.859 rad and the handoff failed. Contact
+and lift therefore do not establish Anchor validity. The existing data do not
+uniquely attribute the object rotation error to controller lag or grasp slip.
+
+Actual-state video: `outputs/oracle_floating_a1_scientific_bundle_r50/replay/floating_xhand_actual.mp4`
+(47 frames, 30 fps, 1.5667 seconds; measured PhysX mesh transforms, not GT).
+The final frame was visually inspected. The 21 focused checks passed in 0.53 s.
+Detailed reusable fixes and limitations are in `docs/FLOATING_FLOW_AUDIT_20261005.md`;
+machine-readable evidence is `r50_result_summary.json` beside this report.
