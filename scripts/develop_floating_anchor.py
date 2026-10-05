@@ -34,7 +34,8 @@ def main():
         # A collision-separated nominal ready pose, initialized before source t=0.
         extent=float(np.linalg.norm(np.ptp(data['human_joints'][0],axis=0)))
         initial[2]+=max(.1,extent)
-        app=start_simulation(out);scene=FloatingScene(args,manifest,out/'predecessor',initial)
+        app=start_simulation(out);scene=FloatingScene(args,manifest,out/'predecessor',initial,initial_hand=data['wrist_hand_q'][0,7:])
+        report['initial_hand_origin']='first_local_synthesis_context_pregrasp; free_initial_state'
         print('FLOATING_SCENE_READY',time.perf_counter()-started,flush=True)
         planner=FloatingPlanner(scene,False,out/'planner')
         target=data['wrist_hand_q'][0,:7].copy()

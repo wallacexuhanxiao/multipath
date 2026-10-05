@@ -17,7 +17,7 @@ class FloatingScene:
     dt = 1/120
     embodiment = 'floating_xhand'
 
-    def __init__(self, args, manifest, out, initial_wrist):
+    def __init__(self, args, manifest, out, initial_wrist, initial_hand=None):
         import os, tempfile, omni, trimesh
         from isaacsim.asset.importer.urdf import _urdf
         from isaacsim.core.api import World
@@ -67,7 +67,11 @@ class FloatingScene:
         self.hand_limits=np.asarray(view.get_dof_limits()).reshape(-1,2)[self.fingers]
         from multipath.anchors.synthesis import hand_limits_from_urdf
         self.hand_velocity=hand_limits_from_urdf(self)
-        self.hand_command=np.clip(np.zeros(12),self.hand_limits[:,0],self.hand_limits[:,1])
+        # The free ready state uses the first local context's pregrasp posture.
+        # Carrying a zero/open hand across RELAXED otherwise forces the whole
+        # pregrasp closure into the short padding and changes Anchor entry.
+        self.hand_command=np.clip(np.zeros(12) if initial_hand is None else np.asarray(initial_hand),
+                                  self.hand_limits[:,0],self.hand_limits[:,1])
         q=np.zeros(self.robot.num_dof);q[self.fingers]=self.hand_command
         self.robot.set_joint_positions(q);self.robot.set_joint_velocities(np.zeros_like(q))
         self.av=view._physics_view

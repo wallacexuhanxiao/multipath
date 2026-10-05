@@ -24,7 +24,13 @@ def apply_residual(scene,baseline,start,residual,tpf,envelope):
     poses[:,3:]=rotations.as_quat()[:,[3,0,1,2]];hands+=interp[:,6:]
     hands=np.clip(hands,scene.hand_limits[:,0],scene.hand_limits[:,1])
     for k in range(1,len(hands)):hands[k]=np.clip(hands[k],hands[k-1]-scene.hand_velocity*scene.dt,hands[k-1]+scene.hand_velocity*scene.dt)
-    return controls_from_poses(poses,hands,scene.dt)
+    controls=controls_from_poses(poses,hands,scene.dt)
+    # Appendix reproduction samples pose/finger residuals; it does not add
+    # finite-differenced random pose noise to the wrist velocity feedforward.
+    # Keep the nominal source/bridge command twist and let physical feedback
+    # execute the sampled pose target. RELAXED planning is unaffected.
+    controls[:,19:25]=baseline[:,19:25]
+    return controls
 
 
 class FloatingResidualEnv(MountedResidualEnv):
@@ -38,7 +44,7 @@ class FloatingResidualEnv(MountedResidualEnv):
             'source_frames':self.horizon,'source_fps':self.fps,'physics_dt':scene.dt,'entry_origin':start.get('entry_origin'),
             'entry_provenance':start.get('entry_provenance'),'source_provenance':scene.manifest['provenance'],
             'action':'wrist_xyz_rotvec_and_12_fingers','action_scales':self.action_scales.tolist(),'residual_center':'local_floating_replay',
-            'training_scene':'floating_PhysX','objective':'Appendix weighted object tracking + thumb AND finger contact',
+            'training_scene':'floating_PhysX','residual_velocity_feedforward':'nominal_replay_unchanged','objective':'Appendix weighted object tracking + thumb AND finger contact',
             'clock_stretched':False,'state_resets_within_episode':0,'domain_randomization':False,'arm_ik_used':False}
 
     def observation(self,state):

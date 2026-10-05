@@ -80,3 +80,49 @@ It contains 29 frames at 30 fps (0.9667 s), rendered from measured PhysX mesh
 transforms. The final rendered frame was visually inspected. It shows the
 approach only, not a successful grasp. Initial plus N measured boundaries are
 rendered as N source-time intervals to avoid adding a frame of artificial waiting.
+
+
+## r39 final result and entry-posture attribution
+
+r39 completed in 3m47s (PBS). All 192 MPPI candidates physically executed;
+all failed core object fidelity, furthest at frame 52. PPO ran 60 updates /
+253 episodes in 109.8 s; best deterministic evaluation failed at frame 51.
+Replay failed at frame 49. No physical Anchor or full rollout passed.
+
+Direct old/new local-retarget comparison, after aligning object-world transforms:
+max wrist position delta 0.00242 mm, rotation delta 5.32e-6 degrees and finger
+joint delta 8.92e-5 rad. The local retarget solution itself is effectively the
+same as the earlier reproduction. The source reference is not replaced with the
+old full robot trajectory by this comparison.
+
+The new zero/open ready hand reaches frame 35 with thumb joints 0.257 / 0.449
+rad against targets 0.763 / 1.109 rad; max finger error 0.720 rad. The previous
+reproduction had already acquired thumb posture 0.911 / 1.140 rad there.
+Closing an initially open hand inside only six frames of context changed the
+physical Anchor entry substantially. r40 (648401) uses the first local context's
+pregrasp posture as a free, collision-separated task initial hand configuration;
+objects still start on the table. It runs Replay only to attribute this entry
+change before further optimization. The bridge physically transports this hand,
+and all subsequent states are measured. No extra source time is inserted.
+
+
+## r40 result and residual-controller correction
+
+r40 Replay still fails at frame 49, so correcting ready-hand posture alone is
+not sufficient. Thumb q at core entry improves from 0.257/0.449 (r39) to
+0.922/1.134 rad (r40), close to the previous reproduction's 0.911/1.140 rad.
+Native thumb AND finger contact begins at frame 47 instead of 49. Other fingers
+still show tracking lag; a valid grasp throughout the core is not established.
+The actual-state failed local video was rendered and its final frame inspected.
+
+A separate code comparison found a concrete porting error: the old reproduction's
+MPC applies sampled wrist pose residuals while preserving nominal wrist velocity
+feedforward. The floating adapter differentiated random residual positions and
+added those derivatives to feedforward, implicitly perturbing a second control
+channel. `apply_residual` now retains baseline twist in both MPPI and PPO.
+RELAXED planner velocity feedforward is unchanged. A focused regression confirms
+nonzero pose residuals change pose commands without changing velocity feedforward.
+
+r41 / 648405 uses the corrected pose-only residual interface with the r40 physical
+initial posture. No reward, tracking threshold, controller gain, force clamp,
+physics material or source timing was changed. Results pending.

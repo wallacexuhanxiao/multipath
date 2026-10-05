@@ -42,3 +42,14 @@ def test_measured_collision_does_not_add_tracking_tube_twice():
     assert planner.measured_valid()
     planner.scene.root_motion=lambda:(np.array([0.,0.,1.04,1.,0,0,0]),np.zeros(6))
     assert not planner.measured_valid()
+
+
+def test_sampled_pose_residual_keeps_nominal_velocity_feedforward():
+    from multipath.anchors.floating_search import apply_residual
+    scene=SimpleNamespace(dt=1/120,hand_limits=np.tile([-2.,2.],(12,1)),hand_velocity=np.full(12,10.))
+    baseline=np.zeros((8,25));baseline[:,3]=1.;baseline[:,19]=.15
+    start={'wrist_xyz_wxyz':[0.,0.,0.,1.,0.,0.,0.],'hand_q':np.zeros(12)}
+    residual=np.zeros((2,18));residual[:,0]=[.02,-.02]
+    controls=apply_residual(scene,baseline,start,residual,4,np.ones(9))
+    np.testing.assert_allclose(controls[:,19:25],baseline[:,19:25])
+    assert controls[3,0]>.019 and controls[-1,0]<-.019

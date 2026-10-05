@@ -1,0 +1,118 @@
+{
+  "status": "failed",
+  "error": "Floating Replay/MPPI/PPO failed at source frame 29.0",
+  "elapsed_s": 223.41969168395735,
+  "pbs_job_id": "647735.hopper-m-02",
+  "padded_replay": {
+    "success": false,
+    "failure": {
+      "source_frame": 49.0,
+      "reason": "core_object_fidelity"
+    },
+    "core_entry_acquired": true,
+    "core_exit_acquired": false,
+    "state_resets_within_rollout": 0,
+    "source_fps": 30.0,
+    "control_dt": 0.008333333333333333,
+    "embodiment": "floating_xhand",
+    "command_format": "wrist_xyz_wxyz_hand12_twist6",
+    "actual_end_frame": 49.0
+  },
+  "predecessor_transition": {
+    "wrist_error": {
+      "position_m": 0.008709111662301997,
+      "rotation_rad": 0.16825606663203002
+    },
+    "wrist_tracking_diagnostic_only": true,
+    "actual_contact": {
+      "mode": "free",
+      "thumb_contact": false,
+      "other_finger_contact": false,
+      "opposition_contact": false,
+      "touching_links": 0,
+      "link_paths": [
+        "/xhand_right/right_hand_link",
+        "/xhand_right/right_hand_ee_link",
+        "/xhand_right/right_hand_index_bend_link",
+        "/xhand_right/right_hand_index_rota_link1",
+        "/xhand_right/right_hand_index_rota_link2",
+        "/xhand_right/right_hand_index_rota_tip",
+        "/xhand_right/right_hand_mid_link1",
+        "/xhand_right/right_hand_mid_link2",
+        "/xhand_right/right_hand_mid_tip",
+        "/xhand_right/right_hand_pinky_link1",
+        "/xhand_right/right_hand_pinky_link2",
+        "/xhand_right/right_hand_pinky_tip",
+        "/xhand_right/right_hand_ring_link1",
+        "/xhand_right/right_hand_ring_link2",
+        "/xhand_right/right_hand_ring_tip",
+        "/xhand_right/right_hand_thumb_bend_link",
+        "/xhand_right/right_hand_thumb_rota_link1",
+        "/xhand_right/right_hand_thumb_rota_link2",
+        "/xhand_right/right_hand_thumb_rota_tip"
+      ],
+      "force_norms_n": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "evidence": "PhysX thumb AND non-thumb finger/tool contact; retention checked separately"
+    },
+    "actual_wrist_twist": [
+      0.017838357704952935,
+      0.006106945069169261,
+      -0.07881418695378238,
+      -0.07644882053136826,
+      0.49298033118247986,
+      -0.012915481813251972
+    ],
+    "success": true
+  },
+  "mpc_candidates": 192,
+  "mpc_successes": 0,
+  "mpc_furthest_failure_frame": 52.0,
+  "ppo": {
+    "iterations": 60,
+    "episodes": 253,
+    "elapsed_s": 109.82987635501195,
+    "best_evaluation": {
+      "success": false,
+      "failure": {
+        "source_frame": 51.0,
+        "reason": "core_object_fidelity"
+      },
+      "source_steps": 22,
+      "evaluation_return": 10.586930810563006,
+      "return_value": 18.467784595705798,
+      "deterministic": true
+    },
+    "zero_policy": {
+      "success": false,
+      "failure": {
+        "source_frame": 49.0,
+        "reason": "core_object_fidelity"
+      },
+      "source_steps": 20,
+      "evaluation_return": 9.576216192678276,
+      "return_value": 11.455136799524645,
+      "deterministic": true
+    },
+    "success": false
+  }
+}
