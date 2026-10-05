@@ -147,6 +147,29 @@ def main():
             np.savez_compressed(out/'refined_controls.npz',commands=controls)
             validation,core_entry,core_exit=rollout(scene,anchor,data,controls,entry,out/'refined_replay')
             report['refined_padded_replay']=validation
+            if not validation['success'] and not args.mpc_only:
+                # A successful snapshot-based window chain can fail when run
+                # continuously. Optimize this local Anchor from its real entry;
+                # do not continue optimizing from its failed intermediate state.
+                from multipath.anchors.floating_search import FloatingResidualEnv
+                from multipath.anchors.ppo import LocalPPOSolver
+                accepted_state={};attempts=[]
+                def accept_full(candidate):
+                    folder=out/'whole_anchor_replay'/f'candidate_{len(attempts):03d}'
+                    value,acquired,exited=rollout(scene,anchor,data,candidate,entry,folder)
+                    attempts.append(dict(value,trace=str(folder/'actual_trace.json')))
+                    report['whole_anchor_replay_attempts']=attempts
+                    if value['success']:accepted_state.update(validation=value,entry=acquired,exit=exited)
+                    print('WHOLE_ANCHOR_REPLAY',len(attempts),value['success'],value['failure'],flush=True)
+                    return value['success']
+                solver=LocalPPOSolver(scene,anchor,data,out/'whole_anchor_ppo',PPOConfig(iterations=args.ppo_updates),
+                                      env_factory=FloatingResidualEnv,accept_controls=accept_full)
+                candidate=solver(controls,entry,0)
+                if candidate is not None:
+                    controls=candidate;validation=accepted_state['validation']
+                    core_entry=accepted_state['entry'];core_exit=accepted_state['exit']
+                    np.savez_compressed(out/'whole_anchor_controls.npz',commands=controls)
+                    report['whole_anchor_padded_replay']=validation
         if not validation['success']:raise RuntimeError('Floating padded interaction failed')
         core=controls[(anchor.core_start-anchor.synth_start)*tpf:(anchor.core_end-anchor.synth_start)*tpf]
         padded_exit=core_exit

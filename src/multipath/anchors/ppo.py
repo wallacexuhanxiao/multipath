@@ -170,11 +170,12 @@ class MountedResidualEnv:
 
 class LocalPPOSolver:
     """A small fresh model per failed window, sharing one wall-clock budget."""
-    def __init__(self,scene,anchor,data,out,config=None,env_factory=None):
+    def __init__(self,scene,anchor,data,out,config=None,env_factory=None,accept_controls=None):
         self.scene,self.anchor,self.data=scene,anchor,data
         self.out=Path(out);self.out.mkdir(parents=True,exist_ok=True)
         self.config=config or PPOConfig();self.deadline=None;self.reports=[]
         self.env_factory=env_factory or MountedResidualEnv
+        self.accept_controls=accept_controls
 
     def __call__(self,baseline,start,begin):
         self.selected_prefix=None
@@ -212,10 +213,17 @@ class LocalPPOSolver:
             report['episodes']+=1
             return episode,result
 
+        def accepted(commands):
+            if self.accept_controls is None:return True
+            ok=bool(self.accept_controls(commands))
+            report.setdefault('fresh_replay_acceptance',[]).append({'success':ok})
+            write()
+            return ok
+
         # Confirm that the installed zero-mean policy really runs the baseline.
         _,zero=rollout(True);report['zero_policy']=zero;env.save_evaluation(folder/'zero_policy',zero)
         write();print('LOCAL_PPO_BEGIN',begin,'parameters',learner.parameter_count,'zero',zero,flush=True)
-        if zero['success']:
+        if zero['success'] and accepted(np.asarray(env.commands).copy()):
             report.update(success=True,status='zero_policy_passed');write()
             learner.save(folder/'policy.pt',env.metadata)
             self.selected_prefix=getattr(env,'physical_prefix',None)
@@ -234,13 +242,15 @@ class LocalPPOSolver:
                         # commit, padded Replay and core Replay still validate it.
                         commands=np.asarray(env.commands).copy()
                         env.save_evaluation(folder/'sampled_candidate',result)
+                        prefix=getattr(env,'physical_prefix',None)
+                        if not accepted(commands):continue
                         report.update(success=True,status='sampled_controls_passed',
                             iterations=iteration+1,sampled_candidate=result,
                             policy_deterministic_success=False,
                             selection='measured_sampled_commands; fresh_Replay_required')
                         learner.save(folder/'candidate_policy.pt',env.metadata)
                         write();print('LOCAL_PPO_SAMPLED_CONTROLS_PASSED',begin,iteration+1,flush=True)
-                        self.selected_prefix=getattr(env,'physical_prefix',None)
+                        self.selected_prefix=prefix
                         return commands
                 if not episodes:break
                 metrics=learner.update(episodes)
@@ -256,7 +266,7 @@ class LocalPPOSolver:
                         best_return=evaluation['evaluation_return'];report['best_evaluation']=evaluation
                         learner.save(folder/'best_policy.pt',env.metadata)
                         env.save_evaluation(folder/'best_evaluation',evaluation)
-                    if evaluation['success']:
+                    if evaluation['success'] and accepted(np.asarray(env.commands).copy()):
                         report.update(success=True,status='window_passed');write()
                         learner.save(folder/'policy.pt',env.metadata)
                         self.selected_prefix=getattr(env,'physical_prefix',None)
