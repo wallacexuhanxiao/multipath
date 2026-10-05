@@ -112,7 +112,7 @@ def validate_commands(scene,commands,start):
     return {'feasible':bool(in_bounds and ratio<=1.0001),'hand_velocity_ratio':ratio,'hand_joint_bounds':in_bounds}
 
 
-def rollout(scene,anchor,data,commands,start,out,mode='LOCAL_PADDED',core_only=False,mesh=True,collect_tracking_failures=False):
+def rollout(scene,anchor,data,commands,start,out,mode='LOCAL_PADDED',core_only=False,mesh=True,collect_tracking_failures=False,continue_from_current=False):
     tpf=physics_ticks_per_frame(scene.manifest['fps'],scene.dt)
     start_frame=anchor.core_start if core_only else anchor.synth_start
     end_frame=anchor.core_end if core_only else anchor.synth_end
@@ -120,12 +120,22 @@ def rollout(scene,anchor,data,commands,start,out,mode='LOCAL_PADDED',core_only=F
         raise ValueError('Local rollout commands/entry do not match the source window')
     check=validate_commands(scene,commands,start)
     if not check['feasible']:raise ValueError(f'Local command precheck failed: {check}')
-    scene.begin_trial(out,start,mesh=mesh)
+    if continue_from_current:
+        from multipath.anchors.compatibility import boundary_errors
+        errors=boundary_errors(scene.state(),start)
+        if any(v>1e-8 for v in errors.values() if isinstance(v,float)):
+            raise ValueError('Continuous local rollout entry differs from current measured state')
+        scene.begin_recording(out,mesh=mesh)
+    else:scene.begin_trial(out,start,mesh=mesh)
     objective=WindowEvaluation(scene,anchor,data,start);entry=None;exit_state=None;failure=None
     resets=scene.restore_count;failures=[];executed=0
-    if core_only:entry=scene.snapshot()
+    if core_only:
+        entry=scene.snapshot()
+        if not objective.observe(start_frame,commands[0]):
+            failure=objective.failure;failures.append(dict(failure))
     try:
         for k,c in enumerate(commands):
+            if failure is not None and not collect_tracking_failures:break
             frame=start_frame+(k+1)/tpf;scene.step_control(c,mode,frame);executed=k+1
             if (k+1)%tpf:continue
             if frame==anchor.core_start:entry=scene.snapshot()

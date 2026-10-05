@@ -173,7 +173,15 @@ def main():
         if not validation['success']:raise RuntimeError('Floating padded interaction failed')
         core=controls[(anchor.core_start-anchor.synth_start)*tpf:(anchor.core_end-anchor.synth_start)*tpf]
         padded_exit=core_exit
-        core_result,_,core_exit=rollout(scene,anchor,data,core,core_entry,out/'exported_core',mode='EXPORTED_CORE',core_only=True)
+        # Reach the core boundary by actual execution of its local context;
+        # core validation must not depend on restoring a mid-interaction cache.
+        scene.begin_trial(out/'core_entry_acquisition',entry,mesh=False)
+        for i,command in enumerate(controls[:(anchor.core_start-anchor.synth_start)*tpf]):
+            scene.step_control(command,'SYNTHESIS_CONTEXT',anchor.synth_start+(i+1)/tpf)
+        scene.save();core_entry=scene.snapshot()
+        report['core_entry_acquisition']='physical_padding_execution; no_reset_at_core_boundary'
+        core_result,_,core_exit=rollout(scene,anchor,data,core,core_entry,out/'exported_core',mode='EXPORTED_CORE',
+                                     core_only=True,continue_from_current=True)
         report['core_replay']=core_result
         if not core_result['success'] or core_exit is None:raise RuntimeError('Exported core physical replay failed')
         from multipath.anchors.compatibility import boundary_errors
