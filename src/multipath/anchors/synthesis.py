@@ -8,6 +8,24 @@ import numpy as np
 from scipy.spatial.transform import Rotation
 
 
+def _bounded_quadratic_fit(hessian,linear,matrix,low,high,lower,upper):
+    """Solve the existing convex fit directly instead of iterative SLSQP.
+
+    DAQP is already used by the EgoEngine retarget environment. All original
+    linear constraints and bounds are retained; no soft constraints are used.
+    """
+    import daqp
+    n=len(linear)
+    a=np.vstack((np.eye(n),matrix)).astype(np.float64)
+    lo=np.r_[lower,low].astype(np.float64);hi=np.r_[upper,high].astype(np.float64)
+    sense=np.where(abs(hi-lo)<1e-12,5,0).astype(np.int32)
+    x,_,status,_=daqp.solve(np.ascontiguousarray(hessian,dtype=np.float64),
+        np.ascontiguousarray(linear,dtype=np.float64),np.ascontiguousarray(a),
+        hi,lo,sense,primal_tol=1e-8,dual_tol=1e-8,iter_limit=10000)
+    if status!=1:raise RuntimeError(f'Local quadratic fit failed: DAQP status {status}')
+    return x
+
+
 def fit_hand_startup(desired,start_q,start_dq,dt,limits,velocity_limits,*,startup_duration=None,frame_weights=None):
     """Fit XHand commands within physical joint/speed bounds from measured q,dq.
 
@@ -15,7 +33,6 @@ def fit_hand_startup(desired,start_q,start_dq,dt,limits,velocity_limits,*,startu
     URDF speed limit. This is a synthesis slew budget, not a hardware rating.
     The first interval continues measured velocity without adding source time.
     """
-    from scipy.optimize import minimize,LinearConstraint,Bounds
     from scipy.sparse import diags
     weights=np.ones(len(desired)) if frame_weights is None else np.asarray(frame_weights)
     n=len(desired);d=diags([np.ones(n),-np.ones(n-1)],[0,-1],shape=(n,n)).toarray()
@@ -26,20 +43,18 @@ def fit_hand_startup(desired,start_q,start_dq,dt,limits,velocity_limits,*,startu
         low[0]=high[0]=start_dq[j]/velocity_limits[j]
         target=desired[:,j]-start_q[j]
         smooth=dd/step;constant=np.zeros(n);constant[0]=-start_dq[j]/velocity_limits[j]
-        constraints=[LinearConstraint(d/step,low,high)]
+        matrices=[d/step];lows=[low];highs=[high]
         if startup_duration is not None:
             acceleration=velocity_limits[j]/max(dt,startup_duration)
             ac=np.zeros(n);ac[0]=-start_dq[j]/(acceleration*dt)
-            constraints.append(LinearConstraint(dd/(acceleration*dt**2),-1-ac,1-ac))
-        def objective(q):
-            residual=q-target;dv=smooth@q+constant
-            return .5*np.sum(weights*residual**2)+.005*np.sum(dv**2)
-        def gradient(q):return weights*(q-target)+.01*smooth.T@(smooth@q+constant)
-        solution=minimize(objective,np.zeros(n),jac=gradient,method='SLSQP',
-            bounds=Bounds(limits[j,0]-start_q[j],limits[j,1]-start_q[j]),
-            constraints=constraints,options={'maxiter':150,'ftol':1e-9})
-        if not solution.success:raise RuntimeError(f'XHand startup fit failed joint {j}: {solution.message}')
-        result[:,j]=solution.x+start_q[j]
+            matrices.append(dd/(acceleration*dt**2));lows.append(-1-ac);highs.append(1-ac)
+        # .5 * weighted tracking error + .005 * normalized acceleration error.
+        hessian=np.diag(weights)+.01*smooth.T@smooth
+        linear=-weights*target+.01*smooth.T@constant
+        solution=_bounded_quadratic_fit(hessian,linear,np.vstack(matrices),
+            np.concatenate(lows),np.concatenate(highs),
+            limits[j,0]-start_q[j]+np.zeros(n),limits[j,1]-start_q[j]+np.zeros(n))
+        result[:,j]=solution+start_q[j]
     speed=np.diff(np.vstack((start_q,result)),axis=0)/dt
     if np.max(abs(speed)/velocity_limits)>1.00001:raise RuntimeError('XHand fitted velocity exceeds URDF limit')
     return result
@@ -89,7 +104,6 @@ def fit_arm_startup(desired,start_q,start_dq,dt,velocity_limits,acceleration_lim
     An acceleration envelope reduces simultaneous arm/hand startup demand.
     It is a command constraint, not a proof of closed-loop physical feasibility.
     """
-    from scipy.optimize import minimize, LinearConstraint, Bounds
     from scipy.sparse import diags
     n=len(desired)
     weights=np.ones(n) if frame_weights is None else np.asarray(frame_weights)
@@ -110,13 +124,9 @@ def fit_arm_startup(desired,start_q,start_dq,dt,velocity_limits,acceleration_lim
             envelope=phase**2*(3-2*phase)
             low[n:]=-envelope-aconst;high[n:]=envelope-aconst
         target=desired[:,j]-start_q[j]
-        opt=minimize(lambda q:.5*np.sum(weights*(q-target)**2),np.zeros(n),
-                     jac=lambda q:weights*(q-target),method='SLSQP',
-                     bounds=Bounds(joint_limits[j,0]-start_q[j],joint_limits[j,1]-start_q[j]),
-                     constraints=[LinearConstraint(matrix,low,high)],
-                     options={'maxiter':150,'ftol':1e-8})
-        if not opt.success:raise RuntimeError(f'Local dynamic retarget failed joint {j}: {opt.message}')
-        result[:,j]=opt.x+start_q[j]
+        solution=_bounded_quadratic_fit(np.diag(weights),-weights*target,matrix,low,high,
+            np.full(n,joint_limits[j,0]-start_q[j]),np.full(n,joint_limits[j,1]-start_q[j]))
+        result[:,j]=solution+start_q[j]
     return result
 
 

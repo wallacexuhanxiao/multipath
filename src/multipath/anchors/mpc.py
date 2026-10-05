@@ -6,6 +6,7 @@ count is a compute budget, not a claim to reproduce unspecified paper values.
 """
 from dataclasses import asdict, dataclass
 import json
+import time
 from pathlib import Path
 
 import numpy as np
@@ -160,6 +161,7 @@ def mounted_mpc(scene, anchor, data, baseline, start, out, seed=0, config=None, 
     def evaluate(control, boundary, begin, label):
         nonlocal trial_id
         trial_id += 1
+        started=time.perf_counter()
         checks = precheck(control, boundary)
         trial = dict(trial=trial_id, begin_tick=begin, mode=label, feasible_controls=checks['feasible'],
                      precheck=checks, interaction_feasible=False, score=None)
@@ -182,10 +184,12 @@ def mounted_mpc(scene, anchor, data, baseline, start, out, seed=0, config=None, 
         except RuntimeError as error:
             trial['failure'] = {'reason': str(error)}
             objective.total_return = -np.inf
+        trial['physical_evaluation_s']=time.perf_counter()-started
         (folder / 'actual_trace.json').write_text(json.dumps(scene.records))
         flush()
         return objective.total_return, trial['interaction_feasible']
 
+    search_started=time.perf_counter()
     for begin in range(0, len(baseline), config.chunk_frames * tpf):
         stop = min(begin + 2 * config.chunk_frames * tpf, len(baseline))
         commit = min(config.chunk_frames * tpf, len(baseline) - begin)
@@ -234,6 +238,7 @@ def mounted_mpc(scene, anchor, data, baseline, start, out, seed=0, config=None, 
                         if valid and returns[i] > best_return:
                             best, best_return = replay.copy(), returns[i]
                         continue
+                    candidate_started=time.perf_counter();ik_seconds=None;fit_seconds=None
                     try:
                         targets = local.copy(); targets[:, :3] += residual[:, :3]
                         # Same world-frame rotation residual as the prior reproduction.
@@ -244,21 +249,28 @@ def mounted_mpc(scene, anchor, data, baseline, start, out, seed=0, config=None, 
                         for target in targets:
                             seed_q = scene.solve(target[:7], seed_q)
                             arm.append(seed_q)
+                        ik_seconds=time.perf_counter()-candidate_started
+                        fit_started=time.perf_counter()
                         control, _ = fit_timed_controls(np.asarray(arm), targets[:, 7:], q, dq, hq,
                             fps, scene.dt, scene.velocity, scene.acceleration, limits[:7],
                             start_hand_dq=hdq, hand_joint_limits=limits[7:], hand_velocity_limits=hand_velocity,
                             hand_startup_duration=remaining_context,core_interval_s=core_interval)
+                        fit_seconds=time.perf_counter()-fit_started
                     except (RuntimeError, ValueError) as error:
                         history.append(dict(begin_tick=begin, mode='MPPI', iteration=iteration, candidate=i,
-                            feasible_controls=False, interaction_feasible=False, score=None, fit_error=str(error)))
+                            feasible_controls=False, interaction_feasible=False, score=None, fit_error=str(error),
+                            candidate_generation_s=time.perf_counter()-candidate_started,ik_s=ik_seconds,fit_s=fit_seconds))
                         flush(); continue
                     returns[i], valid = evaluate(control, state, begin, 'MPPI')
+                    history[-1].update(ik_s=ik_seconds,fit_s=fit_seconds)
+                    print('MPPI_CANDIDATE',iteration,i,'ik_s',round(ik_seconds,3),'fit_s',round(fit_seconds,3),
+                          'physics_s',round(history[-1].get('physical_evaluation_s',0),3),'valid',valid,flush=True)
                     if valid and returns[i] > best_return:
                         best, best_return = control.copy(), returns[i]
                 updated = mppi_mean(samples, returns)
                 if updated is not None:
                     mean = updated
-                print('MPPI_ITERATION', begin, iteration, 'physical_trials', trial_id, 'valid_plan', best is not None, flush=True)
+                print('MPPI_ITERATION', begin, iteration, 'physical_trials', trial_id, 'valid_plan', best is not None,'elapsed_s',round(time.perf_counter()-search_started,3), flush=True)
             if best is not None:
                 chunk['selected'] = 'MPPI'
         if best is None and rl_solver is not None:

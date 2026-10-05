@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 import shutil
+import time
 
 
 def main():
@@ -53,7 +54,10 @@ def main():
         # Smooth the measured-to-local-target difference over PRE context only.
         offset=np.array(start['wrist_xyz_wxyz'][:3])-data['wrist_hand_q'][0,:3]
         held=np.array(start['hand_object_transform']) if start['contact']['mode']=='grasped' else None
+        ik_started=time.perf_counter()
         targets=local_commands(scene,anchor,data,held,offset,padded=True)
+        report['initial_ik_s']=time.perf_counter()-ik_started
+        fitting_started=time.perf_counter()
         limits=np.asarray(scene.robot._articulation_view.get_dof_limits()).reshape(-1,2)[scene.arm]
         controls,fitting=fit_timed_controls(targets[:,:7],targets[:,7:],np.array(start['arm_q']),
              np.array(start['arm_dq']),np.array(start['hand_q']),schedule.fps,scene.dt,scene.velocity,scene.acceleration,limits,
@@ -62,7 +66,9 @@ def main():
              core_interval_s=((anchor.core_start-anchor.synth_start)/schedule.fps,(anchor.core_end-anchor.synth_start)/schedule.fps))
         np.savez_compressed(out/'local_target_fit.npz',targets=targets,commands=controls,
                             source_frames=np.arange(anchor.synth_start+1,anchor.synth_end+1))
+        report['initial_fitting_s']=time.perf_counter()-fitting_started
         report['kinematic_initialization']=fitting
+        print('LOCAL_PREPARATION_SECONDS',report['initial_ik_s'],report['initial_fitting_s'],flush=True)
         from multipath.anchors.control_check import control_feasibility
         all_limits=np.asarray(scene.robot._articulation_view.get_dof_limits()).reshape(-1,2)[np.r_[scene.arm,scene.fingers]]
         precheck=control_feasibility(controls,np.array(start['arm_q']),np.array(start['arm_dq']),scene.dt,all_limits,scene.velocity,scene.acceleration,

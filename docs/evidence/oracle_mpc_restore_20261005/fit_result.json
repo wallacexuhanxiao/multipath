@@ -1,0 +1,48 @@
+{
+  "DAQP": {
+    "seconds": 0.2557885419810191,
+    "fit": {
+      "method": "continuous_IK_and_constrained_local_retarget",
+      "control_dt": 0.008333333333333333,
+      "startup_context_s": 0.2,
+      "target_joint_rmse_rad": 0.10985095238144771,
+      "command_velocity_ratio": 0.955622244180979,
+      "command_acceleration_ratio": 0.95000000000244,
+      "fitting_context_weight": 0.05,
+      "core_interval_s": [
+        0.2,
+        1.5666666666666667
+      ],
+      "core_arm_target_rmse_rad": 0.07717633770222837
+    },
+    "check": {
+      "feedforward_velocity_error_rad_s": 0.0,
+      "velocity_ratio": 0.955622244180979,
+      "acceleration_ratio": 0.95000000000244,
+      "joint_limit_violations": [],
+      "joint_limit_roundoff_tolerance_rad": [
+        2.763080596923828e-06,
+        1.6811370849609374e-06,
+        2.763080596923828e-06,
+        2.929496765136719e-06,
+        2.763080596923828e-06,
+        3.578662872314453e-06,
+        2.763080596923828e-06,
+        1.7452239990234376e-06,
+        1.4972686767578126e-06,
+        1.7452239990234376e-06,
+        9.5367431640625e-07,
+        1.8310546875e-06,
+        1.8310546875e-06,
+        1.8310546875e-06,
+        1.850128173828125e-06,
+        1.8310546875e-06,
+        1.8310546875e-06,
+        1.8310546875e-06,
+        1.8310546875e-06
+      ],
+      "hand_velocity_ratio": 0.9160981327611724,
+      "feasible": true
+    }
+  }
+}
