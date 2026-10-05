@@ -1,0 +1,156 @@
+{
+  "run": "oracle_floating_a2_preload_reward_r62",
+  "job": "648713.hopper-m-02",
+  "status": "failed",
+  "elapsed_s": 146.59720717195887,
+  "source_boundary": {
+    "source": "TACO_oracle_boundary",
+    "source_frame": 82,
+    "tool_pose": [
+      [
+        0.6479592346154572,
+        0.7157980402699076,
+        -0.26034990394715113,
+        0.5671140330898625
+      ],
+      [
+        -0.31274156256095,
+        0.5616957491645428,
+        0.7659573760080802,
+        -0.044656442875193145
+      ],
+      [
+        0.6945081949234009,
+        -0.4148868918418884,
+        0.5878156423568726,
+        0.4752395844459534
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "retargeted_wrist_hand": [
+      0.4290220613095929,
+      -0.10155019147156073,
+      0.5590097405161117,
+      0.5765865871995416,
+      -0.46648356800860064,
+      -0.5746478257860691,
+      0.3460070296379749,
+      0.9746735433775965,
+      1.3616002906040006,
+      -0.175,
+      0.175,
+      0.6471807958338651,
+      0.3394955442635705,
+      1.2427746424879262,
+      1.60708576958438,
+      1.420469545762397,
+      1.6949385667920038,
+      1.3698685546805442,
+      1.92
+    ],
+    "context_snapshot_is_canonical_entry": false
+  },
+  "padded_replay": {
+    "success": false,
+    "failure": {
+      "source_frame": 82.0,
+      "reason": "core_entry_source_boundary"
+    },
+    "failures": [
+      {
+        "source_frame": 82.0,
+        "reason": "core_entry_source_boundary"
+      }
+    ],
+    "padded_rollout_complete": false,
+    "tracking_failures_collected": true,
+    "core_entry_acquired": true,
+    "core_exit_acquired": false,
+    "state_resets_within_rollout": 0,
+    "source_fps": 30.0,
+    "control_dt": 0.008333333333333333,
+    "tracking_parameters": {
+      "C": 1.0,
+      "lambda_p": 399.99999999999994,
+      "lambda_R": 3.6475626111241604,
+      "position_tolerance_m": 0.05,
+      "rotation_tolerance_rad": 0.5235987755982988,
+      "acceptance": "independent_position_and_rotation_limits"
+    },
+    "embodiment": "floating_xhand",
+    "command_format": "wrist_xyz_wxyz_hand12_twist6",
+    "actual_end_frame": 82.0,
+    "core_entry_source_boundary": {
+      "source_frame": 82,
+      "position_m": 0.04739273045890634,
+      "rotation_rad": 0.8264194435662374,
+      "accepted": false
+    }
+  },
+  "ppo": {
+    "success": false,
+    "initialization_proposal": {
+      "proposal": "pose_residual",
+      "score": 11.618194803603405,
+      "failure": {
+        "source_frame": 82.0,
+        "reason": "core_entry_source_boundary"
+      }
+    },
+    "zero_policy": {
+      "success": false,
+      "failure": {
+        "source_frame": 82.0,
+        "reason": "core_entry_source_boundary"
+      },
+      "source_steps": 6,
+      "evaluation_return": -0.3818298007702674,
+      "return_value": 11.618170199229732,
+      "deterministic": true
+    },
+    "iterations": 60,
+    "episodes": 253,
+    "network_hidden": [
+      64,
+      64
+    ],
+    "parameters": 24293,
+    "elapsed_s": 55.63035241002217
+  },
+  "ppo_last_update": {
+    "iteration": 60,
+    "mean_return": 14.618031861158908,
+    "max_source_steps": 8,
+    "training_successes": 0,
+    "loss": 0.895916954614222,
+    "policy_loss": -0.07332475669682026,
+    "value_loss": 0.9841632721945643,
+    "latent_entropy": 7.46078285574913,
+    "gradient_norm": 15.305806159973145,
+    "transitions": 31,
+    "episodes": 4,
+    "updates": 60,
+    "parameter_count": 24293,
+    "failure_counts": {
+      "core_object_fidelity": 4
+    },
+    "evaluation": {
+      "success": false,
+      "failure": {
+        "source_frame": 84.0,
+        "reason": "core_object_fidelity"
+      },
+      "source_steps": 8,
+      "evaluation_return": -0.8364910107284409,
+      "return_value": 15.163508989271557,
+      "deterministic": true
+    }
+  },
+  "development_only": true,
+  "full_pipeline_success": false
+}

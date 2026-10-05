@@ -1,0 +1,223 @@
+{
+  "pbs_job_id": "648744.hopper-m-02",
+  "status": "failed",
+  "elapsed_s": 248.31959481537342,
+  "error": "Floating padded interaction failed",
+  "core_entry_target": {
+    "source": "TACO_oracle_boundary",
+    "source_frame": 82,
+    "tool_pose": [
+      [
+        0.6479592346154572,
+        0.7157980402699076,
+        -0.26034990394715113,
+        0.5671140330898625
+      ],
+      [
+        -0.31274156256095,
+        0.5616957491645428,
+        0.7659573760080802,
+        -0.044656442875193145
+      ],
+      [
+        0.6945081949234009,
+        -0.4148868918418884,
+        0.5878156423568726,
+        0.4752395844459534
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "retargeted_wrist_hand": [
+      0.4290220613095929,
+      -0.10155019147156073,
+      0.5590097405161117,
+      0.5765865871995416,
+      -0.46648356800860064,
+      -0.5746478257860691,
+      0.3460070296379749,
+      0.9746735433775965,
+      1.3616002906040006,
+      -0.175,
+      0.175,
+      0.6471807958338651,
+      0.3394955442635705,
+      1.2427746424879262,
+      1.60708576958438,
+      1.420469545762397,
+      1.6949385667920038,
+      1.3698685546805442,
+      1.92
+    ],
+    "context_snapshot_is_canonical_entry": false
+  },
+  "local_wrist_target": "source_object_pose_with_measured_grasp",
+  "padded_replay": {
+    "success": false,
+    "failure": {
+      "source_frame": 83.0,
+      "reason": "core_object_fidelity"
+    },
+    "failures": [
+      {
+        "source_frame": 83.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 84.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 85.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 86.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 87.0,
+        "reason": "core_object_fidelity"
+      },
+      {
+        "source_frame": 88.0,
+        "reason": "core_grasp_retention"
+      }
+    ],
+    "padded_rollout_complete": false,
+    "tracking_failures_collected": true,
+    "core_entry_acquired": true,
+    "core_exit_acquired": false,
+    "state_resets_within_rollout": 0,
+    "source_fps": 30.0,
+    "control_dt": 0.008333333333333333,
+    "tracking_parameters": {
+      "C": 1.0,
+      "lambda_p": 399.99999999999994,
+      "lambda_R": 3.6475626111241604,
+      "position_tolerance_m": 0.05,
+      "rotation_tolerance_rad": 0.5235987755982988,
+      "acceptance": "independent_position_and_rotation_limits"
+    },
+    "embodiment": "floating_xhand",
+    "command_format": "wrist_xyz_wxyz_hand12_twist6",
+    "actual_end_frame": 88.0,
+    "core_entry_source_boundary": {
+      "source_frame": 82,
+      "position_m": 0.045402472123852865,
+      "rotation_rad": 0.31582654220921424,
+      "accepted": true
+    }
+  },
+  "refined_padded_replay": {
+    "success": false,
+    "failure": {
+      "source_frame": 91.0,
+      "reason": "core_grasp_retention"
+    },
+    "failures": [
+      {
+        "source_frame": 91.0,
+        "reason": "core_grasp_retention"
+      }
+    ],
+    "padded_rollout_complete": false,
+    "tracking_failures_collected": false,
+    "core_entry_acquired": true,
+    "core_exit_acquired": false,
+    "state_resets_within_rollout": 0,
+    "source_fps": 30.0,
+    "control_dt": 0.008333333333333333,
+    "tracking_parameters": {
+      "C": 1.0,
+      "lambda_p": 399.99999999999994,
+      "lambda_R": 3.6475626111241604,
+      "position_tolerance_m": 0.05,
+      "rotation_tolerance_rad": 0.5235987755982988,
+      "acceptance": "independent_position_and_rotation_limits"
+    },
+    "embodiment": "floating_xhand",
+    "command_format": "wrist_xyz_wxyz_hand12_twist6",
+    "actual_end_frame": 91.0,
+    "core_entry_source_boundary": {
+      "source_frame": 82,
+      "position_m": 0.04374662419128771,
+      "rotation_rad": 0.2761148842462435,
+      "accepted": true
+    }
+  },
+  "window_refinement_failure": {
+    "reason": "Floating Replay/MPPI/PPO failed at source frame 96.0",
+    "proposal_only": true,
+    "next": "fresh_padded_replay_then_whole_anchor_PPO_if_needed"
+  },
+  "m2_success": false,
+  "full_pipeline_success": false,
+  "whole_anchor_ppo": {
+    "success": false,
+    "status": "budget_exhausted",
+    "iterations": 60,
+    "episodes": 253,
+    "zero_policy": {
+      "success": false,
+      "failure": {
+        "source_frame": 91.0,
+        "reason": "core_grasp_retention"
+      },
+      "source_steps": 15,
+      "evaluation_return": 1.7952403524861413,
+      "return_value": 31.79524035248614,
+      "deterministic": true
+    },
+    "best_evaluation": {
+      "success": false,
+      "failure": {
+        "source_frame": 95.0,
+        "reason": "core_grasp_retention"
+      },
+      "source_steps": 19,
+      "evaluation_return": 3.682872506422226,
+      "return_value": 39.68287250642222,
+      "deterministic": true
+    },
+    "parameters": 24293,
+    "network_hidden": [
+      64,
+      64
+    ],
+    "elapsed_s": 111.90283455140889,
+    "last_update": {
+      "iteration": 60,
+      "mean_return": 43.247039178383474,
+      "max_source_steps": 21,
+      "training_successes": 0,
+      "loss": 3.0319633185863495,
+      "policy_loss": -0.04493692808318883,
+      "value_loss": 3.092037744820118,
+      "latent_entropy": 7.568761438131332,
+      "gradient_norm": 23.76197737455368,
+      "transitions": 82,
+      "episodes": 4,
+      "updates": 60,
+      "parameter_count": 24293,
+      "failure_counts": {
+        "core_object_fidelity": 4
+      },
+      "evaluation": {
+        "success": false,
+        "failure": {
+          "source_frame": 97.0,
+          "reason": "core_object_fidelity"
+        },
+        "source_steps": 21,
+        "evaluation_return": 3.4409088774864682,
+        "return_value": 45.44090887748647,
+        "deterministic": true
+      }
+    }
+  }
+}
