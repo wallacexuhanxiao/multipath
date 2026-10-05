@@ -12,8 +12,6 @@ RUNTIME=/scratch/e0985859/egoengine_baseline
 ENGINE=/scratch/e0985859/dv_xhand_faithful_20260907/vendor/egoengine
 IMAGE=/app1/common/singularity-img/hopper/pytorch/pytorch_2.7.0_cuda_12.8.sif
 : "${MULTIPATH_SCHEDULE:?oracle schedule}"
-: "${MULTIPATH_TRIPLET:?TACO triplet}"
-: "${MULTIPATH_SEQUENCE:?TACO sequence}"
 OUT=$ROOT/outputs/${MULTIPATH_RUN_NAME:-oracle_v0_${PBS_JOBID%%.*}}
 mkdir -p "$OUT/cache"
 cd "$ROOT"
@@ -22,6 +20,8 @@ export MANO_ROOT=$RUNTIME/sources/reproduction/data/models/mano_smplx
 export PYTHONPATH=$ROOT/src:$ENGINE/src
 PROPOSALS=${MULTIPATH_PROPOSALS:-$OUT/proposals}
 if [[ -z "${MULTIPATH_PROPOSALS:-}" ]]; then
+ : "${MULTIPATH_TRIPLET:?TACO triplet}"
+ : "${MULTIPATH_SEQUENCE:?TACO sequence}"
  # Human MANO -> local retarget only. Never call the full-video retarget entrypoint.
  "$RUNTIME/envs/retarget/bin/python" -u scripts/prepare_oracle_anchors.py \
  --schedule "$MULTIPATH_SCHEDULE" --triplet "$MULTIPATH_TRIPLET" --sequence "$MULTIPATH_SEQUENCE" \
