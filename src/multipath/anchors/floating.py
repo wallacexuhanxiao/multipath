@@ -111,13 +111,16 @@ def grasp_command_bounds(scene,start,anchor=None):
     low,high=np.asarray(scene.hand_limits,dtype=float).T.copy()
     if (anchor is None or anchor.entry_contact!=anchor.exit_contact or anchor.entry_contact!='grasped'
             or 'command_hand_q' not in start):return low,high
-    from multipath.xhand import RIGHT_XHAND_FINGER_JOINT_NAMES
+    from multipath.xhand import RIGHT_XHAND_FINGER_JOINT_NAMES,RIGHT_XHAND_CLOSING_DIRECTION
     contact=start['contact'];groups=('thumb','index','mid','ring','pinky')
     active={g for path,force in zip(contact.get('link_paths',[]),contact.get('force_norms_n',[]))
             if force>.01 for g in groups if g in path.rsplit('/',1)[-1]}
     loaded=np.array([any(g in name for g in active) for name in RIGHT_XHAND_FINGER_JOINT_NAMES])
-    target=hand_command_boundary(start);preload=target-np.asarray(start['hand_q'])
-    positive=loaded&(preload>1e-6);negative=loaded&(preload<-1e-6)
+    target=hand_command_boundary(start);direction=np.asarray(RIGHT_XHAND_CLOSING_DIRECTION)
+    # Drive error is not the closure direction: a contacting flexion joint can
+    # have negative error. Inferring direction from it blocked useful closing
+    # and let other candidates actively extend the loaded finger.
+    positive=loaded&(direction>0);negative=loaded&(direction<0)
     low[positive]=np.maximum(low[positive],target[positive]);high[negative]=np.minimum(high[negative],target[negative])
     return low,high
 
