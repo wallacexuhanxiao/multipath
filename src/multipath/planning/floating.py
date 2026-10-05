@@ -73,19 +73,26 @@ def robot_model(scene,carry,out):
         points=Rotation.from_quat(np.asarray(q)[[1,2,3,0]]).apply(scene.meshes['tool'].vertices)+p
         spheres+=cover_points(rot.inv().apply(points-pose[:3]))
     if not spheres:raise RuntimeError('Floating planner has no hand collision geometry')
-    # Inflate by the measured ready-state tracking offset, including rotation
-    # swept at the outer hand radius. PhysX still checks the actual bridge.
+    # Diagnose the previous controller error, but do not inflate a new path
+    # that starts at the measured pose by an old BC target's residual. At the
+    # new command boundary that residual is absent; propagating it here made
+    # known physical starts falsely collide with the table/target.
     command=np.asarray(scene.command_pose)
     angle=float((Rotation.from_quat(command[[4,5,6,3]])*rot.inv()).magnitude())
     radius=max(np.linalg.norm(s['center'])+s['radius'] for s in spheres)
     margin=float(np.linalg.norm(command[:3]-pose[:3])+2*radius*np.sin(angle/2))
-    scene.planning_tracking_margin_m=margin
+    scene.previous_command_tracking_margin_m=margin
+    scene.planning_tracking_margin_m=0.
     kin={'urdf_path':str(urdf.resolve()),'asset_root_path':str(out.resolve()),'base_link':'base','ee_link':'wrist',
-        'collision_link_names':['wrist'],'collision_spheres':{'wrist':spheres},'collision_sphere_buffer':margin,
+        'collision_link_names':['wrist'],'collision_spheres':{'wrist':spheres},'collision_sphere_buffer':0.,
         'self_collision_ignore':{},'self_collision_buffer':{},'use_global_cumul':True,
         'mesh_link_names':[],'lock_joints':{},'cspace':{'joint_names':names,'retract_config':pose_coordinates(pose).tolist(),
         'null_space_weight':[1.]*6,'cspace_distance_weight':[1.]*6,'max_acceleration':scene.cfg['planning']['acceleration_limits'],
         'max_jerk':500.,'velocity_scale':1.,'acceleration_scale':1.,'jerk_scale':1.}}
+    import json
+    (out/'collision_geometry.json').write_text(json.dumps(dict(spheres=spheres,
+        measured_start_pose=pose.tolist(),previous_command_tracking_margin_m=margin,
+        planning_tracking_margin_m=0.,carried_object=carry),indent=2))
     return {'kinematics':kin},len(spheres)
 
 
@@ -103,6 +110,8 @@ class FloatingPlanner:
         self.obstacle_roles=['target'] if carry else ['tool','target']
         self.nominal_spheres=cfg['kinematics']['collision_spheres']['wrist']
         self.live=live
+        import json
+        (Path(out)/'world_geometry.json').write_text(json.dumps(live,indent=2))
         self.planner=MotionGen(MotionGenConfig.load_from_robot_config(cfg,live,tensor_args=self.tensor,interpolation_dt=scene.dt,
             self_collision_check=False,self_collision_opt=False,collision_checker_type=CollisionCheckerType.PRIMITIVE,use_cuda_graph=False))
         # Catch a virtual-coordinate convention mismatch before physical use.
@@ -191,6 +200,7 @@ class FloatingPlanner:
         commands=controls_from_poses(poses,hands,dt)
         timing.update(planner='cuRobo_virtual_6DOF',hand_collision_spheres=self.sphere_count,carried_object_collision=self.carry,
             reference_tracking=False,source_time_stretch=False,arm_model_used=False,tracking_margin_m=scene.planning_tracking_margin_m,
+            previous_command_tracking_margin_m=scene.previous_command_tracking_margin_m,
             hand_boundary_motion=bool(np.any(np.abs(hands-hands[0])>1e-8)),
             planned_hand_geometry='entry_posture',
             hand_boundary_collision_validation='measured_geometry_each_physics_step')
