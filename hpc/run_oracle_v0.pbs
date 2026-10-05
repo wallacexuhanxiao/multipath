@@ -61,13 +61,15 @@ mkdir -p "$OUT/anchors"
 SOLVER_ARGS=(--mpc-candidates "${MULTIPATH_MPC_CANDIDATES:-64}" --mpc-iters "${MULTIPATH_MPC_ITERS:-3}" --ppo-updates "${MULTIPATH_PPO_UPDATES:-60}")
 if [[ -n "${MULTIPATH_BRIDGE_FROM:-}" ]]; then
  [[ "$EMBODIMENT" == floating_xhand ]]
+ BRIDGE_ARGS=()
+ [[ "${MULTIPATH_BRIDGE_SOURCE_ENTRY_TARGET:-0}" != 1 ]] || BRIDGE_ARGS+=(--source-entry-target)
  run_sim scripts/develop_floating_bridge.py --proposals "$PROPOSALS" --schedule "$MULTIPATH_SCHEDULE" \
   --from-anchor "$MULTIPATH_BRIDGE_FROM" --to-anchor "${MULTIPATH_BRIDGE_TO:?next Anchor}" \
   --from-artifacts "${MULTIPATH_BRIDGE_FROM_ARTIFACTS:?validated preceding Anchor}" \
   --to-artifacts "${MULTIPATH_BRIDGE_TO_ARTIFACTS:?validated next Anchor}" \
   --floating-config "$ROOT/configs/floating_xhand.json" \
   --xhand-urdf "$ENGINE/assets/xhand/spider/xhand_right.urdf" --object-cache "$ENGINE/outputs/sim_usd" \
-  --output-dir "$OUT" >"$OUT/bridge.log" 2>&1
+  --output-dir "$OUT" "${BRIDGE_ARGS[@]}" >"$OUT/bridge.log" 2>&1
  check_result "$OUT/bridge_result.json" next_core_success
  exit 0
 fi
