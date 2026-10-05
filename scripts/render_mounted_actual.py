@@ -17,6 +17,9 @@ def main():
     if report.get('source')=='oracle':
         # N+1 measured boundaries describe N source-frame time intervals.
         video_frames=min(video_frames,max(1,int(np.ceil(report['actual_duration_s']*fps-1e-8))))
+    if report.get('embodiment')=='floating_xhand' and trace and trace[0]['mode']=='INITIAL':
+        # Initial plus N endpoint samples describe N source-time intervals.
+        video_frames=min(video_frames,len(trace)-1)
     exclusions=report.get('path_exclusions')
     overlays=[];overlay_names=[]
     if exclusions:

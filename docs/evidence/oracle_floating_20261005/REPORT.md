@@ -68,3 +68,15 @@ padded Replay, followed by floating MPPI/PPO as required.
 
 The snapshot provenance now points to the actual local trace and source frame,
 with the predecessor trace retained, rather than only naming the earlier bridge.
+
+r39 has now printed `FLOATING_PREDECESSOR_PASSED` and entered actual floating
+MPPI. First two 64-candidate iterations took 19.15 s / 45.38 s cumulative, with
+no valid plan yet. A1 acceptance remains pending; the small PPO fallback is enabled.
+Job is interactive H200, 20-minute allocation. No full V0 success is claimed.
+
+The r38 predecessor actual-state video is exported locally as
+`outputs/oracle_floating_a1_r38/predecessor/floating_xhand_actual.mp4`.
+It contains 29 frames at 30 fps (0.9667 s), rendered from measured PhysX mesh
+transforms. The final rendered frame was visually inspected. It shows the
+approach only, not a successful grasp. Initial plus N measured boundaries are
+rendered as N source-time intervals to avoid adding a frame of artificial waiting.
