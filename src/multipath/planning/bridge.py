@@ -4,6 +4,32 @@ from scipy.spatial.transform import Rotation
 from multipath.planning.floating import pose_coordinates
 
 
+def carried_object_clearance(scene,state):
+    """Use the same carried-object sphere and world-box model as cuRobo.
+
+    A hand/tool contact while the table supports the bowl is not a transportable
+    bridge boundary. This cheap exit check avoids accepting that local optimum.
+    """
+    from multipath.planning.floating import cover_points
+    if not hasattr(scene,'carried_collision_proxy'):
+        scene.carried_collision_proxy=cover_points(scene.meshes['tool'].vertices)
+    spheres=scene.carried_collision_proxy;tool=np.asarray(state['objects']['tool']['pose'])
+    rotation=Rotation.from_quat(tool[[4,5,6,3]])
+    centers=rotation.apply(np.array([x['center'] for x in spheres]))+tool[:3]
+    radii=np.array([x['radius'] for x in spheres]);boxes={'table':scene.table}
+    for role in ('target',):
+        pose=np.asarray(state['objects'][role]['pose']);bounds=scene.meshes[role].bounds
+        rot=Rotation.from_quat(pose[[4,5,6,3]])
+        boxes[role]=dict(dims=(bounds[1]-bounds[0]).tolist(),pose=np.r_[pose[:3]+rot.apply(bounds.mean(0)),pose[3:]].tolist())
+    result={}
+    for role,box in boxes.items():
+        pose=np.asarray(box['pose']);local=Rotation.from_quat(pose[[4,5,6,3]]).inv().apply(centers-pose[:3])
+        offset=np.abs(local)-np.asarray(box['dims'])/2
+        distance=np.linalg.norm(np.maximum(offset,0),axis=1)+np.minimum(np.max(offset,axis=1),0)-radii
+        result[role]=float(np.min(distance))
+    return result
+
+
 def displacement_bounds(v0,v1,budget,velocity_limits,acceleration_limits):
     """Exact scalar displacement envelopes with both endpoint velocities.
 

@@ -146,13 +146,18 @@ class WindowEvaluation:
             if not handoff['success']:
                 reason = 'core_exit_handoff'
             if getattr(self.scene,'bridge_exit_constraints',False):
-                from multipath.planning.bridge import coordinate_velocity
+                from multipath.planning.bridge import coordinate_velocity,carried_object_clearance
                 velocity=coordinate_velocity(measured['wrist_xyz_wxyz'],measured['wrist_twist'])
                 ratio=float(np.max(np.abs(velocity)/self.scene.cfg['planning']['velocity_limits']))
                 self.scene.last_bridge_exit_velocity_ratio=ratio
                 if ratio>1.0001:
                     if reason is None:reason='core_exit_bridge_velocity'
                     reward-=2*(ratio-1)
+                clearance=carried_object_clearance(self.scene,measured)
+                self.scene.last_bridge_exit_clearance=clearance
+                if min(clearance.values())<0:
+                    if reason is None:reason='core_exit_carried_object_collision'
+                    reward-=2*max(0.,-min(clearance.values()))/.025
             self.held = np.asarray(measured['hand_object_transform']) if a.exit_contact == 'grasped' else None
         if frame > a.core_end and self.held is not None:
             r = retention_errors(measured, self.held)
