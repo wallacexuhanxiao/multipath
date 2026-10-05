@@ -49,6 +49,7 @@ r52 还暴露两处可复用问题，已修复：
 | r55 / 648645 | 129.72 秒，失败于帧 78 | MPPI 已保存实际到达的前缀；PPO 两轮、6 episodes 找到完整通过的末段候选，重复执行时 post-context 失去抓持 |
 | r56 / 648648 | 151.33 秒，完整 padded Replay 失败于帧 73 | 分窗预测均可通过，但整段无重置运行首次超差：位置 4.868 cm，旋转 30.104°；当时仍有对向抓持 |
 | r57 / 648666 | 44.40 秒；padded 全段通过，snapshot 恢复后的 core 在帧 73 失败 | padded core 最大位置误差 4.698 cm、旋转 28.225°，帧 76–82 持续 grasped；尚无有效 A1 artifact |
+| r58 / 648683 | A1 局部验证 42.37 秒，padded 和 exported core 均通过 | core 入口通过实际 padding 执行取得，无 core 边界 reset；有效 artifact 已导出。连续初始前缀在首个 cuRobo 规划处失败，A2 尚未执行 |
 
 r53 的修复保留所有已有 drive target，并将局部提案的手指目标按 URDF
 速度投影；不能因为接触标签暂时为 free 就丢弃预紧。r54/r55 显示成功
@@ -70,8 +71,11 @@ grasped RELAXED 继续保留已有握紧目标，不用 planner 改变抓持模�
 
 ## 当前验证
 
-r58 / 648683：interactive/H200，申请 20 分钟。完整 A1 padded/core 通过后
-才会取得 A2 的真实开发入口，并验证 A1 → 0.2 秒 cuRobo → A2。
+r58 / 648683 已结束：interactive/H200，申请 20 分钟。A1 两个局部条件
+通过；fresh initial → cuRobo → A1 的第一个规划被拒绝，报
+`Start or End state in collision` / `MotionGenStatus.GRAPH_FAIL`。
+真实连续 rollout 尚未迈出第一个 source physics step。A2 和帧 76–82
+的 0.2 秒中间连接未执行，尚无其中间连接时间可行性的结论。
 
 `4a863ee` 针对已发生的“分窗成功、整段失败”增加局部整段 PPO 修正：
 从原先真实取得的 synth_start 状态开始，每个 episode 执行整段 padded
@@ -90,7 +94,16 @@ snapshot → 实际执行 padding → 直接执行 core。core 边界不恢复�
 机器人/物体状态，入口 contact 仍须符合 oracle。该路径满足“exported core
 从 physically reached core entry 执行”；最终 initial → cuRobo → A1
 是否能到达同一 canonical entry，仍由独立连续前缀检查决定。
-这是实际入口执行的机制修正，没有改变 30° 或 contact 判定；r58 尚待验证。
+这是实际入口执行的机制修正，没有改变 30° 或 contact 判定；r58 已验证
+两个局部检查。A1 entry 为 free，exit 为原生 thumb AND finger grasped。
+artifact 的 `entry_physically_reachable=true` 指已通过真实 predecessor +
+local synthesis context 取得；直接 cuRobo canonical handoff 仍未验证。
+
+当前新阻塞是 canonical 边界的规划碰撞表示。free-hand 的手形插值已接入，
+但 cuRobo 的 wrist collision model 仍用入口手形。该表示与 canonical
+手形是否一致，以及 visual-sphere / object-box 代理是否过于保守，是下一步
+需要直接检查的原因；目前没有单独证明具体哪个代理导致拒绝。不会关闭
+碰撞条件或设置 simulator state 到目标来绕过这个失败。
 
 r55 实际状态视频：
 `outputs/oracle_floating_a1_a2_prefixstate_r55/anchor_0/replay/floating_xhand_actual.mp4`。
@@ -106,3 +119,13 @@ r55 实际状态视频：
 `outputs/oracle_floating_a1_a2_wholeppo_r57/anchor_0/replay/floating_xhand_actual.mp4`。
 53 帧 / 30 fps，1.7667 秒，对应源帧 29–82。只证明这次 A1 padded
 执行有效；exported-core / canonical handoff / A2 尚未通过。
+
+## 本轮交付
+
+- 有效 A1 artifact：`docs/evidence/oracle_floating_20261005/r58_anchor_0/`。
+- r58 machine report：`docs/evidence/oracle_floating_20261005/r58_result_summary.json`。
+- 最新实际状态视频：`outputs/oracle_floating_a1_a2_reachedcore_r58/anchor_0/replay/floating_xhand_actual.mp4`，53 帧 / 30 fps，1.7667 秒。
+- 相关 14 个快速检查通过；未运行额外跨样本测试。所有代码修复无样本名称分支，第二个 sequence 的 transfer 尚未验证。
+
+当前结论：**首个 oracle A1 已有局部有效 padded/core artifact；连续初始
+cuRobo handoff、A2、0.2 秒中间 bridge 和完整 4.8 秒 V0 尚未完成。**
