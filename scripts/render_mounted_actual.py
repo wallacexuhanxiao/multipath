@@ -17,7 +17,8 @@ def main():
     if report.get('source')=='oracle':
         # N+1 measured boundaries describe N source-frame time intervals.
         video_frames=min(video_frames,max(1,int(np.ceil(report['actual_duration_s']*fps-1e-8))))
-    if report.get('embodiment')=='floating_xhand' and trace and trace[0]['mode']=='INITIAL':
+    endpoint_samples=report.get('embodiment')=='floating_xhand' and trace and trace[0]['mode']=='INITIAL'
+    if endpoint_samples:
         # Initial plus N endpoint samples describe N source-time intervals.
         video_frames=min(video_frames,len(trace)-1)
     exclusions=report.get('path_exclusions')
@@ -67,16 +68,20 @@ def main():
     writer=cv2.VideoWriter(str(video),cv2.VideoWriter_fourcc(*'mp4v'),fps/args.stride,(960,720))
     if not writer.isOpened():raise RuntimeError('VideoWriter failed')
     for frame in range(0,video_frames,args.stride):
-        item=trace[frame]
+        # After a development restore, the INITIAL USD mesh capture can lag
+        # the native PhysX state. N executed endpoint captures still represent
+        # N source intervals at the same fps; use those measured captures.
+        sample=frame+1 if endpoint_samples else frame
+        item=trace[sample]
         if exclusions:
             active=False
             for name,alpha,window in overlay_names:
                 visible=item['mode']=='CUROBO' and window[0]<=item['source_frame']<=window[1]
                 active=active or visible
                 model.geom_rgba[mujoco.mj_name2id(model,mujoco.mjtObj.mjOBJ_GEOM,name),3]=alpha if visible else 0
-        data.mocap_pos[:]=positions[frame];data.mocap_quat[:]=rotations[frame]
+        data.mocap_pos[:]=positions[sample];data.mocap_quat[:]=rotations[sample]
         mujoco.mj_forward(model,data);renderer.update_scene(data,camera=cam)
-        bgr=renderer.render()[:,:,::-1].copy();item=trace[frame]
+        bgr=renderer.render()[:,:,::-1].copy();item=trace[sample]
         cv2.putText(bgr,f"Actual PhysX | {item['mode']} | t={item['time_s']:.2f}s | source {item['source_frame']:.1f}",(15,28),cv2.FONT_HERSHEY_SIMPLEX,.57,(245,245,245),1,cv2.LINE_AA)
         cv2.putText(bgr,('Measured floating XHand and objects; local experiment' if floating else 'Measured arm, XHand and objects; task success evaluated separately'),(15,700),cv2.FONT_HERSHEY_SIMPLEX,.48,(235,235,235),1,cv2.LINE_AA)
         if exclusions and active:

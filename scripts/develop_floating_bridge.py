@@ -67,7 +67,7 @@ def main():
     implementation=out/'implementation';implementation.mkdir(exist_ok=True)
     shutil.copy2(__file__,implementation/Path(__file__).name)
     shutil.copytree(Path(multipath.__file__).parent,implementation/'multipath',dirs_exist_ok=True,ignore=shutil.ignore_patterns('__pycache__'))
-    app=None;scene=None;started=time.perf_counter()
+    app=None;scene=None;resets=None;started=time.perf_counter()
     try:
         if args.preflight_only or not check['feasible']:return
         from multipath.execution.startup import watch_dependency_imports,start_simulation
@@ -142,6 +142,9 @@ def main():
         if scene:(out/'failed_state.json').write_text(json.dumps(scene.snapshot(),indent=2))
     finally:
         if scene:scene.save()
+        if resets is not None:
+            report['state_resets_after_start']=scene.restore_count-resets
+            report['actual_executed_duration_s']=scene.ticks*scene.dt-window['start']/schedule.fps
         report['elapsed_s']=time.perf_counter()-started
         (out/'bridge_result.json').write_text(json.dumps(report,indent=2))
         print('BRIDGE_RESULT',report['status'],flush=True)
