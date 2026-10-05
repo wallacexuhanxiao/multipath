@@ -19,9 +19,11 @@ def main():
             for name in files:
                 if '.so' in name:paths.add((Path(current)/name).resolve())
     def read(path):
-        total=0
+        total=0;begin=time.monotonic()
+        print('NATIVE_IMPORT_WARM_FILE_BEGIN',str(path),flush=True)
         with path.open('rb') as stream:
             while block:=stream.read(8*1024*1024):total+=len(block)
+        print('NATIVE_IMPORT_WARM_FILE_READY',dict(path=str(path),bytes=total,elapsed_s=time.monotonic()-begin),flush=True)
         return total
     print('NATIVE_IMPORT_WARM_BEGIN',len(paths),flush=True)
     with ThreadPoolExecutor(max_workers=4) as pool:total=sum(pool.map(read,sorted(paths)))

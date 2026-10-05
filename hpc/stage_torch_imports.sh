@@ -11,4 +11,10 @@ trap 'rm -rf -- "$MULTIPATH_IMPORT_ROOT"' EXIT
 echo "TORCH_IMPORT_STAGE_BEGIN archive=$MP_TORCH_ARCHIVE destination=$MULTIPATH_IMPORT_ROOT"
 timeout 90 tar -xzf "$MP_TORCH_ARCHIVE" -C "$MULTIPATH_IMPORT_ROOT"
 echo "TORCH_IMPORT_STAGE_READY destination=$MULTIPATH_IMPORT_ROOT"
-timeout 180 "$RUNTIME/envs/retarget/bin/python" "$ROOT/hpc/warm_native_imports.py" "$MULTIPATH_IMPORT_ROOT"
+# Cache warming is an optimization, not a correctness gate. A cold node's
+# shared-file read must not spend minutes or abort before the real imports.
+if timeout -k 5 "${MULTIPATH_NATIVE_WARM_SECONDS:-20}" "$RUNTIME/envs/retarget/bin/python" "$ROOT/hpc/warm_native_imports.py" "$MULTIPATH_IMPORT_ROOT"; then
+ :
+else
+ echo "NATIVE_IMPORT_WARM_INCOMPLETE proceeding_to_watched_imports"
+fi
