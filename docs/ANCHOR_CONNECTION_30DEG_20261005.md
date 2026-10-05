@@ -48,6 +48,7 @@ r52 还暴露两处可复用问题，已修复：
 | r54 / 648563 | 137.85 秒，失败于帧 69 | 完整预测候选通过后，重复执行其前缀出现 core 物体误差；尚无有效 A1 |
 | r55 / 648645 | 129.72 秒，失败于帧 78 | MPPI 已保存实际到达的前缀；PPO 两轮、6 episodes 找到完整通过的末段候选，重复执行时 post-context 失去抓持 |
 | r56 / 648648 | 151.33 秒，完整 padded Replay 失败于帧 73 | 分窗预测均可通过，但整段无重置运行首次超差：位置 4.868 cm，旋转 30.104°；当时仍有对向抓持 |
+| r57 / 648666 | 44.40 秒；padded 全段通过，snapshot 恢复后的 core 在帧 73 失败 | padded core 最大位置误差 4.698 cm、旋转 28.225°，帧 76–82 持续 grasped；尚无有效 A1 artifact |
 
 r53 的修复保留所有已有 drive target，并将局部提案的手指目标按 URDF
 速度投影；不能因为接触标签暂时为 free 就丢弃预紧。r54/r55 显示成功
@@ -69,7 +70,7 @@ grasped RELAXED 继续保留已有握紧目标，不用 planner 改变抓持模�
 
 ## 当前验证
 
-r57 / 648666：interactive/H200，申请 20 分钟。完整 A1 padded/core 通过后
+r58 / 648683：interactive/H200，申请 20 分钟。完整 A1 padded/core 通过后
 才会取得 A2 的真实开发入口，并验证 A1 → 0.2 秒 cuRobo → A2。
 
 `4a863ee` 针对已发生的“分窗成功、整段失败”增加局部整段 PPO 修正：
@@ -83,6 +84,14 @@ Anchor。成功候选须通过 fresh padded Replay 才能被选择；若重放�
 旋转差和约 0.0042 rad hand-q 最大偏差，帧 69 差异进一步扩大；没有证据足以把
 所有差异唯一归因于某个 PhysX 缓存或 solver bug。
 
+r57 的 warm-start padded Replay 直接通过，未运行 whole-anchor PPO。
+`f02be5d` 将 exported-core 开发验收改为：恢复真实 synth_start 开发
+snapshot → 实际执行 padding → 直接执行 core。core 边界不恢复、不设置
+机器人/物体状态，入口 contact 仍须符合 oracle。该路径满足“exported core
+从 physically reached core entry 执行”；最终 initial → cuRobo → A1
+是否能到达同一 canonical entry，仍由独立连续前缀检查决定。
+这是实际入口执行的机制修正，没有改变 30° 或 contact 判定；r58 尚待验证。
+
 r55 实际状态视频：
 `outputs/oracle_floating_a1_a2_prefixstate_r55/anchor_0/replay/floating_xhand_actual.mp4`。
 47 帧 / 30 fps，1.5667 秒，来自实测 PhysX mesh transforms；这是失败的
@@ -92,3 +101,8 @@ r55 实际状态视频：
 `outputs/oracle_floating_a1_a2_ppoprefix_r56/anchor_0/refined_replay/floating_xhand_actual.mp4`。
 44 帧 / 30 fps，1.4667 秒，止于首次超差。A1 未通过，A2 与中间 bridge
 尚未执行；不能把缺少有效 Anchor 边界称为 cuRobo 连接失败。
+
+首个通过的 padded 实际状态视频：
+`outputs/oracle_floating_a1_a2_wholeppo_r57/anchor_0/replay/floating_xhand_actual.mp4`。
+53 帧 / 30 fps，1.7667 秒，对应源帧 29–82。只证明这次 A1 padded
+执行有效；exported-core / canonical handoff / A2 尚未通过。

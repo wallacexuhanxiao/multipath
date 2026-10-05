@@ -1,0 +1,21 @@
+{
+  "run": "r57",
+  "pbs_job_id": "648666.hopper-m-02",
+  "elapsed_s": 44.39578229933977,
+  "padded_success": true,
+  "exported_core_success": false,
+  "A1_artifact_valid": false,
+  "A2_executed": false,
+  "middle_bridge_executed": false,
+  "core_failure": {
+    "source_frame": 73.0,
+    "reason": "core_object_fidelity"
+  },
+  "core_max_position_error_m": 0.04698262553093709,
+  "core_max_rotation_error_deg": 28.225466260964208,
+  "post_core_all_frames_grasped": true,
+  "padded_duration_s": 1.7666666666666666,
+  "source_clock_stretched": false,
+  "state_resets_inside_padded": 0,
+  "actual_video": "/Users/apple/Desktop/semantic verifier/multipath/outputs/oracle_floating_a1_a2_wholeppo_r57/anchor_0/replay/floating_xhand_actual.mp4"
+}
