@@ -30,6 +30,23 @@ def predecessor_snapshot(directory, frame, provenance):
     return state
 
 
+def local_context_snapshot(directory,frame,provenance):
+    """A passed local physical trace can supply synthesis context, not its goal."""
+    directory=Path(directory);trace=directory/'actual_trace.json';result=directory/'local_result.json'
+    validation=json.loads(result.read_text())
+    source=json.loads((directory.parent/'development_result.json').read_text())
+    if not validation['success'] or source['source_provenance']!=provenance:
+        raise ValueError('Context requires a successful physical local rollout of this source')
+    state=next(s for s in json.loads(trace.read_text()) if abs(s['source_frame']-frame)<1e-8)
+    if not state.get('physically_acquired_state') or state.get('state_origin')!='continuous_PhysX_rollout':
+        raise ValueError('Local context cannot use a reference-constructed state')
+    state.update(entry_origin='physically_acquired_snapshot',source_provenance=provenance,
+        entry_provenance={'trace':str(trace),'trace_sha256':hashlib.sha256(trace.read_bytes()).hexdigest(),
+            'result':str(result),'result_sha256':hashlib.sha256(result.read_bytes()).hexdigest(),
+            'source_frame':frame,'purpose':'local_synthesis_context_only; not_canonical_entry_target'})
+    return state
+
+
 class DevelopmentScene(MountedScene):
     """Explicit development resets; never used by the continuous final executor."""
     record_mesh=True

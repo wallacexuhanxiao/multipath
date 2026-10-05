@@ -137,11 +137,13 @@ class WindowEvaluation:
             if r['position_m'] > .05 or r['rotation_rad'] > .35 or not r['contact_retained']:
                 reason = 'post_context_grasp_retention'
         self.last_reward = float(reward)
+        # Include the failed boundary's measured score: otherwise every
+        # pre-context candidate missing the boundary receives the same zero.
+        self.total_return += float(reward)
+        self.evaluation_return += float(tracking_reward)
         if reason:
             self.failure = {'source_frame': float(frame), 'reason': reason}
             return False
-        self.total_return += float(reward)
-        self.evaluation_return += float(tracking_reward)
         return True
 
 
