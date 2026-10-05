@@ -109,8 +109,13 @@ def main():
         report['planning']=timing;np.savez_compressed(out/'bridge_commands.npz',commands=commands)
         for k,c in enumerate(commands):
             frame=window['start']+(k+1)*dt*schedule.fps;scene.step_control(c,'RELAXED',frame)
+            report['actual_end_source_frame']=frame
             if carry:check_retention(scene.state(),held)
-            if not planner.measured_valid():raise RuntimeError('Actual bridge collision')
+            clearances=planner.measured_clearance()
+            if min(clearances.values())<0:
+                report['first_collision']=dict(source_frame=frame,proxy_clearance_m=clearances)
+                (out/'failed_state.json').write_text(json.dumps(scene.snapshot(),indent=2))
+                raise RuntimeError('Actual bridge collision proxy failed')
         scene.save()
         transition=scene.check_transition(np.asarray(goal['wrist_xyz_wxyz']),right.entry_contact,
             expected_object=source_target,canonical=None if args.source_entry_target else b['entry'])

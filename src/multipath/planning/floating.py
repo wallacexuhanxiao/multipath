@@ -39,12 +39,42 @@ def relaxed_hand_path(scene,start,goal,ticks):
     return hand
 
 
-def cover_points(points,cell=.025):
+def cover_points(points,cell=.025,faces=None):
+    """Conservative cell spheres; mesh inputs cover surface, not its empty box.
+
+    Every triangle is inside its coordinate bounding cells, and every such
+    cell is inside the returned sphere. This preserves full face coverage
+    without treating empty corners/interior as solid geometry.
+    """
     center=points.mean(0);_,_,axes=np.linalg.svd(points-center,full_matrices=False)
     coords=(points-center)@axes.T;lo=coords.min(0);hi=coords.max(0)
-    counts=np.maximum(1,np.ceil((hi-lo)/cell).astype(int));width=(hi-lo)/counts
+    counts=np.maximum(1,np.ceil((hi-lo)/cell).astype(int));width=np.maximum((hi-lo)/counts,1e-12)
     radius=float(np.linalg.norm(width)*.5+.001)
-    return [{'center':(center+(lo+(np.asarray(i)+.5)*width)@axes).tolist(),'radius':radius} for i in np.ndindex(*counts)]
+    if faces is None:cells=list(np.ndindex(*counts))
+    else:
+        triangles=coords[np.asarray(faces,dtype=int)]
+        first=np.clip(np.floor((triangles.min(1)-lo)/width).astype(int),0,counts-1)
+        last=np.clip(np.floor((triangles.max(1)-lo)/width).astype(int),0,counts-1)
+        occupied=[]
+        for offset in np.ndindex(*((last-first).max(0)+1)):
+            trial=first+offset;occupied.append(trial[np.all(trial<=last,axis=1)])
+        cells=np.unique(np.concatenate(occupied),axis=0)
+    return [{'center':(center+(lo+(np.asarray(i)+.5)*width)@axes).tolist(),'radius':radius} for i in cells]
+
+
+def usd_mesh_faces(mesh):
+    faces=[];offset=0;indices=np.asarray(mesh.GetFaceVertexIndicesAttr().Get())
+    for count in mesh.GetFaceVertexCountsAttr().Get():
+        polygon=indices[offset:offset+count]
+        faces.extend([[polygon[0],polygon[j],polygon[j+1]] for j in range(1,count-1)])
+        offset+=count
+    return np.asarray(faces,dtype=int)
+
+
+def carried_proxy(scene):
+    if not hasattr(scene,'carried_collision_proxy'):
+        scene.carried_collision_proxy=cover_points(scene.meshes['tool'].vertices,faces=scene.meshes['tool'].faces)
+    return scene.carried_collision_proxy
 
 
 def sphere_world_clearance(pose,spheres,boxes):
@@ -81,16 +111,19 @@ def robot_model(scene,carry,out):
     for prim in Usd.PrimRange.Stage(scene.world.stage,Usd.TraverseInstanceProxies()):
         if not str(prim.GetPath()).startswith(scene.root+'/') or not prim.IsA(UsdGeom.Mesh):continue
         if 'collision' in str(prim.GetPath()).lower():continue
-        points=np.asarray(UsdGeom.Mesh(prim).GetPointsAttr().Get());trans=np.asarray(cache.GetLocalToWorldTransform(prim)).T
-        scale=np.linalg.norm(trans[:3,:3],axis=0);local=cover_points(points*scale)
+        mesh=UsdGeom.Mesh(prim);points=np.asarray(mesh.GetPointsAttr().Get());faces=usd_mesh_faces(mesh)
+        trans=np.asarray(cache.GetLocalToWorldTransform(prim)).T
+        scale=np.linalg.norm(trans[:3,:3],axis=0);local=cover_points(points*scale,faces=faces)
         measured.append((prim,scale,local))
         world_points=points@trans[:3,:3].T+trans[:3,3]
-        spheres+=cover_points(rot.inv().apply(world_points-pose[:3]))
+        spheres+=cover_points(rot.inv().apply(world_points-pose[:3]),faces=faces)
     scene.measured_hand_collision_meshes=measured
     if carry:
         p,q=scene.objects['tool'].get_world_pose()
-        points=Rotation.from_quat(np.asarray(q)[[1,2,3,0]]).apply(scene.meshes['tool'].vertices)+p
-        spheres+=cover_points(rot.inv().apply(points-pose[:3]))
+        proxy=carried_proxy(scene)
+        points=Rotation.from_quat(np.asarray(q)[[1,2,3,0]]).apply(np.array([s['center'] for s in proxy]))+p
+        relative=rot.inv().apply(points-pose[:3])
+        spheres+=[dict(center=c.tolist(),radius=s['radius']) for c,s in zip(relative,proxy)]
     if not spheres:raise RuntimeError('Floating planner has no hand collision geometry')
     # Diagnose the previous controller error, but do not inflate a new path
     # that starts at the measured pose by an old BC target's residual. At the
@@ -111,7 +144,8 @@ def robot_model(scene,carry,out):
     import json
     (out/'collision_geometry.json').write_text(json.dumps(dict(spheres=spheres,
         measured_start_pose=pose.tolist(),previous_command_tracking_margin_m=margin,
-        planning_tracking_margin_m=0.,carried_object=carry),indent=2))
+            planning_tracking_margin_m=0.,carried_object=carry,
+            proxy='conservative triangle-bounding-cell spheres; empty cells excluded'),indent=2))
     return {'kinematics':kin},len(spheres)
 
 
@@ -148,7 +182,7 @@ class FloatingPlanner:
         try:return bool(self.planner.check_start_state(self.js(q))[0])
         finally:self.planner.rollout_fn.primitive_collision_constraint.enable_cost()
 
-    def measured_valid(self):
+    def measured_clearance(self):
         # Tracking margin is for commanded paths. Do not count it a second time
         # against measured states; check the underlying physical geometry here.
         pose,_=self.scene.root_motion();r=Rotation.from_quat(pose[[4,5,6,3]])
@@ -164,19 +198,25 @@ class FloatingPlanner:
                 sizes.extend(s['radius'] for s in local_spheres)
             if self.carry:
                 p,q=self.scene.objects['tool'].get_world_pose()
-                current=cover_points(Rotation.from_quat(np.asarray(q)[[1,2,3,0]]).apply(self.scene.meshes['tool'].vertices)+p)
-                groups.append(np.asarray([s['center'] for s in current]));sizes.extend(s['radius'] for s in current)
+                current=carried_proxy(self.scene)
+                groups.append(Rotation.from_quat(np.asarray(q)[[1,2,3,0]]).apply(np.array([s['center'] for s in current]))+p)
+                sizes.extend(s['radius'] for s in current)
             centers=np.concatenate(groups);radii=np.asarray(sizes)
         boxes=dict(self.live['cuboid'])
         for role in getattr(self,'obstacle_roles',[]):
             p,q=self.scene.objects[role].get_world_pose();bounds=self.scene.meshes[role].bounds
             current=Rotation.from_quat(np.asarray(q)[[1,2,3,0]])
             boxes[role]={'dims':(bounds[1]-bounds[0]).tolist(),'pose':np.r_[p+current.apply(bounds.mean(0)),q].tolist()}
-        for box in boxes.values():
+        clearances={}
+        for role,box in boxes.items():
             b=np.asarray(box['pose']);rotation=Rotation.from_quat(b[[4,5,6,3]])
-            local=rotation.inv().apply(centers-b[:3]);outside=np.maximum(np.abs(local)-np.asarray(box['dims'])/2,0.)
-            if np.any(np.linalg.norm(outside,axis=1)<radii):return False
-        return True
+            local=rotation.inv().apply(centers-b[:3]);offset=np.abs(local)-np.asarray(box['dims'])/2
+            distance=np.linalg.norm(np.maximum(offset,0),axis=1)+np.minimum(np.max(offset,axis=1),0)-radii
+            clearances[role]=float(distance.min())
+        return clearances
+
+    def measured_valid(self):
+        return min(self.measured_clearance().values())>=0.
 
     def plan(self,goal,ticks,goal_twist=None,goal_state=None):
         from curobo.wrap.reacher.motion_gen import MotionGenPlanConfig

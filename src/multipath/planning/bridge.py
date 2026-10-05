@@ -1,7 +1,7 @@
 """Cheap necessary bridge checks before cuRobo initialization."""
 import numpy as np
 from scipy.spatial.transform import Rotation
-from multipath.planning.floating import pose_coordinates
+from multipath.planning.floating import pose_coordinates,carried_proxy
 
 
 def carried_object_clearance(scene,state):
@@ -10,10 +10,7 @@ def carried_object_clearance(scene,state):
     A hand/tool contact while the table supports the bowl is not a transportable
     bridge boundary. This cheap exit check avoids accepting that local optimum.
     """
-    from multipath.planning.floating import cover_points
-    if not hasattr(scene,'carried_collision_proxy'):
-        scene.carried_collision_proxy=cover_points(scene.meshes['tool'].vertices)
-    spheres=scene.carried_collision_proxy;tool=np.asarray(state['objects']['tool']['pose'])
+    spheres=carried_proxy(scene);tool=np.asarray(state['objects']['tool']['pose'])
     rotation=Rotation.from_quat(tool[[4,5,6,3]])
     centers=rotation.apply(np.array([x['center'] for x in spheres]))+tool[:3]
     radii=np.array([x['radius'] for x in spheres]);boxes={'table':scene.table}

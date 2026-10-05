@@ -32,6 +32,22 @@ def state(pitch,twist):
                 contact={'mode':'grasped'},scene_id='same')
 
 
+def test_carried_mesh_proxy_covers_faces_without_filling_empty_interior():
+    import numpy as np
+    from multipath.planning.floating import cover_points
+    angle=np.arange(32)*2*np.pi/32
+    vertices=np.array([[.1*np.cos(t),.1*np.sin(t),z] for z in [-.05,.05] for t in angle])
+    faces=np.array([[i,(i+1)%32,32+i] for i in range(32)]+
+                   [[(i+1)%32,32+(i+1)%32,32+i] for i in range(32)])
+    proxy=cover_points(vertices,faces=faces)
+    centers=np.array([s['center'] for s in proxy]);radii=np.array([s['radius'] for s in proxy])
+    for weights in [[1.,0.,0.],[0.,1.,0.],[0.,0.,1.],[.2,.3,.5],[1/3]*3]:
+        surface=np.sum(vertices[faces]*np.array(weights)[None,:,None],axis=1)
+        clearance=np.linalg.norm(surface[:,None]-centers,axis=2)-radii
+        assert np.all(clearance.min(1)<=1e-9)
+    assert np.min(np.linalg.norm(centers,axis=1)-radii)>.04
+
+
 def test_fixed_time_rejects_displacement_and_velocity_boundaries():
     check=bridge_precheck(state(0,[0]*6),state(.82,[0,0,0,0,6,0]),.2,
                          dict(velocity_limits=[1,1,1,3,3,3],acceleration_limits=[5,5,5,15,15,15]))
