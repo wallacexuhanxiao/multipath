@@ -27,11 +27,12 @@ class MPCConfig:
     iterations: int = 2
     wrist_sigma_m: float = .02
     finger_sigma_rad: float = .25
+    wrist_rotation_sigma_rad: float = .2
 
     def __post_init__(self):
         if self.chunk_frames < 1 or self.candidates < 2 or self.iterations < 1:
             raise ValueError('Invalid MPPI compute budget')
-        if min(self.wrist_sigma_m, self.finger_sigma_rad) <= 0:
+        if min(self.wrist_sigma_m, self.finger_sigma_rad, self.wrist_rotation_sigma_rad) <= 0:
             raise ValueError('MPPI scales must be positive')
 
 
@@ -219,10 +220,10 @@ def mounted_mpc(scene, anchor, data, baseline, start, out, seed=0, config=None, 
         else:
             local = fitted_cartesian_prior(scene,replay,tpf)
             remaining_context = max(scene.dt,(anchor.core_start-anchor.synth_start-begin/tpf)/fps)
-            mean = np.zeros((len(local), 15))
-            scale = np.r_[np.full(3, config.wrist_sigma_m), np.full(12, config.finger_sigma_rad)]
+            mean = np.zeros((len(local), 18))
+            scale = np.r_[np.full(3, config.wrist_sigma_m), np.full(3, config.wrist_rotation_sigma_rad), np.full(12, config.finger_sigma_rad)]
             for iteration in range(config.iterations):
-                samples = rng.normal(size=(config.candidates, len(local), 15)) * scale * (.5 ** iteration) + mean
+                samples = rng.normal(size=(config.candidates, len(local), 18)) * scale * (.5 ** iteration) + mean
                 samples[0] = mean
                 returns = np.full(config.candidates, -np.inf)
                 for i, residual in enumerate(samples):
@@ -234,7 +235,11 @@ def mounted_mpc(scene, anchor, data, baseline, start, out, seed=0, config=None, 
                             best, best_return = replay.copy(), returns[i]
                         continue
                     try:
-                        targets = local.copy(); targets[:, :3] += residual[:, :3]; targets[:, 7:] += residual[:, 3:]
+                        targets = local.copy(); targets[:, :3] += residual[:, :3]
+                        # Same world-frame rotation residual as the prior reproduction.
+                        rotations=Rotation.from_rotvec(residual[:,3:6])*Rotation.from_quat(local[:,[4,5,6,3]])
+                        targets[:,3:7]=rotations.as_quat()[:,[3,0,1,2]]
+                        targets[:,7:]+=residual[:,6:]
                         arm = []; seed_q = q.copy()
                         for target in targets:
                             seed_q = scene.solve(target[:7], seed_q)

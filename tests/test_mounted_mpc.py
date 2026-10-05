@@ -21,7 +21,7 @@ def test_chunk_switching_never_commits_failed_interaction(monkeypatch, tmp_path,
             get_dof_limits=lambda: np.tile([-2.,2.], (19,1))))
 
         def __init__(self):
-            self.frame = 0.; self.committed = []
+            self.frame = 0.; self.committed = []; self.solved_targets = []
 
         def state(self):
             error = object_error if self.frame >= 15 else 0.
@@ -33,6 +33,7 @@ def test_chunk_switching_never_commits_failed_interaction(monkeypatch, tmp_path,
         snapshot = state
 
         def solve(self, target, seed):
+            self.solved_targets.append(np.asarray(target).copy())
             return np.zeros(7)
 
         def begin_trial(self, out, state, mesh=False):
@@ -60,6 +61,7 @@ def test_chunk_switching_never_commits_failed_interaction(monkeypatch, tmp_path,
     if object_error:
         with pytest.raises(mpc.RefinementRequired):run()
         assert scene.committed == []
+        assert any(np.linalg.norm(t[4:7])>1e-6 for t in scene.solved_targets)
         trials=json.loads((tmp_path/'search.json').read_text())
         assert all(t['feasible_controls'] and not t['interaction_feasible'] for t in trials)
         assert all(t['failure']['source_frame']==15 for t in trials)
