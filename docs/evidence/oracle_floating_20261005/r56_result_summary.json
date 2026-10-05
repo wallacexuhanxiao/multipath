@@ -1,0 +1,84 @@
+{
+  "pbs_job_id": "648648.hopper-m-02",
+  "status": "failed",
+  "m2_success": false,
+  "full_pipeline_success": false,
+  "source_provenance": {
+    "triplet": "(put in, bowl, plate)",
+    "sequence": "20231024_253",
+    "input": "raw TACO MANO and object poses",
+    "source_video": "/scratch/e0985859/egoengine_baseline/data/taco_v1/Egocentric_RGB_Videos/(put in, bowl, plate)/20231024_253/color.mp4",
+    "schedule_sha256": "111733961ac0ad03d95087435de751c2bdf27db6f375fe153bd6f5f78283adc2",
+    "full_robot_reference_used": false,
+    "vlm_used": false,
+    "transform_world_to_robot": [
+      [
+        -0.36959298057517503,
+        0.929193775162176,
+        0.0,
+        0.574305986267124
+      ],
+      [
+        -0.9291937551424282,
+        -0.36959297261218765,
+        -0.0,
+        0.005429607853050099
+      ],
+      [
+        0.0,
+        0.0,
+        1.0,
+        -0.1883068585395813
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ]
+  },
+  "elapsed_s": 151.33327338797972,
+  "run": "r56",
+  "local_padded": {
+    "success": false,
+    "failure": {
+      "source_frame": 73.0,
+      "reason": "core_object_fidelity"
+    },
+    "failures": [
+      {
+        "source_frame": 73.0,
+        "reason": "core_object_fidelity"
+      }
+    ],
+    "padded_rollout_complete": false,
+    "tracking_failures_collected": false,
+    "core_entry_acquired": true,
+    "core_exit_acquired": false,
+    "state_resets_within_rollout": 0,
+    "source_fps": 30.0,
+    "control_dt": 0.008333333333333333,
+    "tracking_parameters": {
+      "C": 1.0,
+      "lambda_p": 399.99999999999994,
+      "lambda_R": 3.6475626111241604,
+      "position_tolerance_m": 0.05,
+      "rotation_tolerance_rad": 0.5235987755982988,
+      "acceptance": "independent_position_and_rotation_limits"
+    },
+    "embodiment": "floating_xhand",
+    "command_format": "wrist_xyz_wxyz_hand12_twist6",
+    "actual_end_frame": 73.0
+  },
+  "A2_executed": false,
+  "middle_bridge_executed": false,
+  "actual_failure_measurement": {
+    "source_frame": 73,
+    "position_error_m": 0.04868343495259803,
+    "rotation_error_deg": 30.10413425502062,
+    "contact_mode": "grasped"
+  },
+  "source_clock_stretched": false,
+  "actual_video": "/Users/apple/Desktop/semantic verifier/multipath/outputs/oracle_floating_a1_a2_ppoprefix_r56/anchor_0/refined_replay/floating_xhand_actual.mp4"
+}
