@@ -1,4 +1,4 @@
-"""cuRobo transport of a floating wrist with frozen measured hand geometry.
+"""cuRobo wrist transport and fixed-time free-hand boundary interpolation.
 
 The six virtual joints are a planning parameterization only. PhysX executes
 external wrenches on the real floating hand; no virtual joint drives exist there.
@@ -6,6 +6,7 @@ external wrenches on the real floating hand; no virtual joint drives exist there
 from pathlib import Path
 import numpy as np
 from scipy.spatial.transform import Rotation
+from scipy.interpolate import CubicHermiteSpline
 from multipath.planning.timing import fixed_budget_path,parameterize_path
 
 
@@ -17,6 +18,25 @@ def pose_coordinates(pose,near=None):
 
 def coordinates_pose(q):
     q=np.asarray(q);return np.r_[q[:3],Rotation.from_euler('ZYX',q[3:]).as_quat()[[3,0,1,2]]]
+
+
+def relaxed_hand_path(scene,start,goal,ticks):
+    """Connect free pregrasp drive targets inside the original wrist budget.
+
+    Transport of an acquired grasp keeps its existing preload. Changing grasp
+    mode still belongs to an Anchor, and final measured boundaries must match.
+    """
+    from multipath.anchors.floating import hand_command_boundary
+    q0=hand_command_boundary(start)
+    if goal is None or start['contact']['mode']=='grasped':return np.repeat(q0[None],ticks+1,axis=0)
+    q1=hand_command_boundary(goal);duration=ticks*scene.dt
+    curve=CubicHermiteSpline([0.,duration],np.stack((q0,q1)),
+                            np.stack((start['hand_dq'],goal['hand_dq'])))
+    time=np.arange(ticks+1)*scene.dt;hand=curve(time)
+    speed=np.maximum(np.abs(curve(time,1)),np.vstack((np.zeros(12),np.abs(np.diff(hand,axis=0)/scene.dt))))
+    if np.any(hand<scene.hand_limits[:,0]-1e-6) or np.any(hand>scene.hand_limits[:,1]+1e-6) or np.any(speed>scene.hand_velocity*1.0001):
+        raise RuntimeError('RELAXED hand boundary cannot fit source-time joint limits')
+    return hand
 
 
 def cover_points(points,cell=.025):
@@ -130,7 +150,7 @@ class FloatingPlanner:
             if np.any(np.linalg.norm(outside,axis=1)<radii):return False
         return True
 
-    def plan(self,goal,ticks,goal_twist=None):
+    def plan(self,goal,ticks,goal_twist=None,goal_state=None):
         from curobo.wrap.reacher.motion_gen import MotionGenPlanConfig
         scene=self.scene;start=scene.state();q0=pose_coordinates(start['wrist_xyz_wxyz']);q1=pose_coordinates(goal,q0)
         # Joint parameterization derivatives are obtained from the measured spatial twist.
@@ -163,7 +183,11 @@ class FloatingPlanner:
         from multipath.anchors.floating import controls_from_poses
         # Preserve the active drive target/preload, rather than commanding the
         # measured contact-deflected hand posture with zero closing error.
-        commands=controls_from_poses(poses,np.repeat(np.asarray(scene.hand_command)[None],len(poses),axis=0),dt)
+        hands=relaxed_hand_path(scene,start,goal_state,ticks)
+        commands=controls_from_poses(poses,hands,dt)
         timing.update(planner='cuRobo_virtual_6DOF',hand_collision_spheres=self.sphere_count,carried_object_collision=self.carry,
-            reference_tracking=False,source_time_stretch=False,arm_model_used=False,tracking_margin_m=scene.planning_tracking_margin_m)
+            reference_tracking=False,source_time_stretch=False,arm_model_used=False,tracking_margin_m=scene.planning_tracking_margin_m,
+            hand_boundary_motion=bool(np.any(np.abs(hands-hands[0])>1e-8)),
+            planned_hand_geometry='entry_posture',
+            hand_boundary_collision_validation='measured_geometry_each_physics_step')
         return commands,timing

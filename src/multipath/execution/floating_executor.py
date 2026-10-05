@@ -62,7 +62,7 @@ def execute(scene,schedule,manifest,proposal_dir,report):
                 info.update(end=terminal_frame,budget_s=(terminal_frame-window['start'])/schedule.fps,
                             development_prefix=True,canonical_goal=False)
             else:goal=canonical[later['anchor']]['entry'] if later else initial
-            if later and not prefix and np.max(np.abs(np.asarray(goal['hand_q'])-scene.state()['hand_q']))>.10:
+            if carry and later and not prefix and np.max(np.abs(np.asarray(goal['hand_q'])-scene.state()['hand_q']))>.10:
                 raise RuntimeError('Canonical entry requires a different hand posture; resynthesize the local entry')
             planner=FloatingPlanner(scene,carry,scene.out/f'planner_{window["start"]}')
             if prefix and not carry:
@@ -73,11 +73,14 @@ def execute(scene,schedule,manifest,proposal_dir,report):
                         goal['wrist_xyz_wxyz']=target;break
                 else:raise RuntimeError('No collision-free development entry')
             commands,timing=planner.plan(np.asarray(goal['wrist_xyz_wxyz']),
-                                         (terminal_frame-window['start'])*tpf,np.asarray(goal['wrist_twist']))
+                                         (terminal_frame-window['start'])*tpf,np.asarray(goal['wrist_twist']),
+                                         goal_state=goal if later and not prefix else None)
             info.update(timing);info['collision_model']={'current_hand':True,'carried_object':carry,'assembly_self_collision':False}
             np.savez_compressed(scene.out/f'relaxed_{window["start"]}_{window["end"]}.npz',commands=commands)
             for j,command in enumerate(commands):
                 scene.step_control(command,'RELAXED',window['start']+(j+1)/tpf)
+                if timing['hand_boundary_motion'] and not planner.measured_valid():
+                    raise RuntimeError('Measured RELAXED hand boundary collision')
                 if (j+1)%tpf==0:
                     if carry:check_retention(scene.state(),held)
                     if not planner.measured_valid():raise RuntimeError('Measured RELAXED collision')

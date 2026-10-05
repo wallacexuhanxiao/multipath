@@ -107,3 +107,16 @@ def test_grasp_preload_is_not_counted_as_a_new_command_jump():
     # A transient absence of opposition does not erase the previous drive.
     start['contact']['mode']='free'
     assert validate_commands(scene,baseline,start)['feasible']
+
+
+def test_relaxed_pregrasp_boundary_uses_fixed_time_and_rejects_short_budget():
+    from multipath.planning.floating import relaxed_hand_path
+    import pytest
+    scene=SimpleNamespace(dt=.01,hand_limits=np.tile([-2.,2.],(12,1)),hand_velocity=np.ones(12))
+    start={'hand_q':np.zeros(12),'hand_dq':np.zeros(12),'contact':{'mode':'free'}}
+    goal={'hand_q':np.full(12,.35),'hand_dq':np.zeros(12)}
+    path=relaxed_hand_path(scene,start,goal,100)
+    assert path.shape==(101,12)
+    np.testing.assert_allclose(path[[0,-1]],np.stack((start['hand_q'],goal['hand_q'])))
+    with pytest.raises(RuntimeError,match='source-time'):
+        relaxed_hand_path(scene,start,goal,20)
