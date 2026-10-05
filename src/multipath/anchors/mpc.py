@@ -98,6 +98,13 @@ class WindowEvaluation:
             if r['position_m']>.05 or r['rotation_rad']>.35 or not r['contact_retained']:
                 reason='pre_context_grasp_retention'
         if frame == a.core_start:
+            # Canonical entry is conditioned on this Anchor's source boundary,
+            # not inherited from the previous Anchor's exit. Padding states
+            # provide physical context only; the boundary must actually arrive.
+            from multipath.validation.physics import object_tracking_score
+            error=core_pose_errors(measured,self.data['tool_pose'][index])
+            score=object_tracking_score(error);reward=tracking_reward=score['reward']
+            if not score['feasible']:reason='core_entry_source_boundary'
             if measured['contact']['mode'] != a.entry_contact:
                 reason = 'core_entry_contact'
             self.held = np.asarray(measured['hand_object_transform']) if a.entry_contact == 'grasped' else None

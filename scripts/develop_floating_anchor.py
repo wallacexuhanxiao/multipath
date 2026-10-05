@@ -48,6 +48,10 @@ def main():
         from multipath.anchors.artifact import save_anchor
         data=dict(np.load(args.proposals/manifest['anchors'][anchor.id],allow_pickle=False))
         validate_local_data(anchor,data);tpf=physics_ticks_per_frame(schedule.fps,FloatingScene.dt)
+        idx=anchor.core_start-anchor.synth_start
+        report['core_entry_target']={'source':'TACO_oracle_boundary','source_frame':anchor.core_start,
+            'tool_pose':data['tool_pose'][idx].tolist(),'retargeted_wrist_hand':data['wrist_hand_q'][idx].tolist(),
+            'context_snapshot_is_canonical_entry':False}
         initial_data=data if anchor.id==first.id else dict(np.load(args.proposals/manifest['anchors'][first.id],allow_pickle=False))
         initial=initial_data['wrist_hand_q'][0,:7].copy()
         # A collision-separated nominal ready pose, initialized before source t=0.

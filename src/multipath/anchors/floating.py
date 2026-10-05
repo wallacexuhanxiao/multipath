@@ -156,6 +156,11 @@ def rollout(scene,anchor,data,commands,start,out,mode='LOCAL_PADDED',core_only=F
         'state_resets_within_rollout':scene.restore_count-resets,'source_fps':scene.manifest['fps'],'control_dt':scene.dt,
         'tracking_parameters':object_tracking_parameters(),
         'embodiment':scene.embodiment,'command_format':'wrist_xyz_wxyz_hand12_twist6','actual_end_frame':scene.ticks*scene.dt*scene.manifest['fps']}
+    if entry is not None:
+        from multipath.validation.physics import core_pose_errors,object_tracking_score
+        errors=core_pose_errors(entry,data['tool_pose'][anchor.core_start-anchor.synth_start])
+        result['core_entry_source_boundary']=dict(source_frame=anchor.core_start,**errors,
+                                                  accepted=object_tracking_score(errors)['feasible'])
     (Path(out)/'local_result.json').write_text(json.dumps(result,indent=2))
     return result,entry,exit_state
 

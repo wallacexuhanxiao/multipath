@@ -47,3 +47,16 @@ def test_release_anchor_allows_contact_change_inside_core():
     assert release.observe(1,np.zeros(25))
     hold=WindowEvaluation(scene,InteractionAnchor('hold',0,4,0,6,'grasped','grasped'),data,state)
     assert not hold.observe(1,np.zeros(25)) and hold.failure['reason']=='core_grasp_retention'
+
+
+def test_core_entry_must_match_its_own_source_boundary():
+    from types import SimpleNamespace
+    from multipath.anchors.schema import InteractionAnchor
+    from multipath.anchors.mpc import WindowEvaluation
+    state={'time_s':0.,'contact':{'mode':'grasped'},'hand_object_transform':np.eye(4),
+           'objects':{'tool':{'pose':[.08,0,0,1,0,0,0]}}}
+    scene=SimpleNamespace(manifest={'fps':30},state=lambda:state)
+    data={'tool_pose':np.tile(np.eye(4),(6,1,1))}
+    value=WindowEvaluation(scene,InteractionAnchor('interaction',2,4,0,6,'grasped','grasped'),data,state)
+    assert not value.observe(2,np.zeros(25))
+    assert value.failure['reason']=='core_entry_source_boundary'
