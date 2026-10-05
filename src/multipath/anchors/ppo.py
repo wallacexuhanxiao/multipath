@@ -16,6 +16,7 @@ from multipath.anchors.control_check import control_feasibility
 from multipath.anchors.mpc import WindowEvaluation, fitted_cartesian_prior
 from multipath.anchors.synthesis import hand_limits_from_urdf
 from multipath.anchors.residual_control import project_arm_command
+from multipath.validation.physics import object_tracking_parameters
 
 
 @dataclass(frozen=True)
@@ -58,7 +59,7 @@ class MountedResidualEnv:
             'objective':'Appendix C.3/C.4 weighted tracking + C.7 thumb AND finger',
             'terminal_reward':'same_tracking_formula_no_added_failure_penalty',
             'evaluation_reward':'object_tracking_only_C.9',
-            'tracking_parameters':{'C':1.,'lambda_p':1/.05**2,'lambda_R':1/.35**2},
+            'tracking_parameters':object_tracking_parameters(),
             'clock_stretched':False,'state_resets_within_episode':0,'domain_randomization':False}
 
     def observation(self,state):

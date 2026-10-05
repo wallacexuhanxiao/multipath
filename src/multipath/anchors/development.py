@@ -1,5 +1,5 @@
 """Local mounted synthesis. Snapshot restores exist only in this development path."""
-from multipath.validation.physics import object_tracking_score
+from multipath.validation.physics import object_tracking_score,object_tracking_parameters
 import hashlib
 import json
 from pathlib import Path
@@ -96,7 +96,7 @@ def replay_padded(scene,anchor,data,controls,start,folder,method,core_only=False
         raise ValueError('Controls or snapshot do not match the source interval')
     scene.begin_trial(folder,start)
     entry=None;exit_state=None;held=None
-    validation={'success':False,'handoff_verified':False,'synthesis_method':method,
+    validation={'success':False,'handoff_verified':False,'synthesis_method':method,'tracking_parameters':object_tracking_parameters(),
                 'context_used':'exported_core_replay' if core_only else 'physical_padded_rollout','control_dt':scene.dt,'source_fps':fps,
                 'padded_rollout_complete':False,'state_resets_within_padded_rollout':0,
                 'core_pose_errors':[],'post_context_retention':[],'failures':[]}

@@ -13,10 +13,12 @@ def test_contact_requires_thumb_and_another_finger():
 
 
 def test_tracking_reward_and_termination_share_boundary():
-    score=object_tracking_score({'position_m':.04,'rotation_rad':.28})
+    score=object_tracking_score({'position_m':.04,'rotation_rad':np.deg2rad(24.)})
     assert score['reward']<0 and not score['feasible']
     score=object_tracking_score({'position_m':.03,'rotation_rad':.14})
     assert score['reward']>0 and score['feasible']
+    assert object_tracking_score({'position_m':0.,'rotation_rad':np.deg2rad(30.)})['feasible']
+    assert not object_tracking_score({'position_m':0.,'rotation_rad':np.deg2rad(30.1)})['feasible']
 
 
 def test_residual_cannot_accelerate_into_unbrakeable_joint_limit():

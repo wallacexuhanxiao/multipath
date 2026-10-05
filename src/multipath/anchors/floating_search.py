@@ -11,6 +11,7 @@ from multipath.anchors.mpc import WindowEvaluation,mppi_mean,RefinementRequired
 from multipath.anchors.floating import controls_from_poses,validate_commands,object_relative_command,object_relative_handoff
 from multipath.anchors.ppo import MountedResidualEnv,LocalPPOSolver,PPOConfig
 from multipath.planning.timing import physics_ticks_per_frame
+from multipath.validation.physics import object_tracking_parameters
 
 
 def apply_residual(scene,baseline,start,residual,tpf,envelope):
@@ -50,6 +51,7 @@ class FloatingResidualEnv(MountedResidualEnv):
             'entry_provenance':start.get('entry_provenance'),'source_provenance':scene.manifest['provenance'],
             'action':'wrist_xyz_rotvec_and_12_fingers','action_scales':self.action_scales.tolist(),'residual_center':'local_floating_replay',
             'training_scene':'floating_PhysX','residual_velocity_feedforward':'nominal_replay_unchanged','objective':'Appendix weighted object tracking + thumb AND finger contact',
+            'tracking_parameters':object_tracking_parameters(),
             'clock_stretched':False,'state_resets_within_episode':0,'domain_randomization':False,'arm_ik_used':False}
 
     def observation(self,state):

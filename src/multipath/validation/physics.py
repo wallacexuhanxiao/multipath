@@ -1,6 +1,16 @@
 import numpy as np
 from scipy.spatial.transform import Rotation
 
+OBJECT_POSITION_TOLERANCE_M = .05
+OBJECT_ROTATION_TOLERANCE_RAD = float(np.deg2rad(30.))
+
+
+def object_tracking_parameters():
+    return {'C':1., 'lambda_p':1/OBJECT_POSITION_TOLERANCE_M**2,
+            'lambda_R':1/OBJECT_ROTATION_TOLERANCE_RAD**2,
+            'position_tolerance_m':OBJECT_POSITION_TOLERANCE_M,
+            'rotation_tolerance_rad':OBJECT_ROTATION_TOLERANCE_RAD}
+
 
 def retention_errors(state, held_transform):
     delta=np.linalg.inv(held_transform)@np.asarray(state['hand_object_transform'])
@@ -26,11 +36,12 @@ def core_pose_errors(state, expected):
 def object_tracking_score(errors):
     """Appendix C.3/C.4: one weighted norm for reward and feasibility.
 
-    C=1, lambda_p=1/.05**2, lambda_R=1/.35**2 preserve the project's
-    existing axial budgets. These values are project choices, not paper values.
+    Project axial tolerances are 5 cm / 30 degrees, shared by Replay, MPC,
+    PPO and core handoff. These are project choices, not paper values.
     The ellipse is stricter than the former independent Cp/CR box at corners.
     """
-    distance=float(np.hypot(errors['position_m']/.05, errors['rotation_rad']/.35))
+    distance=float(np.hypot(errors['position_m']/OBJECT_POSITION_TOLERANCE_M,
+                            errors['rotation_rad']/OBJECT_ROTATION_TOLERANCE_RAD))
     return {'weighted_error':distance, 'reward':1.-distance, 'feasible':distance<=1.}
 
 

@@ -4,6 +4,7 @@ from pathlib import Path
 import numpy as np
 from scipy.spatial.transform import Rotation,Slerp
 from multipath.anchors.mpc import WindowEvaluation
+from multipath.validation.physics import object_tracking_parameters
 from multipath.planning.timing import physics_ticks_per_frame
 
 
@@ -118,6 +119,7 @@ def rollout(scene,anchor,data,commands,start,out,mode='LOCAL_PADDED',core_only=F
         'failure':failure,'failures':failures,'padded_rollout_complete':executed==len(commands),
         'tracking_failures_collected':collect_tracking_failures,'core_entry_acquired':entry is not None,'core_exit_acquired':exit_state is not None,
         'state_resets_within_rollout':scene.restore_count-resets,'source_fps':scene.manifest['fps'],'control_dt':scene.dt,
+        'tracking_parameters':object_tracking_parameters(),
         'embodiment':scene.embodiment,'command_format':'wrist_xyz_wxyz_hand12_twist6','actual_end_frame':scene.ticks*scene.dt*scene.manifest['fps']}
     (Path(out)/'local_result.json').write_text(json.dumps(result,indent=2))
     return result,entry,exit_state

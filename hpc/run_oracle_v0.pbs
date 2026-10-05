@@ -20,10 +20,13 @@ cd "$ROOT"
 export TACO_ROOT=$RUNTIME/data/taco_v1
 export MANO_ROOT=$RUNTIME/sources/reproduction/data/models/mano_smplx
 export PYTHONPATH=$ROOT/src:$ENGINE/src
-# Human MANO -> local retarget only. Never call the full-video retarget entrypoint.
-"$RUNTIME/envs/retarget/bin/python" -u scripts/prepare_oracle_anchors.py \
+PROPOSALS=${MULTIPATH_PROPOSALS:-$OUT/proposals}
+if [[ -z "${MULTIPATH_PROPOSALS:-}" ]]; then
+ # Human MANO -> local retarget only. Never call the full-video retarget entrypoint.
+ "$RUNTIME/envs/retarget/bin/python" -u scripts/prepare_oracle_anchors.py \
  --schedule "$MULTIPATH_SCHEDULE" --triplet "$MULTIPATH_TRIPLET" --sequence "$MULTIPATH_SEQUENCE" \
  --mount-report configs/franka_xhand_mount.json --output-dir "$OUT/proposals" >"$OUT/prepare.log" 2>&1
+fi
 module load singularity
 source "$ROOT/hpc/stage_torch_imports.sh"
 MP_ENV=( --env "LD_LIBRARY_PATH=/scratch/e0985859/semantic_verifier/compat_libs/x11-ubuntu22:/usr/local/cuda/compat/lib:/.singularity.d/libs"
@@ -33,7 +36,7 @@ MP_ENV=( --env "LD_LIBRARY_PATH=/scratch/e0985859/semantic_verifier/compat_libs/
  --env "PBS_JOBID=${PBS_JOBID:-unknown}" )
 [[ -z "${CUDA_VISIBLE_DEVICES:-}" ]] || MP_ENV+=(--env "CUDA_VISIBLE_DEVICES=$CUDA_VISIBLE_DEVICES")
 MP_ENV+=(--bind "$ROOT/hpc/container_env/92-env-torch-distributed.sh:/.singularity.d/env/92-env-torch-distributed.sh:ro")
-COMMON=( --proposals "$OUT/proposals" --schedule "$MULTIPATH_SCHEDULE"
+COMMON=( --proposals "$PROPOSALS" --schedule "$MULTIPATH_SCHEDULE"
  --robot-yaml "$ROOT/vendor/curobo-v077/src/curobo/content/configs/robot/franka.yml"
  --xhand-urdf "$ENGINE/assets/xhand/spider/xhand_right.urdf" --object-cache "$ENGINE/outputs/sim_usd" )
 EMBODIMENT=${MULTIPATH_EMBODIMENT:-mounted}
@@ -55,35 +58,55 @@ PYCODE
 }
 mapfile -t ANCHORS < <("$RUNTIME/envs/retarget/bin/python" -c 'import json,sys; print("\n".join(a["id"] for a in sorted(json.load(open(sys.argv[1]))["anchors"],key=lambda a:a["core_start"])))' "$MULTIPATH_SCHEDULE")
 mkdir -p "$OUT/anchors"
+SOLVER_ARGS=(--mpc-candidates "${MULTIPATH_MPC_CANDIDATES:-64}" --mpc-iters "${MULTIPATH_MPC_ITERS:-3}" --ppo-updates "${MULTIPATH_PPO_UPDATES:-60}")
 for anchor in "${ANCHORS[@]}"; do
+ if [[ "$EMBODIMENT" == floating_xhand && "$anchor" == "${ANCHORS[0]}" && -n "${MULTIPATH_PREDECESSOR_RUN:-}" ]]; then
+  # Freeze the already passed cuRobo predecessor, but physically execute it
+  # again. The development driver checks its initial state and source budget.
+  run_sim scripts/develop_floating_anchor.py --proposals "$PROPOSALS" --schedule "$MULTIPATH_SCHEDULE" \
+   --xhand-urdf "$ENGINE/assets/xhand/spider/xhand_right.urdf" --object-cache "$ENGINE/outputs/sim_usd" \
+   --floating-config "$ROOT/configs/floating_xhand.json" --anchor-id "$anchor" \
+   --predecessor-run "$MULTIPATH_PREDECESSOR_RUN" --output-dir "$OUT/$anchor" "${SOLVER_ARGS[@]}" >"$OUT/$anchor.log" 2>&1
+  check_result "$OUT/$anchor/development_result.json" m2_success
+  cp -r "$OUT/$anchor/anchors/$anchor" "$OUT/anchors/"
+  [[ "$anchor" != "${MULTIPATH_THROUGH_ANCHOR:-}" ]] || break
+  continue
+ fi
  # Acquire the padded entry by continuous execution of validated predecessors.
  # Stop before the unsynthesized core; never use an unvalidated core as proof.
  run_sim scripts/run_oracle_v0.py "${COMMON[@]}" --validated-anchors "$OUT/anchors" \
   "${PREFIX_ARGS[@]}" --stop-before-anchor "$anchor" --output-dir "$OUT/prefix_$anchor" >"$OUT/prefix_$anchor.log" 2>&1
  check_result "$OUT/prefix_$anchor/pipeline_result.json" prefix_success
  if [[ "$EMBODIMENT" == floating_xhand ]]; then
-  "$RUNTIME/envs/retarget/bin/python" - "$OUT" "$MULTIPATH_SCHEDULE" "$anchor" <<'PYCODE'
+  "$RUNTIME/envs/retarget/bin/python" - "$OUT" "$MULTIPATH_SCHEDULE" "$anchor" "$PROPOSALS" <<'PYCODE'
 import json,sys
 from pathlib import Path
 from multipath.oracle_schedule import OracleSchedule
 from multipath.anchors.development import predecessor_snapshot
 root=Path(sys.argv[1]);anchor=OracleSchedule.load(sys.argv[2]).anchors[sys.argv[3]]
-provenance=json.load(open(root/'proposals/manifest.json'))['provenance']
+provenance=json.load(open(Path(sys.argv[4])/'manifest.json'))['provenance']
 state=predecessor_snapshot(root/('prefix_'+anchor.id),anchor.synth_start,provenance)
 (root/(anchor.id+'_entry.json')).write_text(json.dumps(state,indent=2))
 PYCODE
-  run_sim scripts/develop_floating_anchor.py --proposals "$OUT/proposals" --schedule "$MULTIPATH_SCHEDULE" \
+  run_sim scripts/develop_floating_anchor.py --proposals "$PROPOSALS" --schedule "$MULTIPATH_SCHEDULE" \
    --xhand-urdf "$ENGINE/assets/xhand/spider/xhand_right.urdf" --object-cache "$ENGINE/outputs/sim_usd" \
    --floating-config "$ROOT/configs/floating_xhand.json" --anchor-id "$anchor" \
-   --entry-snapshot "$OUT/${anchor}_entry.json" --output-dir "$OUT/$anchor" >"$OUT/$anchor.log" 2>&1
+   --entry-snapshot "$OUT/${anchor}_entry.json" --output-dir "$OUT/$anchor" "${SOLVER_ARGS[@]}" >"$OUT/$anchor.log" 2>&1
   check_result "$OUT/$anchor/development_result.json" m2_success
   cp -r "$OUT/$anchor/anchors/$anchor" "$OUT/anchors/"
  else
   run_sim scripts/develop_mounted_anchor.py "${COMMON[@]}" --anchor "$anchor" \
    --predecessor-dir "$OUT/prefix_$anchor" --artifact-dir "$OUT/anchors" --output-dir "$OUT/$anchor" >"$OUT/$anchor.log" 2>&1
  fi
+ [[ "$anchor" != "${MULTIPATH_THROUGH_ANCHOR:-}" ]] || break
 done
 # A fresh uninterrupted rollout after every padded/core artifact passes.
+FINAL_ARGS=()
+RESULT_KEY=full_pipeline_success
+if [[ -n "${MULTIPATH_THROUGH_ANCHOR:-}" ]]; then
+ FINAL_ARGS+=(--through-anchor "$MULTIPATH_THROUGH_ANCHOR")
+ RESULT_KEY=prefix_success
+fi
 run_sim scripts/run_oracle_v0.py "${COMMON[@]}" --validated-anchors "$OUT/anchors" \
- --output-dir "$OUT/final" >"$OUT/final.log" 2>&1
-check_result "$OUT/final/pipeline_result.json" full_pipeline_success
+ "${FINAL_ARGS[@]}" --output-dir "$OUT/final" >"$OUT/final.log" 2>&1
+check_result "$OUT/final/pipeline_result.json" "$RESULT_KEY"
