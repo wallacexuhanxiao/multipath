@@ -1,0 +1,341 @@
+{
+  "status": "failed",
+  "development_only": true,
+  "full_pipeline_success": false,
+  "bridge_success": false,
+  "next_core_success": false,
+  "source_provenance": {
+    "triplet": "(put in, bowl, plate)",
+    "sequence": "20231024_253",
+    "input": "raw TACO MANO and object poses",
+    "source_video": "/scratch/e0985859/egoengine_baseline/data/taco_v1/Egocentric_RGB_Videos/(put in, bowl, plate)/20231024_253/color.mp4",
+    "schedule_sha256": "111733961ac0ad03d95087435de751c2bdf27db6f375fe153bd6f5f78283adc2",
+    "full_robot_reference_used": false,
+    "vlm_used": false,
+    "transform_world_to_robot": [
+      [
+        -0.36959298057517503,
+        0.929193775162176,
+        0.0,
+        0.574305986267124
+      ],
+      [
+        -0.9291937551424282,
+        -0.36959297261218765,
+        -0.0,
+        0.005429607853050099
+      ],
+      [
+        0.0,
+        0.0,
+        1.0,
+        -0.1883068585395813
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ]
+  },
+  "pbs_job_id": "649916.hopper-m-02",
+  "from_anchor": "anchor_0",
+  "to_anchor": "anchor_1",
+  "source_interval": [
+    76,
+    82
+  ],
+  "boundary_precheck": {
+    "feasible": true,
+    "reasons": [],
+    "budget_s": 0.2,
+    "minimum_duration_velocity_only_s": 0.07693100002194524,
+    "minimum_duration_velocity_change_only_s": 0.04808967592288363,
+    "coordinate_displacement": [
+      0.010821298664332346,
+      0.07693100002194524,
+      0.02310594545217881,
+      0.13271031230968022,
+      0.1015892434691803,
+      -0.1313210867986041
+    ],
+    "initial_coordinate_velocity": [
+      0.06623164594543596,
+      0.08490446158776475,
+      -0.057336833447774176,
+      0.6390131932931808,
+      0.1652684850084185,
+      0.02819659981057043
+    ],
+    "terminal_coordinate_velocity": [
+      -0.09047421506980234,
+      0.265972420707139,
+      -0.12910705086133234,
+      0.6936533288204315,
+      0.886613623851673,
+      -0.6324774715960046
+    ],
+    "hand_q_max_difference_rad": 0.0,
+    "reachable_displacement_lower": [
+      -0.05119642056861028,
+      -0.013273031479526855,
+      -0.06838684022553118,
+      -0.01668358871513148,
+      -0.03613947562511094,
+      -0.20315325003472776
+    ],
+    "reachable_displacement_upper": [
+      0.04634790674373701,
+      0.08344840793850762,
+      0.031098063363709877,
+      0.283216893137854,
+      0.24651589739712929,
+      0.08229707567764089
+    ],
+    "limits_provenance": "configured nominal planning budget; not hardware ratings"
+  },
+  "source_time_stretch": false,
+  "vlm_used": false,
+  "complete_robot_reference_required": false,
+  "goal_kind": "oracle_boundary_target_only",
+  "source_boundary_frame": 82,
+  "boundary_feedback": {
+    "measured_tool_position_offset_m": [
+      -0.0436291555332865,
+      -0.040036622365374835,
+      -0.027819478560138666
+    ],
+    "predicted_tool_position_error_m": 0.016425325230040647,
+    "source_condition_unchanged": true,
+    "physics_acceptance": false,
+    "physical_rollout": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_bridge_takeover_r81/diagnostic/wrench_continuous"
+  },
+  "proposed_boundary_source_error": {
+    "position_m": 0.04900000012865014,
+    "rotation_rad": 0.3889615682748119
+  },
+  "goal_clearance_projection": [
+    {
+      "table": 0.06391376564493914,
+      "target": 0.04051479746732283
+    }
+  ],
+  "collision_corrected_source_error": {
+    "position_m": 0.04900000012865014,
+    "rotation_rad": 0.3889615682748119
+  },
+  "collision_corrected_boundary_precheck": {
+    "feasible": true,
+    "reasons": [],
+    "budget_s": 0.2,
+    "minimum_duration_velocity_only_s": 0.07693100002194524,
+    "minimum_duration_velocity_change_only_s": 0.04808967592288363,
+    "coordinate_displacement": [
+      0.010821298664332346,
+      0.07693100002194524,
+      0.02310594545217881,
+      0.13271031230968022,
+      0.1015892434691803,
+      -0.1313210867986041
+    ],
+    "initial_coordinate_velocity": [
+      0.06623164594543596,
+      0.08490446158776475,
+      -0.057336833447774176,
+      0.6390131932931808,
+      0.1652684850084185,
+      0.02819659981057043
+    ],
+    "terminal_coordinate_velocity": [
+      -0.09047421506980234,
+      0.265972420707139,
+      -0.12910705086133234,
+      0.6936533288204315,
+      0.886613623851673,
+      -0.6324774715960046
+    ],
+    "hand_q_max_difference_rad": 0.0,
+    "reachable_displacement_lower": [
+      -0.05119642056861028,
+      -0.013273031479526855,
+      -0.06838684022553118,
+      -0.01668358871513148,
+      -0.03613947562511094,
+      -0.20315325003472776
+    ],
+    "reachable_displacement_upper": [
+      0.04634790674373701,
+      0.08344840793850762,
+      0.031098063363709877,
+      0.283216893137854,
+      0.24651589739712929,
+      0.08229707567764089
+    ],
+    "limits_provenance": "configured nominal planning budget; not hardware ratings"
+  },
+  "planning": {
+    "budget_s": 0.2,
+    "curobo_duration_s": 0.2,
+    "time_scale": 1.0,
+    "command_velocity_ratio": 0.6265711282538744,
+    "command_acceleration_ratio": 1.0000000000003162,
+    "parameterization": "endpoint_constrained_geometric_fit",
+    "geometry_max_adjustment": 0.08845079632485264,
+    "boundary_velocities_preserved": true,
+    "previous_fit_rejections": [
+      "Fixed source budget violates dynamics: velocity=1.367, acceleration=25.291",
+      "Boundary velocity is incompatible with the geometric path"
+    ],
+    "planner": "cuRobo_virtual_6DOF",
+    "hand_collision_spheres": 231,
+    "carried_object_collision": true,
+    "reference_tracking": false,
+    "source_time_stretch": false,
+    "arm_model_used": false,
+    "tracking_margin_m": 0.0,
+    "previous_command_tracking_margin_m": 0.11778567258468092,
+    "hand_boundary_motion": false,
+    "planned_hand_geometry": "entry_posture",
+    "hand_boundary_collision_validation": "measured_geometry_each_physics_step"
+  },
+  "controller_handoff": {
+    "initial_wrench_bias": [
+      -9.730811989366252,
+      -6.520606892793594,
+      -5.353860965123924,
+      -0.22244202926462342,
+      0.49939302084803516,
+      0.06264449252351612
+    ],
+    "source_time_budget_s": 0.2,
+    "end_bias_zero": true
+  },
+  "actual_end_source_frame": 81.25,
+  "proxy_overlap_refinements": [
+    {
+      "source_frame": 77.5,
+      "proxy_clearance_m": {
+        "table": 0.022251218729473804,
+        "target": -0.001147780465090193
+      },
+      "mesh_collisions": []
+    },
+    {
+      "source_frame": 77.75,
+      "proxy_clearance_m": {
+        "table": 0.01700775298763682,
+        "target": -0.006391246345484866
+      },
+      "mesh_collisions": []
+    },
+    {
+      "source_frame": 78.0,
+      "proxy_clearance_m": {
+        "table": 0.011906598573858479,
+        "target": -0.011492400411724672
+      },
+      "mesh_collisions": []
+    },
+    {
+      "source_frame": 78.25,
+      "proxy_clearance_m": {
+        "table": 0.007088137917717483,
+        "target": -0.01631086124710176
+      },
+      "mesh_collisions": []
+    },
+    {
+      "source_frame": 78.5,
+      "proxy_clearance_m": {
+        "table": 0.0014981900648422843,
+        "target": -0.02190080883101899
+      },
+      "mesh_collisions": []
+    },
+    {
+      "source_frame": 78.75,
+      "proxy_clearance_m": {
+        "table": -0.003948969070544064,
+        "target": -0.027347967776220457
+      },
+      "mesh_collisions": []
+    },
+    {
+      "source_frame": 79.0,
+      "proxy_clearance_m": {
+        "table": -0.009005347831180923,
+        "target": -0.031648713405587045
+      },
+      "mesh_collisions": []
+    },
+    {
+      "source_frame": 79.25,
+      "proxy_clearance_m": {
+        "table": -0.008526047917012416,
+        "target": -0.031430409681810295
+      },
+      "mesh_collisions": []
+    },
+    {
+      "source_frame": 79.5,
+      "proxy_clearance_m": {
+        "table": -0.008612415722406255,
+        "target": -0.031106176284522252
+      },
+      "mesh_collisions": []
+    },
+    {
+      "source_frame": 79.75,
+      "proxy_clearance_m": {
+        "table": -0.0086642812333417,
+        "target": -0.030860206999283685
+      },
+      "mesh_collisions": []
+    },
+    {
+      "source_frame": 80.0,
+      "proxy_clearance_m": {
+        "table": -0.008738732239376348,
+        "target": -0.030513679947689026
+      },
+      "mesh_collisions": []
+    },
+    {
+      "source_frame": 80.25,
+      "proxy_clearance_m": {
+        "table": -0.008863016503815793,
+        "target": -0.030020861356532078
+      },
+      "mesh_collisions": []
+    },
+    {
+      "source_frame": 80.5,
+      "proxy_clearance_m": {
+        "table": -0.008944977425783898,
+        "target": -0.02938300170104849
+      },
+      "mesh_collisions": []
+    },
+    {
+      "source_frame": 80.75,
+      "proxy_clearance_m": {
+        "table": -0.008867780410258121,
+        "target": -0.028708100927147956
+      },
+      "mesh_collisions": []
+    },
+    {
+      "source_frame": 81.0,
+      "proxy_clearance_m": {
+        "table": -0.00862880586310796,
+        "target": -0.028432459410877825
+      },
+      "mesh_collisions": []
+    }
+  ],
+  "error": "RuntimeError: Persistent grasp constraint failed: {'position_m': 0.02231103386129685, 'rotation_rad': 0.37063172232836383, 'contact_retained': True}",
+  "state_resets_after_start": 0,
+  "actual_executed_duration_s": 0.17500000000000027,
+  "elapsed_s": 57.15583471301943
+}

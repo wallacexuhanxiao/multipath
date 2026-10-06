@@ -1,0 +1,124 @@
+{
+  "embodiment": "floating_xhand",
+  "m2_success": false,
+  "full_pipeline_success": false,
+  "source_provenance": {
+    "triplet": "(put in, bowl, plate)",
+    "sequence": "20231024_253",
+    "input": "raw TACO MANO and object poses",
+    "source_video": "/scratch/e0985859/egoengine_baseline/data/taco_v1/Egocentric_RGB_Videos/(put in, bowl, plate)/20231024_253/color.mp4",
+    "schedule_sha256": "111733961ac0ad03d95087435de751c2bdf27db6f375fe153bd6f5f78283adc2",
+    "full_robot_reference_used": false,
+    "vlm_used": false,
+    "transform_world_to_robot": [
+      [
+        -0.36959298057517503,
+        0.929193775162176,
+        0.0,
+        0.574305986267124
+      ],
+      [
+        -0.9291937551424282,
+        -0.36959297261218765,
+        -0.0,
+        0.005429607853050099
+      ],
+      [
+        0.0,
+        0.0,
+        1.0,
+        -0.1883068585395813
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ]
+  },
+  "pbs_job_id": "649999.hopper-m-02",
+  "source_duration_s": 4.8,
+  "vlm_used": false,
+  "complete_robot_reference_required": false,
+  "source_time_stretch": false,
+  "development_only": true,
+  "anchor_id": "anchor_0",
+  "core_interval": [
+    35,
+    76
+  ],
+  "synthesis_interval": [
+    29,
+    82
+  ],
+  "note": "Bridge to synth_start is a development predecessor; final bridge to core entry still requires verification.",
+  "core_entry_target": {
+    "source": "TACO_oracle_boundary",
+    "source_frame": 35,
+    "tool_pose": [
+      [
+        0.08907006843145966,
+        0.9958782755116713,
+        -0.017116932497678806,
+        0.51982208285344
+      ],
+      [
+        -0.9949578242986448,
+        0.08975689427932228,
+        0.044751832419086056,
+        -0.17872853657542379
+      ],
+      [
+        0.046103738248348236,
+        0.013044589199125767,
+        0.9988515377044678,
+        0.38948983907699586
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "retargeted_wrist_hand": [
+      0.3164689741560743,
+      -0.2255285763890432,
+      0.4592505699138517,
+      0.8111980825170603,
+      -0.23211986567162768,
+      -0.48809780418389626,
+      -0.2232455429165141,
+      0.763194473162471,
+      1.1089354466744523,
+      -0.175,
+      0.175,
+      0.49983633339952005,
+      1.2766224887647837,
+      1.1705154868847647,
+      1.3243744266712894,
+      1.4039655450425772,
+      1.6270480395242202,
+      1.3646170911771616,
+      1.7847723044087052
+    ],
+    "context_snapshot_is_canonical_entry": false
+  },
+  "initial_hand_origin": "first_local_synthesis_context_pregrasp; free_initial_state",
+  "predecessor_snapshot": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_carry_exit_bridge_r75/anchor_0/acquired_snapshot.json",
+  "exit_bridge_constraints": "configured boundary velocity budget and collision-free carried object for grasped exits",
+  "initial_controls": {
+    "path": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_carry_exit_bridge_r75/anchor_0/refined_controls.npz",
+    "sha256": "10a8d22a8f39404eb28284a6594437210e6c3490706298ea552a54889a63cdb4",
+    "before_projection": {
+      "feasible": true,
+      "hand_velocity_ratio": 1.000000000000001,
+      "hand_joint_bounds": true
+    },
+    "physical_acceptance": false
+  },
+  "status": "failed",
+  "error": "Holding drive posture cannot be established inside the Anchor core",
+  "elapsed_s": 38.59731728583574
+}

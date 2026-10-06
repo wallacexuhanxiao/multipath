@@ -269,3 +269,122 @@ r80 视频是 3 个执行后的实际 mesh capture，30 fps / 0.1 秒，已验�
 53 帧 / 1.7667 秒局部 A1 视频分开，不拼接成一次 uninterrupted rollout。
 
 证据目录：[bridge 实验报告](evidence/oracle_floating_20261006/bridge/)。
+
+## Bridge 接管诊断与修复：r81–r86
+
+A2 r68 的局部 padded/core 成功仍有效。以下实验针对 r75 A1 实测出口
+到 TACO 帧 82 的 0.2 秒 RELAXED bridge；这些失败均发生在 A2 core 之前。
+不把 A1 出口当成 A2 入口，不修改 source 边界 5 cm / 30°，也不延长时间。
+
+| 实验 | 方法 | 最大抓持相对角 | 帧 82 物体位置误差 | 结果 |
+| --- | --- | --- | --- | --- |
+| r81 baseline | 原 cuRobo path + PD | 25.15° | 50.43 mm | 抓持条件失败 |
+| r81 continuous | 同一路径，保持接管初始受力并衰减 | 14.89° | 75.76 mm | 抓持保持，终点失败 |
+| r81 old drive | 保持旧 drive，仅作对照 | 12.48° | 112.02 mm | 抓持保持，不是成功的 bridge |
+| r82 torque only | 只连续 torque | 20.99° | 未完成 | 拇指/其他手指对向接触丢失 |
+| r82 force only | 只连续 force | 15.46° | 71.10 mm | 抓持保持，终点失败 |
+| r83 balanced | 线性 PD 模型下末端影响为零的 force profile | 20.14° | 60.36 mm | 两项均失败 |
+| r85 gravity + cubic | 实测碗重力补偿 + 连续接管 | 14.59° | 76.84 mm | 终点失败 |
+| r85 gravity + balanced | 实测碗重力补偿 + balanced profile | 30.29° | 68.25 mm | 两项均失败 |
+| r86 feedback goal | 实测 r81 终点反馈，重新拟合一个 canonical goal | 21.24°（停止时） | 未到 82 | 帧 81.25 抓持条件失败 |
+
+r81 的 threshold failure 在继续诊断到 82 后仍标作失败，不冒充有效
+rollout。各 trial 只在开始时恢复同一 physically acquired snapshot，
+执行内部无 reset。r84 是 native COM 返回形状处理错误，未产生新物理
+证据；修复后 r85 正常运行。以上补偿试验均未提升为默认行为。
+
+明确的 attribution：同一规划路径、同一入口下，保留初始 drive response
+能消除 r80 的抓持相对角失败，因此不能把失败直接归咎为 A1 的碗根本
+抓不住。但接管补偿本身改变闭环运动，仍无法同时满足终点条件。
+r86 的静态终点偏差模型也不能预测更换路径后的动态抓持响应。
+
+新的执行修复使用实际 PhysX 中手和碗的质量、COM、惯量，对规划的
+线速度/角速度差分计算 Newton–Euler feedforward。此前只有 PD 和手重力，
+缺少所规划加速度对应的负载受力/力矩。此模型只生成控制输入，最终
+仍由实际 contact、抓持相对变换、mesh collision 和 source 终点验收。
+没有增加人工等待、reference 中间状态或 RELAXED 人体轨迹相似度条件。
+
+同时保存和恢复 `controller_wrench_bias`，使 PhysX snapshot 的控制器
+状态与实际驱动一致；桥到 core 的接管可在 core 原有时间中保持初始
+受力并衰减。原 Anchor replay 默认保持旧行为。代码无任务名或帧分支；
+迁移效果尚未以第二个 sequence 验证。
+
+r87 / `649924.hopper-m-02` 已执行，同一路径下：
+
+- 单独 dynamics：帧 81.25 手腕位置误差 4.01 mm、角误差 2.25°，
+  但抓持相对角达到 20.93°，并丢失非拇指接触；未完成 bridge。
+- dynamics + 全时长连续接管：完成 0.2 秒，抓持相对角最大 15.81°、
+  位移最大 16.92 mm，对向接触保留；source 终点误差 80.84 mm，失败。
+
+实测总质量 1.372385 kg（XHand 1.122385 kg，碗 0.25 kg）。这说明
+动力学补偿可以改善 wrist tracking，但 tracking 成功不是 grasp 成功。
+不能把 4 mm 的 wrist error 单独当作可执行 bridge 证据。
+
+r88 / `649931.hopper-m-02` 使用 dynamics + balanced force，完成 0.2 秒，
+但最大抓持相对角 30.79°、source 终点位置误差 71.24 mm，仍失败。
+线性末端平衡 profile 未解决实际耦合抓持，保留为实验路径。
+
+r89 / `649934.hopper-m-02` 检验按质量、惯量、控制增益计算的接管衰减
+时间；不再把整个 bridge duration 直接当 controller 的响应时间。
+两者概念不同：source budget 固定，controller 的 drive memory 应在
+自身响应尺度上衰减。实际完成 0.2 秒，但抓持相对角最大 27.09°，
+source 位置误差 57.95 mm，失败；没有提升为默认 controller。
+
+此外，新的 A2 core seed 按实测抓持坐标变换：
+`T_w_new = T_w_old @ H_old @ inv(H_reached)`，保留局部 interaction 的
+隐含 tool target。速度由原命令及坐标偏置的运动变换，不能从旧入口
+drive target 与首帧位置之差重算，否则会凭空引入第一步速度尖峰。
+此 seed 必须从 bridge 的真实出口无 reset 执行，并通过 core 验收。
+
+## 真正需要修的 Anchor 边界：手指闭合尚依赖 post-padding
+
+r90 / `649985.hopper-m-02` 使用单一 quiet canonical 提案：终点速度为零，
+仍满足原 5 cm / 30° source 条件。CPU 提案位置误差约 0，角误差 29.4°；
+cuRobo 后真实执行 0.2 秒，相对抓持角 36.47°、source 位置误差 60.04 mm，
+失败。因此继续微调 controller profile 或目标提案不足以解决该边界。
+
+重新检查 A1 的实际 padded rollout 后发现：
+
+- core 结束帧 76 到 post-padding 结束帧 82，hand drive target 最大仍
+  变化 **0.417403 rad**。RELAXED 却从 core 结束立刻冻结这个目标。
+- 帧 76 wrist 角速度为 `[-0.1148, 0.1221, 0.6423] rad/s`，碗角速度为
+  `[-2.8355, -0.2453, 2.0605] rad/s`，相对角速度模长约 **3.09 rad/s**。
+- A1 padded 成功没有证明 exported core 的握持已经稳定到可以冻结
+  hand command 并 transport。旧 bridge 的 rigid-carry 模型在入口就
+  面对一个仍在旋转/闭合的真实 grasp。
+
+`carry_boundary_commands` 将后文 context 的 holding drive posture
+在 core 结束前建立，并在 post-padding 冻结该目标。只重新安排局部
+finger command，wrist command 和 source clock 不变；手指位置/速度
+约束仍通过原投影，无法在 core 内建立则拒绝。时间范围由 Anchor 的
+pre/post context 定义，没有 sample、task、frame 特例。
+
+r91 / `649999.hopper-m-02` 从 r75 真实 acquired synth_start snapshot 开始，
+重新执行 A1 padded 与 exported core。只有二者成功，才自动接新的
+A1 actual exit → cuRobo → A2 core。该 proposal 尚待物理结果；不能把
+提前闭合的命令可行性说成新 grasp 已有效。
+
+actual-state 视频：[r87 保持抓持但终点失败的 bridge](evidence/oracle_floating_20261006/bridge/r87_actual.mp4)，
+6 帧 / 30 fps / 0.2 秒，已验证可解码。只展示对应 trial 的连续物理状态。
+
+r91 在物理 rollout 前被手指 nominal fit 拒绝。原因是仅做 forward
+slew clipping，会把压缩后的最后几步闭合又推迟到 padding。已补充
+从 holding terminal posture 向前传播的速度 envelope，保留真正的
+terminal condition；joint speed/bounds 未放宽。r92 / `650018.hopper-m-02`
+重跑 fresh padded/core，二者成功后才进入新的 bridge。
+
+r92 未进入 physics：hopper-27 的 `scipy.linalg.blas` native module
+加载卡住，120 秒 watchdog 输出调用栈后退出。保存
+[原始超时栈](evidence/oracle_floating_20261006/bridge/r92_import_timeout.log)；
+此结果不归入 grasp failure。r93 / `650028.hopper-m-02` 在此前成功
+加载过依赖的 hopper-20 排 interactive H200，申请 10 分钟，待运行。
+
+GPU 排队期间，使用相同 URDF joint limits 做了此次 fit 的 CPU 检查：
+nominal speed ratio 1.000000，joint bounds 通过，core 结束后的 hand
+drive target 变化为 0。此项仅证明命令拟合，不能代替 padded/core 或
+bridge 的物理结果。
+
+**本轮当前状态：旧 A1/A2 的 local artifacts 仍有效；中间 bridge 未
+通过；新 A1 grasp-boundary 修复已提交 fresh 物理验证。完整 4.8 秒
+V0 尚未成立。** 所有 failed trials 和 experimental controller 配置
+保留失败标记，未改成默认成功路径，也未放宽 acceptance。

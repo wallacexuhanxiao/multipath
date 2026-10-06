@@ -1,0 +1,60 @@
+{
+  "job": "649882.hopper-m-02",
+  "elapsed_s": 80.44195172004402,
+  "diagnostic_only": true,
+  "source_interval": [
+    76,
+    82
+  ],
+  "full_pipeline_success": false,
+  "trials": [
+    {
+      "kind": "planned",
+      "source_duration_budget_s": 0.2,
+      "actual_duration_s": 0.20000000000000018,
+      "completed": true,
+      "retention_failed": true,
+      "error": null,
+      "max_relative_rotation_rad": 0.4389992832111696,
+      "max_relative_position_m": 0.02474090643307997,
+      "bridge_success": false,
+      "resets_within_rollout": 0,
+      "object_boundary_error": {
+        "position_m": 0.05043492254125284,
+        "rotation_rad": 0.26534884138561177
+      }
+    },
+    {
+      "kind": "wrench_continuous",
+      "source_duration_budget_s": 0.2,
+      "actual_duration_s": 0.20000000000000018,
+      "completed": true,
+      "retention_failed": false,
+      "error": null,
+      "max_relative_rotation_rad": 0.2599254288312969,
+      "max_relative_position_m": 0.012312110347791895,
+      "bridge_success": false,
+      "resets_within_rollout": 0,
+      "object_boundary_error": {
+        "position_m": 0.07576384715305606,
+        "rotation_rad": 0.23410796897317793
+      }
+    },
+    {
+      "kind": "previous_drive_continuation",
+      "source_duration_budget_s": 0.2,
+      "actual_duration_s": 0.20000000000000018,
+      "completed": true,
+      "retention_failed": false,
+      "error": null,
+      "max_relative_rotation_rad": 0.2177395970831075,
+      "max_relative_position_m": 0.009027137942923612,
+      "bridge_success": false,
+      "resets_within_rollout": 0,
+      "object_boundary_error": {
+        "position_m": 0.11202439260688048,
+        "rotation_rad": 0.6389074357298398
+      }
+    }
+  ]
+}

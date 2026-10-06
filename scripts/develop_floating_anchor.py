@@ -17,6 +17,7 @@ def main():
     p.add_argument('--initial-controls',type=Path,help='Existing padded local command proposal; still requires fresh physical validation.')
     p.add_argument('--bridge-compatible-entry',action='store_true',help='Preserve predecessor hand drive through padding and require a necessary fixed-time bridge boundary precheck.')
     p.add_argument('--bridge-compatible-exit',action='store_true',help='Require measured core-exit wrist velocity inside the configured bridge planning budget.')
+    p.add_argument('--freeze-carry-core',action='store_true',help='Establish the local context holding drive posture by core exit; validate fresh padded/core execution.')
     args=p.parse_args();out=args.output_dir;out.mkdir(parents=True,exist_ok=True)
     if args.entry_snapshot and args.predecessor_run:p.error('Choose a snapshot or a validated predecessor bridge')
     from multipath.oracle_schedule import OracleSchedule
@@ -151,6 +152,11 @@ def main():
             report['local_wrist_target']=('source_object_pose_with_measured_grasp' if anchor.entry_contact==anchor.exit_contact=='grasped'
                                          else 'local_human_retarget')
             report['entry_blend_deadline_source_frame']=anchor.core_start
+        if args.freeze_carry_core:
+            from multipath.anchors.floating import carry_boundary_commands
+            controls=carry_boundary_commands(scene,anchor,controls,entry)
+            scene.freeze_carry_core=True
+            report['carry_boundary_proposal']='context holding drive established by core exit; wrist/source clock unchanged; physics pending'
         check=validate_commands(scene,controls,entry);report['command_precheck']=check
         if not check['feasible']:raise RuntimeError('Floating local command precheck failed')
         np.savez_compressed(out/'local_controls.npz',commands=controls)

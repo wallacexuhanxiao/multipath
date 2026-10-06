@@ -165,3 +165,39 @@ def feedback_boundary_target(start,goal,planned_pose,actual_state,source_target,
     return proposal,dict(measured_tool_position_offset_m=offset.tolist(),
         predicted_tool_position_error_m=float(np.linalg.norm(tool(result.x)[:3,3]+offset-source_target[:3,3])),
         source_condition_unchanged=True,physics_acceptance=False)
+
+
+def quiet_boundary_target(start,goal,source_target,budget,dt,planning):
+    """Choose one source-conditioned canonical proposal with a quiet exit.
+
+    Human boundary velocity is not a robot canonical velocity. Pose/contact
+    conditions remain unchanged; stopping must fit the original time budget.
+    This proposal only becomes an entry after continuous physical acquisition
+    and a fresh local core rollout.
+    """
+    from scipy.optimize import minimize
+    from multipath.execution.mounted_scene import pose_matrix
+    from multipath.planning.floating import coordinates_pose
+    from multipath.validation.physics import OBJECT_POSITION_TOLERANCE_M,OBJECT_ROTATION_TOLERANCE_RAD
+    q0=pose_coordinates(start['wrist_xyz_wxyz']);held=np.asarray(start['hand_object_transform'])
+    v0=coordinate_velocity(start['wrist_xyz_wxyz'],start['wrist_twist'],q0)
+    vmax=np.asarray(planning['velocity_limits'])*.98;amax=np.asarray(planning['acceleration_limits'])*.95
+    low,high=discrete_displacement_bounds(v0,np.zeros(6),budget,dt,vmax,amax)
+    if np.any(low>high):raise RuntimeError('No quiet boundary within source time')
+    source_target=np.asarray(source_target)
+    def tool(x):return pose_matrix(coordinates_pose(x))@held
+    def constraints(x):
+        m=tool(x)
+        return np.r_[x-q0-low,q0+high-x,
+            (.98*OBJECT_POSITION_TOLERANCE_M)**2-np.sum((m[:3,3]-source_target[:3,3])**2),
+            (.98*OBJECT_ROTATION_TOLERANCE_RAD)**2-Rotation.from_matrix(source_target[:3,:3].T@m[:3,:3]).magnitude()**2]
+    def objective(x):
+        m=tool(x)
+        # Prefer source position and small wrist rotations while preserving
+        # a necessary acceleration envelope; cuRobo checks actual geometry.
+        return 10*np.sum((m[:3,3]-source_target[:3,3])**2)/OBJECT_POSITION_TOLERANCE_M**2+np.sum((x[3:]-q0[3:])**2)/.35**2
+    seed=q0+np.clip(pose_coordinates(goal['wrist_xyz_wxyz'],q0)-q0,low,high)
+    fit=minimize(objective,seed,method='SLSQP',constraints=[dict(type='ineq',fun=constraints)],options={'maxiter':100,'ftol':1e-10})
+    if not fit.success or min(constraints(fit.x)) < -1e-8:raise RuntimeError('No quiet source-conditioned boundary proposal')
+    return dict(goal,wrist_xyz_wxyz=coordinates_pose(fit.x).tolist(),wrist_twist=np.zeros(6).tolist(),
+        state_origin='unvalidated_quiet_source_conditioned_boundary',physically_acquired_state=False)

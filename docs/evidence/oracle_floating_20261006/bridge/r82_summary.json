@@ -1,0 +1,44 @@
+{
+  "job": "649885.hopper-m-02",
+  "elapsed_s": 69.7010407242924,
+  "diagnostic_only": true,
+  "source_interval": [
+    76,
+    82
+  ],
+  "full_pipeline_success": false,
+  "trials": [
+    {
+      "kind": "torque_continuous",
+      "source_duration_budget_s": 0.2,
+      "actual_duration_s": 0.125,
+      "completed": false,
+      "retention_failed": true,
+      "error": "opposition_contact_lost",
+      "max_relative_rotation_rad": 0.36639884588671556,
+      "max_relative_position_m": 0.020034206134036413,
+      "bridge_success": false,
+      "resets_within_rollout": 0,
+      "object_boundary_error": {
+        "position_m": 0.0656457137650044,
+        "rotation_rad": 0.39325703239510235
+      }
+    },
+    {
+      "kind": "force_continuous",
+      "source_duration_budget_s": 0.2,
+      "actual_duration_s": 0.20000000000000018,
+      "completed": true,
+      "retention_failed": false,
+      "error": null,
+      "max_relative_rotation_rad": 0.26983295277288327,
+      "max_relative_position_m": 0.013410584566161737,
+      "bridge_success": false,
+      "resets_within_rollout": 0,
+      "object_boundary_error": {
+        "position_m": 0.07109744908854554,
+        "rotation_rad": 0.2238201058108741
+      }
+    }
+  ]
+}

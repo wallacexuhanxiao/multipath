@@ -41,6 +41,60 @@ def controls_from_poses(poses,hands,dt):
     return np.c_[poses[1:],hands[1:],velocity,omega]
 
 
+def rebase_grasp_commands(commands,previous_entry,reached_entry,dt):
+    """Retain a local interaction's tool targets under the reached grasp frame.
+
+    The old local wrist command is only a synthesis seed. Its implied tool
+    target must be converted through the newly measured hand/tool transform.
+    No state is assigned; the resulting core needs fresh physical validation.
+    """
+    from multipath.execution.mounted_scene import pose_matrix
+    if not reached_entry.get('physically_acquired_state'):
+        raise ValueError('Core adaptation requires an actual physical entry')
+    c=np.asarray(commands).copy()
+    transform=np.asarray(previous_entry['hand_object_transform'])@np.linalg.inv(reached_entry['hand_object_transform'])
+    old=c[:,:7].copy()
+    matrices=np.asarray([pose_matrix(p)@transform for p in old])
+    poses=np.c_[matrices[:,:3,3],Rotation.from_matrix(matrices[:,:3,:3]).as_quat()[:,[3,0,1,2]]]
+    offset=poses[:,:3]-old[:,:3]
+    previous_offset=Rotation.from_rotvec(-c[:,22:25]*dt).apply(offset)
+    # Stored drive targets can differ from the measured entry. Reconstructing
+    # its first velocity from that target would invent a startup impulse.
+    c[:,:7]=poses;c[:,19:22]+=(offset-previous_offset)/dt
+    return c
+
+
+def carry_boundary_commands(scene,anchor,commands,start):
+    """Bring context's holding drive posture into CORE, then freeze it.
+
+    A grasp-exporting core must not rely on later padding to finish closing
+    its fingers. Only the local synthesis context is used; wrist commands
+    and the original source clock are retained. Fresh physics is required.
+    """
+    if anchor.exit_contact!='grasped':return np.asarray(commands).copy()
+    tpf=physics_ticks_per_frame(scene.manifest['fps'],scene.dt)
+    end=(anchor.core_end-anchor.synth_start)*tpf
+    context=(anchor.core_start-anchor.synth_start+anchor.synth_end-anchor.core_end)*tpf
+    original=np.asarray(commands);final=original[-1,7:19].copy()
+    core_begin=(anchor.core_start-anchor.synth_start)*tpf
+    for begin in range(max(core_begin,end-max(tpf,context)),core_begin-1,-tpf):
+        candidate=original.copy()
+        old_index=np.arange(begin,len(original))
+        warped=np.linspace(begin,len(original)-1,end-begin)
+        for joint in range(12):candidate[begin:end,7+joint]=np.interp(warped,old_index,original[begin:,7+joint])
+        candidate[end:,7:19]=final
+        # A forward slew clamp alone can postpone closure into padding again.
+        # Reserve the terminal posture by propagating its speed envelope back.
+        step=scene.hand_velocity*scene.dt
+        for k in range(end-2,begin-1,-1):
+            candidate[k,7:19]=np.clip(candidate[k,7:19],candidate[k+1,7:19]-step,candidate[k+1,7:19]+step)
+        previous=hand_command_boundary(start) if begin==0 else candidate[begin-1,7:19]
+        if np.any(np.abs(candidate[begin,7:19]-previous)>step+1e-8):continue
+        candidate=project_hand_commands(scene,candidate,start,anchor)
+        if np.max(np.abs(candidate[end-1:,7:19]-final))<1e-6:return candidate
+    raise RuntimeError('Holding drive posture cannot be established inside the Anchor core')
+
+
 def local_controls(scene,anchor,data,start):
     """Only local source data; bridge state mismatch blends out inside padding."""
     fps=scene.manifest['fps'];tpf=physics_ticks_per_frame(fps,scene.dt);frames=np.arange(anchor.synth_start,anchor.synth_end+1)
@@ -141,6 +195,10 @@ def project_hand_commands(scene,commands,start,anchor=None):
         padding=max(0,round((anchor.core_start/scene.manifest['fps']-start['time_s'])/scene.dt))
     for k,c in enumerate(controls):
         if k<padding:c[7:19]=hand_command_boundary(start)
+        frame=(start['time_s']+(k+1)*scene.dt)*scene.manifest['fps']
+        if (getattr(scene,'freeze_carry_core',False) and anchor is not None
+                and anchor.exit_contact=='grasped' and frame>anchor.core_end+1e-8):
+            c[7:19]=previous
         c[7:19]=np.clip(c[7:19],low,high)
         c[7:19]=np.clip(c[7:19],previous-scene.hand_velocity*scene.dt,previous+scene.hand_velocity*scene.dt)
         previous=c[7:19].copy()
@@ -155,7 +213,7 @@ def validate_commands(scene,commands,start):
     return {'feasible':bool(in_bounds and ratio<=1.0001),'hand_velocity_ratio':ratio,'hand_joint_bounds':in_bounds}
 
 
-def rollout(scene,anchor,data,commands,start,out,mode='LOCAL_PADDED',core_only=False,mesh=True,collect_tracking_failures=False,continue_from_current=False):
+def rollout(scene,anchor,data,commands,start,out,mode='LOCAL_PADDED',core_only=False,mesh=True,collect_tracking_failures=False,continue_from_current=False,controller_handoff=False):
     tpf=physics_ticks_per_frame(scene.manifest['fps'],scene.dt)
     start_frame=anchor.core_start if core_only else anchor.synth_start
     end_frame=anchor.core_end if core_only else anchor.synth_end
@@ -172,6 +230,9 @@ def rollout(scene,anchor,data,commands,start,out,mode='LOCAL_PADDED',core_only=F
     else:scene.begin_trial(out,start,mesh=mesh)
     objective=WindowEvaluation(scene,anchor,data,start);entry=None;exit_state=None;failure=None
     resets=scene.restore_count;failures=[];executed=0
+    if controller_handoff:
+        from multipath.execution.wrench_handoff import takeover_bias
+        drive_bias=takeover_bias(start,commands[0],scene.cfg['controller'])
     if core_only:
         entry=scene.snapshot()
         if not objective.observe(start_frame,commands[0]):
@@ -179,6 +240,8 @@ def rollout(scene,anchor,data,commands,start,out,mode='LOCAL_PADDED',core_only=F
     try:
         for k,c in enumerate(commands):
             if failure is not None and not collect_tracking_failures:break
+            if controller_handoff:
+                phase=k/max(1,len(commands)-1);scene.wrench_bias=drive_bias*(1-3*phase**2+2*phase**3)
             frame=start_frame+(k+1)/tpf;scene.step_control(c,mode,frame);executed=k+1
             if (k+1)%tpf:continue
             if frame==anchor.core_start:entry=scene.snapshot()
@@ -199,6 +262,7 @@ def rollout(scene,anchor,data,commands,start,out,mode='LOCAL_PADDED',core_only=F
         'state_resets_within_rollout':scene.restore_count-resets,'source_fps':scene.manifest['fps'],'control_dt':scene.dt,
         'tracking_parameters':object_tracking_parameters(),
         'embodiment':scene.embodiment,'command_format':'wrist_xyz_wxyz_hand12_twist6','actual_end_frame':scene.ticks*scene.dt*scene.manifest['fps']}
+    if controller_handoff:result['controller_handoff']=dict(initial_wrench_bias=drive_bias.tolist(),extra_time_s=0.)
     if entry is not None:
         from multipath.validation.physics import core_pose_errors,object_tracking_score
         errors=core_pose_errors(entry,data['tool_pose'][anchor.core_start-anchor.synth_start])

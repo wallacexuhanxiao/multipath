@@ -67,6 +67,11 @@ if [[ -n "${MULTIPATH_BRIDGE_FROM:-}" ]]; then
  [[ "${MULTIPATH_BRIDGE_DIAGNOSE_COMPONENTS:-0}" != 1 ]] || BRIDGE_ARGS+=(--diagnose-components)
  [[ "${MULTIPATH_BRIDGE_DIAGNOSE_BALANCED_FORCE:-0}" != 1 ]] || BRIDGE_ARGS+=(--diagnose-balanced-force)
  [[ "${MULTIPATH_BRIDGE_DIAGNOSE_LOAD:-0}" != 1 ]] || BRIDGE_ARGS+=(--diagnose-load)
+ [[ "${MULTIPATH_BRIDGE_DIAGNOSE_DYNAMICS:-0}" != 1 ]] || BRIDGE_ARGS+=(--diagnose-dynamics)
+ [[ "${MULTIPATH_BRIDGE_TRANSPORT_DYNAMICS:-0}" != 1 ]] || BRIDGE_ARGS+=(--transport-dynamics)
+ [[ "${MULTIPATH_BRIDGE_BALANCED_HANDOFF:-0}" != 1 ]] || BRIDGE_ARGS+=(--balanced-handoff)
+ [[ "${MULTIPATH_BRIDGE_BANDWIDTH_HANDOFF:-0}" != 1 ]] || BRIDGE_ARGS+=(--bandwidth-handoff)
+ [[ "${MULTIPATH_BRIDGE_QUIET_BOUNDARY:-0}" != 1 ]] || BRIDGE_ARGS+=(--quiet-boundary)
  [[ "${MULTIPATH_BRIDGE_WRENCH_HANDOFF:-0}" != 1 ]] || BRIDGE_ARGS+=(--wrench-handoff)
  [[ -z "${MULTIPATH_BRIDGE_BOUNDARY_FEEDBACK:-}" ]] || BRIDGE_ARGS+=(--boundary-feedback "$MULTIPATH_BRIDGE_BOUNDARY_FEEDBACK")
  run_sim scripts/develop_floating_bridge.py --proposals "$PROPOSALS" --schedule "$MULTIPATH_SCHEDULE" \
@@ -88,6 +93,7 @@ if [[ -n "${MULTIPATH_LOCAL_ANCHOR:-}" ]]; then
  [[ "${MULTIPATH_REPLAY_ONLY:-0}" != 1 ]] || LOCAL_ARGS+=(--replay-only)
  [[ "${MULTIPATH_BRIDGE_COMPATIBLE_ENTRY:-0}" != 1 ]] || LOCAL_ARGS+=(--bridge-compatible-entry)
  [[ "${MULTIPATH_BRIDGE_COMPATIBLE_EXIT:-0}" != 1 ]] || LOCAL_ARGS+=(--bridge-compatible-exit)
+ [[ "${MULTIPATH_FREEZE_CARRY_CORE:-0}" != 1 ]] || LOCAL_ARGS+=(--freeze-carry-core)
  run_sim scripts/develop_floating_anchor.py --proposals "$PROPOSALS" --schedule "$MULTIPATH_SCHEDULE" \
   --xhand-urdf "$ENGINE/assets/xhand/spider/xhand_right.urdf" --object-cache "$ENGINE/outputs/sim_usd" \
   --floating-config "$ROOT/configs/floating_xhand.json" --anchor-id "$anchor" \
@@ -106,6 +112,10 @@ if [[ -n "${MULTIPATH_LOCAL_ANCHOR:-}" ]]; then
  if [[ -n "${MULTIPATH_TRANSPORT_TO_ANCHOR:-}" ]]; then
   TRANSPORT_ARGS=()
   [[ "${MULTIPATH_BRIDGE_SOURCE_ENTRY_TARGET:-0}" != 1 ]] || TRANSPORT_ARGS+=(--source-entry-target)
+  [[ "${MULTIPATH_BRIDGE_WRENCH_HANDOFF:-0}" != 1 ]] || TRANSPORT_ARGS+=(--wrench-handoff)
+  [[ "${MULTIPATH_BRIDGE_TRANSPORT_DYNAMICS:-0}" != 1 ]] || TRANSPORT_ARGS+=(--transport-dynamics)
+  [[ "${MULTIPATH_BRIDGE_BANDWIDTH_HANDOFF:-0}" != 1 ]] || TRANSPORT_ARGS+=(--bandwidth-handoff)
+  [[ "${MULTIPATH_BRIDGE_QUIET_BOUNDARY:-0}" != 1 ]] || TRANSPORT_ARGS+=(--quiet-boundary)
   run_sim scripts/develop_floating_bridge.py --proposals "$PROPOSALS" --schedule "$MULTIPATH_SCHEDULE" \
    --from-anchor "$anchor" --to-anchor "$MULTIPATH_TRANSPORT_TO_ANCHOR" \
    --from-artifacts "$OUT/anchors" --to-artifacts "${MULTIPATH_TRANSPORT_TO_ARTIFACTS:?next validated core seed}" \

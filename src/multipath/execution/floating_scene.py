@@ -122,6 +122,7 @@ class FloatingScene:
             'objects':objects,'hand_object_transform':(np.linalg.inv(pose_matrix(pose))@pose_matrix(objects['tool']['pose'])).tolist(),
             'contact':hand_tool_contact(self.contacts.prim_paths,self.contacts.get_contact_force_matrix(dt=self.dt)),
             'scene_id':self.scene_id,'time_s':self.ticks*self.dt,'physically_acquired_state':True,'state_origin':'continuous_PhysX_rollout',
+            'controller_wrench_bias':getattr(self,'wrench_bias',np.zeros(6)).tolist(),
             'command_wrist':self.command_pose.tolist(),'command_twist':self.command_twist.tolist(),'command_hand_q':self.hand_command.tolist()}
 
     def capture(self,mode,frame):
@@ -157,7 +158,7 @@ class FloatingScene:
         # Restore a grasp's actual recorded preload as well as q/dq. Replacing
         # a deflected finger's drive target with measured q releases the grip.
         preserve='command_hand_q' in state
-        self.wrench_bias=np.zeros(6)
+        self.wrench_bias=np.asarray(state.get('controller_wrench_bias',np.zeros(6))).copy()
         self.transport_load=False
         drive=q.copy()
         if preserve:drive[self.fingers]=state.get('command_hand_q',state['hand_q'])
