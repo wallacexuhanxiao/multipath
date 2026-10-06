@@ -1,0 +1,9 @@
+{
+  "embodiment": "floating_xhand",
+  "source_fps": 30.0,
+  "table_z": 0.35704829206495053,
+  "source": "oracle",
+  "actual_duration_s": 2.533333333333333,
+  "task_success": false,
+  "validation_scope": "local_development_actual_state"
+}

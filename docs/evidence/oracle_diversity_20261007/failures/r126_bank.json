@@ -1,0 +1,505 @@
+{
+  "status": "search_exhausted",
+  "source_provenance": {
+    "triplet": "(put in, bowl, plate)",
+    "sequence": "20231024_253",
+    "input": "raw TACO MANO and object poses",
+    "source_video": "/scratch/e0985859/egoengine_baseline/data/taco_v1/Egocentric_RGB_Videos/(put in, bowl, plate)/20231024_253/color.mp4",
+    "schedule_sha256": "111733961ac0ad03d95087435de751c2bdf27db6f375fe153bd6f5f78283adc2",
+    "full_robot_reference_used": false,
+    "vlm_used": false,
+    "transform_world_to_robot": [
+      [
+        -0.36959298057517503,
+        0.929193775162176,
+        0.0,
+        0.574305986267124
+      ],
+      [
+        -0.9291937551424282,
+        -0.36959297261218765,
+        -0.0,
+        0.005429607853050099
+      ],
+      [
+        0.0,
+        0.0,
+        1.0,
+        -0.1883068585395813
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ]
+  },
+  "source": "oracle",
+  "baseline_run": "/scratch/e0985859/multipath_v0_fc2da7b/docs/evidence/oracle_v0_20261006",
+  "solutions_per_interval": 3,
+  "source_duration_s": 4.8,
+  "intervals": [
+    {
+      "window": [
+        0,
+        35
+      ],
+      "budget_s": 1.1666666666666667,
+      "contact": "free",
+      "solutions": [
+        {
+          "index": 0,
+          "baseline": true,
+          "local_physical_success": true,
+          "actual_trace": "/scratch/e0985859/multipath_v0_fc2da7b/docs/evidence/oracle_v0_20261006/actual_trace.json"
+        },
+        {
+          "index": 1,
+          "baseline": false,
+          "artifact": "interval_0_35/solution_1",
+          "local_physical_success": true,
+          "diversity": {
+            "actual_wrist_min_exclusion_clearance_m": 0.012778852274790004,
+            "actual_wrist_exclusion_pass": true,
+            "minimum_arc_distance_m": 0.0,
+            "actual_arc_pass": true,
+            "path_length_m": 0.24991091895182976,
+            "endpoint_distance_m": 0.07929784788536252,
+            "backward_progress_fraction": 0.20242870883985142,
+            "endpoint_overshoot_fraction": 0.06225906408638811,
+            "smooth_arc_pass": true,
+            "comparisons": [
+              {
+                "source_run": "baseline",
+                "mean_nearest_path_distance_m": 0.04725394925299517,
+                "max_nearest_path_distance_m": 0.09450963941967869,
+                "middle_median_path_distance_m": 0.058053138455698094,
+                "symmetric_hausdorff_m": 0.09450963941967869
+              }
+            ]
+          },
+          "actual_trace": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diverse_r115/bank/interval_0_35/solution_1_attempt_0/actual_trace.json",
+          "resumed_from": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diverse_r121/bank/interval_0_35/solution_1"
+        },
+        {
+          "index": 2,
+          "baseline": false,
+          "artifact": "interval_0_35/solution_2",
+          "local_physical_success": true,
+          "diversity": {
+            "actual_wrist_min_exclusion_clearance_m": 0.00621359159936889,
+            "actual_wrist_exclusion_pass": true,
+            "minimum_arc_distance_m": 0.0,
+            "actual_arc_pass": true,
+            "path_length_m": 0.24309141353232902,
+            "endpoint_distance_m": 0.07959029644639298,
+            "backward_progress_fraction": 0.019157403949630704,
+            "endpoint_overshoot_fraction": 0.019157403949630704,
+            "smooth_arc_pass": true,
+            "comparisons": [
+              {
+                "source_run": "baseline",
+                "mean_nearest_path_distance_m": 0.04945721932820308,
+                "max_nearest_path_distance_m": 0.1012815921015816,
+                "middle_median_path_distance_m": 0.0697782814450283,
+                "symmetric_hausdorff_m": 0.1012815921015816
+              },
+              {
+                "source_run": "solution_1",
+                "mean_nearest_path_distance_m": 0.05822055020946269,
+                "max_nearest_path_distance_m": 0.11288663244232022,
+                "middle_median_path_distance_m": 0.08330820089958603,
+                "symmetric_hausdorff_m": 0.11288663244232022
+              }
+            ]
+          },
+          "actual_trace": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diverse_r115/bank/interval_0_35/solution_2_attempt_1/actual_trace.json",
+          "resumed_from": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diverse_r121/bank/interval_0_35/solution_2"
+        }
+      ],
+      "attempts": [],
+      "complete": true
+    },
+    {
+      "window": [
+        76,
+        82
+      ],
+      "budget_s": 0.2,
+      "contact": "grasped",
+      "solutions": [
+        {
+          "index": 0,
+          "baseline": true,
+          "local_physical_success": true,
+          "actual_trace": "/scratch/e0985859/multipath_v0_fc2da7b/docs/evidence/oracle_v0_20261006/actual_trace.json"
+        },
+        {
+          "index": 1,
+          "baseline": false,
+          "artifact": "interval_76_82/solution_1",
+          "local_physical_success": true,
+          "diversity": {
+            "actual_wrist_min_exclusion_clearance_m": 0.0010844711524491467,
+            "actual_wrist_exclusion_pass": true,
+            "minimum_arc_distance_m": 0.0,
+            "actual_arc_pass": true,
+            "path_length_m": 0.09768584349130745,
+            "endpoint_distance_m": 0.07743396856323914,
+            "backward_progress_fraction": 0.0,
+            "endpoint_overshoot_fraction": 2.220446049250313e-16,
+            "smooth_arc_pass": true,
+            "comparisons": [
+              {
+                "source_run": "baseline",
+                "mean_nearest_path_distance_m": 0.002985902701788769,
+                "max_nearest_path_distance_m": 0.004570040778718301,
+                "middle_median_path_distance_m": 0.004172589112029242,
+                "symmetric_hausdorff_m": 0.004570040778718301
+              }
+            ]
+          },
+          "actual_trace": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diverse_r114/bank/interval_76_82/solution_1_attempt_7/actual_trace.json",
+          "resumed_from": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diverse_r121/bank/interval_76_82/solution_1"
+        },
+        {
+          "index": 2,
+          "baseline": false,
+          "artifact": "interval_76_82/solution_2",
+          "local_physical_success": true,
+          "diversity": {
+            "actual_wrist_min_exclusion_clearance_m": 0.0002516470215498725,
+            "actual_wrist_exclusion_pass": true,
+            "minimum_arc_distance_m": 0.0,
+            "actual_arc_pass": true,
+            "path_length_m": 0.09874958512031064,
+            "endpoint_distance_m": 0.07737108106489833,
+            "backward_progress_fraction": 0.0,
+            "endpoint_overshoot_fraction": 2.220446049250313e-16,
+            "smooth_arc_pass": true,
+            "comparisons": [
+              {
+                "source_run": "baseline",
+                "mean_nearest_path_distance_m": 0.002037244723320998,
+                "max_nearest_path_distance_m": 0.0035551747303663502,
+                "middle_median_path_distance_m": 0.0025543320341021515,
+                "symmetric_hausdorff_m": 0.0035551747303663502
+              },
+              {
+                "source_run": "solution_1",
+                "mean_nearest_path_distance_m": 0.0014079503963865402,
+                "max_nearest_path_distance_m": 0.0034049429368938674,
+                "middle_median_path_distance_m": 0.0022021117735520402,
+                "symmetric_hausdorff_m": 0.0034049429368938674
+              }
+            ]
+          },
+          "actual_trace": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diverse_r114/bank/interval_76_82/solution_2_attempt_13/actual_trace.json",
+          "resumed_from": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diverse_r121/bank/interval_76_82/solution_2"
+        }
+      ],
+      "attempts": [],
+      "complete": true
+    },
+    {
+      "window": [
+        101,
+        111
+      ],
+      "budget_s": 0.3333333333333333,
+      "contact": "grasped",
+      "solutions": [
+        {
+          "index": 0,
+          "baseline": true,
+          "local_physical_success": true,
+          "actual_trace": "/scratch/e0985859/multipath_v0_fc2da7b/docs/evidence/oracle_v0_20261006/actual_trace.json"
+        },
+        {
+          "index": 1,
+          "baseline": false,
+          "artifact": "interval_101_111/solution_1",
+          "local_physical_success": true,
+          "diversity": {
+            "actual_wrist_min_exclusion_clearance_m": 0.004035589579737308,
+            "actual_wrist_exclusion_pass": true,
+            "minimum_arc_distance_m": 0.0,
+            "actual_arc_pass": true,
+            "path_length_m": 0.19593296551993555,
+            "endpoint_distance_m": 0.16456385501551277,
+            "backward_progress_fraction": 0.0,
+            "endpoint_overshoot_fraction": 2.220446049250313e-16,
+            "smooth_arc_pass": true,
+            "comparisons": [
+              {
+                "source_run": "baseline",
+                "mean_nearest_path_distance_m": 0.013394051608704384,
+                "max_nearest_path_distance_m": 0.02451491368779018,
+                "middle_median_path_distance_m": 0.019568353750264496,
+                "symmetric_hausdorff_m": 0.02451491368779018
+              }
+            ]
+          },
+          "actual_trace": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diverse_r121/bank/interval_101_111/solution_1_attempt_10/actual_trace.json",
+          "resumed_from": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diverse_r121/bank/interval_101_111/solution_1"
+        },
+        {
+          "index": 2,
+          "baseline": false,
+          "artifact": "interval_101_111/solution_2",
+          "local_physical_success": true,
+          "diversity": {
+            "actual_wrist_min_exclusion_clearance_m": 0.004199719635907541,
+            "actual_wrist_exclusion_pass": true,
+            "minimum_arc_distance_m": 0.0,
+            "actual_arc_pass": true,
+            "path_length_m": 0.20714688798051065,
+            "endpoint_distance_m": 0.1641401160364556,
+            "backward_progress_fraction": 0.0,
+            "endpoint_overshoot_fraction": 2.220446049250313e-16,
+            "smooth_arc_pass": true,
+            "comparisons": [
+              {
+                "source_run": "baseline",
+                "mean_nearest_path_distance_m": 0.019139824967717056,
+                "max_nearest_path_distance_m": 0.039226488851866366,
+                "middle_median_path_distance_m": 0.030720190064672106,
+                "symmetric_hausdorff_m": 0.039226488851866366
+              },
+              {
+                "source_run": "solution_1",
+                "mean_nearest_path_distance_m": 0.012213814191849644,
+                "max_nearest_path_distance_m": 0.024676611367267894,
+                "middle_median_path_distance_m": 0.01941626016738032,
+                "symmetric_hausdorff_m": 0.024676611367267894
+              }
+            ]
+          },
+          "actual_trace": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diverse_r121/bank/interval_101_111/solution_2_attempt_12/actual_trace.json",
+          "resumed_from": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diverse_r121/bank/interval_101_111/solution_2"
+        }
+      ],
+      "attempts": [],
+      "complete": true
+    },
+    {
+      "window": [
+        128,
+        144
+      ],
+      "budget_s": 0.5333333333333333,
+      "contact": "free",
+      "solutions": [
+        {
+          "index": 0,
+          "baseline": true,
+          "local_physical_success": true,
+          "actual_trace": "/scratch/e0985859/multipath_v0_fc2da7b/docs/evidence/oracle_v0_20261006/actual_trace.json"
+        },
+        {
+          "index": 1,
+          "baseline": false,
+          "artifact": "interval_128_144/solution_1",
+          "local_physical_success": true,
+          "diversity": {
+            "actual_wrist_min_exclusion_clearance_m": 0.0016155978951641963,
+            "actual_wrist_exclusion_pass": true,
+            "minimum_arc_distance_m": 0.0,
+            "actual_arc_pass": true,
+            "path_length_m": 0.1578739954762494,
+            "endpoint_distance_m": 0.06355379597064387,
+            "backward_progress_fraction": 0.3993823273316442,
+            "endpoint_overshoot_fraction": 2.220446049250313e-16,
+            "smooth_arc_pass": true,
+            "comparisons": [
+              {
+                "source_run": "baseline",
+                "mean_nearest_path_distance_m": 0.009442508721507887,
+                "max_nearest_path_distance_m": 0.016979840311760124,
+                "middle_median_path_distance_m": 0.010718651419307203,
+                "symmetric_hausdorff_m": 0.016979840311760124
+              }
+            ]
+          },
+          "actual_trace": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diverse_r122/full_solution_1/actual_trace.json"
+        }
+      ],
+      "attempts": [
+        {
+          "solution": 2,
+          "attempt": 0,
+          "seed_index": 0,
+          "status": "rejected",
+          "error": "No excluded-path-free detour in original source time: ['original_seed: Detour separation cannot fit immutable source time and dynamics', 'original_direction: Detour separation cannot fit immutable source time and dynamics', 'moving_boundary_seed: Detour separation cannot fit immutable source time and dynamics', 'moving_boundary_direction: Detour separation cannot fit immutable source time and dynamics', 'fixed_budget: Fixed source budget violates dynamics: velocity=0.718, acceleration=26.724']"
+        },
+        {
+          "solution": 2,
+          "attempt": 1,
+          "seed_index": 1,
+          "status": "rejected",
+          "error": "No excluded-path-free detour in original source time: ['original_seed: Detour separation cannot fit immutable source time and dynamics', 'original_direction: Detour separation cannot fit immutable source time and dynamics', 'moving_boundary_seed: Detour separation cannot fit immutable source time and dynamics', 'moving_boundary_direction: Detour separation cannot fit immutable source time and dynamics', 'fixed_budget: Fixed source budget violates dynamics: velocity=0.652, acceleration=20.585']"
+        },
+        {
+          "solution": 2,
+          "attempt": 2,
+          "seed_index": 2,
+          "status": "rejected",
+          "error": "No excluded-path-free detour in original source time: ['original_seed: Detour separation cannot fit immutable source time and dynamics', 'original_direction: Detour separation cannot fit immutable source time and dynamics', 'moving_boundary_seed: Detour separation cannot fit immutable source time and dynamics', 'moving_boundary_direction: Detour separation cannot fit immutable source time and dynamics', 'fixed_budget: Fixed source budget violates dynamics: velocity=0.718, acceleration=26.724']"
+        },
+        {
+          "solution": 2,
+          "attempt": 3,
+          "seed_index": 3,
+          "status": "rejected",
+          "error": "Detour waypoint collides with physical geometry"
+        },
+        {
+          "solution": 2,
+          "attempt": 4,
+          "seed_index": 4,
+          "status": "rejected",
+          "error": "No excluded-path-free detour in original source time: ['original_seed: Detour separation cannot fit immutable source time and dynamics', 'original_direction: Detour separation cannot fit immutable source time and dynamics', 'moving_boundary_seed: Detour separation cannot fit immutable source time and dynamics', 'moving_boundary_direction: Detour separation cannot fit immutable source time and dynamics', 'fixed_budget: Fixed source budget violates dynamics: velocity=0.718, acceleration=26.724']"
+        },
+        {
+          "solution": 2,
+          "attempt": 5,
+          "seed_index": 5,
+          "status": "rejected",
+          "error": "No excluded-path-free detour in original source time: ['original_seed: Detour separation cannot fit immutable source time and dynamics', 'original_direction: Detour separation cannot fit immutable source time and dynamics', 'moving_boundary_seed: Detour separation cannot fit immutable source time and dynamics', 'moving_boundary_direction: Detour separation cannot fit immutable source time and dynamics', 'fixed_budget: Fixed source budget violates dynamics: velocity=0.652, acceleration=21.477']"
+        },
+        {
+          "solution": 2,
+          "attempt": 6,
+          "seed_index": 6,
+          "status": "rejected",
+          "error": "Detour waypoint collides with physical geometry"
+        },
+        {
+          "solution": 2,
+          "attempt": 7,
+          "seed_index": 7,
+          "status": "rejected",
+          "error": "Detour waypoint collides with physical geometry"
+        },
+        {
+          "solution": 2,
+          "attempt": 8,
+          "seed_index": 0,
+          "status": "rejected",
+          "error": "No excluded-path-free detour in original source time: ['original_seed: Detour separation cannot fit immutable source time and dynamics', 'original_direction: Detour separation cannot fit immutable source time and dynamics', 'moving_boundary_seed: Detour separation cannot fit immutable source time and dynamics', 'moving_boundary_direction: Detour separation cannot fit immutable source time and dynamics', 'fixed_budget: Fixed source budget violates dynamics: velocity=0.718, acceleration=26.724']"
+        },
+        {
+          "solution": 2,
+          "attempt": 9,
+          "seed_index": 1,
+          "status": "rejected",
+          "error": "No excluded-path-free detour in original source time: ['original_seed: Detour separation cannot fit immutable source time and dynamics', 'original_direction: Detour separation cannot fit immutable source time and dynamics', 'moving_boundary_seed: Detour separation cannot fit immutable source time and dynamics', 'moving_boundary_direction: Detour separation cannot fit immutable source time and dynamics', 'fixed_budget: Fixed source budget violates dynamics: velocity=0.652, acceleration=20.585']"
+        },
+        {
+          "solution": 2,
+          "attempt": 10,
+          "seed_index": 2,
+          "status": "rejected",
+          "error": "No excluded-path-free detour in original source time: ['original_seed: Detour separation cannot fit immutable source time and dynamics', 'original_direction: Detour separation cannot fit immutable source time and dynamics', 'moving_boundary_seed: Detour separation cannot fit immutable source time and dynamics', 'moving_boundary_direction: Detour separation cannot fit immutable source time and dynamics', 'fixed_budget: Fixed source budget violates dynamics: velocity=0.718, acceleration=26.724']"
+        },
+        {
+          "solution": 2,
+          "attempt": 11,
+          "seed_index": 3,
+          "status": "rejected",
+          "error": "Detour waypoint collides with physical geometry"
+        },
+        {
+          "solution": 2,
+          "attempt": 12,
+          "seed_index": 4,
+          "status": "rejected",
+          "error": "No excluded-path-free detour in original source time: ['original_seed: Detour separation cannot fit immutable source time and dynamics', 'original_direction: Detour separation cannot fit immutable source time and dynamics', 'moving_boundary_seed: Detour separation cannot fit immutable source time and dynamics', 'moving_boundary_direction: Detour separation cannot fit immutable source time and dynamics', 'fixed_budget: Fixed source budget violates dynamics: velocity=0.718, acceleration=26.724']"
+        },
+        {
+          "solution": 2,
+          "attempt": 13,
+          "seed_index": 5,
+          "status": "rejected",
+          "error": "No excluded-path-free detour in original source time: ['original_seed: Detour separation cannot fit immutable source time and dynamics', 'original_direction: Detour separation cannot fit immutable source time and dynamics', 'moving_boundary_seed: Detour separation cannot fit immutable source time and dynamics', 'moving_boundary_direction: Detour separation cannot fit immutable source time and dynamics', 'fixed_budget: Fixed source budget violates dynamics: velocity=0.652, acceleration=21.477']"
+        },
+        {
+          "solution": 2,
+          "attempt": 14,
+          "seed_index": 6,
+          "status": "rejected",
+          "error": "Detour waypoint collides with physical geometry"
+        },
+        {
+          "solution": 2,
+          "attempt": 15,
+          "seed_index": 7,
+          "status": "rejected",
+          "error": "Detour waypoint collides with physical geometry"
+        },
+        {
+          "solution": 2,
+          "attempt": 16,
+          "seed_index": 0,
+          "status": "rejected",
+          "error": "No excluded-path-free detour in original source time: ['original_seed: Detour separation cannot fit immutable source time and dynamics', 'original_direction: Detour separation cannot fit immutable source time and dynamics', 'moving_boundary_seed: Detour separation cannot fit immutable source time and dynamics', 'moving_boundary_direction: Detour separation cannot fit immutable source time and dynamics', 'fixed_budget: Fixed source budget violates dynamics: velocity=0.405, acceleration=16.534']"
+        },
+        {
+          "solution": 2,
+          "attempt": 17,
+          "seed_index": 1,
+          "status": "rejected",
+          "error": "Measured path failed exclusion: {'actual_wrist_min_exclusion_clearance_m': 0.007814141201080147, 'actual_wrist_exclusion_pass': True, 'minimum_arc_distance_m': 0.0, 'actual_arc_pass': True, 'path_length_m': 0.22733399951803332, 'endpoint_distance_m': 0.06552604835834891, 'backward_progress_fraction': 0.6315233245537157, 'endpoint_overshoot_fraction': 0.01261266839779851, 'smooth_arc_pass': False, 'comparisons': [{'source_run': 'baseline', 'mean_nearest_path_distance_m': 0.021516869082017005, 'max_nearest_path_distance_m': 0.04805744689447921, 'middle_median_path_distance_m': 0.027697966799518307, 'symmetric_hausdorff_m': 0.04805744689447921}, {'source_run': '/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diverse_r122/full_solution_1', 'mean_nearest_path_distance_m': 0.02711485629160798, 'max_nearest_path_distance_m': 0.04972310286938315, 'middle_median_path_distance_m': 0.03506714128737036, 'symmetric_hausdorff_m': 0.04972310286938315}]}"
+        },
+        {
+          "solution": 2,
+          "attempt": 18,
+          "seed_index": 2,
+          "status": "rejected",
+          "error": "No excluded-path-free detour in original source time: ['original_seed: Detour separation cannot fit immutable source time and dynamics', 'original_direction: Detour separation cannot fit immutable source time and dynamics', 'moving_boundary_seed: Detour separation cannot fit immutable source time and dynamics', 'moving_boundary_direction: Detour separation cannot fit immutable source time and dynamics', 'fixed_budget: Fixed source budget violates dynamics: velocity=0.599, acceleration=17.511']"
+        },
+        {
+          "solution": 2,
+          "attempt": 19,
+          "seed_index": 3,
+          "status": "rejected",
+          "error": "Detour waypoint collides with physical geometry"
+        },
+        {
+          "solution": 2,
+          "attempt": 20,
+          "seed_index": 4,
+          "status": "rejected",
+          "error": "No excluded-path-free detour in original source time: ['original_seed: Detour separation cannot fit immutable source time and dynamics', 'original_direction: Detour separation cannot fit immutable source time and dynamics', 'moving_boundary_seed: Detour separation cannot fit immutable source time and dynamics', 'moving_boundary_direction: Detour separation cannot fit immutable source time and dynamics', 'fixed_budget: Fixed source budget violates dynamics: velocity=0.599, acceleration=17.511']"
+        },
+        {
+          "solution": 2,
+          "attempt": 21,
+          "seed_index": 5,
+          "status": "rejected",
+          "error": "No excluded-path-free detour in original source time: ['original_seed: Detour separation cannot fit immutable source time and dynamics', 'original_direction: Detour separation cannot fit immutable source time and dynamics', 'moving_boundary_seed: Detour separation cannot fit immutable source time and dynamics', 'moving_boundary_direction: Detour separation cannot fit immutable source time and dynamics', 'fixed_budget: Fixed source budget violates dynamics: velocity=0.599, acceleration=17.511']"
+        },
+        {
+          "solution": 2,
+          "attempt": 22,
+          "seed_index": 6,
+          "status": "rejected",
+          "error": "Detour waypoint collides with physical geometry"
+        },
+        {
+          "solution": 2,
+          "attempt": 23,
+          "seed_index": 7,
+          "status": "rejected",
+          "error": "Detour waypoint collides with physical geometry"
+        }
+      ],
+      "complete": false
+    }
+  ],
+  "full_rollout_verified": false,
+  "pbs_job_id": "651446.hopper-m-02",
+  "physically_executed_predecessor": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diverse_r124/full_solution_2",
+  "resumed_from": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diverse_r121/bank"
+}

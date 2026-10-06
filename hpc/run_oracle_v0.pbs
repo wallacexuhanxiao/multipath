@@ -56,6 +56,90 @@ result=json.load(open(sys.argv[1]))
 raise SystemExit(0 if result.get(sys.argv[2]) is True else 1)
 PYCODE
 }
+if [[ -n "${MULTIPATH_DIVERSITY_BASELINE:-}" ]]; then
+ [[ "$EMBODIMENT" == floating_xhand ]]
+ BASELINE=$MULTIPATH_DIVERSITY_BASELINE
+ BANK=$OUT/bank
+ if [[ -n "${MULTIPATH_DIVERSITY_REFINE_ENTRY:-}" ]]; then
+  BANK=${MULTIPATH_DIVERSITY_RESUME:?existing physical bridge bank}
+  PREVIOUS=${MULTIPATH_DIVERSITY_PREVIOUS_FULL:?successful previous full alternative}
+  REFINEMENT=${MULTIPATH_DIVERSITY_REUSE_REFINEMENT:-$OUT/refinement}
+  check_result "$PREVIOUS/pipeline_result.json" diverse_solution_success
+  if [[ -z "${MULTIPATH_DIVERSITY_REUSE_REFINEMENT:-}" ]]; then
+   run_sim scripts/refine_diverse_anchor.py --schedule "$MULTIPATH_SCHEDULE" --proposals "$PROPOSALS" \
+   --entry-run "$MULTIPATH_DIVERSITY_REFINE_ENTRY" --baseline-run "$BASELINE" --bridge-bank "$BANK" \
+   --validated-anchors "$BASELINE/anchors" --anchor-id "${MULTIPATH_LOCAL_ANCHOR:?Anchor with infeasible exit}" \
+   --exclude-actual-run "$PREVIOUS" --floating-config "$ROOT/configs/floating_xhand.json" \
+   --xhand-urdf "$ENGINE/assets/xhand/spider/xhand_right.urdf" --object-cache "$ENGINE/outputs/sim_usd" \
+   --output-dir "$REFINEMENT" >"$OUT/refinement.log" 2>&1
+  fi
+  check_result "$REFINEMENT/development_result.json" success
+  if [[ -n "${MULTIPATH_DIVERSITY_REPAIR_START:-}" ]]; then
+   run_sim scripts/explore_oracle_bridges.py --schedule "$MULTIPATH_SCHEDULE" --proposals "$PROPOSALS" \
+    --baseline-run "$BASELINE" --validated-anchors "$REFINEMENT/anchors" --resume-bank "$BANK" \
+    --predecessor-run "${MULTIPATH_DIVERSITY_PREDECESSOR:?passed physical prefix}" \
+    --exclude-actual-run "$PREVIOUS" --repair-window-start "$MULTIPATH_DIVERSITY_REPAIR_START" \
+    --floating-config "$ROOT/configs/floating_xhand.json" --xhand-urdf "$ENGINE/assets/xhand/spider/xhand_right.urdf" \
+    --object-cache "$ENGINE/outputs/sim_usd" --attempts-per-solution "${MULTIPATH_DIVERSITY_ATTEMPTS:-24}" \
+   --output-dir "$OUT/bank" >"$OUT/search.log" 2>&1
+   BANK=$OUT/bank
+   "$RUNTIME/envs/retarget/bin/python" - "$BANK/bridge_bank.json" <<'PYCODE'
+import json,sys
+bank=json.load(open(sys.argv[1]))
+raise SystemExit(0 if bank['status']=='complete' and all(i.get('complete') for i in bank['intervals']) else 1)
+PYCODE
+  fi
+  SOLUTION=$("$RUNTIME/envs/retarget/bin/python" -c 'import json,sys; print(json.load(open(sys.argv[1]))["bridge_solution"])' \
+   "$MULTIPATH_DIVERSITY_REFINE_ENTRY/pipeline_result.json")
+  REACHED_ARGS=()
+  [[ -z "${MULTIPATH_DIVERSITY_PREDECESSOR:-}" ]] || REACHED_ARGS+=(--executed-prefix-run "$MULTIPATH_DIVERSITY_PREDECESSOR")
+  run_sim scripts/run_oracle_v0.py "${COMMON[@]}" --validated-anchors "$REFINEMENT/anchors" \
+   --planned-bridges "$BASELINE" --bridge-bank "$BANK" --bridge-solution "$SOLUTION" \
+   --exclude-actual-run "$PREVIOUS" "${REACHED_ARGS[@]}" --output-dir "$OUT/full_solution_$SOLUTION" \
+   >"$OUT/full_solution_$SOLUTION.log" 2>&1
+  check_result "$OUT/full_solution_$SOLUTION/pipeline_result.json" diverse_solution_success
+  exit 0
+ fi
+ DIVERSITY_ARGS=()
+ [[ -z "${MULTIPATH_DIVERSITY_RESUME:-}" ]] || DIVERSITY_ARGS+=(--resume-bank "$MULTIPATH_DIVERSITY_RESUME")
+ [[ -z "${MULTIPATH_DIVERSITY_PREDECESSOR:-}" ]] || DIVERSITY_ARGS+=(--predecessor-run "$MULTIPATH_DIVERSITY_PREDECESSOR")
+ [[ -z "${MULTIPATH_DIVERSITY_REPAIR_START:-}" ]] || DIVERSITY_ARGS+=(--repair-window-start "$MULTIPATH_DIVERSITY_REPAIR_START")
+ if [[ "${MULTIPATH_DIVERSITY_REUSE_BANK_ONLY:-0}" == 1 ]]; then
+  BANK=${MULTIPATH_DIVERSITY_RESUME:?existing physical bridge bank}
+ else
+  run_sim scripts/explore_oracle_bridges.py --schedule "$MULTIPATH_SCHEDULE" --proposals "$PROPOSALS" \
+  --baseline-run "$BASELINE" --validated-anchors "$BASELINE/anchors" \
+  --floating-config "$ROOT/configs/floating_xhand.json" --xhand-urdf "$ENGINE/assets/xhand/spider/xhand_right.urdf" \
+  --object-cache "$ENGINE/outputs/sim_usd" --solutions-per-interval "${MULTIPATH_SOLUTIONS_PER_INTERVAL:-3}" \
+  --attempts-per-solution "${MULTIPATH_DIVERSITY_ATTEMPTS:-18}" "${DIVERSITY_ARGS[@]}" --output-dir "$BANK" \
+  >"$OUT/search.log" 2>&1 || echo "SIM_PROCESS_EXIT=$?" >>"$OUT/search.log"
+ fi
+ [[ -f "$BANK/bridge_bank.json" ]] || exit 1
+ AVAILABLE=$("$RUNTIME/envs/retarget/bin/python" -c \
+  'import json,sys; b=json.load(open(sys.argv[1])); print(min([len(i["solutions"]) for i in b["intervals"]]) if len(b["intervals"])==sum(w["mode"]=="RELAXED" for w in json.load(open(sys.argv[2]))["windows"]) else 1)' \
+  "$BANK/bridge_bank.json" "$MULTIPATH_SCHEDULE")
+ for ((solution=1;solution<AVAILABLE;solution++)); do
+  PREVIOUS_ARGS=()
+  if [[ -n "${MULTIPATH_DIVERSITY_PREDECESSOR:-}" ]]; then
+   PREFIX_SOLUTION=$("$RUNTIME/envs/retarget/bin/python" -c 'import json,sys; print(json.load(open(sys.argv[1]))["bridge_solution"])' \
+     "$MULTIPATH_DIVERSITY_PREDECESSOR/pipeline_result.json")
+   [[ "$solution" != "$PREFIX_SOLUTION" ]] || PREVIOUS_ARGS+=(--executed-prefix-run "$MULTIPATH_DIVERSITY_PREDECESSOR")
+  fi
+  for ((previous=1;previous<solution;previous++)); do
+   check_result "$OUT/full_solution_$previous/pipeline_result.json" diverse_solution_success
+   PREVIOUS_ARGS+=(--exclude-actual-run "$OUT/full_solution_$previous")
+  done
+  run_sim scripts/run_oracle_v0.py "${COMMON[@]}" --validated-anchors "$BASELINE/anchors" \
+   --planned-bridges "$BASELINE" --bridge-bank "$BANK" --bridge-solution "$solution" \
+   "${PREVIOUS_ARGS[@]}" --output-dir "$OUT/full_solution_$solution" >"$OUT/full_solution_$solution.log" 2>&1 \
+   || echo "SIM_PROCESS_EXIT=$?" >>"$OUT/full_solution_$solution.log"
+ done
+ [[ "$AVAILABLE" == "${MULTIPATH_SOLUTIONS_PER_INTERVAL:-3}" ]] || exit 1
+ for ((solution=1;solution<AVAILABLE;solution++)); do
+  check_result "$OUT/full_solution_$solution/pipeline_result.json" diverse_solution_success
+ done
+ exit 0
+fi
 mapfile -t ANCHORS < <("$RUNTIME/envs/retarget/bin/python" -c 'import json,sys; print("\n".join(a["id"] for a in sorted(json.load(open(sys.argv[1]))["anchors"],key=lambda a:a["core_start"])))' "$MULTIPATH_SCHEDULE")
 mkdir -p "$OUT/anchors"
 SOLVER_ARGS=(--mpc-candidates "${MULTIPATH_MPC_CANDIDATES:-64}" --mpc-iters "${MULTIPATH_MPC_ITERS:-3}" --ppo-updates "${MULTIPATH_PPO_UPDATES:-60}")

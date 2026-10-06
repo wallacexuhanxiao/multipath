@@ -1,0 +1,79 @@
+{
+  "status": "two_full_trajectories_passed_third_incomplete",
+  "source": "oracle",
+  "source_duration_s": 4.8,
+  "embodiment": "floating_xhand",
+  "vlm_used": false,
+  "local_solutions_per_interval": [
+    {
+      "window": [
+        0,
+        35
+      ],
+      "count": 3
+    },
+    {
+      "window": [
+        76,
+        82
+      ],
+      "count": 3
+    },
+    {
+      "window": [
+        101,
+        111
+      ],
+      "count": 3
+    },
+    {
+      "window": [
+        128,
+        144
+      ],
+      "count": 3
+    }
+  ],
+  "successful_full_trajectories": 2,
+  "successful_runs": [
+    "oracle_connected_r110/full",
+    "oracle_diverse_r122/full_solution_1"
+  ],
+  "new_full": {
+    "job": "651384.hopper-m-02",
+    "source_duration_s": 4.8,
+    "actual_duration_s": 4.8,
+    "state_resets_between_segments": 0,
+    "task": {
+      "success": true,
+      "final_errors": {
+        "position_m": 0.002896709604544621,
+        "rotation_rad": 0.1548057814095115
+      },
+      "final_speed_m_s": 0.00011586739611375354,
+      "released": true
+    }
+  },
+  "third": {
+    "full_pipeline_success": false,
+    "last_successful_frame": 128,
+    "last_repair_job": "651446.hopper-m-02",
+    "last_repair_status": "search_exhausted",
+    "accepted_solutions_at_actual_terminal_entry": 2
+  },
+  "boundary_repair": {
+    "local_success": true,
+    "source_job": "651413.hopper-m-02",
+    "physical_candidates": 2,
+    "used_in_continuous_run": "oracle_diverse_r124/full_solution_2"
+  },
+  "transfer_verified": false,
+  "assembly_self_collision": false,
+  "arm_model_used": false,
+  "media": {
+    "new_full": "solution_2/floating_xhand_actual.mp4",
+    "comparison": "baseline_vs_solution_2.mp4",
+    "full_paths": "full_wrist_paths.png",
+    "local_paths": "local_wrist_paths.png"
+  }
+}

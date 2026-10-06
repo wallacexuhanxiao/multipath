@@ -1,0 +1,207 @@
+{
+  "source_duration_s": 4.8,
+  "local_bank_success": true,
+  "full_diverse_rollouts_verified": false,
+  "pbs_job_id": "651354.hopper-m-02",
+  "intervals": [
+    {
+      "window": [
+        0,
+        35
+      ],
+      "budget_s": 1.1666666666666667,
+      "local_solutions": 3,
+      "alternatives": [
+        {
+          "index": 1,
+          "physical_validation_success": true,
+          "path_length_m": 0.24991091895182976,
+          "minimum_virtual_clearance_m": 0.012778852274790004,
+          "pairwise": [
+            {
+              "source_run": "baseline",
+              "mean_nearest_path_distance_m": 0.04725394925299517,
+              "max_nearest_path_distance_m": 0.09450963941967869,
+              "middle_median_path_distance_m": 0.058053138455698094,
+              "symmetric_hausdorff_m": 0.09450963941967869
+            }
+          ],
+          "planning_fit": "boundary_fit"
+        },
+        {
+          "index": 2,
+          "physical_validation_success": true,
+          "path_length_m": 0.24309141353232902,
+          "minimum_virtual_clearance_m": 0.00621359159936889,
+          "pairwise": [
+            {
+              "source_run": "baseline",
+              "mean_nearest_path_distance_m": 0.04945721932820308,
+              "max_nearest_path_distance_m": 0.1012815921015816,
+              "middle_median_path_distance_m": 0.0697782814450283,
+              "symmetric_hausdorff_m": 0.1012815921015816
+            },
+            {
+              "source_run": "solution_1",
+              "mean_nearest_path_distance_m": 0.05822055020946269,
+              "max_nearest_path_distance_m": 0.11288663244232022,
+              "middle_median_path_distance_m": 0.08330820089958603,
+              "symmetric_hausdorff_m": 0.11288663244232022
+            }
+          ],
+          "planning_fit": "boundary_fit"
+        }
+      ]
+    },
+    {
+      "window": [
+        76,
+        82
+      ],
+      "budget_s": 0.2,
+      "local_solutions": 3,
+      "alternatives": [
+        {
+          "index": 1,
+          "physical_validation_success": true,
+          "path_length_m": 0.09768584349130745,
+          "minimum_virtual_clearance_m": 0.0010844711524491467,
+          "pairwise": [
+            {
+              "source_run": "baseline",
+              "mean_nearest_path_distance_m": 0.002985902701788769,
+              "max_nearest_path_distance_m": 0.004570040778718301,
+              "middle_median_path_distance_m": 0.004172589112029242,
+              "symmetric_hausdorff_m": 0.004570040778718301
+            }
+          ],
+          "planning_fit": "boundary_fit"
+        },
+        {
+          "index": 2,
+          "physical_validation_success": true,
+          "path_length_m": 0.09874958512031064,
+          "minimum_virtual_clearance_m": 0.0002516470215498725,
+          "pairwise": [
+            {
+              "source_run": "baseline",
+              "mean_nearest_path_distance_m": 0.002037244723320998,
+              "max_nearest_path_distance_m": 0.0035551747303663502,
+              "middle_median_path_distance_m": 0.0025543320341021515,
+              "symmetric_hausdorff_m": 0.0035551747303663502
+            },
+            {
+              "source_run": "solution_1",
+              "mean_nearest_path_distance_m": 0.0014079503963865402,
+              "max_nearest_path_distance_m": 0.0034049429368938674,
+              "middle_median_path_distance_m": 0.0022021117735520402,
+              "symmetric_hausdorff_m": 0.0034049429368938674
+            }
+          ],
+          "planning_fit": "boundary_fit"
+        }
+      ]
+    },
+    {
+      "window": [
+        101,
+        111
+      ],
+      "budget_s": 0.3333333333333333,
+      "local_solutions": 3,
+      "alternatives": [
+        {
+          "index": 1,
+          "physical_validation_success": true,
+          "path_length_m": 0.19593296551993555,
+          "minimum_virtual_clearance_m": 0.004035589579737308,
+          "pairwise": [
+            {
+              "source_run": "baseline",
+              "mean_nearest_path_distance_m": 0.013394051608704384,
+              "max_nearest_path_distance_m": 0.02451491368779018,
+              "middle_median_path_distance_m": 0.019568353750264496,
+              "symmetric_hausdorff_m": 0.02451491368779018
+            }
+          ],
+          "planning_fit": "original_seed"
+        },
+        {
+          "index": 2,
+          "physical_validation_success": true,
+          "path_length_m": 0.20714688798051065,
+          "minimum_virtual_clearance_m": 0.004199719635907541,
+          "pairwise": [
+            {
+              "source_run": "baseline",
+              "mean_nearest_path_distance_m": 0.019139824967717056,
+              "max_nearest_path_distance_m": 0.039226488851866366,
+              "middle_median_path_distance_m": 0.030720190064672106,
+              "symmetric_hausdorff_m": 0.039226488851866366
+            },
+            {
+              "source_run": "solution_1",
+              "mean_nearest_path_distance_m": 0.012213814191849644,
+              "max_nearest_path_distance_m": 0.024676611367267894,
+              "middle_median_path_distance_m": 0.01941626016738032,
+              "symmetric_hausdorff_m": 0.024676611367267894
+            }
+          ],
+          "planning_fit": "original_seed"
+        }
+      ]
+    },
+    {
+      "window": [
+        128,
+        144
+      ],
+      "budget_s": 0.5333333333333333,
+      "local_solutions": 3,
+      "alternatives": [
+        {
+          "index": 1,
+          "physical_validation_success": true,
+          "path_length_m": 0.1424706448046775,
+          "minimum_virtual_clearance_m": 0.0024072807980270593,
+          "pairwise": [
+            {
+              "source_run": "baseline",
+              "mean_nearest_path_distance_m": 0.006501443449946192,
+              "max_nearest_path_distance_m": 0.012384621187070503,
+              "middle_median_path_distance_m": 0.008787484259245578,
+              "symmetric_hausdorff_m": 0.012527102772141746
+            }
+          ],
+          "planning_fit": "boundary_fit"
+        },
+        {
+          "index": 2,
+          "physical_validation_success": true,
+          "path_length_m": 0.18010440071961448,
+          "minimum_virtual_clearance_m": 0.0014599533214436492,
+          "pairwise": [
+            {
+              "source_run": "baseline",
+              "mean_nearest_path_distance_m": 0.02317833328157998,
+              "max_nearest_path_distance_m": 0.052135681835352984,
+              "middle_median_path_distance_m": 0.03346741490223925,
+              "symmetric_hausdorff_m": 0.052135681835352984
+            },
+            {
+              "source_run": "solution_1",
+              "mean_nearest_path_distance_m": 0.016605411223854026,
+              "max_nearest_path_distance_m": 0.04186114442888056,
+              "middle_median_path_distance_m": 0.024199411010234054,
+              "symmetric_hausdorff_m": 0.04186114442888056
+            }
+          ],
+          "planning_fit": "moving_boundary_seed"
+        }
+      ]
+    }
+  ],
+  "bank_source_run": "oracle_diverse_r121",
+  "local_only": true,
+  "full_rollout_verified": false
+}

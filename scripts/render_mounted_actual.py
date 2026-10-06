@@ -76,7 +76,7 @@ def main():
         if exclusions:
             active=False
             for name,alpha,window in overlay_names:
-                visible=item['mode']=='CUROBO' and window[0]<=item['source_frame']<=window[1]
+                visible=item['mode'] in ('CUROBO','RELAXED') and window[0]<item['source_frame']<=window[1]
                 active=active or visible
                 model.geom_rgba[mujoco.mj_name2id(model,mujoco.mjtObj.mjOBJ_GEOM,name),3]=alpha if visible else 0
         data.mocap_pos[:]=positions[sample];data.mocap_quat[:]=rotations[sample]

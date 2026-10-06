@@ -49,12 +49,17 @@ def bandwidth_handoff_profile(ticks,dt,mass,inertia_world,config):
     return 1-3*phase**2+2*phase**3
 
 
-def segment_wrenches(scene,start,commands,*,transport=False):
+def segment_wrenches(scene,start,commands,*,transport=False,baseline_commands=None):
     """The physically checked r96 transport/core controller interface."""
     from multipath.execution.transport_dynamics import TransportDynamics
     carry=start['contact']['mode']=='grasped'
     model=TransportDynamics(scene,carry)
     feedforward=model.commands(scene,start,commands) if transport and carry else np.zeros((len(commands),6))
+    if baseline_commands is not None and not carry:
+        # Spatial detours accelerate the free assembly about its off-center
+        # COM. Compensate only the difference from the already valid motion;
+        # its existing gravity/tracking bias remains part of the baseline.
+        feedforward+=model.commands(scene,start,commands)-model.commands(scene,start,baseline_commands)
     bias=takeover_bias(start,commands[0],scene.cfg['controller'],new_feedforward=feedforward[0])
     rotation=Rotation.from_quat(np.asarray(start['wrist_xyz_wxyz'])[[4,5,6,3]]).as_matrix()
     profile=bandwidth_handoff_profile(len(commands),scene.dt,model.mass,rotation@model.inertia@rotation.T,scene.cfg['controller'])

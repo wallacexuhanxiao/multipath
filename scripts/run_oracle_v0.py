@@ -10,6 +10,12 @@ def main():
     p.add_argument('--schedule',type=Path,required=True)
     p.add_argument('--validated-anchors',type=Path,help='Final rollout: consume physically validated local Anchor artifacts')
     p.add_argument('--planned-bridges',type=Path,help='Passed cuRobo segment cache; measured entry and physical execution are checked again')
+    p.add_argument('--bridge-bank',type=Path,help='Locally validated interval-specific alternative cuRobo bridges')
+    p.add_argument('--bridge-solution',type=int,default=0,help='Per-interval solution index; 0 is the passed V0 baseline')
+    p.add_argument('--exclude-actual-run',type=Path,action='append',default=[],
+                   help='Previously successful full rollout whose actual interval paths must be excluded')
+    p.add_argument('--executed-prefix-run',type=Path,
+                   help='Reuse passed segment commands from a real continuous attempt when the measured entry matches')
     p.add_argument('--continue-development',action='store_true',help='Use available validated Anchors and develop missing cores from actual predecessor execution')
     p.add_argument('--stop-before-anchor',help='Acquire a continuous predecessor prefix before this core')
     p.add_argument('--through-anchor',help='Stop after this Anchor for an early continuous connection experiment')
@@ -20,6 +26,12 @@ def main():
     p.add_argument('--object-cache',type=Path,required=True)
     p.add_argument('--output-dir',type=Path,required=True)
     args=p.parse_args();out=args.output_dir;out.mkdir(parents=True,exist_ok=True)
+    if args.bridge_bank and (args.embodiment!='floating_xhand' or not args.planned_bridges or not args.validated_anchors):
+        p.error('bridge-bank requires floating_xhand, passed baseline bridges and validated Anchors')
+    if args.exclude_actual_run and not (args.bridge_bank and args.bridge_solution>0):
+        p.error('exclude-actual-run requires an alternative bridge solution')
+    if args.executed_prefix_run and not (args.bridge_bank and args.bridge_solution>0):
+        p.error('executed-prefix-run requires an alternative bridge solution')
     if args.embodiment=='mounted' and not args.robot_yaml:p.error('mounted requires --robot-yaml')
     if args.embodiment=='floating_xhand' and not args.floating_config:p.error('floating_xhand requires --floating-config')
     if args.embodiment=='floating_xhand' and (args.continue_development or not (args.validated_anchors or args.stop_before_anchor)):

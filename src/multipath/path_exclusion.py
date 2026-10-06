@@ -10,7 +10,7 @@ from scipy.spatial.transform import Rotation
 
 def transport_points(trace, start, end):
     points = np.asarray([r['wrist_xyz_wxyz'][:3] for r in trace
-                         if (r['mode'] == 'CUROBO' and start <= r['source_frame'] <= end)
+                         if (r['mode'] in ('CUROBO','RELAXED') and start <= r['source_frame'] <= end)
                          or r['source_frame'] in (start,end)], dtype=float)
     if len(points) < 2 or not np.isfinite(points).all():
         raise ValueError('No finite measured cuRobo path for requested window')
@@ -123,7 +123,7 @@ def tapered_obstacles_along_path(points, max_half_size=.025, boundary_spheres=No
     for _ in range(32):
         mid=(lo+hi)/2;safe=distances(mid)>clearance
         lo=np.where(safe,mid,lo);hi=np.where(safe,hi,mid)
-    peak=count//2
+    peak=int(np.argmax(lo))
     # Bound every earlier/later size by its neighbors towards the peak,
     # retaining the small-large-small shape even near boundary geometry.
     sizes=lo.copy()
@@ -327,7 +327,9 @@ def compare_path(points, exclusions):
     # Dense arc samples prevent a fast crossing between recorded frames from
     # appearing collision-free. Require more clearance than sampling spacing.
     length = np.linalg.norm(np.diff(points, axis=0), axis=1).sum()
-    sampled = resample(points, max(101, int(np.ceil(length / .001)) + 1))
+    margin=float(exclusions.get('clearance_threshold_m',.002))
+    spacing=min(.001,max(.00001,margin/2))
+    sampled = resample(points, max(101, int(np.ceil(length / spacing)) + 1))
     clearance = float(box_clearance(sampled, exclusions['cuboid']).min())
     path = resample(points)
     comparisons = []
@@ -350,11 +352,11 @@ def compare_path(points, exclusions):
     endpoint_overshoot=float(max(0.,-progress.min(),progress.max()-1.))
     # A large distance caused by a loop is not the broad, simple arc sought by
     # distance mode. Keep older fixed-size exclusions free of this new gate.
-    smooth_arc_pass=(target<=0 or (path_length<=3.25*max(chord,1e-5)
-                                     and backward_progress<=.25
-                                     and endpoint_overshoot<=.20))
+    smooth_arc_pass=((target<=0 and not exclusions.get('require_simple_arc')) or
+                    (path_length<=3.25*max(chord,1e-5) and
+                     (target<=0 or (backward_progress<=.25 and endpoint_overshoot<=.20))))
     return {'actual_wrist_min_exclusion_clearance_m': clearance,
-            'actual_wrist_exclusion_pass': clearance > .002,
+            'actual_wrist_exclusion_pass': clearance > float(exclusions.get('clearance_threshold_m',.002)),
             'minimum_arc_distance_m':target,'actual_arc_pass':arc_pass,
             'path_length_m':path_length,'endpoint_distance_m':chord,
             'backward_progress_fraction':backward_progress,

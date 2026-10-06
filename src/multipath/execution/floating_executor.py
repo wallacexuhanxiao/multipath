@@ -11,6 +11,15 @@ from multipath.validation.physics import check_retention
 from multipath.validation.task import evaluate_task
 
 
+def measured_drive_matches(start,entry):
+    if start['scene_id']!=entry['scene_id'] or start['contact']['mode']!=entry['contact']['mode']:return False
+    for key in ['wrist_xyz_wxyz','wrist_twist','hand_q','hand_dq',
+                'command_wrist','command_twist','command_hand_q','controller_wrench_bias']:
+        if not np.allclose(start[key],entry[key],rtol=0,atol=1e-6):return False
+    return all(np.allclose(state[k],entry['objects'][role][k],rtol=0,atol=1e-6)
+               for role,state in start['objects'].items() for k in ['pose','velocity'])
+
+
 def execute(scene,schedule,manifest,proposal_dir,report):
     tpf=physics_ticks_per_frame(schedule.fps,scene.dt)
     before=getattr(scene.args,'stop_before_anchor',None)
@@ -26,13 +35,43 @@ def execute(scene,schedule,manifest,proposal_dir,report):
     cache=getattr(scene.args,'planned_bridges',None)
     if cache:
         prior=json.loads((cache/'pipeline_result.json').read_text())
-        if (not prior.get('continuous_execution_success') or not prior.get('task_success')
+        if (not (prior.get('continuous_execution_success') or prior.get('full_pipeline_success')) or not prior.get('task_success')
+                or prior.get('state_resets_between_segments')!=0
                 or prior['source_provenance']!=manifest['provenance'] or prior.get('start_frame',0)!=0):
             raise ValueError('Bridge cache is not a passed initial-state cuRobo candidate')
+    bank_root=getattr(scene.args,'bridge_bank',None);bank=None
+    solution=getattr(scene.args,'bridge_solution',0)
+    diverse=bool(bank_root and solution>0)
+    if bank_root:
+        bank=json.loads((bank_root/'bridge_bank.json').read_text())
+        if bank['source_provenance']!=manifest['provenance']:raise ValueError('Bridge bank source mismatch')
+    previous_runs=[]
+    for directory in getattr(scene.args,'exclude_actual_run',[]):
+        prior=json.loads((directory/'pipeline_result.json').read_text())
+        if (not prior.get('full_pipeline_success') or not prior.get('diverse_solution_success') or
+            prior.get('state_resets_between_segments')!=0 or prior['source_provenance']!=manifest['provenance'] or
+            not np.isclose(prior['actual_duration_s'],schedule.num_frames/schedule.fps,atol=1e-8,rtol=0)):
+            raise ValueError('Serial diversity requires a successful continuous predecessor rollout')
+        previous_runs.append(directory)
+    prefix_root=getattr(scene.args,'executed_prefix_run',None);passed_prefix={};prefix_trace=[]
+    if prefix_root:
+        prefix_report=json.loads((prefix_root/'pipeline_result.json').read_text())
+        if (prefix_report['source_provenance']!=manifest['provenance'] or prefix_report.get('state_resets_between_segments')!=0 or
+            prefix_report.get('bridge_solution')!=solution or prefix_report.get('source')!='oracle'):
+            raise ValueError('Executed prefix must be an uninterrupted actual attempt of the selected solution')
+        prefix_trace=json.loads((prefix_root/'actual_trace.json').read_text())
+        for segment in prefix_report['segments']:
+            if not segment.get('success'):break
+            passed_prefix[segment['start']]=segment
+        report['physically_verified_prefix']=str(prefix_root)
     report.update(source='oracle',embodiment=scene.embodiment,source_fps=schedule.fps,
                   source_duration_s=schedule.num_frames/schedule.fps,vlm_used=False,
                   complete_robot_reference_required=False,relaxed_reference_tracking=False,
                   state_resets_between_segments=0,segments=[],anchors=[],task_success=False,full_pipeline_success=False)
+    if bank:
+        report.update(bridge_bank=str(bank_root),bridge_solution=solution,
+                      path_exclusions={'segments':[],'exclusion_scope':'wrist'},diverse_solution_success=False,
+                      previous_actual_rollouts=[str(p) for p in previous_runs])
     for wi,window in enumerate(schedule.windows):
         if before and window.get('anchor')==before:
             report.update(status='predecessor_prefix_complete',prefix_success=True)
@@ -44,6 +83,42 @@ def execute(scene,schedule,manifest,proposal_dir,report):
         print('ORACLE_FLOATING_SEGMENT',info,flush=True)
         if window['mode']=='RELAXED':
             bridge=json.loads((cache/f'relaxed_{window["start"]}_{window["end"]}.json').read_text()) if cache else None
+            command_path=cache/f'relaxed_{window["start"]}_{window["end"]}.npz' if cache else None
+            baseline_command_path=command_path;base_bridge=bridge
+            exclusion=None
+            if bank and solution>0:
+                interval=next(i for i in bank['intervals'] if i['window']==[window['start'],window['end']])
+                selected=next((s for s in interval['solutions'] if s['index']==solution),None)
+                if not selected or not selected['local_physical_success']:raise RuntimeError('Missing physically validated interval solution')
+                stem=bank_root/selected['artifact'];bridge=json.loads(stem.with_suffix('.json').read_text())
+                command_path=stem.with_suffix('.npz');exclusion=bridge['exclusions']
+                if window['start'] in passed_prefix:
+                    previous=passed_prefix[window['start']]
+                    entry=next(r for r in prefix_trace if np.isclose(r['source_frame'],window['start']))
+                    if measured_drive_matches(start,entry):
+                        previous_exclusion=next(e for e in prefix_report['path_exclusions']['segments']
+                                                if e['window']==[window['start'],window['end']])
+                        bridge=dict(bridge,entry=entry,planning=previous,exclusions=previous_exclusion)
+                        exclusion=previous_exclusion
+                        command_path=prefix_root/f'relaxed_{window["start"]}_{window["end"]}.npz'
+                        info['physically_verified_prefix_drive_reused']=True
+                if previous_runs:
+                    from multipath.planning.floating_diversity import interval_exclusions
+                    baseline_trace=json.loads((cache/'actual_trace.json').read_text())
+                    paths=[dict(id='baseline',points=np.asarray([r['wrist_xyz_wxyz'][:3] for r in baseline_trace
+                        if window['start']<=r['source_frame']<=window['end']]),
+                        command_points=np.vstack((base_bridge['entry']['wrist_xyz_wxyz'][:3],
+                            np.load(baseline_command_path)['commands'][:,:3])))]
+                    for directory in previous_runs:
+                        data=np.load(directory/f'relaxed_{window["start"]}_{window["end"]}.npz')
+                        trace=json.loads((directory/'actual_trace.json').read_text())
+                        entry=next(r for r in trace if np.isclose(r['source_frame'],window['start']))
+                        paths.append(dict(id=str(directory),points=data['actual_wrist_path'],
+                            command_points=np.vstack((entry['wrist_xyz_wxyz'][:3],data['commands'][:,:3]))))
+                    exclusion=interval_exclusions(paths,[window['start'],window['end']],info['budget_s'],
+                        scene.cfg['planning'],exclusion['size_multiplier'],exclusion.get('free_diversity_budget_s'))
+                    info['exclusion_from_previous_full_rollouts']=True
+                report['path_exclusions']['segments'].append(exclusion)
             if bridge and (not bridge['physical_validation_success'] or bridge['source_provenance']!=manifest['provenance']):
                 raise ValueError('Unvalidated or unrelated cuRobo segment artifact')
             carry=window['contact']=='grasped'
@@ -89,11 +164,54 @@ def execute(scene,schedule,manifest,proposal_dir,report):
                     if planner.valid(pose_coordinates(target)):
                         goal['wrist_xyz_wxyz']=target;break
                 else:raise RuntimeError('No collision-free development entry')
-            if cache:
+            if diverse:
+                from multipath.planning.floating_diversity import plan_detour,DETOUR_DIRECTION_COUNT,boundary_history_ticks
+                from multipath.anchors.floating import rebase_grasp_commands
+                from multipath.execution.interaction_boundary import grasp_conditioned_boundary
+                baseline_commands=np.load(baseline_command_path)['commands']
+                if carry:
+                    baseline_commands=rebase_grasp_commands(baseline_commands,base_bridge['entry'],scene.snapshot(),scene.dt)
+                    goal=grasp_conditioned_boundary(goal,start)
+                # The bank selects a geometric detour. Each bridge is fitted
+                # anew from its actual predecessor q/dq and acquired grasp.
+                # Cached canonical contact velocities are not assigned.
+                failures=[];selected_seed=bridge['planning']['seed_index']
+                # Reuse a physically validated drive when its full measured
+                # entry and controller memory match. This avoids changing a
+                # proved upstream path solely because the fitter improved.
+                entry=bridge['entry'];same_entry=measured_drive_matches(start,entry)
+                if (same_entry and not carry and later and not info.get('physically_verified_prefix_drive_reused') and
+                    bridge['planning'].get('common_terminal_history_ticks',0)<boundary_history_ticks(scene,False,
+                        (terminal_frame-window['start'])*tpf,True)):
+                    same_entry=False
+                if same_entry and previous_runs:
+                    from multipath.path_exclusion import compare_path
+                    cached=np.load(command_path)['commands']
+                    planning_exclusion={**exclusion,'cuboid':exclusion['planning_cuboid']}
+                    same_entry=compare_path(np.vstack((start['wrist_xyz_wxyz'][:3],cached[:,:3])),
+                                            planning_exclusion)['actual_wrist_exclusion_pass']
+                if same_entry:
+                    commands=np.load(command_path)['commands'];timing=dict(bridge['planning'],
+                        actual_predecessor_replanning=False,validated_drive_reused=True)
+                else:
+                    for seed_index in [selected_seed]+[i for i in range(DETOUR_DIRECTION_COUNT) if i!=selected_seed]:
+                        try:
+                            commands,timing=plan_detour(planner,scene.snapshot(),baseline_commands[-1],
+                                (terminal_frame-window['start'])*tpf,exclusion,goal,seed_index,
+                                baseline_commands=baseline_commands,has_next_anchor=bool(later),
+                                regularize=bridge['planning'].get('trajectory_cost','').startswith('normalized'))
+                            timing.update(actual_predecessor_replanning=True,selected_local_seed=selected_seed,
+                                          replanning_rejections=failures)
+                            break
+                        except RuntimeError as error:failures.append(str(error))
+                    else:raise RuntimeError(f'No fixed-time detour from actual predecessor: {failures}')
+                if not validate_commands(scene,commands,start)['feasible']:
+                    raise RuntimeError('Replanned detour violates finger drive limits')
+            elif cache:
                 from multipath.anchors.compatibility import boundary_errors,compatible
                 errors=boundary_errors(start,bridge['entry'])
                 if not compatible(errors):raise RuntimeError(f'Cached bridge entry differs: {errors}')
-                commands=np.load(cache/f'relaxed_{window["start"]}_{window["end"]}.npz')['commands']
+                commands=np.load(command_path)['commands']
                 if commands.shape!=((terminal_frame-window['start'])*tpf,25) or not validate_commands(scene,commands,start)['feasible']:
                     raise RuntimeError('Cached cuRobo commands violate source-time/hand limits')
                 timing=bridge['planning']
@@ -102,31 +220,71 @@ def execute(scene,schedule,manifest,proposal_dir,report):
                 commands,timing=planner.plan(np.asarray(goal['wrist_xyz_wxyz']),
                                              (terminal_frame-window['start'])*tpf,np.asarray(goal['wrist_twist']),
                                              goal_state=goal if later and not prefix else None)
-            info.update(timing);info['collision_model']={'current_hand':True,'carried_object':carry,'assembly_self_collision':False}
+            info.update(timing);info['success']=False
+            info['collision_model']={'current_hand':True,'carried_object':carry,'assembly_self_collision':False}
             np.savez_compressed(scene.out/f'relaxed_{window["start"]}_{window["end"]}.npz',commands=commands)
             from multipath.execution.wrench_handoff import segment_wrenches
-            wrenches=segment_wrenches(scene,scene.snapshot(),commands,transport=carry) if cache and (carry or window['start']>0) else np.zeros((len(commands),6))
+            delta_baseline=np.load(baseline_command_path)['commands'] if timing.get('delta_dynamics_feedforward') else None
+            wrenches=segment_wrenches(scene,scene.snapshot(),commands,transport=carry,
+                baseline_commands=delta_baseline) if cache and (carry or window['start']>0 or delta_baseline is not None) else np.zeros((len(commands),6))
+            actual_wrist=[start['wrist_xyz_wxyz'][:3]]
             for j,command in enumerate(commands):
                 scene.wrench_bias=wrenches[j]
                 scene.step_control(command,'RELAXED',window['start']+(j+1)/tpf)
+                if exclusion:actual_wrist.append(scene.state()['wrist_xyz_wxyz'][:3])
                 if cache:
                     if carry:check_retention(scene.state(),held)
-                    if min(planner.measured_clearance().values())<0 and planner.measured_mesh_collisions():
-                        raise RuntimeError('Measured cached RELAXED mesh collision')
+                    clearance=planner.measured_clearance()
+                    if min(clearance.values())<0:
+                        collisions=planner.measured_mesh_collisions()
+                        if collisions:
+                            info['collision_failure']=dict(source_frame=window['start']+(j+1)/tpf,
+                                measured_meshes=collisions,clearance_m=clearance)
+                            raise RuntimeError('Measured cached RELAXED mesh collision')
                 if (timing['hand_boundary_motion'] and not planner.measured_valid()
                         and planner.measured_mesh_collisions()):
                     raise RuntimeError('Measured RELAXED hand boundary collision')
                 if (j+1)%tpf==0:
                     if carry:check_retention(scene.state(),held)
                     if not planner.measured_valid() and (not cache or planner.measured_mesh_collisions()):raise RuntimeError('Measured RELAXED collision')
-            transition=scene.check_transition(np.asarray(goal['wrist_xyz_wxyz']),window['contact'],canonical=goal if later and not prefix else None)
+            if exclusion:
+                from multipath.path_exclusion import compare_path
+                from multipath.planning.floating_diversity import actual_feasible_exclusions
+                accepted_exclusion,info['diversity']=actual_feasible_exclusions(exclusion,np.asarray(actual_wrist),info['budget_s'],scene.cfg['planning'])
+                if accepted_exclusion is not exclusion:
+                    exclusion.clear();exclusion.update(accepted_exclusion)
+                np.savez_compressed(scene.out/f'relaxed_{window["start"]}_{window["end"]}.npz',
+                                    commands=commands,actual_wrist_path=np.asarray(actual_wrist))
+                if not info['diversity']['actual_wrist_exclusion_pass'] or not info['diversity']['smooth_arc_pass']:
+                    raise RuntimeError('Continuous measured wrist path failed its interval exclusion')
+            if diverse:
+                from multipath.execution.interaction_boundary import check_interaction_boundary
+                transition=check_interaction_boundary(scene,goal,window['contact'])
+                info['measured_exit']=scene.snapshot()
+            else:
+                transition=scene.check_transition(np.asarray(goal['wrist_xyz_wxyz']),window['contact'],canonical=goal if later and not prefix else None)
         else:
             anchor=schedule.anchors[window['anchor']];artifact=canonical[anchor.id]
-            transition=scene.check_transition(np.asarray(artifact['entry']['wrist_xyz_wxyz']),anchor.entry_contact,canonical=artifact['entry'])
+            if diverse:
+                from multipath.execution.interaction_boundary import check_interaction_boundary
+                transition=check_interaction_boundary(scene,artifact['entry'],anchor.entry_contact)
+            else:
+                transition=scene.check_transition(np.asarray(artifact['entry']['wrist_xyz_wxyz']),anchor.entry_contact,canonical=artifact['entry'])
             info['entry_transition']=transition
             if not transition['success']:raise RuntimeError('Physically reached canonical Anchor entry mismatch')
             data=dict(np.load(Path(proposal_dir)/manifest['anchors'][anchor.id],allow_pickle=False))
-            commands=artifact['commands'];check=validate_commands(scene,commands,start)
+            commands=artifact['commands']
+            prefix_core=False
+            if diverse and window['start'] in passed_prefix:
+                entry=next(r for r in prefix_trace if np.isclose(r['source_frame'],window['start']))
+                if measured_drive_matches(start,entry):
+                    commands=np.load(prefix_root/'anchors'/anchor.id/'executed_core.npz')['commands']
+                    info['physically_verified_prefix_core_reused']=True;prefix_core=True
+            if diverse and anchor.entry_contact=='grasped' and not prefix_core:
+                from multipath.anchors.floating import rebase_grasp_commands
+                commands=rebase_grasp_commands(commands,artifact['entry'],scene.snapshot(),scene.dt)
+                info['core_grasp_frame_conditioned']=True
+            check=validate_commands(scene,commands,start)
             if not check['feasible']:raise RuntimeError(f'Canonical commands infeasible from actual entry: {check}')
             objective=WindowEvaluation(scene,anchor,data,start)
             if not objective.observe(anchor.core_start,commands[0]):raise RuntimeError(str(objective.failure))
@@ -137,10 +295,17 @@ def execute(scene,schedule,manifest,proposal_dir,report):
                 frame=anchor.core_start+(j+1)/tpf;scene.step_control(command,'ANCHOR',frame)
                 if (j+1)%tpf==0 and not objective.observe(frame,command):
                     info['failure']=objective.failure;raise RuntimeError(f'Continuous Anchor failed: {objective.failure}')
-            transition=scene.check_transition(np.asarray(artifact['exit']['wrist_xyz_wxyz']),anchor.exit_contact,canonical=artifact['exit'])
+            if diverse:
+                transition=check_interaction_boundary(scene,artifact['exit'],anchor.exit_contact)
+                np.savez_compressed(scene.out/'anchors'/anchor.id/'executed_core.npz',commands=commands)
+                info['measured_exit']=scene.snapshot()
+            else:
+                transition=scene.check_transition(np.asarray(artifact['exit']['wrist_xyz_wxyz']),anchor.exit_contact,canonical=artifact['exit'])
             held=np.asarray(scene.state()['hand_object_transform']) if anchor.exit_contact=='grasped' else None
             report['anchors'].append(dict(artifact['report'],handoff_verified=transition['success'],
-                                          continuous_execution_success=transition['success']))
+                core_grasp_frame_conditioned=bool(diverse and anchor.entry_contact=='grasped'),
+                measured_entry=start,measured_exit=scene.snapshot(),
+                continuous_execution_success=transition['success']))
         info['transition']=transition
         if not transition['success']:raise RuntimeError('Actual segment handoff failed')
         if scene.restore_count:raise RuntimeError('State reset during continuous execution')
@@ -156,3 +321,4 @@ def execute(scene,schedule,manifest,proposal_dir,report):
     success=bool(task['success'] and len(report['anchors'])==len(schedule.anchors) and scene.restore_count==0)
     report.update(task=task,task_success=task['success'],full_pipeline_success=success,
                   actual_duration_s=scene.ticks*scene.dt,status='complete' if success else 'task_failed')
+    if bank:report['diverse_solution_success']=bool(success and solution>0)
