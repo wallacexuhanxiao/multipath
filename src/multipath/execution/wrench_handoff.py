@@ -27,7 +27,7 @@ def takeover_bias(start,first_command,config,new_feedforward=None):
 def carried_gravity_wrench(scene):
     """Support an actually grasped object's mass at its measured COM."""
     tool=scene.objects['tool'];p,q=tool.get_world_pose();com,_=tool.get_com()
-    center=np.asarray(p)+Rotation.from_quat(np.asarray(q)[[1,2,3,0]]).apply(com)
+    center=np.asarray(p).reshape(3)+Rotation.from_quat(np.asarray(q).reshape(4)[[1,2,3,0]]).apply(np.asarray(com).reshape(3))
     wrist,_=scene.root_motion();root_com=np.asarray(scene.av.get_coms())[0,0,:3]
     root_center=wrist[:3]+Rotation.from_quat(wrist[[4,5,6,3]]).apply(root_com)
     force=np.array([0.,0.,float(tool.get_mass())*9.81])
