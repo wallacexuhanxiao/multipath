@@ -59,6 +59,86 @@ PYCODE
 mapfile -t ANCHORS < <("$RUNTIME/envs/retarget/bin/python" -c 'import json,sys; print("\n".join(a["id"] for a in sorted(json.load(open(sys.argv[1]))["anchors"],key=lambda a:a["core_start"])))' "$MULTIPATH_SCHEDULE")
 mkdir -p "$OUT/anchors"
 SOLVER_ARGS=(--mpc-candidates "${MULTIPATH_MPC_CANDIDATES:-64}" --mpc-iters "${MULTIPATH_MPC_ITERS:-3}" --ppo-updates "${MULTIPATH_PPO_UPDATES:-60}")
+finalize_connected() {
+ local candidate=$1
+ [[ "$EMBODIMENT" == floating_xhand ]]
+ "$RUNTIME/envs/retarget/bin/python" scripts/export_connected_anchors.py \
+  --run-dir "$candidate" --schedule "$MULTIPATH_SCHEDULE" >"$OUT/export.log" 2>&1
+ run_sim scripts/run_oracle_v0.py "${COMMON[@]}" \
+  --validated-anchors "$candidate/anchors" --planned-bridges "$candidate" \
+  --output-dir "$OUT/final" >"$OUT/final.log" 2>&1 || echo "SIM_PROCESS_EXIT=$?" >>"$OUT/final.log"
+ check_result "$OUT/final/pipeline_result.json" full_pipeline_success
+}
+if [[ -n "${MULTIPATH_FINAL_CONNECTED_RUN:-}" ]]; then
+ finalize_connected "$MULTIPATH_FINAL_CONNECTED_RUN"
+ exit 0
+fi
+if [[ "${MULTIPATH_CONNECTED_ORACLE:-0}" == 1 ]]; then
+ [[ "$EMBODIMENT" == floating_xhand ]]
+ if [[ -n "${MULTIPATH_CONNECTED_REUSE:-}" && -f "$MULTIPATH_CONNECTED_REUSE/pipeline_result.json" ]] \
+   && check_result "$MULTIPATH_CONNECTED_REUSE/pipeline_result.json" task_success; then
+  finalize_connected "$MULTIPATH_CONNECTED_REUSE"
+  exit 0
+ fi
+ CONNECTED_ARGS=(--schedule "$MULTIPATH_SCHEDULE" --proposals "$PROPOSALS"
+  --seed-artifacts "${MULTIPATH_CONNECTED_SEEDS:?local Anchor proposals}"
+  --floating-config "$ROOT/configs/floating_xhand.json"
+  --xhand-urdf "$ENGINE/assets/xhand/spider/xhand_right.urdf" --object-cache "$ENGINE/outputs/sim_usd")
+ [[ -z "${MULTIPATH_INITIAL_BRIDGE_RUN:-}" ]] || CONNECTED_ARGS+=(--initial-bridge-run "$MULTIPATH_INITIAL_BRIDGE_RUN")
+ [[ -z "${MULTIPATH_BOUNDARY_FEEDBACK_FROM:-}" ]] || CONNECTED_ARGS+=(--boundary-feedback-run "$MULTIPATH_BOUNDARY_FEEDBACK_FROM")
+ [[ -z "${MULTIPATH_EXIT_GEOMETRY_FEEDBACK_FROM:-}" ]] || CONNECTED_ARGS+=(--exit-geometry-feedback-run "$MULTIPATH_EXIT_GEOMETRY_FEEDBACK_FROM")
+ if [[ -n "${MULTIPATH_REACHED_CORE_FROM:-}" ]]; then
+  run_sim scripts/develop_reached_anchor.py --schedule "$MULTIPATH_SCHEDULE" --proposals "$PROPOSALS" \
+   --anchor-id "${MULTIPATH_LOCAL_ANCHOR:?Anchor to refine}" --entry-run "$MULTIPATH_REACHED_CORE_FROM" \
+   --context-controls "${MULTIPATH_INITIAL_CONTROLS:?local padded seed}" --floating-config "$ROOT/configs/floating_xhand.json" \
+   --xhand-urdf "$ENGINE/assets/xhand/spider/xhand_right.urdf" --object-cache "$ENGINE/outputs/sim_usd" \
+   --output-dir "$OUT/local" "${SOLVER_ARGS[@]}" >"$OUT/local.log" 2>&1 || echo "SIM_PROCESS_EXIT=$?" >>"$OUT/local.log"
+  if ! check_result "$OUT/local/development_result.json" core_success; then
+   if [[ -n "${MULTIPATH_CONNECTED_TAIL:-}" ]]; then
+    run_sim scripts/develop_connected_oracle.py "${CONNECTED_ARGS[@]}" --start-core-run "$MULTIPATH_CONNECTED_TAIL" \
+     --output-dir "$OUT/tail" >"$OUT/tail.log" 2>&1 || echo "SIM_PROCESS_EXIT=$?" >>"$OUT/tail.log"
+   fi
+   exit 1
+  fi
+  CONNECTED_ARGS+=(--initial-bridge-run "$MULTIPATH_REACHED_CORE_FROM")
+  # Replace only the local interaction seed; the proved initial bridge stays fixed.
+  for i in "${!CONNECTED_ARGS[@]}"; do
+   if [[ "${CONNECTED_ARGS[$i]}" == --seed-artifacts ]]; then CONNECTED_ARGS[$((i+1))]="$OUT/local/anchors"; break; fi
+  done
+ fi
+ CANDIDATE_OUT=$OUT/full
+ for attempt in 0 1 2 3; do
+  run_sim scripts/develop_connected_oracle.py "${CONNECTED_ARGS[@]}" --output-dir "$CANDIDATE_OUT" >"$CANDIDATE_OUT.log" 2>&1 || echo "SIM_PROCESS_EXIT=$?" >>"$CANDIDATE_OUT.log"
+  [[ -f "$CANDIDATE_OUT/pipeline_result.json" ]] || exit 1
+  if check_result "$CANDIDATE_OUT/pipeline_result.json" task_success; then break; fi
+  # Only the observed released-hand entry collision triggers resynthesis.
+  # Every attempt starts a new PhysX world at the task initial state; these
+  # development attempts are never stitched together as execution evidence.
+  if ! "$RUNTIME/envs/retarget/bin/python" - "$CANDIDATE_OUT/pipeline_result.json" <<'PYCODE'
+import json,sys
+r=json.load(open(sys.argv[1]));last=r['segments'][-1]
+ok=(last['mode']=='RELAXED' and last.get('contact')=='free'
+    and 'Actual mesh intersects a planning obstacle at entry' in r.get('error','')
+    and all(s['success'] for s in r['segments'][:-1]))
+raise SystemExit(0 if ok else 1)
+PYCODE
+  then break; fi
+  [[ "$attempt" != 3 ]] || break
+  CONNECTED_ARGS+=(--exit-geometry-feedback-run "$CANDIDATE_OUT")
+  CANDIDATE_OUT=$OUT/refined_full_$((attempt+1))
+ done
+ # No physical report means startup failed. Repeating another Isaac import
+ # on the same blocked node cannot provide independent interaction evidence.
+ [[ -f "$CANDIDATE_OUT/pipeline_result.json" ]] || exit 1
+ # Independent tail development remains useful if the first boundary fails.
+ if [[ -n "${MULTIPATH_CONNECTED_TAIL:-}" ]] && ! check_result "$CANDIDATE_OUT/pipeline_result.json" task_success; then
+  run_sim scripts/develop_connected_oracle.py "${CONNECTED_ARGS[@]}" --start-core-run "$MULTIPATH_CONNECTED_TAIL" \
+   --output-dir "$OUT/tail" >"$OUT/tail.log" 2>&1 || echo "SIM_PROCESS_EXIT=$?" >>"$OUT/tail.log"
+ fi
+ check_result "$CANDIDATE_OUT/pipeline_result.json" task_success
+ if [[ "${MULTIPATH_CONNECTED_FINALIZE:-0}" == 1 ]]; then finalize_connected "$CANDIDATE_OUT"; fi
+ exit 0
+fi
 if [[ -n "${MULTIPATH_BRIDGE_FROM:-}" ]]; then
  [[ "$EMBODIMENT" == floating_xhand ]]
  BRIDGE_ARGS=()

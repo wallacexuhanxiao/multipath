@@ -83,7 +83,10 @@ def main():
         mujoco.mj_forward(model,data);renderer.update_scene(data,camera=cam)
         bgr=renderer.render()[:,:,::-1].copy();item=trace[sample]
         cv2.putText(bgr,f"Actual PhysX | {item['mode']} | t={item['time_s']:.2f}s | source {item['source_frame']:.1f}",(15,28),cv2.FONT_HERSHEY_SIMPLEX,.57,(245,245,245),1,cv2.LINE_AA)
-        cv2.putText(bgr,('Measured floating XHand and objects; local experiment' if floating else 'Measured arm, XHand and objects; task success evaluated separately'),(15,700),cv2.FONT_HERSHEY_SIMPLEX,.48,(235,235,235),1,cv2.LINE_AA)
+        caption='Measured floating XHand and objects; local experiment' if floating else 'Measured arm, XHand and objects; task success evaluated separately'
+        if report.get('full_pipeline_success'):
+            caption='Actual PhysX | Oracle Anchors + cuRobo | fixed source clock | task passed'
+        cv2.putText(bgr,caption,(15,700),cv2.FONT_HERSHEY_SIMPLEX,.48,(235,235,235),1,cv2.LINE_AA)
         if exclusions and active:
             cv2.putText(bgr,'Pink: virtual planning obstacles | Cyan: prior measured wrist path',(15,53),cv2.FONT_HERSHEY_SIMPLEX,.5,(245,200,235),1,cv2.LINE_AA)
         writer.write(bgr)

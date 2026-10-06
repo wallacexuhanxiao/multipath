@@ -1,0 +1,250 @@
+{
+  "embodiment": "floating_xhand",
+  "wrist_xyz_wxyz": [
+    0.2979937791824341,
+    -0.22421295940876007,
+    0.49030888080596924,
+    -0.8618541955947876,
+    0.16822297871112823,
+    0.4141824543476105,
+    0.23950278759002686
+  ],
+  "wrist_twist": [
+    0.0031772875429309164,
+    0.007510774736206843,
+    0.0026643158430962655,
+    0.006397204007953405,
+    0.07858376204967499,
+    -0.058978475630283356
+  ],
+  "hand_q": [
+    0.7449435591697693,
+    0.9452020525932312,
+    -0.11835719645023346,
+    0.04779326170682907,
+    0.7793896198272705,
+    1.3809542655944824,
+    1.1672353744506836,
+    1.2260936498641968,
+    1.593173861503601,
+    1.720315933227539,
+    1.286691427230835,
+    1.8468475341796875
+  ],
+  "hand_dq": [
+    -0.10807225853204727,
+    -0.12134295701980591,
+    -3.6545097827911377e-06,
+    0.02974817156791687,
+    -0.0959625244140625,
+    0.007099829614162445,
+    -0.09073197841644287,
+    0.05070921778678894,
+    -0.02729649469256401,
+    0.05255185067653656,
+    -0.053978659212589264,
+    0.07563470304012299
+  ],
+  "objects": {
+    "target": {
+      "pose": [
+        0.5468895435333252,
+        0.05764263868331909,
+        0.36874788999557495,
+        0.778903603553772,
+        -1.0704388841986656e-06,
+        1.3633325579576194e-08,
+        0.6271438598632812
+      ],
+      "velocity": [
+        2.074066287605092e-07,
+        -6.966242835915182e-07,
+        -7.519564860558603e-06,
+        8.47674164106138e-05,
+        8.762808647588827e-06,
+        1.9840215372823877e-06
+      ]
+    },
+    "tool": {
+      "pose": [
+        0.5199964046478271,
+        -0.17998407781124115,
+        0.3870018422603607,
+        0.738027036190033,
+        8.686445653438568e-06,
+        2.0419771317392588e-05,
+        -0.674771249294281
+      ],
+      "velocity": [
+        -6.0836282500531524e-05,
+        -0.00014711779658682644,
+        5.759554551332258e-05,
+        0.003356782253831625,
+        -0.0016217490192502737,
+        -0.0011573395458981395
+      ]
+    }
+  },
+  "hand_object_transform": [
+    [
+      0.32080892100938985,
+      0.5155611004170418,
+      0.7945302939080164,
+      0.026191756237415653
+    ],
+    [
+      -0.7760120385457991,
+      0.6240317997861633,
+      -0.09159491736791064,
+      0.16869756829485943
+    ],
+    [
+      -0.543034945682857,
+      -0.5871806064512095,
+      0.600276588894491,
+      -0.18102161818567364
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "contact": {
+    "mode": "free",
+    "thumb_contact": false,
+    "other_finger_contact": false,
+    "opposition_contact": false,
+    "touching_links": 0,
+    "link_paths": [
+      "/xhand_right/right_hand_link",
+      "/xhand_right/right_hand_ee_link",
+      "/xhand_right/right_hand_index_bend_link",
+      "/xhand_right/right_hand_index_rota_link1",
+      "/xhand_right/right_hand_index_rota_link2",
+      "/xhand_right/right_hand_index_rota_tip",
+      "/xhand_right/right_hand_mid_link1",
+      "/xhand_right/right_hand_mid_link2",
+      "/xhand_right/right_hand_mid_tip",
+      "/xhand_right/right_hand_pinky_link1",
+      "/xhand_right/right_hand_pinky_link2",
+      "/xhand_right/right_hand_pinky_tip",
+      "/xhand_right/right_hand_ring_link1",
+      "/xhand_right/right_hand_ring_link2",
+      "/xhand_right/right_hand_ring_tip",
+      "/xhand_right/right_hand_thumb_bend_link",
+      "/xhand_right/right_hand_thumb_rota_link1",
+      "/xhand_right/right_hand_thumb_rota_link2",
+      "/xhand_right/right_hand_thumb_rota_tip"
+    ],
+    "force_norms_n": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "evidence": "PhysX thumb AND non-thumb finger/tool contact; retention checked separately"
+  },
+  "scene_id": "46c0da50521244ae9424101969544f5ca9ea1068b57b2ffa5706494dd13a0523",
+  "time_s": 1.1666666666666667,
+  "physically_acquired_state": true,
+  "state_origin": "continuous_PhysX_rollout",
+  "controller_wrench_bias": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+  ],
+  "command_wrist": [
+    0.2958607077598572,
+    -0.22358295321464539,
+    0.4918469488620758,
+    0.8272089386328225,
+    -0.13375206798259476,
+    -0.4804749921626179,
+    -0.25880405341236623
+  ],
+  "command_twist": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+  ],
+  "command_hand_q": [
+    0.6857693486874545,
+    0.9114220701581476,
+    -0.1158682454407449,
+    0.0764208403315152,
+    0.6878862138336252,
+    1.3893511087273094,
+    1.1253561277305906,
+    1.2236077236686715,
+    1.592402114814941,
+    1.7282279866583585,
+    1.2625956312613698,
+    1.8580724614703956
+  ],
+  "entry_origin": "predecessor_rollout",
+  "source_provenance": {
+    "triplet": "(put in, bowl, plate)",
+    "sequence": "20231024_253",
+    "input": "raw TACO MANO and object poses",
+    "source_video": "/scratch/e0985859/egoengine_baseline/data/taco_v1/Egocentric_RGB_Videos/(put in, bowl, plate)/20231024_253/color.mp4",
+    "schedule_sha256": "111733961ac0ad03d95087435de751c2bdf27db6f375fe153bd6f5f78283adc2",
+    "full_robot_reference_used": false,
+    "vlm_used": false,
+    "transform_world_to_robot": [
+      [
+        -0.36959298057517503,
+        0.929193775162176,
+        0.0,
+        0.574305986267124
+      ],
+      [
+        -0.9291937551424282,
+        -0.36959297261218765,
+        -0.0,
+        0.005429607853050099
+      ],
+      [
+        0.0,
+        0.0,
+        1.0,
+        -0.1883068585395813
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ]
+  },
+  "entry_provenance": {
+    "trace": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_connected_r110/full/actual_trace.json",
+    "source_frame": 35.0,
+    "predecessor": {
+      "initial_scene": "46c0da50521244ae9424101969544f5ca9ea1068b57b2ffa5706494dd13a0523"
+    }
+  }
+}

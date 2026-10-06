@@ -128,6 +128,49 @@ def project_boundary_target(start,target,budget,planning,dt=None):
     return goal
 
 
+def terminal_stop_target(start,budget,dt,planning):
+    """No next interaction: brake freely inside the remaining source budget."""
+    from multipath.planning.floating import coordinates_pose
+    q0=pose_coordinates(start['wrist_xyz_wxyz'])
+    v0=coordinate_velocity(start['wrist_xyz_wxyz'],start['wrist_twist'],q0)
+    # Brake on each coordinate's acceleration scale. Coasting for half the
+    # entire free interval can unnecessarily drive a released hand into a wall.
+    stop=np.minimum(budget,np.maximum(2*dt,np.abs(v0)/(np.asarray(planning['acceleration_limits'])*.95)))
+    goal=dict(start,wrist_xyz_wxyz=coordinates_pose(q0+.5*stop*v0).tolist(),
+        wrist_twist=np.zeros(6).tolist(),physically_acquired_state=False,
+        state_origin='unvalidated_free_terminal_stop')
+    return project_boundary_target(start,goal,budget,planning,dt=dt)
+
+
+def free_exit_clearance_offset(scene,actual,geometry):
+    """Resynthesize a released Anchor boundary from real collision feedback.
+
+    The offset is a command proposal. Its size comes from the recorded hand
+    cover and one physics step of measured surface motion, not a task name.
+    """
+    from multipath.planning.floating import sphere_world_clearance
+    if not actual.get('physically_acquired_state') or actual['contact']['mode']!='free':
+        raise ValueError('Free-exit feedback requires a real released state')
+    spheres=geometry['spheres'];pose=np.asarray(actual['wrist_xyz_wxyz']);target=pose.copy()
+    boxes={'table':scene.table}
+    for role in ('tool','target'):
+        state=actual['objects'][role];p=np.asarray(state['pose']);bounds=scene.meshes[role].bounds
+        rotation=Rotation.from_quat(p[[4,5,6,3]])
+        boxes[role]={'dims':(bounds[1]-bounds[0]).tolist(),'pose':np.r_[p[:3]+rotation.apply(bounds.mean(0)),p[3:]].tolist()}
+    radius=max(np.linalg.norm(s['center'])+s['radius'] for s in spheres)
+    velocity=np.asarray(actual['wrist_twist'])
+    margin=max(1e-4,scene.dt*(np.linalg.norm(velocity[:3])+radius*np.linalg.norm(velocity[3:])))
+    initial=sphere_world_clearance(target,spheres,boxes)[0]
+    for _ in range(20):
+        _,worst=sphere_world_clearance(target,spheres,boxes)
+        if worst[0]>=margin-1e-8:break
+        target[:3]+=(margin-worst[0])*worst[1]
+    else:raise RuntimeError('No free Anchor exit-clearance proposal')
+    offset=target[:3]-pose[:3]
+    return offset,dict(offset_m=offset.tolist(),surface_motion_margin_m=float(margin),initial_clearance_m=initial,
+        physically_acquired_feedback=True,physics_acceptance=False,source_time_stretch=False)
+
+
 def feedback_boundary_target(start,goal,planned_pose,actual_state,source_target,budget,dt,planning):
     """Develop one canonical boundary using a preceding physical rollout.
 

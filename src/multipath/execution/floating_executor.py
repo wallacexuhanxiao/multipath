@@ -23,6 +23,12 @@ def execute(scene,schedule,manifest,proposal_dir,report):
     if any(v['entry'].get('embodiment')!=scene.embodiment for v in canonical.values()):
         raise ValueError('Canonical Anchor embodiment mismatch')
     initial=scene.state();held=None
+    cache=getattr(scene.args,'planned_bridges',None)
+    if cache:
+        prior=json.loads((cache/'pipeline_result.json').read_text())
+        if (not prior.get('continuous_execution_success') or not prior.get('task_success')
+                or prior['source_provenance']!=manifest['provenance'] or prior.get('start_frame',0)!=0):
+            raise ValueError('Bridge cache is not a passed initial-state cuRobo candidate')
     report.update(source='oracle',embodiment=scene.embodiment,source_fps=schedule.fps,
                   source_duration_s=schedule.num_frames/schedule.fps,vlm_used=False,
                   complete_robot_reference_required=False,relaxed_reference_tracking=False,
@@ -37,6 +43,9 @@ def execute(scene,schedule,manifest,proposal_dir,report):
             raise RuntimeError('Continuous source clock mismatch at segment entry')
         print('ORACLE_FLOATING_SEGMENT',info,flush=True)
         if window['mode']=='RELAXED':
+            bridge=json.loads((cache/f'relaxed_{window["start"]}_{window["end"]}.json').read_text()) if cache else None
+            if bridge and (not bridge['physical_validation_success'] or bridge['source_provenance']!=manifest['provenance']):
+                raise ValueError('Unvalidated or unrelated cuRobo segment artifact')
             carry=window['contact']=='grasped'
             if start['contact']['mode']!=window['contact']:raise RuntimeError('RELAXED cannot change contact mode')
             if carry:
@@ -61,8 +70,12 @@ def execute(scene,schedule,manifest,proposal_dir,report):
                 goal=dict(wrist_xyz_wxyz=goal_pose,wrist_twist=np.zeros(6),hand_q=start['hand_q'])
                 info.update(end=terminal_frame,budget_s=(terminal_frame-window['start'])/schedule.fps,
                             development_prefix=True,canonical_goal=False)
-            else:goal=canonical[later['anchor']]['entry'] if later else initial
-            if later and not prefix:
+            elif later:goal=canonical[later['anchor']]['entry']
+            elif cache:goal=bridge['exit']
+            else:
+                from multipath.planning.bridge import terminal_stop_target
+                goal=terminal_stop_target(start,info['budget_s'],scene.dt,scene.cfg['planning'])
+            if later and not prefix and not cache:
                 from multipath.planning.bridge import bridge_precheck
                 check=bridge_precheck(start,goal,(terminal_frame-window['start'])/schedule.fps,scene.cfg['planning'])
                 info['boundary_precheck']=check
@@ -76,18 +89,36 @@ def execute(scene,schedule,manifest,proposal_dir,report):
                     if planner.valid(pose_coordinates(target)):
                         goal['wrist_xyz_wxyz']=target;break
                 else:raise RuntimeError('No collision-free development entry')
-            commands,timing=planner.plan(np.asarray(goal['wrist_xyz_wxyz']),
-                                         (terminal_frame-window['start'])*tpf,np.asarray(goal['wrist_twist']),
-                                         goal_state=goal if later and not prefix else None)
+            if cache:
+                from multipath.anchors.compatibility import boundary_errors,compatible
+                errors=boundary_errors(start,bridge['entry'])
+                if not compatible(errors):raise RuntimeError(f'Cached bridge entry differs: {errors}')
+                commands=np.load(cache/f'relaxed_{window["start"]}_{window["end"]}.npz')['commands']
+                if commands.shape!=((terminal_frame-window['start'])*tpf,25) or not validate_commands(scene,commands,start)['feasible']:
+                    raise RuntimeError('Cached cuRobo commands violate source-time/hand limits')
+                timing=bridge['planning']
+                info['cached_curobo_entry_errors']=errors
+            else:
+                commands,timing=planner.plan(np.asarray(goal['wrist_xyz_wxyz']),
+                                             (terminal_frame-window['start'])*tpf,np.asarray(goal['wrist_twist']),
+                                             goal_state=goal if later and not prefix else None)
             info.update(timing);info['collision_model']={'current_hand':True,'carried_object':carry,'assembly_self_collision':False}
             np.savez_compressed(scene.out/f'relaxed_{window["start"]}_{window["end"]}.npz',commands=commands)
+            from multipath.execution.wrench_handoff import segment_wrenches
+            wrenches=segment_wrenches(scene,scene.snapshot(),commands,transport=carry) if cache and (carry or window['start']>0) else np.zeros((len(commands),6))
             for j,command in enumerate(commands):
+                scene.wrench_bias=wrenches[j]
                 scene.step_control(command,'RELAXED',window['start']+(j+1)/tpf)
-                if timing['hand_boundary_motion'] and not planner.measured_valid():
+                if cache:
+                    if carry:check_retention(scene.state(),held)
+                    if min(planner.measured_clearance().values())<0 and planner.measured_mesh_collisions():
+                        raise RuntimeError('Measured cached RELAXED mesh collision')
+                if (timing['hand_boundary_motion'] and not planner.measured_valid()
+                        and planner.measured_mesh_collisions()):
                     raise RuntimeError('Measured RELAXED hand boundary collision')
                 if (j+1)%tpf==0:
                     if carry:check_retention(scene.state(),held)
-                    if not planner.measured_valid():raise RuntimeError('Measured RELAXED collision')
+                    if not planner.measured_valid() and (not cache or planner.measured_mesh_collisions()):raise RuntimeError('Measured RELAXED collision')
             transition=scene.check_transition(np.asarray(goal['wrist_xyz_wxyz']),window['contact'],canonical=goal if later and not prefix else None)
         else:
             anchor=schedule.anchors[window['anchor']];artifact=canonical[anchor.id]
@@ -98,7 +129,11 @@ def execute(scene,schedule,manifest,proposal_dir,report):
             commands=artifact['commands'];check=validate_commands(scene,commands,start)
             if not check['feasible']:raise RuntimeError(f'Canonical commands infeasible from actual entry: {check}')
             objective=WindowEvaluation(scene,anchor,data,start)
+            if not objective.observe(anchor.core_start,commands[0]):raise RuntimeError(str(objective.failure))
+            from multipath.execution.wrench_handoff import segment_wrenches
+            wrenches=segment_wrenches(scene,scene.snapshot(),commands) if artifact['report']['validation'].get('controller_handoff') else np.zeros((len(commands),6))
             for j,command in enumerate(commands):
+                scene.wrench_bias=wrenches[j]
                 frame=anchor.core_start+(j+1)/tpf;scene.step_control(command,'ANCHOR',frame)
                 if (j+1)%tpf==0 and not objective.observe(frame,command):
                     info['failure']=objective.failure;raise RuntimeError(f'Continuous Anchor failed: {objective.failure}')

@@ -37,8 +37,9 @@ def apply_residual(scene,baseline,start,residual,tpf,envelope,anchor=None):
 
 
 class FloatingResidualEnv(MountedResidualEnv):
-    def __init__(self,scene,anchor,data,baseline,start,begin,out):
+    def __init__(self,scene,anchor,data,baseline,start,begin,out,*,entry_acquirer=None,controller_handoff=False):
         self.scene,self.anchor,self.data=scene,anchor,data
+        self.entry_acquirer=entry_acquirer;self.controller_handoff=controller_handoff
         self.baseline,self.start,self.begin=project_hand_commands(scene,baseline,start,anchor),start,begin
         self.out=Path(out);self.out.mkdir(parents=True,exist_ok=True)
         self.fps=scene.manifest['fps'];self.tpf=physics_ticks_per_frame(self.fps,scene.dt);self.horizon=len(baseline)//self.tpf
@@ -66,7 +67,14 @@ class FloatingResidualEnv(MountedResidualEnv):
         return obs.astype(np.float32)
 
     def reset(self):
-        self.trial+=1;self.scene.begin_trial(self.out/'episode',self.start,mesh=False)
+        self.trial+=1
+        if self.entry_acquirer is None:self.scene.begin_trial(self.out/'episode',self.start,mesh=False)
+        else:
+            # Reexecute the physical predecessor so training includes its
+            # contact/solver history. No reset at the Anchor boundary.
+            self.start=self.entry_acquirer()
+            self.scene.begin_recording(self.out/'episode',mesh=False)
+            self.metadata['entry_acquisition']='physical_predecessor_execution_each_episode'
         self.k=0;self.commands=[];self.previous_action=np.zeros(18);self.residuals=[];self.physical_prefix=None
         self.objective=WindowEvaluation(self.scene,self.anchor,self.data,self.start);self.failure=None
         self.last_observation=self.observation(self.start)
@@ -97,8 +105,13 @@ class FloatingResidualEnv(MountedResidualEnv):
             apply_residual(self.scene,self.baseline[:end],self.start,np.asarray(self.residuals),self.tpf,envelope,self.anchor))
         self.objective.last_reward=0.
         try:
+            if self.controller_handoff and self.k==0:
+                from multipath.execution.wrench_handoff import segment_wrenches
+                handoff_commands=self.baseline.copy();handoff_commands[:end]=candidate
+                self.wrenches=segment_wrenches(self.scene,self.start,handoff_commands)
             for tick in range(self.k*self.tpf,end):
                 c=candidate[tick];frame=self.anchor.synth_start+(self.begin+tick+1)/self.tpf
+                if self.controller_handoff:self.scene.wrench_bias=self.wrenches[tick]
                 self.scene.step_control(c,'LOCAL_PPO',frame);self.commands.append(c)
             self.objective.observe(frame,c);self.failure=self.objective.failure
         except (RuntimeError,ValueError) as error:self.failure={'source_frame':self.scene.ticks*self.scene.dt*self.fps,'reason':str(error)}

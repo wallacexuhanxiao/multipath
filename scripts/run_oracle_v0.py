@@ -9,6 +9,7 @@ def main():
     p.add_argument('--proposals',type=Path,required=True)
     p.add_argument('--schedule',type=Path,required=True)
     p.add_argument('--validated-anchors',type=Path,help='Final rollout: consume physically validated local Anchor artifacts')
+    p.add_argument('--planned-bridges',type=Path,help='Passed cuRobo segment cache; measured entry and physical execution are checked again')
     p.add_argument('--continue-development',action='store_true',help='Use available validated Anchors and develop missing cores from actual predecessor execution')
     p.add_argument('--stop-before-anchor',help='Acquire a continuous predecessor prefix before this core')
     p.add_argument('--through-anchor',help='Stop after this Anchor for an early continuous connection experiment')

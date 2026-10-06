@@ -86,9 +86,9 @@ class WindowEvaluation:
         self.last_reward = 0.
         self.failure = None
 
-    def observe(self, frame, command):
+    def observe(self, frame, command, measured=None):
         a = self.anchor
-        measured = self.scene.state()
+        measured = self.scene.state() if measured is None else measured
         reward = 0.
         tracking_reward = 0.
         reason = None

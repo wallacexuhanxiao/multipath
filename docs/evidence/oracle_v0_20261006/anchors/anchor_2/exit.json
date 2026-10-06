@@ -1,0 +1,250 @@
+{
+  "embodiment": "floating_xhand",
+  "wrist_xyz_wxyz": [
+    0.23625242710113525,
+    -0.14175555109977722,
+    0.48700982332229614,
+    -0.8461076617240906,
+    0.3022543787956238,
+    0.36469385027885437,
+    0.24442315101623535
+  ],
+  "wrist_twist": [
+    -0.5881599283000406,
+    0.3331584708259141,
+    0.07570838944435662,
+    0.4236030876636505,
+    0.7900249361991882,
+    1.4333590269088745
+  ],
+  "hand_q": [
+    0.7190425992012024,
+    1.2476099729537964,
+    -0.03043430671095848,
+    0.1426381766796112,
+    0.589958906173706,
+    1.4277803897857666,
+    1.232560396194458,
+    1.5902661085128784,
+    1.4204705953598022,
+    1.7266595363616943,
+    1.319064974784851,
+    1.8617171049118042
+  ],
+  "hand_dq": [
+    0.14065667986869812,
+    0.1983126699924469,
+    3.427267074584961e-06,
+    0.0037606805562973022,
+    1.6787611246109009,
+    0.48541080951690674,
+    0.11541709303855896,
+    -0.07451491057872772,
+    0.01770824007689953,
+    -0.04289840906858444,
+    0.09502428025007248,
+    -0.10674905776977539
+  ],
+  "objects": {
+    "target": {
+      "pose": [
+        0.5468896627426147,
+        0.057642728090286255,
+        0.3687478303909302,
+        0.7789033651351929,
+        -1.2492528185248375e-06,
+        -1.680291461525485e-07,
+        0.6271440982818604
+      ],
+      "velocity": [
+        -1.128531584981829e-05,
+        -8.11212339613121e-06,
+        -2.668657725735102e-05,
+        -5.005714774597436e-05,
+        -0.00020799240155611187,
+        1.7624204701860435e-05
+      ]
+    },
+    "tool": {
+      "pose": [
+        0.550281822681427,
+        -0.17531317472457886,
+        0.38700130581855774,
+        0.7818381190299988,
+        2.2100284695625305e-06,
+        1.1989555787295103e-05,
+        -0.6234815716743469
+      ],
+      "velocity": [
+        1.62447049660841e-05,
+        6.807555109844543e-06,
+        -1.7901369574246928e-05,
+        -1.8286798876943067e-05,
+        0.00021464299061335623,
+        -0.0010694502852857113
+      ]
+    }
+  },
+  "hand_object_transform": [
+    [
+      0.32505010458416467,
+      0.5561075086301902,
+      0.7649097125510612,
+      0.12296038183097513
+    ],
+    [
+      -0.5391850395581619,
+      0.7734696637619567,
+      -0.33320289968220473,
+      0.20902522769927798
+    ],
+    [
+      -0.7769310925857501,
+      -0.3041202362308186,
+      0.5512612441378626,
+      -0.22568003378768048
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "contact": {
+    "mode": "free",
+    "thumb_contact": false,
+    "other_finger_contact": false,
+    "opposition_contact": false,
+    "touching_links": 0,
+    "link_paths": [
+      "/xhand_right/right_hand_link",
+      "/xhand_right/right_hand_ee_link",
+      "/xhand_right/right_hand_index_bend_link",
+      "/xhand_right/right_hand_index_rota_link1",
+      "/xhand_right/right_hand_index_rota_link2",
+      "/xhand_right/right_hand_index_rota_tip",
+      "/xhand_right/right_hand_mid_link1",
+      "/xhand_right/right_hand_mid_link2",
+      "/xhand_right/right_hand_mid_tip",
+      "/xhand_right/right_hand_pinky_link1",
+      "/xhand_right/right_hand_pinky_link2",
+      "/xhand_right/right_hand_pinky_tip",
+      "/xhand_right/right_hand_ring_link1",
+      "/xhand_right/right_hand_ring_link2",
+      "/xhand_right/right_hand_ring_tip",
+      "/xhand_right/right_hand_thumb_bend_link",
+      "/xhand_right/right_hand_thumb_rota_link1",
+      "/xhand_right/right_hand_thumb_rota_link2",
+      "/xhand_right/right_hand_thumb_rota_tip"
+    ],
+    "force_norms_n": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "evidence": "PhysX thumb AND non-thumb finger/tool contact; retention checked separately"
+  },
+  "scene_id": "46c0da50521244ae9424101969544f5ca9ea1068b57b2ffa5706494dd13a0523",
+  "time_s": 4.266666666666667,
+  "physically_acquired_state": true,
+  "state_origin": "continuous_PhysX_rollout",
+  "controller_wrench_bias": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+  ],
+  "command_wrist": [
+    0.25663941496237996,
+    -0.148885150272642,
+    0.48658053132819273,
+    0.814013785694125,
+    -0.28660365656119663,
+    -0.43230454111425165,
+    -0.2614434632528941
+  ],
+  "command_twist": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+  ],
+  "command_hand_q": [
+    0.8210480825288418,
+    1.2763041954190604,
+    -0.0017800329034752202,
+    0.17499999701976776,
+    0.8849709558162845,
+    1.6295616785950084,
+    1.2956004081346748,
+    1.5881252910982444,
+    1.4187559212310035,
+    1.7161713876012537,
+    1.314278638045057,
+    1.9199998378753662
+  ],
+  "entry_origin": "predecessor_rollout",
+  "source_provenance": {
+    "triplet": "(put in, bowl, plate)",
+    "sequence": "20231024_253",
+    "input": "raw TACO MANO and object poses",
+    "source_video": "/scratch/e0985859/egoengine_baseline/data/taco_v1/Egocentric_RGB_Videos/(put in, bowl, plate)/20231024_253/color.mp4",
+    "schedule_sha256": "111733961ac0ad03d95087435de751c2bdf27db6f375fe153bd6f5f78283adc2",
+    "full_robot_reference_used": false,
+    "vlm_used": false,
+    "transform_world_to_robot": [
+      [
+        -0.36959298057517503,
+        0.929193775162176,
+        0.0,
+        0.574305986267124
+      ],
+      [
+        -0.9291937551424282,
+        -0.36959297261218765,
+        -0.0,
+        0.005429607853050099
+      ],
+      [
+        0.0,
+        0.0,
+        1.0,
+        -0.1883068585395813
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ]
+  },
+  "entry_provenance": {
+    "trace": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_connected_r110/full/actual_trace.json",
+    "source_frame": 128.0,
+    "predecessor": {
+      "initial_scene": "46c0da50521244ae9424101969544f5ca9ea1068b57b2ffa5706494dd13a0523"
+    }
+  }
+}

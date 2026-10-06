@@ -30,8 +30,14 @@ def relaxed_hand_path(scene,start,goal,ticks):
     q0=hand_command_boundary(start)
     if goal is None or start['contact']['mode']=='grasped':return np.repeat(q0[None],ticks+1,axis=0)
     q1=hand_command_boundary(goal);duration=ticks*scene.dt
+    if np.allclose(q0,q1,rtol=0,atol=1e-10):
+        return np.repeat(q0[None],ticks+1,axis=0)
+    # FloatingScene commands zero finger velocity feedforward. Measured dq
+    # contains contact/drive deflection, not a derivative of that drive target.
+    dq0=np.zeros(12) if 'command_hand_q' in start else np.asarray(start['hand_dq'])
+    dq1=np.zeros(12) if 'command_hand_q' in goal else np.asarray(goal['hand_dq'])
     curve=CubicHermiteSpline([0.,duration],np.stack((q0,q1)),
-                            np.stack((start['hand_dq'],goal['hand_dq'])))
+                            np.stack((dq0,dq1)))
     time=np.arange(ticks+1)*scene.dt;hand=curve(time)
     speed=np.maximum(np.abs(curve(time,1)),np.vstack((np.zeros(12),np.abs(np.diff(hand,axis=0)/scene.dt))))
     if np.any(hand<scene.hand_limits[:,0]-1e-6) or np.any(hand>scene.hand_limits[:,1]+1e-6) or np.any(speed>scene.hand_velocity*1.0001):
@@ -128,6 +134,75 @@ def mesh_box_intersects(vertices,faces,box,closed=False):
     return False
 
 
+def boundary_collision_cover(vertices,faces,pose,boxes):
+    """Conservative surface spheres without false overlap at a reached entry.
+
+    Start with the usual coarse cells. Only near a collision-free boundary,
+    subdivide surface triangles until their bounding spheres also clear it.
+    Every triangle remains covered; world obstacles and acceptance stay fixed.
+    """
+    pose=np.asarray(pose);rotation=Rotation.from_quat(pose[[4,5,6,3]])
+    vertices=np.asarray(vertices);faces=np.asarray(faces,dtype=int)
+    coarse=cover_points(rotation.inv().apply(vertices-pose[:3]),faces=faces)
+    if min(sphere_world_clearance(pose,coarse,boxes)[0].values())>=0:return coarse
+    collisions=[name for name,box in boxes.items() if mesh_box_intersects(vertices,faces,box)]
+    if collisions:raise RuntimeError(f'Actual mesh intersects a planning obstacle at entry: {collisions}')
+    center=rotation.apply(np.asarray([s['center'] for s in coarse]))+pose[:3]
+    radius=np.asarray([s['radius'] for s in coarse]);clear=np.ones(len(coarse),dtype=bool)
+    for box in boxes.values():
+        b=np.asarray(box['pose']);r=Rotation.from_quat(b[[4,5,6,3]])
+        offset=np.abs(r.inv().apply(center-b[:3]))-np.asarray(box['dims'])/2
+        clear&=np.linalg.norm(np.maximum(offset,0),axis=1)+np.minimum(offset.max(1),0)-radius>=0
+    centers=[center[clear]];radii=[radius[clear]];triangles=vertices[faces]
+    needed=np.zeros(len(triangles),dtype=bool);lo=triangles.min(1);hi=triangles.max(1)
+    for c,s in zip(center[~clear],radius[~clear]):
+        needed|=np.all(lo<=c+s,axis=1)&np.all(hi>=c-s,axis=1)
+    # Outside the rejected cells' bounding cubes, the retained coarse spheres
+    # already cover every surface point. Only neighboring faces need refinement.
+    pending=triangles[needed]
+    for _ in range(18):
+        center=pending.mean(1);radius=np.linalg.norm(pending-center[:,None],axis=2).max(1)+1e-7
+        clear=np.ones(len(pending),dtype=bool)
+        for box in boxes.values():
+            b=np.asarray(box['pose']);r=Rotation.from_quat(b[[4,5,6,3]])
+            offset=np.abs(r.inv().apply(center-b[:3]))-np.asarray(box['dims'])/2
+            distance=np.linalg.norm(np.maximum(offset,0),axis=1)+np.minimum(offset.max(1),0)-radius
+            clear&=distance>=0
+        centers.append(center[clear]);radii.append(radius[clear])
+        if clear.all():
+            local=rotation.inv().apply(np.concatenate(centers)-pose[:3]);sizes=np.concatenate(radii)
+            return [dict(center=c.tolist(),radius=float(s)) for c,s in zip(local,sizes)]
+        pending=pending[~clear]
+        # Bisect the longest triangle edge; each child still covers an exact
+        # part of the parent rather than sampling a few unprotected vertices.
+        edge=np.linalg.norm(np.roll(pending,-1,axis=1)-pending,axis=2).argmax(1);row=np.arange(len(pending))
+        a=pending[row,edge];b=pending[row,(edge+1)%3];c=pending[row,(edge+2)%3];mid=(a+b)/2
+        pending=np.concatenate((np.stack((a,mid,c),axis=1),np.stack((mid,b,c),axis=1)))
+    raise RuntimeError('Boundary collision cover could not resolve a safe entry')
+
+
+def compact_collision_cover(spheres,pose,boxes,cell=.025):
+    """Merge child spheres only when their enclosing parent remains clear."""
+    pose=np.asarray(pose);rotation=Rotation.from_quat(pose[[4,5,6,3]])
+    centers=rotation.apply(np.asarray([s['center'] for s in spheres]))+pose[:3]
+    radii=np.asarray([s['radius'] for s in spheres])
+    minimum=sphere_world_clearance(pose,spheres,boxes)[0]
+    for width in (cell,cell/2,cell/4):
+        _,groups=np.unique(np.floor((centers-centers.min(0))/width).astype(int),axis=0,return_inverse=True)
+        merged=[];sizes=[]
+        for group in range(groups.max()+1):
+            indices=np.flatnonzero(groups==group);center=centers[indices].mean(0)
+            radius=float(np.max(np.linalg.norm(centers[indices]-center,axis=1)+radii[indices]))
+            parent=[dict(center=rotation.inv().apply(center-pose[:3]).tolist(),radius=radius)]
+            clearance=sphere_world_clearance(pose,parent,boxes)[0]
+            if all(clearance[k]>=minimum[k]-1e-10 for k in minimum):
+                merged.append(center);sizes.append(radius)
+            else:merged.extend(centers[indices]);sizes.extend(radii[indices])
+        centers=np.asarray(merged);radii=np.asarray(sizes)
+    local=rotation.inv().apply(centers-pose[:3])
+    return [dict(center=c.tolist(),radius=float(s)) for c,s in zip(local,radii)]
+
+
 def robot_model(scene,carry,out):
     from pxr import Usd,UsdGeom
     out=Path(out);out.mkdir(parents=True,exist_ok=True)
@@ -199,7 +274,27 @@ class FloatingPlanner:
         self.live=live
         import json
         (Path(out)/'world_geometry.json').write_text(json.dumps(live,indent=2))
+        pose,_=scene.root_motion()
+        if min(sphere_world_clearance(pose,self.nominal_spheres,live['cuboid'])[0].values())<0:
+            from pxr import UsdGeom
+            cache=UsdGeom.XformCache();refined=[]
+            for prim,_,_ in scene.measured_hand_collision_meshes:
+                vertices,faces=scene.measured_hand_mesh_data[str(prim.GetPath())]
+                matrix=np.asarray(cache.GetLocalToWorldTransform(prim)).T
+                refined+=boundary_collision_cover(vertices@matrix[:3,:3].T+matrix[:3,3],faces,pose,live['cuboid'])
+            if carry:
+                p,q=scene.objects['tool'].get_world_pose();mesh=scene.meshes['tool']
+                refined+=boundary_collision_cover(Rotation.from_quat(np.asarray(q)[[1,2,3,0]]).apply(mesh.vertices)+p,mesh.faces,pose,live['cuboid'])
+            refined=compact_collision_cover(refined,pose,live['cuboid'])
+            cfg['kinematics']['collision_spheres']['wrist']=refined;self.nominal_spheres=refined;self.sphere_count=len(refined)
+            import json
+            (self.out/'boundary_collision_cover.json').write_text(json.dumps(dict(conservative_surface_coverage=True,
+                sphere_count=len(refined),clearance_m=sphere_world_clearance(pose,refined,live['cuboid'])[0]),indent=2))
+            geometry=json.loads((self.out/'collision_geometry.json').read_text())
+            geometry.update(spheres=refined,proxy='coarse surface cells with exact boundary triangle subdivision')
+            (self.out/'collision_geometry.json').write_text(json.dumps(geometry,indent=2))
         self.planner=MotionGen(MotionGenConfig.load_from_robot_config(cfg,live,tensor_args=self.tensor,interpolation_dt=scene.dt,
+            optimize_dt=False,trajopt_dt=1/scene.manifest['fps'],js_trajopt_dt=1/scene.manifest['fps'],
             self_collision_check=False,self_collision_opt=False,collision_checker_type=CollisionCheckerType.PRIMITIVE,use_cuda_graph=False))
         # Catch a virtual-coordinate convention mismatch before physical use.
         pose,_=scene.root_motion();q=pose_coordinates(pose)
@@ -292,6 +387,13 @@ class FloatingPlanner:
         end=self.js(q1)
         if dq1 is not None:end.velocity=self.tensor.to_device(dq1.copy())[None]
         result=self.planner.plan_single_js(begin,end,MotionGenPlanConfig(max_attempts=6,enable_graph_attempt=2))
+        geometry_solver='trajectory_optimization_fixed_dt'
+        if not bool(result.success.item()) and result.status.name in ('DT_EXCEPTION','TRAJOPT_FAIL','FINETUNE_TRAJOPT_FAIL'):
+            # A moving entry cannot use cuRobo's static-start time optimizer.
+            # Its graph is also a cuRobo geometric planner; every returned
+            # path still needs the same fixed-time dynamics/collision fit.
+            result=self.planner.plan_single_js(begin,end,MotionGenPlanConfig(enable_graph=True,enable_opt=False,max_attempts=2))
+            geometry_solver='curobo_graph_then_fixed_source_time_fit'
         if not bool(result.success.item()):raise RuntimeError(f'Floating cuRobo failed: {result.status}')
         raw=result.get_interpolated_plan().position.detach().cpu().numpy().reshape(-1,6).copy()
         limits=scene.cfg['planning'];dt=scene.dt
@@ -301,14 +403,24 @@ class FloatingPlanner:
             raw[0]=q0;raw[-1]=q1
         np.savez_compressed(self.out/'raw_geometric_path.npz',
                             positions=raw,initial_velocity=dq0,final_velocity=np.zeros(6) if dq1 is None else dq1)
-        try:path,timing=fixed_budget_path(raw,float(result.interpolation_dt),ticks,dt,np.array(limits['velocity_limits']),np.array(limits['acceleration_limits']),initial_velocity=dq0,final_velocity=dq1)
-        except RuntimeError as compression_error:
-            try:path,timing=parameterize_path(raw,ticks,dt,np.array(limits['velocity_limits']),np.array(limits['acceleration_limits']),initial_velocity=dq0,final_velocity=dq1)
-            except RuntimeError as path_error:
-                path,timing=boundary_fitted_path(raw,ticks,dt,np.array(limits['velocity_limits']),np.array(limits['acceleration_limits']),initial_velocity=dq0,final_velocity=dq1)
-                timing['previous_fit_rejections']=[str(compression_error),str(path_error)]
-        for q in path:
-            if not self.valid(q):raise RuntimeError('Floating resampled path collision')
+        # A nominally feasible fit can still cut through an obstacle. That is
+        # also a rejected fit, not a reason to skip the remaining fixed-time
+        # parameterizations of the same cuRobo geometric proposal.
+        rejected=[]
+        for name,fit in [('fixed_budget',lambda:fixed_budget_path(raw,float(result.interpolation_dt),ticks,dt,np.array(limits['velocity_limits']),np.array(limits['acceleration_limits']),initial_velocity=dq0,final_velocity=dq1)),
+                         ('path_parameterization',lambda:parameterize_path(raw,ticks,dt,np.array(limits['velocity_limits']),np.array(limits['acceleration_limits']),initial_velocity=dq0,final_velocity=dq1)),
+                         ('boundary_fit',lambda:boundary_fitted_path(raw,ticks,dt,np.array(limits['velocity_limits']),np.array(limits['acceleration_limits']),initial_velocity=dq0,final_velocity=dq1))]:
+            try:
+                path,timing=fit()
+                for k,q in enumerate(path):
+                    if not self.valid(q):raise RuntimeError(f'collision at fitted tick {k}')
+                break
+            except RuntimeError as error:rejected.append(f'{name}: {error}')
+        else:
+            import json
+            (self.out/'fit_rejections.json').write_text(json.dumps(rejected,indent=2))
+            raise RuntimeError(f'No collision-free trajectory in source time: {rejected}')
+        if rejected:timing['previous_fit_rejections']=rejected
         poses=np.asarray([coordinates_pose(q) for q in path])
         from multipath.anchors.floating import controls_from_poses
         # Preserve the active drive target/preload, rather than commanding the
@@ -316,6 +428,7 @@ class FloatingPlanner:
         hands=relaxed_hand_path(scene,start,goal_state,ticks)
         commands=controls_from_poses(poses,hands,dt)
         timing.update(planner='cuRobo_virtual_6DOF',hand_collision_spheres=self.sphere_count,carried_object_collision=self.carry,
+            geometry_solver=geometry_solver,curobo_optimize_dt=False,
             reference_tracking=False,source_time_stretch=False,arm_model_used=False,tracking_margin_m=scene.planning_tracking_margin_m,
             previous_command_tracking_margin_m=scene.previous_command_tracking_margin_m,
             hand_boundary_motion=bool(np.any(np.abs(hands-hands[0])>1e-8)),

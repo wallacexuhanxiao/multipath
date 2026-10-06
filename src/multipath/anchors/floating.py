@@ -240,9 +240,11 @@ def rollout(scene,anchor,data,commands,start,out,mode='LOCAL_PADDED',core_only=F
         model=TransportDynamics(scene,start['contact']['mode']=='grasped')
         rotation=Rotation.from_quat(np.asarray(start['wrist_xyz_wxyz'])[[4,5,6,3]]).as_matrix()
         drive_profile=bandwidth_handoff_profile(len(commands),scene.dt,model.mass,rotation@model.inertia@rotation.T,scene.cfg['controller'])
-    if core_only:
+    if start_frame==anchor.core_start:
         entry=scene.snapshot()
-        if not objective.observe(start_frame,commands[0]):
+        # A restored development snapshot carries contact evidence from its
+        # real acquisition; native contact buffers refresh at the first step.
+        if not objective.observe(start_frame,commands[0],measured=entry):
             failure=objective.failure;failures.append(dict(failure))
     try:
         for k,c in enumerate(commands):
@@ -368,3 +370,97 @@ def source_grasp_core_controls(scene,anchor,data,start):
     commands=np.asarray([object_relative_command(scene,anchor,data,anchor.core_start+(k+1)/tpf,
         baseline,held,handoff) for k in range((anchor.core_end-anchor.core_start)*tpf)])
     return project_hand_commands(scene,commands,start,anchor),handoff
+
+
+class AcquiredGraspProposal:
+    """Existing object-relative MPC proposal, initialized by real opposition."""
+    def __init__(self,scene,anchor,data):
+        self.scene,self.anchor,self.data=scene,anchor,data
+        self.contact_run=0;self.held=None;self.handoff=None;self.acquired_frame=None
+
+    def command(self,frame,baseline):
+        measured=self.scene.snapshot()
+        self.contact_run=self.contact_run+1 if measured['contact']['mode']=='grasped' else 0
+        tpf=physics_ticks_per_frame(self.scene.manifest['fps'],self.scene.dt)
+        if self.held is None and self.contact_run>=tpf:
+            self.held=np.asarray(measured['hand_object_transform'])
+            self.acquired_frame=measured['time_s']*self.scene.manifest['fps']
+            self.handoff=object_relative_handoff(self.scene,self.anchor,self.data,self.acquired_frame,self.held)
+        if self.held is None:return baseline
+        return object_relative_command(self.scene,self.anchor,self.data,frame,baseline,self.held,self.handoff)
+
+
+def join_core_controls(scene,anchor,commands,start):
+    """Join a local retarget seed to the reached drive, inside CORE time."""
+    c=np.asarray(commands);dt=scene.dt
+    ticks=physics_ticks_per_frame(scene.manifest['fps'],dt)
+    context=max(anchor.core_start-anchor.synth_start,anchor.synth_end-anchor.core_end)
+    blend=max(2,min(len(c)-1,context*ticks))
+    initial=c[0,:7].copy();initial[:3]-=dt*c[0,19:22]
+    initial[3:]=(Rotation.from_rotvec(-dt*c[0,22:25])*Rotation.from_quat(initial[[4,5,6,3]])).as_quat()[[3,0,1,2]]
+    pose=np.vstack((initial,c[:,:7]));nominal_twist=controls_from_poses(pose,np.vstack((c[0,7:19],c[:,7:19])),dt)[:,19:25]
+    phase=np.clip(np.arange(len(pose))/blend,0,1)
+    weight=1-phase**2*(3-2*phase);previous=np.asarray(start['command_wrist']);twist=np.asarray(start['command_twist'])
+    pose[:,:3]=_entry_curve(pose[:,:3],previous[:3],twist[:3],dt,blend)
+    delta=Rotation.from_quat(previous[[4,5,6,3]])*Rotation.from_quat(pose[0,[4,5,6,3]]).inv()
+    rotation=Rotation.from_rotvec(weight[:,None]*delta.as_rotvec())*Rotation.from_quat(pose[:,[4,5,6,3]])
+    desired=Rotation.from_rotvec(twist[3:]*dt)*Rotation.from_quat(previous[[4,5,6,3]])
+    correction=desired*rotation[1].inv();tangent=phase-2*phase**2+phase**3
+    rotation=Rotation.from_rotvec(tangent[:,None]/tangent[1]*correction.as_rotvec())*rotation
+    pose[:,3:]=rotation.as_quat()[:,[3,0,1,2]]
+    hand=np.vstack((c[0,7:19],c[:,7:19]))
+    hand=_entry_curve(hand,hand_command_boundary(start),np.zeros(12),dt,blend)
+    joined=controls_from_poses(pose,hand,dt)
+    # Optimized pose residuals deliberately keep nominal velocity feedforward.
+    # Add only the joining correction's derivative; recomputing all velocities
+    # silently turned local MPPI pose residuals into large velocity commands.
+    joined[:,19:25]+=c[:,19:25]-nominal_twist
+    return project_hand_commands(scene,joined,start,anchor)
+
+
+def source_retarget_core_controls(scene,anchor,data,start):
+    """Local retarget for acquisition/release, calibrated at a reached grasp.
+
+    A release must preserve source hand withdrawal as well as finger actions;
+    following the object forever would prevent the hand from disengaging.
+    """
+    from multipath.execution.mounted_scene import pose_matrix
+    tpf=physics_ticks_per_frame(scene.manifest['fps'],scene.dt)
+    sample=np.arange((anchor.core_end-anchor.core_start)*tpf+1)/tpf+anchor.core_start-anchor.synth_start
+    ref=np.asarray(data['wrist_hand_q']);ref=np.vstack((ref,ref[-1]));index=np.arange(len(ref))
+    pose=np.c_[np.stack([np.interp(sample,index,ref[:,j]) for j in range(3)],axis=1),
+        Slerp(index,Rotation.from_quat(ref[:,[4,5,6,3]]))(sample).as_quat()[:,[3,0,1,2]]]
+    hand=np.stack([np.interp(sample,index,ref[:,j]) for j in range(7,19)],axis=1)
+    if anchor.entry_contact=='grasped':
+        target=data['tool_pose'][anchor.core_start-anchor.synth_start]@np.linalg.inv(start['hand_object_transform'])
+        offset=np.linalg.inv(pose_matrix(pose[0]))@target
+        matrices=np.asarray([pose_matrix(p)@offset for p in pose])
+        pose=np.c_[matrices[:,:3,3],Rotation.from_matrix(matrices[:,:3,:3]).as_quat()[:,[3,0,1,2]]]
+    return join_core_controls(scene,anchor,controls_from_poses(pose,hand,scene.dt),start)
+
+
+def quiet_release_exit(scene,anchor,commands,terminal_offset=None):
+    """Reach the local withdrawal position with a quiet free-hand boundary."""
+    if anchor.exit_contact!='free':return np.asarray(commands).copy()
+    c=np.asarray(commands).copy();tpf=physics_ticks_per_frame(scene.manifest['fps'],scene.dt)
+    context=max(anchor.core_start-anchor.synth_start,anchor.synth_end-anchor.core_end)
+    count=min(len(c)-1,max(tpf,context*tpf));begin=len(c)-count
+    previous=c[begin-1];duration=count*scene.dt;s=np.arange(count+1)/count
+    # Braking must retain the retargeted withdrawal endpoint. Integrating a
+    # decaying velocity alone truncated the retreat and left released fingers
+    # inside the next planner's obstacle. This pose is a local command target;
+    # no simulator state or source time is changed.
+    end=c[-1,:7].copy()
+    if terminal_offset is not None:end[:3]+=np.asarray(terminal_offset)
+    weight=10*s**3-15*s**4+6*s**5
+    tangent=s-6*s**3+8*s**4-3*s**5
+    xyz=previous[:3]+weight[:,None]*(end[:3]-previous[:3])+duration*tangent[:,None]*previous[19:22]
+    # Released wrist orientation is not a task boundary condition. Brake its
+    # existing angular motion rather than forcing the human terminal spin.
+    coast=duration*(s-s**3+.5*s**4)
+    r=Rotation.from_rotvec(coast[:,None]*previous[22:25])*Rotation.from_quat(previous[[4,5,6,3]])
+    poses=np.c_[xyz,r.as_quat()[:,[3,0,1,2]]]
+    replacement=controls_from_poses(poses,np.vstack((previous[7:19],c[begin:,7:19])),scene.dt)
+    replacement[-1,19:25]=0.
+    c[begin:,:7]=replacement[:,:7];c[begin:,19:25]=replacement[:,19:25]
+    return c

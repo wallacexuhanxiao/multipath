@@ -1,0 +1,85 @@
+{
+  "status": "complete",
+  "pbs_job_id": "650437.hopper-m-02",
+  "run": "oracle_connected_r110",
+  "queue": "interactive",
+  "gpu": "H200",
+  "requested_walltime_s": 600,
+  "actual_job_walltime_s": 152,
+  "source_fps": 30,
+  "num_source_frames": 144,
+  "physics_dt": 0.008333333333333333,
+  "source_duration_s": 4.8,
+  "actual_duration_s": 4.8,
+  "video_frames": 144,
+  "actual_boundary_samples": 145,
+  "video_sha256": "da4309b8edd5b68a69d5582d52394f792be0e5270b014e1c43b3181f4e44e423",
+  "full_pipeline_success": true,
+  "task_success": true,
+  "state_resets_between_segments": 0,
+  "vlm_used": false,
+  "complete_robot_reference_required": false,
+  "embodiment": "floating_xhand",
+  "relaxed_reference_tracking": false,
+  "task": {
+    "success": true,
+    "final_errors": {
+      "position_m": 0.006486732226725934,
+      "rotation_rad": 0.22219453212956808
+    },
+    "final_speed_m_s": 2.5145355205348283e-05,
+    "released": true
+  },
+  "anchors": [
+    {
+      "id": "anchor_0",
+      "core_interval": [
+        35,
+        76
+      ],
+      "synthesis_interval": [
+        29,
+        82
+      ],
+      "entry_origin": "predecessor_rollout",
+      "entry_physically_reachable": true,
+      "local_rollout_success": true,
+      "handoff_verified": true
+    },
+    {
+      "id": "anchor_1",
+      "core_interval": [
+        82,
+        101
+      ],
+      "synthesis_interval": [
+        76,
+        107
+      ],
+      "entry_origin": "predecessor_rollout",
+      "entry_physically_reachable": true,
+      "local_rollout_success": true,
+      "handoff_verified": true
+    },
+    {
+      "id": "anchor_2",
+      "core_interval": [
+        111,
+        128
+      ],
+      "synthesis_interval": [
+        105,
+        134
+      ],
+      "entry_origin": "predecessor_rollout",
+      "entry_physically_reachable": true,
+      "local_rollout_success": true,
+      "handoff_verified": true
+    }
+  ],
+  "grasped_bridge_finger_drive_max_change_rad": 0.0,
+  "assembly_self_collision_checked": false,
+  "padding_validation": "A1 independent padded/core development; all artifacts include actual adjacent cuRobo context, then fresh full artifact execution",
+  "transfer_to_other_sequences_verified": false,
+  "video_source": "Recorded actual PhysX mesh world transforms; MuJoCo renderer performs no physics rollout"
+}
