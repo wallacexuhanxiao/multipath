@@ -8,24 +8,27 @@ from pathlib import Path
 import numpy as np
 from scipy.spatial.transform import Rotation
 from multipath.validation.physics import retention_errors
-from multipath.execution.wrench_handoff import takeover_bias,balanced_force_profile
+from multipath.execution.wrench_handoff import takeover_bias,balanced_force_profile,carried_gravity_wrench
 
 
-def run(scene,start,commands,planner,goal,target,out,components=False,balanced=False):
+def run(scene,start,commands,planner,goal,target,out,components=False,balanced=False,loaded=False):
     out=Path(out);results=[];fps=scene.manifest['fps'];begin=start['time_s']*fps
-    kinds=['balanced_force_torque_continuous'] if balanced else ['torque_continuous','force_continuous'] if components else ['planned','wrench_continuous','previous_drive_continuation']
+    kinds=['load_compensated_cubic','load_compensated_balanced'] if loaded else ['balanced_force_torque_continuous'] if balanced else ['torque_continuous','force_continuous'] if components else ['planned','wrench_continuous','previous_drive_continuation']
     for kind in kinds:
         trial=out/kind;scene.begin_trial(trial,start,mesh=True);scene.capture('INITIAL',begin)
-        resets=scene.restore_count;bias=takeover_bias(start,commands[0],scene.cfg['controller'])
+        resets=scene.restore_count;scene.transport_load=loaded
+        load=carried_gravity_wrench(scene) if loaded else None
+        bias=takeover_bias(start,commands[0],scene.cfg['controller'],new_feedforward=load)
         mass=float(np.sum(scene.av.get_masses())+scene.objects['tool'].get_mass())
-        force_profile=balanced_force_profile(len(commands),scene.dt,mass,scene.cfg['controller']['wrist_kp'],scene.cfg['controller']['wrist_kd']) if balanced else None
+        use_balanced=balanced or kind=='load_compensated_balanced'
+        force_profile=balanced_force_profile(len(commands),scene.dt,mass,scene.cfg['controller']['wrist_kp'],scene.cfg['controller']['wrist_kd']) if use_balanced else None
         rows=[];failed=False;error=None
         for k,command in enumerate(commands):
             c=command.copy();phase=k/max(1,len(commands)-1)
-            scene.wrench_bias=bias*(1-3*phase**2+2*phase**3) if kind in ['wrench_continuous','torque_continuous','force_continuous'] else np.zeros(6)
+            scene.wrench_bias=bias*(1-3*phase**2+2*phase**3) if loaded or kind in ['wrench_continuous','torque_continuous','force_continuous'] else np.zeros(6)
             if kind=='torque_continuous':scene.wrench_bias[:3]=0.
             if kind=='force_continuous':scene.wrench_bias[3:]=0.
-            if kind=='balanced_force_torque_continuous':
+            if use_balanced:
                 scene.wrench_bias=np.r_[bias[:3]*force_profile[k],bias[3:]*(1-3*phase**2+2*phase**3)]
             if kind=='previous_drive_continuation':
                 c[:7]=start['command_wrist'];c[19:25]=start['command_twist']
@@ -50,7 +53,8 @@ def run(scene,start,commands,planner,goal,target,out,components=False,balanced=F
             max_relative_rotation_rad=max((r['retention']['rotation_rad'] for r in rows),default=0.),
             max_relative_position_m=max((r['retention']['position_m'] for r in rows),default=0.))
         (trial/'physics_steps.json').write_text(json.dumps(rows,indent=2))
-        if balanced:info.update(effective_mass_kg=mass,force_profile=force_profile.tolist(),initial_wrench_bias=bias.tolist())
+        if use_balanced:info.update(effective_mass_kg=mass,force_profile=force_profile.tolist(),initial_wrench_bias=bias.tolist())
+        if loaded:info.update(carried_gravity_wrench_at_entry=load.tolist(),initial_wrench_bias=bias.tolist())
         (trial/'end_state.json').write_text(json.dumps(scene.snapshot(),indent=2))
         (trial/'diagnostic_result.json').write_text(json.dumps(info,indent=2));results.append(info)
         print('BRIDGE_DIAGNOSTIC',json.dumps(info),flush=True)

@@ -12,7 +12,7 @@ def feedback_wrench(pose,twist,actual,velocity,config):
     return np.r_[force,torque]
 
 
-def takeover_bias(start,first_command,config):
+def takeover_bias(start,first_command,config,new_feedforward=None):
     """Preserve drive response while keeping measured q/dq planner boundaries.
 
     This is controller memory, not a pose assignment or time extension. Both
@@ -21,7 +21,17 @@ def takeover_bias(start,first_command,config):
     pose=np.asarray(start['wrist_xyz_wxyz']);twist=np.asarray(start['wrist_twist'])
     previous=feedback_wrench(start.get('command_wrist',pose),start.get('command_twist',twist),pose,twist,config)
     current=feedback_wrench(first_command[:7],first_command[19:25],pose,twist,config)
-    return previous-current
+    return previous-current-(np.zeros(6) if new_feedforward is None else new_feedforward)
+
+
+def carried_gravity_wrench(scene):
+    """Support an actually grasped object's mass at its measured COM."""
+    tool=scene.objects['tool'];p,q=tool.get_world_pose();com,_=tool.get_com()
+    center=np.asarray(p)+Rotation.from_quat(np.asarray(q)[[1,2,3,0]]).apply(com)
+    wrist,_=scene.root_motion();root_com=np.asarray(scene.av.get_coms())[0,0,:3]
+    root_center=wrist[:3]+Rotation.from_quat(wrist[[4,5,6,3]]).apply(root_com)
+    force=np.array([0.,0.,float(tool.get_mass())*9.81])
+    return np.r_[force,np.cross(center-root_center,force)]
 
 
 def balanced_force_profile(ticks,dt,mass,kp,kd):

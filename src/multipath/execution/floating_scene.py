@@ -95,8 +95,9 @@ class FloatingScene:
 
     def _drive(self,pose,hand,twist):
         actual,velocity=self.root_motion();cfg=self.cfg['controller']
-        from multipath.execution.wrench_handoff import feedback_wrench
+        from multipath.execution.wrench_handoff import feedback_wrench,carried_gravity_wrench
         response=feedback_wrench(pose,twist,actual,velocity,cfg)+getattr(self,'wrench_bias',np.zeros(6))
+        if getattr(self,'transport_load',False):response+=carried_gravity_wrench(self)
         force=np.clip(response[:3],-cfg['wrist_max_force'],cfg['wrist_max_force'])
         torque=np.clip(response[3:],-cfg['wrist_max_torque'],cfg['wrist_max_torque'])
         force+=np.array([0,0,9.81])*np.asarray(self.av.get_masses()).sum()
@@ -157,6 +158,7 @@ class FloatingScene:
         # a deflected finger's drive target with measured q releases the grip.
         preserve='command_hand_q' in state
         self.wrench_bias=np.zeros(6)
+        self.transport_load=False
         drive=q.copy()
         if preserve:drive[self.fingers]=state.get('command_hand_q',state['hand_q'])
         self.robot.apply_action(self.Action(joint_positions=drive,joint_velocities=np.zeros_like(dq) if preserve else dq))
