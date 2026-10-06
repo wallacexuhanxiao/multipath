@@ -6,6 +6,32 @@ from multipath.planning.floating import coordinates_pose,pose_coordinates
 from multipath.anchors.floating import controls_from_poses,local_controls
 
 
+def test_carry_seed_uses_reached_preload_instead_of_old_grasp_policy():
+    from multipath.anchors.floating import source_grasp_core_controls,object_relative_command,project_hand_commands
+    from multipath.execution.mounted_scene import pose_matrix
+    pose=np.array([.01,0,0,1,0,0,0.]);twist=np.array([.1,0,0,0,0,0.])
+    reached={'physically_acquired_state':True,'hand_object_transform':np.eye(4),
+             'command_hand_q':np.full(12,.2),'hand_q':np.zeros(12),
+             'contact':{'mode':'grasped'},'time_s':2.,'command_wrist':pose,'command_twist':twist}
+    scene=SimpleNamespace(dt=1/120,manifest={'fps':30},hand_limits=np.tile([-2,2],(12,1)),hand_velocity=np.full(12,10.),
+        command_pose=pose,command_twist=twist,hand_command=np.full(12,.2),cfg={'planning':{'velocity_limits':[1,1,1,3,3,3]}})
+    anchor=SimpleNamespace(synth_start=58,core_start=60,core_end=64,synth_end=66,entry_contact='grasped',exit_contact='grasped')
+    tool=np.tile(np.eye(4),(8,1,1));tool[:,0,3]=np.arange(8)*.003
+    data={'tool_pose':tool}
+    adapted,handoff=source_grasp_core_controls(scene,anchor,data,reached)
+    baseline=np.r_[pose,np.full(12,.2),twist]
+    initial=object_relative_command(scene,anchor,data,anchor.core_start,baseline,np.eye(4),handoff)
+    np.testing.assert_allclose(pose_matrix(initial[:7]),pose_matrix(pose),atol=1e-10)
+    np.testing.assert_allclose(adapted[0,19:25],twist,atol=1e-10)
+    np.testing.assert_allclose(adapted[:,7:19],.2)
+    assert len(adapted)==16
+    release=SimpleNamespace(core_start=60,core_end=62,entry_contact='grasped',exit_contact='free')
+    proposal=np.tile(baseline,(8,1));proposal[:,7:19]=.7
+    adapted=project_hand_commands(scene,proposal,reached,release)
+    np.testing.assert_allclose(adapted[0,7:19],.2)
+    assert np.max(adapted[-1,7:19])>.2
+
+
 def test_virtual_wrist_coordinates_roundtrip():
     q=np.array([.3,-.2,.5,.7,-.4,.2]);pose=coordinates_pose(q)
     np.testing.assert_allclose(pose_coordinates(pose,q),q,atol=1e-10)

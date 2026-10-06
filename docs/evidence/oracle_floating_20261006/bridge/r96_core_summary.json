@@ -1,0 +1,203 @@
+{
+  "job_id": "650136.hopper-m-02",
+  "remote_run_dir": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_v0_650136",
+  "bridge_success": true,
+  "next_core_success": true,
+  "status": "bridge_and_core_valid",
+  "source_intervals": {
+    "bridge": [
+      76,
+      82
+    ],
+    "A2_core": [
+      82,
+      101
+    ]
+  },
+  "duration_s": 0.8333333333333335,
+  "state_resets_after_start": 0,
+  "new_padded_A2_artifact_validated": false,
+  "full_pipeline_success": false,
+  "same_bridge_commands_as_r94": true,
+  "measured_core_source_frame_maxima": {
+    "relative_position_m": 0.015165479513815324,
+    "relative_rotation_rad": 0.3333755232120223,
+    "object_position_error_m": 0.047826180556475986,
+    "object_rotation_error_rad": 0.46183845766287435,
+    "hand_drive_change_max_rad": 0.0
+  },
+  "rows": [
+    {
+      "frame": 83.0,
+      "relative_position_m": 0.004244592119050616,
+      "relative_rotation_rad": 0.06498282975234476,
+      "object_position_error_m": 0.011228123631054104,
+      "object_rotation_error_rad": 0.20920724453986295,
+      "contact": "grasped",
+      "hand_drive_change_max_rad": 0.0
+    },
+    {
+      "frame": 84.0,
+      "relative_position_m": 0.0020978913932258657,
+      "relative_rotation_rad": 0.08133474607456641,
+      "object_position_error_m": 0.0010146544380427915,
+      "object_rotation_error_rad": 0.12932362701170103,
+      "contact": "grasped",
+      "hand_drive_change_max_rad": 0.0
+    },
+    {
+      "frame": 85.0,
+      "relative_position_m": 0.0046101619129907435,
+      "relative_rotation_rad": 0.12964579279366983,
+      "object_position_error_m": 0.008574290624040515,
+      "object_rotation_error_rad": 0.1249900004351327,
+      "contact": "grasped",
+      "hand_drive_change_max_rad": 0.0
+    },
+    {
+      "frame": 86.0,
+      "relative_position_m": 0.008883628034305171,
+      "relative_rotation_rad": 0.18900966482383472,
+      "object_position_error_m": 0.01670868046050547,
+      "object_rotation_error_rad": 0.18727130420341065,
+      "contact": "grasped",
+      "hand_drive_change_max_rad": 0.0
+    },
+    {
+      "frame": 87.0,
+      "relative_position_m": 0.009855057939500271,
+      "relative_rotation_rad": 0.22310544253559164,
+      "object_position_error_m": 0.02398577572622512,
+      "object_rotation_error_rad": 0.2411229551430005,
+      "contact": "grasped",
+      "hand_drive_change_max_rad": 0.0
+    },
+    {
+      "frame": 88.0,
+      "relative_position_m": 0.009660448465104068,
+      "relative_rotation_rad": 0.23291925591795787,
+      "object_position_error_m": 0.0310388548301995,
+      "object_rotation_error_rad": 0.26831380630242396,
+      "contact": "grasped",
+      "hand_drive_change_max_rad": 0.0
+    },
+    {
+      "frame": 89.0,
+      "relative_position_m": 0.00803979255202367,
+      "relative_rotation_rad": 0.25556773142421413,
+      "object_position_error_m": 0.04024611969513828,
+      "object_rotation_error_rad": 0.3172988239127659,
+      "contact": "grasped",
+      "hand_drive_change_max_rad": 0.0
+    },
+    {
+      "frame": 90.0,
+      "relative_position_m": 0.014129017855116456,
+      "relative_rotation_rad": 0.30968186271291936,
+      "object_position_error_m": 0.044630191125409,
+      "object_rotation_error_rad": 0.39136217466642703,
+      "contact": "grasped",
+      "hand_drive_change_max_rad": 0.0
+    },
+    {
+      "frame": 91.0,
+      "relative_position_m": 0.015165479513815324,
+      "relative_rotation_rad": 0.3333755232120223,
+      "object_position_error_m": 0.04406931143719075,
+      "object_rotation_error_rad": 0.44849395863382985,
+      "contact": "grasped",
+      "hand_drive_change_max_rad": 0.0
+    },
+    {
+      "frame": 92.0,
+      "relative_position_m": 0.014370150817602113,
+      "relative_rotation_rad": 0.3215351235528308,
+      "object_position_error_m": 0.0436396926768528,
+      "object_rotation_error_rad": 0.46183845766287435,
+      "contact": "grasped",
+      "hand_drive_change_max_rad": 0.0
+    },
+    {
+      "frame": 93.0,
+      "relative_position_m": 0.012560803296279526,
+      "relative_rotation_rad": 0.2991548274234234,
+      "object_position_error_m": 0.04360702640767583,
+      "object_rotation_error_rad": 0.433870747015523,
+      "contact": "grasped",
+      "hand_drive_change_max_rad": 0.0
+    },
+    {
+      "frame": 94.0,
+      "relative_position_m": 0.0077337761302462265,
+      "relative_rotation_rad": 0.2734800515821083,
+      "object_position_error_m": 0.04435961146355617,
+      "object_rotation_error_rad": 0.39138695462301504,
+      "contact": "grasped",
+      "hand_drive_change_max_rad": 0.0
+    },
+    {
+      "frame": 95.0,
+      "relative_position_m": 0.006184897016677229,
+      "relative_rotation_rad": 0.262656311680987,
+      "object_position_error_m": 0.04649233549036698,
+      "object_rotation_error_rad": 0.4032930001156174,
+      "contact": "grasped",
+      "hand_drive_change_max_rad": 0.0
+    },
+    {
+      "frame": 96.0,
+      "relative_position_m": 0.003639384342275385,
+      "relative_rotation_rad": 0.22727581467175603,
+      "object_position_error_m": 0.047826180556475986,
+      "object_rotation_error_rad": 0.3964231321945375,
+      "contact": "grasped",
+      "hand_drive_change_max_rad": 0.0
+    },
+    {
+      "frame": 97.0,
+      "relative_position_m": 0.003073247261621644,
+      "relative_rotation_rad": 0.21999570251902129,
+      "object_position_error_m": 0.04546393446281458,
+      "object_rotation_error_rad": 0.379242254646374,
+      "contact": "grasped",
+      "hand_drive_change_max_rad": 0.0
+    },
+    {
+      "frame": 98.0,
+      "relative_position_m": 0.0030457908773812966,
+      "relative_rotation_rad": 0.22088974281406248,
+      "object_position_error_m": 0.041084379037867144,
+      "object_rotation_error_rad": 0.3640553473132579,
+      "contact": "grasped",
+      "hand_drive_change_max_rad": 0.0
+    },
+    {
+      "frame": 99.0,
+      "relative_position_m": 0.002783352915057223,
+      "relative_rotation_rad": 0.21429849805978896,
+      "object_position_error_m": 0.03712413128245724,
+      "object_rotation_error_rad": 0.3570234045568968,
+      "contact": "grasped",
+      "hand_drive_change_max_rad": 0.0
+    },
+    {
+      "frame": 100.0,
+      "relative_position_m": 0.0032460561988036634,
+      "relative_rotation_rad": 0.22594551395646786,
+      "object_position_error_m": 0.03007314314544342,
+      "object_rotation_error_rad": 0.3426375362420847,
+      "contact": "grasped",
+      "hand_drive_change_max_rad": 0.0
+    },
+    {
+      "frame": 101.0,
+      "relative_position_m": 0.005658466913607124,
+      "relative_rotation_rad": 0.25748030544170103,
+      "object_position_error_m": 0.02091950489481661,
+      "object_rotation_error_rad": 0.340039668612086,
+      "contact": "grasped",
+      "hand_drive_change_max_rad": 0.0
+    }
+  ],
+  "note": "Raw r96 local_result uses legacy padded_rollout_complete for a core-only execution. This is fresh CORE validation, not a new padded synthesis proof. Field meaning corrected in source after this run."
+}

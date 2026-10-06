@@ -1,9 +1,12 @@
 # A2 抓持失败：原因定位、修复与物理结果（2026-10-06）
 
-最新结论：r93 已通过新的 A1 padded/core 与 A1 actual exit → oracle
-frame 82 的 0.2 s cuRobo bridge。旧 r68 A2 的 local padded/core 仍有效，
-但从新 bridge entry 执行其 adapted core 在帧 86 失败；新入口兼容性
-和完整 V0 尚未通过。最新视频与机器结果见文末 r93 更新。
+最新结论：r96 已通过 A1 actual CORE exit → 0.2 s cuRobo bridge →
+A2 CORE 的连续 PhysX 执行（source 76–101，共 0.833333 s），期间 reset
+为 0，手指 drive 全程保持实际 A1 出口目标。失败主因是移植旧 A2
+控制轨迹后 wrist 目标不连续；仅冻结手指不足以修复。A1 的 fresh
+padded/core 已在 r93 通过，新 A2 CORE 在真实 bridge entry 下已通过。
+本轮没有重新验证新 A2 完整 padded artifact，也没有完成从 task
+initial 开始的 4.8 s 全轨迹。最新视频与证据见文末 r96 更新。
 
 ## 实测事件
 
@@ -456,3 +459,95 @@ core reference、source clock 或物理阈值。尚待此物理结果。
 已物理通过；从该新入口执行 A2 仍需修复。完整 4.8 s initial-state
 Oracle V0 未完成。** 上述 A1 视频与 bridge 是独立 development rollout，
 没有拼成一次从 task initial 开始的 uninterrupted rollout。
+
+
+## 更新：r94–r96，A2 CORE 不能直接移植旧抓姿的控制补偿
+
+r94 / `650050.hopper-m-02` 的 bridge 再次成功，A2 在 source frame 88
+被 `core_grasp_retention` 拒绝。此时 native thumb AND non-thumb contact
+仍存在；物体相对实际入口手姿旋转 24.27°，超过原 0.35 rad（20.05°）
+保持抓持约束。不能把该结果简单描述为碗已经掉下去。
+
+实际入口与旧 r68 A2 的 finger drive 不同，旧 core 的 finger commands
+也随 source frame 明显变化。r95 / `650110.hopper-m-02` 仅将 persistent
+carry 的 finger proposal 改为真实入口 holding drive，重新执行同一
+bridge 与同一 wrist commands，仍在 frame 86 失败。对照证明：冻结
+手指是接口要求，但单独这样做不足以解决 interaction failure。
+
+更直接的接口问题：移植后的第一个 wrist target 相对 bridge 末端
+记录的 drive target 跳变 **52.196 mm / 25.935°**。旧局部优化得到的
+wrist targets 包含旧 grasp、旧动态状态下的 tracking compensation。
+仅做 hand-object transform rebase 会保留这些偏置。原 takeover bias
+只抵消第一步的 drive wrench，随后衰减仍暴露不连续的目标；它不能
+代替位置/速度边界连续性。
+
+可复用修复：对于持续抓持的 Anchor，从局部 source object poses 与
+真实 reached hand-object transform 重新生成 Replay proposal；finger
+baseline 沿用 reached holding drive；使用已有 measured-grasp target
+handoff，在原 core 时间内连续衔接上一段 wrist position / velocity
+commands。取得/释放 Anchor 仍保留交互动作，CORE 首个 finger drive
+先与真实 predecessor 一致。没有 sample 名称或 source 帧特例。
+
+r96 / `650136.hopper-m-02` 验证 fresh source-conditioned Replay。
+本条 core 为 76 个 120 Hz ticks（0.633333 s），handoff 持续时间由
+目标差与共享 wrist velocity budget 得出 0.094109 s；它在 CORE 内
+执行，既不是等待，也没有增加 source time。CPU 检查确认位置边界
+（按刚体变换比较，避免 quaternion 正负号等价造成误判）、首个 twist
+与 predecessor 一致，所有 finger commands 保持 acquired preload。
+一个针对该已发生失效的 regression 直接运行通过；本地未安装
+pytest，未宣称 pytest suite 通过。syntax / diff 检查通过。
+
+r96 的实际结果见下一节。r94/r95 原始机器报告与逐帧 attribution
+已保存，失败状态未改写。
+
+
+### r96 结果：bridge → A2 CORE 连续通过
+
+r96 / `650136.hopper-m-02` 在 hopper-20 完成，PBS wall time 55 s，
+exit status 0。机器状态为 `bridge_and_core_valid`，bridge / next core
+均为 success；A2 实际执行到 source frame 101。开发起点为 r93 A1
+真实 CORE exit snapshot，恢复一次后不中断执行 bridge 和 A2，
+段间 reset 为 0；这不是从任务初态开始的完整 rollout。
+
+| 项目 | r96 |
+| --- | --- |
+| bridge / A2 CORE source interval | 76–82 / 82–101 |
+| source 时间 / 实际执行时间 | 0.2 + 0.633333 = 0.833333 s / 相同 |
+| 与 r94/r95 bridge commands | 完全相同，逐元素核对 |
+| bridge 与 A2 的 finger drive 变化 | 0 rad |
+| A2 每个源帧 native contact | 保留 thumb AND non-thumb |
+| A2 源帧采样最大物体位置误差 | 47.826 mm，原阈值 50 mm |
+| A2 源帧采样最大物体角误差 | 26.462°，原阈值 30° |
+| A2 最大 hand-object 相对位移 / 角 | 15.165 mm / 19.101°，原阈值 50 mm / 20.054° |
+| 新增等待 / 时间伸长 / 段间 reset | 0 / 0 / 0 |
+
+A2 的上述峰值来自 30 fps 实测记录与验收，不冒充 120 Hz 峰值。
+RELAXED bridge 使用既有每个 physics step retention 检查；本轮保持
+原 cuRobo、carried geometry 和碰撞检查。没有 VLM、完整 robot
+reference、新 MPC/RL、碰撞/接触阈值放宽或 sample 特例。
+
+因果对照：r95 已保持相同手指 target，仍失败；r96 保留相同实际
+入口、bridge、手指 target、controller handoff 与 acceptance，改为
+从实际 drive 边界重新合成 source-conditioned wrist commands 后
+通过。这支持“旧 grasp 控制补偿移植到新入口”的问题定位，不能
+简化成“冻结手指就够了”。该方法没有 task/sample/frame 分支；
+尚未用第二个 sequence 验证迁移。
+
+报告字段也做了小修复：过去 core-only 的 `padded_rollout_complete`
+只是“本次命令跑完”，容易误读。源码现在分为 `rollout_complete`、
+`core_rollout_complete` 和真正的 `padded_rollout_complete`。r96 原始
+报告保留原样，摘要明确这次只有新 CORE 验证，未凭此生成一个
+声称新 padded synthesis 已验证的 canonical artifact。
+
+产物：
+
+- [连续 bridge → A2 actual-state 视频](evidence/oracle_floating_20261006/bridge/r96_bridge_a2_actual.mp4)：25 帧 / 30 fps / 0.833333 s，来自同一次不中断 PhysX 执行；没有插值补帧或重置。
+- [机器摘要](evidence/oracle_floating_20261006/bridge/r96_core_summary.json)、[原始结果](evidence/oracle_floating_20261006/bridge/r96_bridge_result.json)。
+- [r94 attribution](evidence/oracle_floating_20261006/bridge/r94_core_attribution.json)、[固定手指对照 r95](evidence/oracle_floating_20261006/bridge/r95_core_attribution.json)。
+
+![A2 控制接管修复的物理对照](evidence/oracle_floating_20261006/bridge/r96_core_comparison.png)
+
+远端原始输出：`/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_v0_650136`。
+本地实际 trace、mesh records、commands 及运行源码 snapshot 位于同名
+`outputs/oracle_v0_650136/`。本轮已经修复并验证 bridge → A2 CORE；
+完整 4.8 s Oracle V0 与新 A2 padded canonical artifact 仍需后续完成。

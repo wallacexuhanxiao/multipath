@@ -190,14 +190,23 @@ def main():
         next_data=dict(np.load(args.proposals/manifest['anchors'][right.id],allow_pickle=False))
         seed=b['commands']
         if args.source_entry_target:
-            from multipath.anchors.floating import project_hand_commands,rebase_grasp_commands
-            if right.entry_contact=='grasped':
+            from multipath.anchors.floating import project_hand_commands,rebase_grasp_commands,source_grasp_core_controls
+            if right.entry_contact==right.exit_contact=='grasped':
+                seed,handoff=source_grasp_core_controls(scene,right,next_data,scene.snapshot())
+                report['next_core_target_handoff']=handoff
+                report['next_core_hand_baseline']='physically_reached_holding_drive'
+                report['next_core_commands']='source_object_conditioned_local_replay_from_reached_drive; fresh physical validation required'
+            elif right.entry_contact=='grasped':
                 seed=rebase_grasp_commands(seed,b['entry'],scene.snapshot(),dt)
+                report['next_core_hand_baseline']='local_release_actions_with_continuous_first_drive'
             seed=project_hand_commands(scene,seed,scene.snapshot(),right)
-            report['next_core_commands']='local core proposal adapted to actual reached grasp; requires fresh physical validation'
-        validation,_,_=rollout(scene,right,next_data,seed,scene.snapshot(),out/'next_core',
+            report.setdefault('next_core_commands','local core proposal adapted to actual reached grasp; requires fresh physical validation')
+        np.savez_compressed(out/'next_core_commands.npz',commands=seed)
+        validation,core_entry,core_exit=rollout(scene,right,next_data,seed,scene.snapshot(),out/'next_core',
             mode='ANCHOR',core_only=True,continue_from_current=True,controller_handoff=args.transport_dynamics or args.wrench_handoff)
         report['next_core']=validation;report['next_core_success']=validation['success']
+        if core_entry is not None:(out/'next_core'/'entry.json').write_text(json.dumps(core_entry,indent=2))
+        if core_exit is not None:(out/'next_core'/'exit.json').write_text(json.dumps(core_exit,indent=2))
         report['state_resets_after_start']=scene.restore_count-resets
         report['status']='bridge_and_core_valid' if validation['success'] and scene.restore_count==resets else 'next_core_failed'
     except Exception as error:

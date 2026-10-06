@@ -1,0 +1,42 @@
+{
+  "job_id": "650110.hopper-m-02",
+  "bridge_success": true,
+  "next_core_success": false,
+  "failure_source_frame": 86,
+  "failure_reason": "core_grasp_retention",
+  "same_bridge_commands_as_r94": true,
+  "held_finger_drive_max_change_rad": 0.0,
+  "first_wrist_target_jump_from_previous_drive_position_m": 0.05219571139871746,
+  "first_wrist_target_jump_from_previous_drive_rotation_rad": 0.4526580294582579,
+  "conclusion": "Freezing hand alone is insufficient; transplanted wrist targets contain a large drive-boundary discontinuity. Fresh source-conditioned continuous Replay is required.",
+  "rows": [
+    {
+      "source_frame": 83.0,
+      "relative_position_m": 0.006965985482614035,
+      "relative_rotation_rad": 0.10451936431631392,
+      "contact_mode": "grasped",
+      "hand_drive_change_max_rad": 0.0
+    },
+    {
+      "source_frame": 84.0,
+      "relative_position_m": 0.0026061584303964896,
+      "relative_rotation_rad": 0.09799232587261274,
+      "contact_mode": "grasped",
+      "hand_drive_change_max_rad": 0.0
+    },
+    {
+      "source_frame": 85.0,
+      "relative_position_m": 0.0076105684404021955,
+      "relative_rotation_rad": 0.22856345286679866,
+      "contact_mode": "grasped",
+      "hand_drive_change_max_rad": 0.0
+    },
+    {
+      "source_frame": 86.0,
+      "relative_position_m": 0.015203075830949542,
+      "relative_rotation_rad": 0.3551095799235709,
+      "contact_mode": "grasped",
+      "hand_drive_change_max_rad": 0.0
+    }
+  ]
+}

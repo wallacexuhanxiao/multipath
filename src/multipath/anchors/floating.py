@@ -195,6 +195,9 @@ def project_hand_commands(scene,commands,start,anchor=None):
         padding=max(0,round((anchor.core_start/scene.manifest['fps']-start['time_s'])/scene.dt))
     for k,c in enumerate(controls):
         if k<padding:c[7:19]=hand_command_boundary(start)
+        if (k==0 and anchor is not None and anchor.entry_contact=='grasped'
+                and np.isclose(start['time_s'],anchor.core_start/scene.manifest['fps'],atol=1e-8,rtol=0)):
+            c[7:19]=hand_command_boundary(start)
         frame=(start['time_s']+(k+1)*scene.dt)*scene.manifest['fps']
         if (getattr(scene,'freeze_carry_core',False) and anchor is not None
                 and anchor.exit_contact=='grasped' and frame>anchor.core_end+1e-8):
@@ -261,7 +264,10 @@ def rollout(scene,anchor,data,commands,start,out,mode='LOCAL_PADDED',core_only=F
         if failure is None:failure=current
     finally:scene.save()
     result={'success':failure is None and executed==len(commands) and entry is not None and exit_state is not None,
-        'failure':failure,'failures':failures,'padded_rollout_complete':executed==len(commands),
+        'failure':failure,'failures':failures,'rollout_complete':executed==len(commands),
+        'padded_rollout_complete':executed==len(commands) and not core_only,
+        'core_rollout_complete':executed==len(commands) and core_only,
+        'rollout_interval':[start_frame,end_frame],
         'tracking_failures_collected':collect_tracking_failures,'core_entry_acquired':entry is not None,'core_exit_acquired':exit_state is not None,
         'state_resets_within_rollout':scene.restore_count-resets,'source_fps':scene.manifest['fps'],'control_dt':scene.dt,
         'tracking_parameters':object_tracking_parameters(),
@@ -341,3 +347,24 @@ def object_relative_handoff(scene,anchor,data,frame,held_transform):
     desired=Rotation.from_rotvec(scene.dt*previous[22:25])*Rotation.from_quat(previous[[4,5,6,3]])
     return {'frame':float(frame),'duration_s':duration,'position_offset':offset.tolist(),'rotation_offset':rotation.tolist(),
             'position_tangent':position_tangent.tolist(),'rotation_tangent':((desired*base.inv()).as_rotvec()/tangent).tolist()}
+
+
+def source_grasp_core_controls(scene,anchor,data,start):
+    """Resynthesize carry Replay from source interaction and reached drive.
+
+    An old grasp's optimized wrist targets include its tracking offsets and
+    cannot be transplanted as a canonical trajectory. This local proposal
+    keeps the reached holding drive, conditions wrist motion on source object
+    poses through the measured grasp, and joins the previous position/velocity
+    targets inside the existing core time. It still requires physical Replay.
+    """
+    if not (start.get('physically_acquired_state') and start['contact']['mode']=='grasped'
+            and anchor.entry_contact==anchor.exit_contact=='grasped'):
+        raise ValueError('Carry core synthesis requires a physically reached persistent grasp')
+    tpf=physics_ticks_per_frame(scene.manifest['fps'],scene.dt)
+    held=np.asarray(start['hand_object_transform'])
+    baseline=np.r_[start['command_wrist'],hand_command_boundary(start),start['command_twist']]
+    handoff=object_relative_handoff(scene,anchor,data,anchor.core_start,held)
+    commands=np.asarray([object_relative_command(scene,anchor,data,anchor.core_start+(k+1)/tpf,
+        baseline,held,handoff) for k in range((anchor.core_end-anchor.core_start)*tpf)])
+    return project_hand_commands(scene,commands,start,anchor),handoff
