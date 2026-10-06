@@ -231,8 +231,12 @@ def rollout(scene,anchor,data,commands,start,out,mode='LOCAL_PADDED',core_only=F
     objective=WindowEvaluation(scene,anchor,data,start);entry=None;exit_state=None;failure=None
     resets=scene.restore_count;failures=[];executed=0
     if controller_handoff:
-        from multipath.execution.wrench_handoff import takeover_bias
+        from multipath.execution.wrench_handoff import takeover_bias,bandwidth_handoff_profile
+        from multipath.execution.transport_dynamics import TransportDynamics
         drive_bias=takeover_bias(start,commands[0],scene.cfg['controller'])
+        model=TransportDynamics(scene,start['contact']['mode']=='grasped')
+        rotation=Rotation.from_quat(np.asarray(start['wrist_xyz_wxyz'])[[4,5,6,3]]).as_matrix()
+        drive_profile=bandwidth_handoff_profile(len(commands),scene.dt,model.mass,rotation@model.inertia@rotation.T,scene.cfg['controller'])
     if core_only:
         entry=scene.snapshot()
         if not objective.observe(start_frame,commands[0]):
@@ -241,7 +245,7 @@ def rollout(scene,anchor,data,commands,start,out,mode='LOCAL_PADDED',core_only=F
         for k,c in enumerate(commands):
             if failure is not None and not collect_tracking_failures:break
             if controller_handoff:
-                phase=k/max(1,len(commands)-1);scene.wrench_bias=drive_bias*(1-3*phase**2+2*phase**3)
+                scene.wrench_bias=drive_bias*drive_profile[k]
             frame=start_frame+(k+1)/tpf;scene.step_control(c,mode,frame);executed=k+1
             if (k+1)%tpf:continue
             if frame==anchor.core_start:entry=scene.snapshot()
@@ -262,7 +266,7 @@ def rollout(scene,anchor,data,commands,start,out,mode='LOCAL_PADDED',core_only=F
         'state_resets_within_rollout':scene.restore_count-resets,'source_fps':scene.manifest['fps'],'control_dt':scene.dt,
         'tracking_parameters':object_tracking_parameters(),
         'embodiment':scene.embodiment,'command_format':'wrist_xyz_wxyz_hand12_twist6','actual_end_frame':scene.ticks*scene.dt*scene.manifest['fps']}
-    if controller_handoff:result['controller_handoff']=dict(initial_wrench_bias=drive_bias.tolist(),extra_time_s=0.)
+    if controller_handoff:result['controller_handoff']=dict(initial_wrench_bias=drive_bias.tolist(),extra_time_s=0.,profile='measured_mass_inertia_gain_response')
     if entry is not None:
         from multipath.validation.physics import core_pose_errors,object_tracking_score
         errors=core_pose_errors(entry,data['tool_pose'][anchor.core_start-anchor.synth_start])

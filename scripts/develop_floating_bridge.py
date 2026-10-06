@@ -169,7 +169,9 @@ def main():
                 if force_profile is not None:scene.wrench_bias[:3]=feedforward[k,:3]+bias[:3]*force_profile[k]
             frame=window['start']+(k+1)*dt*schedule.fps;scene.step_control(c,'RELAXED',frame)
             report['actual_end_source_frame']=frame
-            if carry:check_retention(scene.state(),held)
+            if carry:
+                retention=check_retention(scene.state(),held)
+                report.setdefault('retention_checks',[]).append(dict(source_frame=frame,**retention))
             clearances=planner.measured_clearance()
             if min(clearances.values())<0:
                 collisions=planner.measured_mesh_collisions()

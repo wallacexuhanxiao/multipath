@@ -1,7 +1,9 @@
 # A2 抓持失败：原因定位、修复与物理结果（2026-10-06）
 
-结论：r68 / 648809 已通过 A2 的完整 padded Replay 和 exported-core
-Replay。代码提交 `6a2d8b0`；A1→A2 cuRobo 连接与完整 V0 尚未通过。
+最新结论：r93 已通过新的 A1 padded/core 与 A1 actual exit → oracle
+frame 82 的 0.2 s cuRobo bridge。旧 r68 A2 的 local padded/core 仍有效，
+但从新 bridge entry 执行其 adapted core 在帧 86 失败；新入口兼容性
+和完整 V0 尚未通过。最新视频与机器结果见文末 r93 更新。
 
 ## 实测事件
 
@@ -384,7 +386,73 @@ nominal speed ratio 1.000000，joint bounds 通过，core 结束后的 hand
 drive target 变化为 0。此项仅证明命令拟合，不能代替 padded/core 或
 bridge 的物理结果。
 
-**本轮当前状态：旧 A1/A2 的 local artifacts 仍有效；中间 bridge 未
+**r92 时状态：旧 A1/A2 的 local artifacts 仍有效；中间 bridge 未
 通过；新 A1 grasp-boundary 修复已提交 fresh 物理验证。完整 4.8 秒
 V0 尚未成立。** 所有 failed trials 和 experimental controller 配置
 保留失败标记，未改成默认成功路径，也未放宽 acceptance。
+
+## 更新：r93 的 A1 与 bridge 实测通过
+
+r93 / `650028.hopper-m-02` 在 hopper-20 完成，PBS 总 wall time 80 秒。
+新 A1 的 padded Replay 与从实际 padding 到达入口后的 exported core
+Replay 均成功，内部 reset 均为 0。原 wrist command 保留，holding finger
+drive 在 core 结束前建立，之后保持不变。
+
+从新 A1 的真实 frame 76 core exit 恢复一次，再连续执行 cuRobo bridge
+及 A2 core proposal。bridge 的结果为：
+
+| 项目 | r93 实测/检查 |
+| --- | --- |
+| source interval / 实际 bridge 时长 | 76–82 / 0.2 s |
+| source 帧 82 物体位置误差 | 18.026 mm，原阈值 50 mm |
+| source 帧 82 物体角误差 | 11.2656°，原阈值 30° |
+| 原生 contact | thumb AND non-thumb，保留 grasped |
+| persistent grasp 检查 | 每个 120 Hz step 通过原 50 mm / 0.35 rad 条件 |
+| 30 fps 记录中的最大 grasp 相对位移 / 角 | 16.249 mm / 12.574°；不是 120 Hz 峰值 |
+| command velocity / acceleration ratio | 0.7611 / 1.0000，原 nominal budget |
+| 手指 drive target | bridge 内冻结 |
+| 执行中 state reset | 0，包括随后 A2 proposal |
+| actual mesh collision | 原执行 gate 未触发真实相交 |
+| 完整 robot reference / VLM / 时间伸长 | 均未使用 |
+
+注意：cuRobo raw path 无法直接压缩到 0.2 秒，由已有 boundary-constrained
+fit 在同一预算中生成可行 commands，每个拟合后的配置重新通过 cuRobo
+collision check。不是把超预算 raw path 当成成功。carried-object 和当前
+XHand 几何均参与规划；验证 scope 是 floating XHand，非 mounted arm。
+
+这证明新的握持边界与执行接口可以到达 oracle frame 82 条件。不能
+把成功完全归因于一个 controller 参数：finger closure 改变了实际
+predecessor，planner 基于该真实状态重新规划。出口相对角速度仍有
+2.888 rad/s，因此未宣称该诊断量消失；实际 bridge retention 成功才
+是验收证据。第二个 sequence 的迁移尚未验证。
+
+### A2 新入口兼容性仍失败
+
+旧 r68 A2 core 经 grasp-frame adaptation，从实际 frame 82 直接继续
+执行，在 frame 86 被 `core_object_fidelity` 拒绝：物体位置误差
+58.931 mm > 50 mm，角误差 19.50°；此时 grasp 保留，相对角 13.63°。
+不是碗掉了，也不是旧 r68 local artifact 被判无效。
+
+PBS exit 1 来自 `next_core_success=false`；机器报告同时明确
+`bridge_success=true`。源码未把整段 pipeline 标成成功。
+当前 core 接管补偿按整个 0.633 s core 衰减，较大的初始 drive bias
+持续过久可能影响 source tracking。r94 / `650050.hopper-m-02` 在已成功
+的 A1 出口上，检验同一 mass/inertia/gain response-scale 接管；不改
+core reference、source clock 或物理阈值。尚待此物理结果。
+
+产物：
+
+- [新 A1 actual-state 视频](evidence/oracle_floating_20261006/bridge/r93_a1_actual.mp4)：53 帧 / 1.7667 s，local padded rollout。
+- [成功 bridge actual-state 视频](evidence/oracle_floating_20261006/bridge/r93_bridge_actual.mp4)：6 帧 / 0.2 s。
+- [A1 报告](evidence/oracle_floating_20261006/bridge/r93_a1_result.json)、[bridge + A2 proposal 报告](evidence/oracle_floating_20261006/bridge/r93_bridge_result.json)、[真实到达的帧 82 状态](evidence/oracle_floating_20261006/bridge/r93_reached_entry.json)。
+
+![原 core/post-context 的握持驱动边界与修复后的实测对比](evidence/oracle_floating_20261006/bridge/r93_carry_boundary.png)
+
+图中上行为记录的 drive target，下行为 PhysX 实测关节位置，均为
+30 fps 采样的独立 local padded rollout。实测关节可继续因接触而变化，
+修复要求的是 holding drive 在 core 出口建立，不是直接锁定物理关节。
+
+**最新状态：A1 局部有效；A1 actual exit → source 帧 82 cuRobo bridge
+已物理通过；从该新入口执行 A2 仍需修复。完整 4.8 s initial-state
+Oracle V0 未完成。** 上述 A1 视频与 bridge 是独立 development rollout，
+没有拼成一次从 task initial 开始的 uninterrupted rollout。
