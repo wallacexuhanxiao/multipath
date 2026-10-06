@@ -1,8 +1,11 @@
 {
   "source_duration_s": 4.8,
   "local_bank_success": true,
-  "full_diverse_rollouts_verified": false,
-  "pbs_job_id": "651354.hopper-m-02",
+  "local_only": true,
+  "full_rollout_verified": false,
+  "validation_scope": "independent local bank; complete executions reported separately in result_summary.json",
+  "pbs_job_id": "651480.hopper-m-02",
+  "bank_source_run": "oracle_diverse_r127",
   "intervals": [
     {
       "window": [
@@ -26,7 +29,9 @@
               "symmetric_hausdorff_m": 0.09450963941967869
             }
           ],
-          "planning_fit": "boundary_fit"
+          "planning_fit": "boundary_fit",
+          "arc_reference_length_m": null,
+          "arc_length_ratio": null
         },
         {
           "index": 2,
@@ -49,7 +54,9 @@
               "symmetric_hausdorff_m": 0.11288663244232022
             }
           ],
-          "planning_fit": "boundary_fit"
+          "planning_fit": "boundary_fit",
+          "arc_reference_length_m": null,
+          "arc_length_ratio": null
         }
       ]
     },
@@ -75,7 +82,9 @@
               "symmetric_hausdorff_m": 0.004570040778718301
             }
           ],
-          "planning_fit": "boundary_fit"
+          "planning_fit": "boundary_fit",
+          "arc_reference_length_m": null,
+          "arc_length_ratio": null
         },
         {
           "index": 2,
@@ -98,7 +107,9 @@
               "symmetric_hausdorff_m": 0.0034049429368938674
             }
           ],
-          "planning_fit": "boundary_fit"
+          "planning_fit": "boundary_fit",
+          "arc_reference_length_m": null,
+          "arc_length_ratio": null
         }
       ]
     },
@@ -124,7 +135,9 @@
               "symmetric_hausdorff_m": 0.02451491368779018
             }
           ],
-          "planning_fit": "original_seed"
+          "planning_fit": "original_seed",
+          "arc_reference_length_m": null,
+          "arc_length_ratio": null
         },
         {
           "index": 2,
@@ -147,7 +160,9 @@
               "symmetric_hausdorff_m": 0.024676611367267894
             }
           ],
-          "planning_fit": "original_seed"
+          "planning_fit": "original_seed",
+          "arc_reference_length_m": null,
+          "arc_length_ratio": null
         }
       ]
     },
@@ -162,46 +177,47 @@
         {
           "index": 1,
           "physical_validation_success": true,
-          "path_length_m": 0.1424706448046775,
-          "minimum_virtual_clearance_m": 0.0024072807980270593,
+          "path_length_m": 0.1578739954762494,
+          "minimum_virtual_clearance_m": 0.0016155978951641963,
           "pairwise": [
             {
               "source_run": "baseline",
-              "mean_nearest_path_distance_m": 0.006501443449946192,
-              "max_nearest_path_distance_m": 0.012384621187070503,
-              "middle_median_path_distance_m": 0.008787484259245578,
-              "symmetric_hausdorff_m": 0.012527102772141746
+              "mean_nearest_path_distance_m": 0.009442508721507887,
+              "max_nearest_path_distance_m": 0.016979840311760124,
+              "middle_median_path_distance_m": 0.010718651419307203,
+              "symmetric_hausdorff_m": 0.016979840311760124
             }
           ],
-          "planning_fit": "boundary_fit"
+          "planning_fit": "original_seed",
+          "arc_reference_length_m": null,
+          "arc_length_ratio": null
         },
         {
           "index": 2,
           "physical_validation_success": true,
-          "path_length_m": 0.18010440071961448,
-          "minimum_virtual_clearance_m": 0.0014599533214436492,
+          "path_length_m": 0.22733399951803332,
+          "minimum_virtual_clearance_m": 0.007814141201080147,
           "pairwise": [
             {
               "source_run": "baseline",
-              "mean_nearest_path_distance_m": 0.02317833328157998,
-              "max_nearest_path_distance_m": 0.052135681835352984,
-              "middle_median_path_distance_m": 0.03346741490223925,
-              "symmetric_hausdorff_m": 0.052135681835352984
+              "mean_nearest_path_distance_m": 0.021516869082017005,
+              "max_nearest_path_distance_m": 0.04805744689447921,
+              "middle_median_path_distance_m": 0.027697966799518307,
+              "symmetric_hausdorff_m": 0.04805744689447921
             },
             {
-              "source_run": "solution_1",
-              "mean_nearest_path_distance_m": 0.016605411223854026,
-              "max_nearest_path_distance_m": 0.04186114442888056,
-              "middle_median_path_distance_m": 0.024199411010234054,
-              "symmetric_hausdorff_m": 0.04186114442888056
+              "source_run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diverse_r122/full_solution_1",
+              "mean_nearest_path_distance_m": 0.02711485629160798,
+              "max_nearest_path_distance_m": 0.04972310286938315,
+              "middle_median_path_distance_m": 0.03506714128737036,
+              "symmetric_hausdorff_m": 0.04972310286938315
             }
           ],
-          "planning_fit": "moving_boundary_seed"
+          "planning_fit": "moving_boundary_seed",
+          "arc_reference_length_m": 0.10621662014200081,
+          "arc_length_ratio": 2.1402865127332324
         }
       ]
     }
-  ],
-  "bank_source_run": "oracle_diverse_r121",
-  "local_only": true,
-  "full_rollout_verified": false
+  ]
 }

@@ -165,13 +165,15 @@ def execute(scene,schedule,manifest,proposal_dir,report):
                         goal['wrist_xyz_wxyz']=target;break
                 else:raise RuntimeError('No collision-free development entry')
             if diverse:
-                from multipath.planning.floating_diversity import plan_detour,DETOUR_DIRECTION_COUNT,boundary_history_ticks
+                from multipath.planning.floating_diversity import plan_detour,DETOUR_DIRECTION_COUNT,boundary_history_ticks,set_arc_reference
                 from multipath.anchors.floating import rebase_grasp_commands
                 from multipath.execution.interaction_boundary import grasp_conditioned_boundary
                 baseline_commands=np.load(baseline_command_path)['commands']
                 if carry:
                     baseline_commands=rebase_grasp_commands(baseline_commands,base_bridge['entry'],scene.snapshot(),scene.dt)
                     goal=grasp_conditioned_boundary(goal,start)
+                set_arc_reference(exclusion,start,baseline_commands[-1],
+                    (terminal_frame-window['start'])*tpf,scene.dt,scene.cfg['planning'])
                 # The bank selects a geometric detour. Each bridge is fitted
                 # anew from its actual predecessor q/dq and acquired grasp.
                 # Cached canonical contact velocities are not assigned.
@@ -322,3 +324,4 @@ def execute(scene,schedule,manifest,proposal_dir,report):
     report.update(task=task,task_success=task['success'],full_pipeline_success=success,
                   actual_duration_s=scene.ticks*scene.dt,status='complete' if success else 'task_failed')
     if bank:report['diverse_solution_success']=bool(success and solution>0)
+    (scene.out/'progress.json').write_text(json.dumps(report,indent=2))

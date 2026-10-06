@@ -89,6 +89,8 @@ def actual_feasible_exclusions(exclusions,points,budget_s,limits):
                 exclusions['size_multiplier']*reduction,exclusions.get('free_diversity_budget_s',budget_s),
                 exclusions.get('boundary_velocity'))
         except ValueError:continue
+        for key in ('arc_reference_length_m','arc_reference_method'):
+            if key in exclusions:candidate[key]=exclusions[key]
         if any(compare_path(p['points'],candidate)['actual_wrist_exclusion_pass'] for p in paths):continue
         metrics=compare_path(points,candidate);attempts.append(dict(reduction=reduction,metrics=metrics))
         if metrics['actual_wrist_exclusion_pass']:
@@ -153,11 +155,26 @@ def detour_seeds(start,goal,exclusions):
 
 
 def pose_velocity(pose,twist,near):
-    pose=np.asarray(pose);twist=np.asarray(twist);eps=1e-4
+    pose=np.asarray(pose,dtype=float);twist=np.asarray(twist,dtype=float);eps=1e-4
     advanced=pose.copy();advanced[:3]+=eps*twist[:3]
     advanced[3:]=(Rotation.from_rotvec(eps*twist[3:])*
                   Rotation.from_quat(pose[[4,5,6,3]])).as_quat()[[3,0,1,2]]
     return (pose_coordinates(advanced,near)-near)/eps
+
+
+def set_arc_reference(exclusions,start,goal_command,ticks,dt,limits):
+    """Quality reference for a nominal straight bridge with moving endpoints.
+
+    This uses robot boundary states only. It is not a shortest-path proof or
+    a human-reference tracking objective. All physics gates remain separate.
+    """
+    q0=pose_coordinates(start['wrist_xyz_wxyz']);q1=pose_coordinates(goal_command[:7],q0)
+    dq0=pose_velocity(start['wrist_xyz_wxyz'],start['wrist_twist'],q0)
+    dq1=pose_velocity(goal_command[:7],goal_command[19:25],q1)
+    path,_=boundary_fitted_path(np.vstack((q0,q1)),ticks,dt,
+        np.asarray(limits['velocity_limits']),np.asarray(limits['acceleration_limits'])*1.00005,dq0,dq1)
+    exclusions.update(arc_reference_length_m=float(np.linalg.norm(np.diff(path[:,:3],axis=0),axis=1).sum()),
+        arc_reference_method='fixed_time_straight_bridge_with_actual_boundary_velocities')
 
 
 def dynamic_detour_seed(baseline,dt,limits,dq0,dq1,exclusions,index):
@@ -330,6 +347,7 @@ def plan_detour(planner,start,goal_command,ticks,exclusions,goal_state,seed_inde
     q0=pose_coordinates(pose);q1=pose_coordinates(goal,q0)
     dq0=pose_velocity(pose,start['wrist_twist'],q0)
     dq1=pose_velocity(goal,goal_command[19:25],q1)
+    set_arc_reference(exclusions,start,goal_command,ticks,dt,limits)
     planning_exclusions={**exclusions,'cuboid':exclusions.get('planning_cuboid',exclusions['cuboid']),
         'sources':[{**s,'wrist_path_xyz':s.get('command_wrist_path_xyz',s['wrist_path_xyz'])}
                    for s in exclusions['sources']]}
@@ -391,6 +409,8 @@ def plan_detour(planner,start,goal_command,ticks,exclusions,goal_state,seed_inde
         moving=interval_exclusions(prior_paths,exclusions['window'],ticks*dt,limits,
             exclusions['size_multiplier'],exclusions.get('free_diversity_budget_s',ticks*dt),
             np.array([start['wrist_twist'][:3],goal_command[19:22]]))
+        moving.update(arc_reference_length_m=exclusions['arc_reference_length_m'],
+                      arc_reference_method=exclusions['arc_reference_method'])
         # Boundary neighborhoods are shared. The interior must still exclude
         # every previous curve; an empty/vacuous exclusion is not a solution.
         if all(not compare_path(p['points'],moving)['actual_wrist_exclusion_pass'] for p in prior_paths):

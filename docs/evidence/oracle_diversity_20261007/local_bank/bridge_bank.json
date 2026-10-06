@@ -66,6 +66,8 @@
             "actual_arc_pass": true,
             "path_length_m": 0.24991091895182976,
             "endpoint_distance_m": 0.07929784788536252,
+            "arc_reference_length_m": 0.07929784788536252,
+            "arc_length_ratio": 3.151547306972507,
             "backward_progress_fraction": 0.20242870883985142,
             "endpoint_overshoot_fraction": 0.06225906408638811,
             "smooth_arc_pass": true,
@@ -80,7 +82,7 @@
             ]
           },
           "actual_trace": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diverse_r115/bank/interval_0_35/solution_1_attempt_0/actual_trace.json",
-          "resumed_from": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diverse_r120/bank/interval_0_35/solution_1"
+          "resumed_from": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diverse_r126/bank/interval_0_35/solution_1"
         },
         {
           "index": 2,
@@ -94,6 +96,8 @@
             "actual_arc_pass": true,
             "path_length_m": 0.24309141353232902,
             "endpoint_distance_m": 0.07959029644639298,
+            "arc_reference_length_m": 0.07959029644639298,
+            "arc_length_ratio": 3.054284559626689,
             "backward_progress_fraction": 0.019157403949630704,
             "endpoint_overshoot_fraction": 0.019157403949630704,
             "smooth_arc_pass": true,
@@ -115,7 +119,7 @@
             ]
           },
           "actual_trace": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diverse_r115/bank/interval_0_35/solution_2_attempt_1/actual_trace.json",
-          "resumed_from": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diverse_r120/bank/interval_0_35/solution_2"
+          "resumed_from": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diverse_r126/bank/interval_0_35/solution_2"
         }
       ],
       "attempts": [],
@@ -147,6 +151,8 @@
             "actual_arc_pass": true,
             "path_length_m": 0.09768584349130745,
             "endpoint_distance_m": 0.07743396856323914,
+            "arc_reference_length_m": 0.07743396856323914,
+            "arc_length_ratio": 1.2615373498715736,
             "backward_progress_fraction": 0.0,
             "endpoint_overshoot_fraction": 2.220446049250313e-16,
             "smooth_arc_pass": true,
@@ -161,7 +167,7 @@
             ]
           },
           "actual_trace": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diverse_r114/bank/interval_76_82/solution_1_attempt_7/actual_trace.json",
-          "resumed_from": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diverse_r120/bank/interval_76_82/solution_1"
+          "resumed_from": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diverse_r126/bank/interval_76_82/solution_1"
         },
         {
           "index": 2,
@@ -175,6 +181,8 @@
             "actual_arc_pass": true,
             "path_length_m": 0.09874958512031064,
             "endpoint_distance_m": 0.07737108106489833,
+            "arc_reference_length_m": 0.07737108106489833,
+            "arc_length_ratio": 1.2763113008267284,
             "backward_progress_fraction": 0.0,
             "endpoint_overshoot_fraction": 2.220446049250313e-16,
             "smooth_arc_pass": true,
@@ -196,7 +204,7 @@
             ]
           },
           "actual_trace": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diverse_r114/bank/interval_76_82/solution_2_attempt_13/actual_trace.json",
-          "resumed_from": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diverse_r120/bank/interval_76_82/solution_2"
+          "resumed_from": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diverse_r126/bank/interval_76_82/solution_2"
         }
       ],
       "attempts": [],
@@ -228,6 +236,8 @@
             "actual_arc_pass": true,
             "path_length_m": 0.19593296551993555,
             "endpoint_distance_m": 0.16456385501551277,
+            "arc_reference_length_m": 0.16456385501551277,
+            "arc_length_ratio": 1.1906196868168029,
             "backward_progress_fraction": 0.0,
             "endpoint_overshoot_fraction": 2.220446049250313e-16,
             "smooth_arc_pass": true,
@@ -241,7 +251,8 @@
               }
             ]
           },
-          "actual_trace": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diverse_r121/bank/interval_101_111/solution_1_attempt_10/actual_trace.json"
+          "actual_trace": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diverse_r121/bank/interval_101_111/solution_1_attempt_10/actual_trace.json",
+          "resumed_from": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diverse_r126/bank/interval_101_111/solution_1"
         },
         {
           "index": 2,
@@ -255,6 +266,8 @@
             "actual_arc_pass": true,
             "path_length_m": 0.20714688798051065,
             "endpoint_distance_m": 0.1641401160364556,
+            "arc_reference_length_m": 0.1641401160364556,
+            "arc_length_ratio": 1.2620125596505807,
             "backward_progress_fraction": 0.0,
             "endpoint_overshoot_fraction": 2.220446049250313e-16,
             "smooth_arc_pass": true,
@@ -275,224 +288,11 @@
               }
             ]
           },
-          "actual_trace": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diverse_r121/bank/interval_101_111/solution_2_attempt_12/actual_trace.json"
+          "actual_trace": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diverse_r121/bank/interval_101_111/solution_2_attempt_12/actual_trace.json",
+          "resumed_from": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diverse_r126/bank/interval_101_111/solution_2"
         }
       ],
-      "attempts": [
-        {
-          "solution": 1,
-          "attempt": 0,
-          "seed_index": 0,
-          "status": "rejected",
-          "error": "Persistent grasp constraint failed: {'position_m': 0.009728868753137552, 'rotation_rad': 0.1296864298193092, 'contact_retained': False}"
-        },
-        {
-          "solution": 1,
-          "attempt": 1,
-          "seed_index": 1,
-          "status": "rejected",
-          "error": "Detour waypoint collides with physical geometry"
-        },
-        {
-          "solution": 1,
-          "attempt": 2,
-          "seed_index": 2,
-          "status": "rejected",
-          "error": "Persistent grasp constraint failed: {'position_m': 0.009340749493665469, 'rotation_rad': 0.14253782830665612, 'contact_retained': False}"
-        },
-        {
-          "solution": 1,
-          "attempt": 3,
-          "seed_index": 3,
-          "status": "rejected",
-          "error": "Detour waypoint collides with physical geometry"
-        },
-        {
-          "solution": 1,
-          "attempt": 4,
-          "seed_index": 4,
-          "status": "rejected",
-          "error": "Persistent grasp constraint failed: {'position_m': 0.012917071126659472, 'rotation_rad': 0.15821543356572101, 'contact_retained': False}"
-        },
-        {
-          "solution": 1,
-          "attempt": 5,
-          "seed_index": 5,
-          "status": "rejected",
-          "error": "Persistent grasp constraint failed: {'position_m': 0.009340749493665469, 'rotation_rad': 0.14253782830665612, 'contact_retained': False}"
-        },
-        {
-          "solution": 1,
-          "attempt": 6,
-          "seed_index": 6,
-          "status": "rejected",
-          "error": "Detour waypoint collides with physical geometry"
-        },
-        {
-          "solution": 1,
-          "attempt": 7,
-          "seed_index": 7,
-          "status": "rejected",
-          "error": "Detour waypoint collides with physical geometry"
-        },
-        {
-          "solution": 1,
-          "attempt": 8,
-          "seed_index": 0,
-          "status": "rejected",
-          "error": "No excluded-path-free detour in original source time: ['original_seed: Fitted detour physical collision at tick 28', 'original_direction: Fitted detour physical collision at tick 28', 'moving_boundary_seed: Fitted detour physical collision at tick 28', 'moving_boundary_direction: Fitted detour physical collision at tick 28', 'fixed_budget: Fixed source budget violates dynamics: velocity=1.209, acceleration=20.001']"
-        },
-        {
-          "solution": 1,
-          "attempt": 9,
-          "seed_index": 1,
-          "status": "rejected",
-          "error": "Detour waypoint collides with physical geometry"
-        },
-        {
-          "solution": 1,
-          "attempt": 10,
-          "seed_index": 2,
-          "status": "accepted",
-          "diversity": {
-            "actual_wrist_min_exclusion_clearance_m": 0.004035589579737308,
-            "actual_wrist_exclusion_pass": true,
-            "minimum_arc_distance_m": 0.0,
-            "actual_arc_pass": true,
-            "path_length_m": 0.19593296551993555,
-            "endpoint_distance_m": 0.16456385501551277,
-            "backward_progress_fraction": 0.0,
-            "endpoint_overshoot_fraction": 2.220446049250313e-16,
-            "smooth_arc_pass": true,
-            "comparisons": [
-              {
-                "source_run": "baseline",
-                "mean_nearest_path_distance_m": 0.013394051608704384,
-                "max_nearest_path_distance_m": 0.02451491368779018,
-                "middle_median_path_distance_m": 0.019568353750264496,
-                "symmetric_hausdorff_m": 0.02451491368779018
-              }
-            ]
-          }
-        },
-        {
-          "solution": 2,
-          "attempt": 0,
-          "seed_index": 0,
-          "status": "rejected",
-          "error": "Persistent grasp constraint failed: {'position_m': 0.009943144348224787, 'rotation_rad': 0.1330273156688327, 'contact_retained': False}"
-        },
-        {
-          "solution": 2,
-          "attempt": 1,
-          "seed_index": 1,
-          "status": "rejected",
-          "error": "Detour waypoint collides with physical geometry"
-        },
-        {
-          "solution": 2,
-          "attempt": 2,
-          "seed_index": 2,
-          "status": "rejected",
-          "error": "No excluded-path-free detour in original source time: ['original_seed: Detour separation cannot fit immutable source time and dynamics', 'original_direction: Detour separation cannot fit immutable source time and dynamics', 'moving_boundary_seed: Detour separation cannot fit immutable source time and dynamics', 'moving_boundary_direction: Detour separation cannot fit immutable source time and dynamics', 'fixed_budget: Fixed source budget violates dynamics: velocity=1.209, acceleration=20.001']"
-        },
-        {
-          "solution": 2,
-          "attempt": 3,
-          "seed_index": 3,
-          "status": "rejected",
-          "error": "Detour waypoint collides with physical geometry"
-        },
-        {
-          "solution": 2,
-          "attempt": 4,
-          "seed_index": 4,
-          "status": "rejected",
-          "error": "Persistent grasp constraint failed: {'position_m': 0.013338443923111456, 'rotation_rad': 0.16418367163984054, 'contact_retained': False}"
-        },
-        {
-          "solution": 2,
-          "attempt": 5,
-          "seed_index": 5,
-          "status": "rejected",
-          "error": "No excluded-path-free detour in original source time: ['original_seed: Detour separation cannot fit immutable source time and dynamics', 'original_direction: Detour separation cannot fit immutable source time and dynamics', 'moving_boundary_seed: Detour separation cannot fit immutable source time and dynamics', 'moving_boundary_direction: Detour separation cannot fit immutable source time and dynamics', 'fixed_budget: Fixed source budget violates dynamics: velocity=1.209, acceleration=20.001']"
-        },
-        {
-          "solution": 2,
-          "attempt": 6,
-          "seed_index": 6,
-          "status": "rejected",
-          "error": "Detour waypoint collides with physical geometry"
-        },
-        {
-          "solution": 2,
-          "attempt": 7,
-          "seed_index": 7,
-          "status": "rejected",
-          "error": "Detour waypoint collides with physical geometry"
-        },
-        {
-          "solution": 2,
-          "attempt": 8,
-          "seed_index": 0,
-          "status": "rejected",
-          "error": "No excluded-path-free detour in original source time: ['original_seed: Fitted detour physical collision at tick 28', 'original_direction: Fitted detour physical collision at tick 28', 'moving_boundary_seed: Fitted detour physical collision at tick 28', 'moving_boundary_direction: Fitted detour physical collision at tick 28', 'fixed_budget: Fixed source budget violates dynamics: velocity=1.209, acceleration=20.001']"
-        },
-        {
-          "solution": 2,
-          "attempt": 9,
-          "seed_index": 1,
-          "status": "rejected",
-          "error": "Detour waypoint collides with physical geometry"
-        },
-        {
-          "solution": 2,
-          "attempt": 10,
-          "seed_index": 2,
-          "status": "rejected",
-          "error": "No excluded-path-free detour in original source time: ['original_seed: Detour separation cannot fit immutable source time and dynamics', 'original_direction: Detour separation cannot fit immutable source time and dynamics', 'moving_boundary_seed: Detour separation cannot fit immutable source time and dynamics', 'moving_boundary_direction: Detour separation cannot fit immutable source time and dynamics', 'fixed_budget: Fixed source budget violates dynamics: velocity=1.209, acceleration=20.001']"
-        },
-        {
-          "solution": 2,
-          "attempt": 11,
-          "seed_index": 3,
-          "status": "rejected",
-          "error": "Detour waypoint collides with physical geometry"
-        },
-        {
-          "solution": 2,
-          "attempt": 12,
-          "seed_index": 4,
-          "status": "accepted",
-          "diversity": {
-            "actual_wrist_min_exclusion_clearance_m": 0.004199719635907541,
-            "actual_wrist_exclusion_pass": true,
-            "minimum_arc_distance_m": 0.0,
-            "actual_arc_pass": true,
-            "path_length_m": 0.20714688798051065,
-            "endpoint_distance_m": 0.1641401160364556,
-            "backward_progress_fraction": 0.0,
-            "endpoint_overshoot_fraction": 2.220446049250313e-16,
-            "smooth_arc_pass": true,
-            "comparisons": [
-              {
-                "source_run": "baseline",
-                "mean_nearest_path_distance_m": 0.019139824967717056,
-                "max_nearest_path_distance_m": 0.039226488851866366,
-                "middle_median_path_distance_m": 0.030720190064672106,
-                "symmetric_hausdorff_m": 0.039226488851866366
-              },
-              {
-                "source_run": "solution_1",
-                "mean_nearest_path_distance_m": 0.012213814191849644,
-                "max_nearest_path_distance_m": 0.024676611367267894,
-                "middle_median_path_distance_m": 0.01941626016738032,
-                "symmetric_hausdorff_m": 0.024676611367267894
-              }
-            ]
-          }
-        }
-      ],
+      "attempts": [],
       "complete": true
     },
     {
@@ -515,27 +315,26 @@
           "artifact": "interval_128_144/solution_1",
           "local_physical_success": true,
           "diversity": {
-            "actual_wrist_min_exclusion_clearance_m": 0.0019790461822808145,
+            "actual_wrist_min_exclusion_clearance_m": 0.0016155978951641963,
             "actual_wrist_exclusion_pass": true,
             "minimum_arc_distance_m": 0.0,
             "actual_arc_pass": true,
-            "path_length_m": 0.13986159207277532,
-            "endpoint_distance_m": 0.0592347804855057,
-            "backward_progress_fraction": 0.31489276020638535,
-            "endpoint_overshoot_fraction": 0.0,
+            "path_length_m": 0.1578739954762494,
+            "endpoint_distance_m": 0.06355379597064387,
+            "backward_progress_fraction": 0.3993823273316442,
+            "endpoint_overshoot_fraction": 2.220446049250313e-16,
             "smooth_arc_pass": true,
             "comparisons": [
               {
                 "source_run": "baseline",
-                "mean_nearest_path_distance_m": 0.0063785534169973224,
-                "max_nearest_path_distance_m": 0.012305042847318497,
-                "middle_median_path_distance_m": 0.008739570467973313,
-                "symmetric_hausdorff_m": 0.012488394580059013
+                "mean_nearest_path_distance_m": 0.009442508721507887,
+                "max_nearest_path_distance_m": 0.016979840311760124,
+                "middle_median_path_distance_m": 0.010718651419307203,
+                "symmetric_hausdorff_m": 0.016979840311760124
               }
             ]
           },
-          "actual_trace": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diverse_r116/bank/interval_128_144/solution_1_attempt_23/actual_trace.json",
-          "resumed_from": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diverse_r120/bank/interval_128_144/solution_1"
+          "actual_trace": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diverse_r122/full_solution_1/actual_trace.json"
         },
         {
           "index": 2,
@@ -543,42 +342,80 @@
           "artifact": "interval_128_144/solution_2",
           "local_physical_success": true,
           "diversity": {
-            "actual_wrist_min_exclusion_clearance_m": 0.0014599533214436492,
+            "actual_wrist_min_exclusion_clearance_m": 0.007814141201080147,
             "actual_wrist_exclusion_pass": true,
             "minimum_arc_distance_m": 0.0,
             "actual_arc_pass": true,
-            "path_length_m": 0.18010440071961448,
-            "endpoint_distance_m": 0.05860866292266712,
-            "backward_progress_fraction": 0.3630538253606468,
-            "endpoint_overshoot_fraction": 0.087451217616481,
+            "path_length_m": 0.22733399951803332,
+            "endpoint_distance_m": 0.06552604835834891,
+            "arc_reference_length_m": 0.10621662014200081,
+            "arc_length_ratio": 2.1402865127332324,
+            "backward_progress_fraction": 0.6315233245537157,
+            "endpoint_overshoot_fraction": 0.01261266839779851,
             "smooth_arc_pass": true,
             "comparisons": [
               {
                 "source_run": "baseline",
-                "mean_nearest_path_distance_m": 0.02317833328157998,
-                "max_nearest_path_distance_m": 0.052135681835352984,
-                "middle_median_path_distance_m": 0.03346741490223925,
-                "symmetric_hausdorff_m": 0.052135681835352984
+                "mean_nearest_path_distance_m": 0.021516869082017005,
+                "max_nearest_path_distance_m": 0.04805744689447921,
+                "middle_median_path_distance_m": 0.027697966799518307,
+                "symmetric_hausdorff_m": 0.04805744689447921
               },
               {
-                "source_run": "solution_1",
-                "mean_nearest_path_distance_m": 0.016605411223854026,
-                "max_nearest_path_distance_m": 0.04186114442888056,
-                "middle_median_path_distance_m": 0.024199411010234054,
-                "symmetric_hausdorff_m": 0.04186114442888056
+                "source_run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diverse_r122/full_solution_1",
+                "mean_nearest_path_distance_m": 0.02711485629160798,
+                "max_nearest_path_distance_m": 0.04972310286938315,
+                "middle_median_path_distance_m": 0.03506714128737036,
+                "symmetric_hausdorff_m": 0.04972310286938315
               }
             ]
           },
-          "actual_trace": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diverse_r120/bank/interval_128_144/solution_2_attempt_17/actual_trace.json",
-          "resumed_from": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diverse_r120/bank/interval_128_144/solution_2"
+          "actual_trace": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diverse_r127/bank/interval_128_144/solution_2_attempt_0/actual_trace.json"
         }
       ],
-      "attempts": [],
+      "attempts": [
+        {
+          "solution": 2,
+          "attempt": 0,
+          "seed_index": 1,
+          "status": "accepted",
+          "fresh_physical_replay_of_proposal": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diverse_r126/bank/interval_128_144/solution_2_attempt_17",
+          "diversity": {
+            "actual_wrist_min_exclusion_clearance_m": 0.007814141201080147,
+            "actual_wrist_exclusion_pass": true,
+            "minimum_arc_distance_m": 0.0,
+            "actual_arc_pass": true,
+            "path_length_m": 0.22733399951803332,
+            "endpoint_distance_m": 0.06552604835834891,
+            "arc_reference_length_m": 0.10621662014200081,
+            "arc_length_ratio": 2.1402865127332324,
+            "backward_progress_fraction": 0.6315233245537157,
+            "endpoint_overshoot_fraction": 0.01261266839779851,
+            "smooth_arc_pass": true,
+            "comparisons": [
+              {
+                "source_run": "baseline",
+                "mean_nearest_path_distance_m": 0.021516869082017005,
+                "max_nearest_path_distance_m": 0.04805744689447921,
+                "middle_median_path_distance_m": 0.027697966799518307,
+                "symmetric_hausdorff_m": 0.04805744689447921
+              },
+              {
+                "source_run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diverse_r122/full_solution_1",
+                "mean_nearest_path_distance_m": 0.02711485629160798,
+                "max_nearest_path_distance_m": 0.04972310286938315,
+                "middle_median_path_distance_m": 0.03506714128737036,
+                "symmetric_hausdorff_m": 0.04972310286938315
+              }
+            ]
+          }
+        }
+      ],
       "complete": true
     }
   ],
   "full_rollout_verified": false,
-  "pbs_job_id": "651364.hopper-m-02",
-  "physically_executed_predecessor": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diverse_r118/full_solution_1",
-  "resumed_from": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diverse_r120/bank"
+  "pbs_job_id": "651480.hopper-m-02",
+  "physically_executed_predecessor": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diverse_r124/full_solution_2",
+  "resumed_from": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diverse_r126/bank"
 }

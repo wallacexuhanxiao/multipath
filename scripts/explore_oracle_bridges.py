@@ -79,7 +79,7 @@ def main():
     try:
         from multipath.execution.floating_scene import FloatingScene
         from multipath.planning.floating import FloatingPlanner
-        from multipath.planning.floating_diversity import interval_exclusions,plan_detour,boundary_history_ticks,actual_feasible_exclusions,DETOUR_DIRECTION_COUNT
+        from multipath.planning.floating_diversity import interval_exclusions,plan_detour,boundary_history_ticks,actual_feasible_exclusions,DETOUR_DIRECTION_COUNT,set_arc_reference
         from multipath.path_exclusion import compare_path
         from multipath.anchors.compatibility import boundary_errors,compatible
         from multipath.anchors.floating import validate_commands,rebase_grasp_commands
@@ -132,6 +132,15 @@ def main():
         for wi,w in enumerate(schedule.windows):
             if w['mode']!='RELAXED':continue
             interval=out/f'interval_{w["start"]}_{w["end"]}';interval.mkdir()
+            replay_proposals=[]
+            if resumed and w['start']==args.repair_window_start:
+                old=next(i for i in resumed['intervals'] if i['window']==[w['start'],w['end']])
+                for previous in old['attempts']:
+                    if not previous.get('error','').startswith('Measured path failed exclusion: '):continue
+                    trial=args.resume_bank/f'interval_{w["start"]}_{w["end"]}'/f'solution_{previous["solution"]}_attempt_{previous["attempt"]}'
+                    recorded=json.loads((trial/'actual_trace.json').read_text())
+                    if np.isclose(recorded[-1]['source_frame'],w['end']):
+                        replay_proposals.append((trial,previous,recorded[0]))
             base_bridge=bridges[w['start']];budget=(w['end']-w['start'])/schedule.fps
             points=np.asarray([r['wrist_xyz_wxyz'][:3] for r in trace if w['start']<=r['source_frame']<=w['end']])
             paths=[dict(id='baseline',points=points,command_points=np.vstack((base_bridge['entry']['wrist_xyz_wxyz'][:3],base_bridge['commands'][:,:3])))]
@@ -237,6 +246,10 @@ def main():
                 for attempt in range(args.attempts_per_solution):
                     trial=interval/f'solution_{index}_attempt_{attempt}';trial.mkdir()
                     seed_index=attempt%DETOUR_DIRECTION_COUNT;multiplier=.5**(attempt//(2*DETOUR_DIRECTION_COUNT))
+                    proposal=replay_proposals[attempt] if attempt<len(replay_proposals) else None
+                    if proposal:
+                        previous_exclusion=json.loads((proposal[0]/'exclusions.json').read_text())
+                        seed_index=proposal[1]['seed_index'];multiplier=previous_exclusion['size_multiplier']
                     stats=dict(solution=index,attempt=attempt,seed_index=seed_index,status='running')
                     item['attempts'].append(stats);save()
                     try:
@@ -256,10 +269,24 @@ def main():
                             from multipath.execution.interaction_boundary import grasp_conditioned_boundary
                             current_baseline=rebase_grasp_commands(current_baseline,base_bridge['entry'],start,scene.dt)
                             current_goal=grasp_conditioned_boundary(goal_state,start)
-                        commands,timing=plan_detour(planner,start,current_baseline[-1],
-                            len(base_bridge['commands']),exclusions,current_goal,seed_index,
-                            baseline_commands=current_baseline,has_next_anchor=bool(later),
-                            regularize=bool((attempt//DETOUR_DIRECTION_COUNT)%2))
+                        from multipath.execution.floating_executor import measured_drive_matches
+                        if proposal and measured_drive_matches(start,proposal[2]):
+                            commands=np.load(proposal[0]/'commands.npz')['commands']
+                            timing=json.loads((proposal[0]/'planning.json').read_text())
+                            exclusions=previous_exclusion
+                            if timing['fit'].startswith('moving_boundary'):
+                                prior_paths=[dict(id=s['run'],points=np.asarray(s['wrist_path_xyz']),
+                                    command_points=np.asarray(s['command_wrist_path_xyz'])) for s in exclusions['sources']]
+                                exclusions=interval_exclusions(prior_paths,item['window'],budget,scene.cfg['planning'],
+                                    multiplier,exclusions.get('free_diversity_budget_s'),
+                                    np.array([start['wrist_twist'][:3],commands[-1,19:22]]))
+                            set_arc_reference(exclusions,start,commands[-1],len(commands),scene.dt,scene.cfg['planning'])
+                            stats['fresh_physical_replay_of_proposal']=str(proposal[0])
+                        else:
+                            commands,timing=plan_detour(planner,start,current_baseline[-1],
+                                len(base_bridge['commands']),exclusions,current_goal,seed_index,
+                                baseline_commands=current_baseline,has_next_anchor=bool(later),
+                                regularize=bool((attempt//DETOUR_DIRECTION_COUNT)%2))
                         check=validate_commands(scene,commands,start)
                         if not check['feasible']:raise RuntimeError(f'Detour command limits: {check}')
                         np.savez_compressed(trial/'commands.npz',commands=commands)
@@ -277,6 +304,7 @@ def main():
                             if not planner.measured_valid() and planner.measured_mesh_collisions():
                                 raise RuntimeError('Measured RELAXED collision')
                         exit_state=scene.snapshot()
+                        np.savez_compressed(trial/'actual_wrist_path.npz',actual_wrist_path=np.asarray(actual))
                         transition=check_interaction_boundary(scene,current_goal,w['contact'])
                         if not transition['success']:raise RuntimeError(f'Detour boundary mismatch: {transition}')
                         exclusions,diversity=actual_feasible_exclusions(exclusions,np.asarray(actual),budget,scene.cfg['planning'])

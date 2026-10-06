@@ -2,7 +2,7 @@
 
 ## 当前已验证的结果
 
-基于已有 Oracle V0，在四个 RELAXED 区间分别获得 **3 条局部 PhysX 验证成功的路径**，包括原始路径与两条替代路径。已完成 **2 条完整的 4.8 秒连续 PhysX 轨迹**：原始 V0 与新替代轨迹。**本轮第三条完整组合未通过**；局部三解不能当作三条完整轨迹成功。
+基于已有 Oracle V0，在四个 RELAXED 区间分别获得 **3 条局部 PhysX 验证成功的路径**，包括原始路径与两条替代路径。续轮 r127 已完成 **3 条完整的 4.8 秒连续 PhysX 轨迹**：原始 V0 与两条空间不同的替代轨迹。每条完整轨迹都从初态执行、通过所有 7 个段与实际终态合约，段间重置为 0；没有验证全部 81 种任意区间组合。
 
 当前使用 floating XHand。机械臂未参与本轮规划或物理验收；没有 VLM、完整 EgoEngine robot reference、源时间拉伸或段间状态重置。
 
@@ -47,7 +47,7 @@
 
 以上机制不依赖 sequence 名称或手写当前样本帧索引。尚未完成第二个 sequence 的 transfer 验证，因此应表述为可复用机制及本样本物理证据，不能声称已证明跨样本收益。
 
-## 第三条完整轨迹为什么失败
+## 第三条完整轨迹的失败与修复过程
 
 r122 的第三条候选完成了第一条新 free bridge 与 A1，A1 交互成功。随后在 [76,82) 的 nominal boundary fitting 被拒绝，没有进入这段桥的 PhysX 执行。
 
@@ -55,7 +55,7 @@ A1 实测出口 Y 速度为 **−0.02885 m/s**，而 grasp-conditioned 的后继
 
 这说明 **局部 interaction success 不保证 outgoing bridge compatibility**。拒绝这个组合是合理结果；不能把 nominal acceleration 当作实际 PhysX 硬件限制，也不能通过延长桥时间或赋值到 A2 状态使它通过。
 
-当前修复路径：`anchors/bridge_boundary.py` 与 `scripts/refine_diverse_anchor.py`。从真实 alternative prefix 获得 A1 入口，计算下一段固定时间边界需要的速度调整，在前一个 Anchor 内生成小型末端切向残差候选。源时间、终端命令位置、手指驱动保持一致；候选通过真实 interaction + outgoing bridge 执行后，再从初态重新取得入口验证导出的 core，最后跑完整 trajectory。
+后续采用的修复路径：`anchors/bridge_boundary.py` 与 `scripts/refine_diverse_anchor.py`。从真实 alternative prefix 获得 A1 入口，计算下一段固定时间边界需要的速度调整，在前一个 Anchor 内生成小型末端切向残差候选。源时间、终端命令位置、手指驱动保持一致；候选通过真实 interaction + outgoing bridge 执行后，再从初态重新取得入口验证导出的 core，最后跑完整 trajectory。
 
 **r123 / `651413.hopper-m-02` 的局部结果已通过**：两个候选即可取得 valid padded interaction、实际执行成功的 0.2 s outgoing bridge，以及从新鲜物理前驱取得入口后执行成功的 exported core。手指命令、终端 wrist 命令位置及源时间均未改变。实际出口 Y 速度从 −0.02885 变为 +0.13073 m/s，后继桥对两条旧路径的实测排除间隙 0.297 mm。导出遗漏 `source_fps/control_dt` 的字段错误随后修复；这些元数据由实测 core 边界时间与命令数量恢复，没有修改状态或 success flags。
 
@@ -65,16 +65,47 @@ r125 / `651435.hopper-m-02` 从初态重跑完整第三条，保留 r124 的成�
 
 r126 / `651446.hopper-m-02` 从真实 A3 出口，仅重搜最后一个区间，保留前一条完整成功路径作为 incumbent。24 个候选搜索结束，没有 accepted 第三解；当前入口对应的 terminal bank 为 2 解，原始独立开发 bank 仍为每段 3 解。尝试 17 完整执行了局部终段并通过实际路径排除，但因为长度 0.2273 m / 弦长 0.06553 m = 3.47，超过现有 3.25 弦长的弧线质量门槛而被拒绝。它没有被标记为完整 trajectory success，也未取得最终 task acceptance。
 
-**下一轮剩余问题**有两个：实际 A3 出口下 free hand 的 transient geometry / tracking 安全；以及非零入口速度下，固定“路径长度 / 弦长”是否适合作为 hard diversity gate。入口 wrist 速度约为 `[-0.598, +0.330, +0.074] m/s`，必需的转向会增加路程；该门槛需要按真实边界及可达性分析，不能只为这次 3.47 的候选直接调阈值。
+**r126 结束时的剩余问题**有两个：实际 A3 出口下 free hand 的 transient geometry / tracking 安全；以及非零入口速度下，固定“路径长度 / 弦长”是否适合作为 hard diversity gate。入口 wrist 速度约为 `[-0.598, +0.330, +0.074] m/s`，必需的转向会增加路程；该门槛需要按真实边界及可达性分析，不能只为这次 3.47 的候选直接调阈值。
 
-额外修复了搜索结果没有 accepted bank 时仍进入完整 rollout 的流程错误：现在 bank 未 complete 时直接结束该 job。后续碰撞报告保存具体 mesh、障碍与 source frame，便于直接定位。本轮收尾时没有继续提交新实验。
+额外修复了搜索结果没有 accepted bank 时仍进入完整 rollout 的流程错误：现在 bank 未 complete 时直接结束该 job。后续碰撞报告保存具体 mesh、障碍与 source frame，便于直接定位。r126 当轮收尾时未继续提交新实验；r127 的后续结果见下一节。
+
+## 续轮：移动边界的弧线参照
+
+对上一轮 terminal candidate 17 的归因发现：其完整局部 PhysX 已通过碰撞、实际排除与边界检查，唯一拒绝点是弦长归一化的路径长度质量门槛。只把该门槛的参照改为 **相同固定时间、相同实测初速度、相同终端驱动速度下的 nominal straight-bridge fit 长度**，保留 3.25 倍系数；不改变接触、碰撞、关节/速度/加速度约束或 source clock。
+
+本例 nominal straight-bridge fit 为 0.10622 m，命令边界弦长 0.06088 m。记录的实际路径长 0.22733 m；相对实测端点弦长是 3.47，而相对 nominal moving-boundary fit 是 2.14。静止边界数值检查的参照仍等于弦长 0.1 m；四个真实区间的该参照均能在原 source budget 内算出。
+
+这是一条弧线质量启发式，**不是 shortest-path 最优性或物理安全证明**。原 PhysX 检查必须重新通过。旧完成候选只作为 replay proposal，在新鲜真实初态→前驱→当前入口后重新物理执行，不从日志直接改成 accepted。后续每个物理步的 actual wrist path 也会保存，避免只有源帧记录能回溯。
+
+验证作业 r127 / `651480.hopper-m-02`：interactive H200，20 分钟申请；局部复验后执行从初态开始的整条第三解。
+
+**r127 结果通过**：旧完成候选只作为 proposal，fresh physical replay 的实测排除间隙仍为 7.814 mm；随后整条第三解从初态执行完成，`full_pipeline_success=true`、`diverse_solution_success=true`、`task_success=true`，原时长与实测时长均 4.8 s，段间重置 0。终态位置误差 **4.189 mm**，旋转误差 **14.602°**，线速度 **0.0615 mm/s**，碗已释放。
+
+前一轮的 r124/r125/r126 是失败历史记录，不能替代这次 fresh replay 与连续 rollout 的通过证据。原来的第一条和第二条仍保留；第三条对每个 RELAXED 区间都排除了原始路径和第二条的实际曲线。核心语义、时间、抓握状态仍由 Oracle Anchors 和 PhysX 验证，RELAXED 没有人类轨迹相似度 gate。
+
+该修复使用实际边界状态和通用时间拟合，不依赖样本名或区间帧号；第二个 sequence 的 transfer 尚未验证。弧线长度参照属于质量启发式，不证明曲线无回转；最终视频保留实际绕行形状，未做后处理平滑或改速。
+
+
+第三条完整 rollout 的实测差异如下，两组对照均使用成功完整轨迹的 actual wrist path：
+
+| RELAXED | 距原始路径：平均 / 最大 | 距第二条：平均 / 最大 | 最小虚拟障碍间隙 |
+|---|---:|---:|---:|
+| [0,35) | 47.86 / 101.04 mm | 57.25 / 112.66 mm | 3.603 mm |
+| [76,82) | 3.98 / 5.74 mm | 1.54 / 2.32 mm | 0.290 mm |
+| [101,111) | 22.46 / 47.12 mm | 14.91 / 30.41 mm | 3.682 mm |
+| [128,144) | 21.52 / 48.06 mm | 27.11 / 49.72 mm | 7.814 mm |
+
+第三条末段沿入口速度先移动、再返回目标，记录的 backward progress fraction 为 0.632；因此当前成功证明的是固定时间下空间不同且物理有效的解，并不证明所有解都是无回转的简洁弧线。
 
 ## 可直接播放与复现的产物
 
 - 新完整实际状态视频：`evidence/oracle_diversity_20261007/solution_2/floating_xhand_actual.mp4`
+- 第三条完整实际状态视频：`evidence/oracle_diversity_20261007/solution_3/floating_xhand_actual.mp4`
+- 三条完整轨迹上下叠放：`evidence/oracle_diversity_20261007/three_solutions_stacked.mp4`
 - 原始路径与新完整路径上下叠放：`evidence/oracle_diversity_20261007/baseline_vs_solution_2.mp4`
-- 两条完整实际路径的分段空间比较：`evidence/oracle_diversity_20261007/full_wrist_paths.png` / `.pdf`
+- 三条完整实际路径的分段空间比较：`evidence/oracle_diversity_20261007/full_wrist_paths.png` / `.pdf`
 - 每段三条独立局部实际路径：`evidence/oracle_diversity_20261007/local_wrist_paths.png` / `.pdf`，不能当作三条完整 rollout 图。
+- 第三条 machine-readable report 与 trace：`evidence/oracle_diversity_20261007/solution_3/pipeline_result.json`、`actual_trace.json`
 - 新完整 machine-readable report 与 trace：`evidence/oracle_diversity_20261007/solution_2/pipeline_result.json`、`actual_trace.json`
 - 局部 bank：`evidence/oracle_diversity_20261007/local_bank/bridge_bank.json` 及区间命令/实测曲线。
 

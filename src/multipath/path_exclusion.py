@@ -350,15 +350,18 @@ def compare_path(points, exclusions):
     progress=(path-path[0])@(path[-1]-path[0])/max(chord*chord,1e-10)
     backward_progress=float(np.maximum(-np.diff(progress),0).sum())
     endpoint_overshoot=float(max(0.,-progress.min(),progress.max()-1.))
-    # A large distance caused by a loop is not the broad, simple arc sought by
-    # distance mode. Keep older fixed-size exclusions free of this new gate.
+    # A moving boundary can require a turn even for a straight bridge. Its
+    # nominal fixed-time fit provides the length reference; a chord alone
+    # incorrectly rejects that mandatory motion as excessive detour length.
+    reference=max(chord,float(exclusions.get('arc_reference_length_m',0.)),1e-5)
     smooth_arc_pass=((target<=0 and not exclusions.get('require_simple_arc')) or
-                    (path_length<=3.25*max(chord,1e-5) and
+                    (path_length<=3.25*reference and
                      (target<=0 or (backward_progress<=.25 and endpoint_overshoot<=.20))))
     return {'actual_wrist_min_exclusion_clearance_m': clearance,
             'actual_wrist_exclusion_pass': clearance > float(exclusions.get('clearance_threshold_m',.002)),
             'minimum_arc_distance_m':target,'actual_arc_pass':arc_pass,
             'path_length_m':path_length,'endpoint_distance_m':chord,
+            'arc_reference_length_m':reference,'arc_length_ratio':path_length/reference,
             'backward_progress_fraction':backward_progress,
             'endpoint_overshoot_fraction':endpoint_overshoot,
             'smooth_arc_pass':smooth_arc_pass,
