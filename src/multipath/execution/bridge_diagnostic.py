@@ -11,15 +11,18 @@ from multipath.validation.physics import retention_errors
 from multipath.execution.wrench_handoff import takeover_bias
 
 
-def run(scene,start,commands,planner,goal,target,out):
+def run(scene,start,commands,planner,goal,target,out,components=False):
     out=Path(out);results=[];fps=scene.manifest['fps'];begin=start['time_s']*fps
-    for kind in ['planned','wrench_continuous','previous_drive_continuation']:
+    kinds=['torque_continuous','force_continuous'] if components else ['planned','wrench_continuous','previous_drive_continuation']
+    for kind in kinds:
         trial=out/kind;scene.begin_trial(trial,start,mesh=True);scene.capture('INITIAL',begin)
         resets=scene.restore_count;bias=takeover_bias(start,commands[0],scene.cfg['controller'])
         rows=[];failed=False;error=None
         for k,command in enumerate(commands):
             c=command.copy();phase=k/max(1,len(commands)-1)
-            scene.wrench_bias=bias*(1-3*phase**2+2*phase**3) if kind=='wrench_continuous' else np.zeros(6)
+            scene.wrench_bias=bias*(1-3*phase**2+2*phase**3) if kind in ['wrench_continuous','torque_continuous','force_continuous'] else np.zeros(6)
+            if kind=='torque_continuous':scene.wrench_bias[:3]=0.
+            if kind=='force_continuous':scene.wrench_bias[3:]=0.
             if kind=='previous_drive_continuation':
                 c[:7]=start['command_wrist'];c[19:25]=start['command_twist']
             frame=begin+(k+1)*scene.dt*fps
@@ -39,7 +42,7 @@ def run(scene,start,commands,planner,goal,target,out):
             actual_duration_s=(scene.ticks*scene.dt-start['time_s']),completed=len(rows)==len(commands),
             retention_failed=failed,error=error,transition=transition,
             bridge_success=bool(kind!='previous_drive_continuation' and not failed and error is None and len(rows)==len(commands) and transition['success']),
-            resets_within_rollout=scene.restore_count-resets,initial_wrench_bias=bias.tolist() if kind=='wrench_continuous' else [0.]*6,
+            resets_within_rollout=scene.restore_count-resets,initial_wrench_bias=(np.r_[np.zeros(3),bias[3:]] if kind=='torque_continuous' else np.r_[bias[:3],np.zeros(3)] if kind=='force_continuous' else bias if kind=='wrench_continuous' else np.zeros(6)).tolist(),
             max_relative_rotation_rad=max((r['retention']['rotation_rad'] for r in rows),default=0.),
             max_relative_position_m=max((r['retention']['position_m'] for r in rows),default=0.))
         (trial/'physics_steps.json').write_text(json.dumps(rows,indent=2))
