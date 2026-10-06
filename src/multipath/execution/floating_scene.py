@@ -95,13 +95,10 @@ class FloatingScene:
 
     def _drive(self,pose,hand,twist):
         actual,velocity=self.root_motion();cfg=self.cfg['controller']
-        rotation=Rotation.from_quat(np.asarray(pose)[[4,5,6,3]])*Rotation.from_quat(actual[[4,5,6,3]]).inv()
-        error=rotation.as_quat();error*=1 if error[3]>=0 else -1
-        force=np.clip(cfg['wrist_kp']*(pose[:3]-actual[:3])+cfg['wrist_kd']*(twist[:3]-velocity[:3]),-cfg['wrist_max_force'],cfg['wrist_max_force'])
-        # The source-clock interface supplies a world-frame six-dimensional
-        # twist. Damping must track its angular target as well as its linear
-        # target; damping towards zero silently discards half that interface.
-        torque=np.clip(2*cfg['wrist_kp_rot']*error[:3]+cfg['wrist_kd_rot']*(twist[3:]-velocity[3:]),-cfg['wrist_max_torque'],cfg['wrist_max_torque'])
+        from multipath.execution.wrench_handoff import feedback_wrench
+        response=feedback_wrench(pose,twist,actual,velocity,cfg)+getattr(self,'wrench_bias',np.zeros(6))
+        force=np.clip(response[:3],-cfg['wrist_max_force'],cfg['wrist_max_force'])
+        torque=np.clip(response[3:],-cfg['wrist_max_torque'],cfg['wrist_max_torque'])
         force+=np.array([0,0,9.81])*np.asarray(self.av.get_masses()).sum()
         n=self.av.max_links
         forces=np.zeros((1,n,3),dtype=np.float32);torques=np.zeros_like(forces)
@@ -159,6 +156,7 @@ class FloatingScene:
         # Restore a grasp's actual recorded preload as well as q/dq. Replacing
         # a deflected finger's drive target with measured q releases the grip.
         preserve='command_hand_q' in state
+        self.wrench_bias=np.zeros(6)
         drive=q.copy()
         if preserve:drive[self.fingers]=state.get('command_hand_q',state['hand_q'])
         self.robot.apply_action(self.Action(joint_positions=drive,joint_velocities=np.zeros_like(dq) if preserve else dq))

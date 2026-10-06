@@ -13,6 +13,7 @@ def main():
         p.add_argument('--'+name,type=Path,required=True)
     p.add_argument('--from-anchor',required=True);p.add_argument('--to-anchor',required=True)
     p.add_argument('--preflight-only',action='store_true')
+    p.add_argument('--diagnose-takeover',action='store_true',help='Three short physical attribution trials, never counted as a connected pipeline.')
     p.add_argument('--source-entry-target',action='store_true',help='Development acquisition of a new physical entry from the next oracle source boundary; the old core is a seed, not proof of compatibility.')
     args=p.parse_args();out=args.output_dir;out.mkdir(parents=True,exist_ok=True)
     from multipath.oracle_schedule import OracleSchedule
@@ -107,6 +108,10 @@ def main():
         commands,timing=planner.plan(np.asarray(goal['wrist_xyz_wxyz']),round(check['budget_s']/dt),
                                    np.asarray(goal['wrist_twist']),goal_state=goal)
         report['planning']=timing;np.savez_compressed(out/'bridge_commands.npz',commands=commands)
+        if args.diagnose_takeover:
+            from multipath.execution.bridge_diagnostic import run
+            report['diagnostic_trials']=run(scene,start,commands,planner,goal,source_target,out/'diagnostic')
+            report['status']='diagnostic_complete';return
         for k,c in enumerate(commands):
             frame=window['start']+(k+1)*dt*schedule.fps;scene.step_control(c,'RELAXED',frame)
             report['actual_end_source_frame']=frame

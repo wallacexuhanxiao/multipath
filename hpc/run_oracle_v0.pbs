@@ -63,6 +63,7 @@ if [[ -n "${MULTIPATH_BRIDGE_FROM:-}" ]]; then
  [[ "$EMBODIMENT" == floating_xhand ]]
  BRIDGE_ARGS=()
  [[ "${MULTIPATH_BRIDGE_SOURCE_ENTRY_TARGET:-0}" != 1 ]] || BRIDGE_ARGS+=(--source-entry-target)
+ [[ "${MULTIPATH_BRIDGE_DIAGNOSE_TAKEOVER:-0}" != 1 ]] || BRIDGE_ARGS+=(--diagnose-takeover)
  run_sim scripts/develop_floating_bridge.py --proposals "$PROPOSALS" --schedule "$MULTIPATH_SCHEDULE" \
   --from-anchor "$MULTIPATH_BRIDGE_FROM" --to-anchor "${MULTIPATH_BRIDGE_TO:?next Anchor}" \
   --from-artifacts "${MULTIPATH_BRIDGE_FROM_ARTIFACTS:?validated preceding Anchor}" \
