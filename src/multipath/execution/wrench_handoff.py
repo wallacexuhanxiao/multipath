@@ -22,3 +22,23 @@ def takeover_bias(start,first_command,config):
     previous=feedback_wrench(start.get('command_wrist',pose),start.get('command_twist',twist),pose,twist,config)
     current=feedback_wrench(first_command[:7],first_command[19:25],pose,twist,config)
     return previous-current
+
+
+def balanced_force_profile(ticks,dt,mass,kp,kd):
+    """Smooth takeover with zero terminal position/velocity footprint.
+
+    The linear closed-loop PD model sizes this input, not source-specific
+    tuning. Actual coupled hand/object execution must still validate it.
+    """
+    from scipy.linalg import expm
+    dynamics=np.array([[0.,1.,0.],[-kp/mass,-kd/mass,1/mass],[0.,0.,0.]])
+    transition=expm(dynamics*dt);a=transition[:2,:2];b=transition[:2,2]
+    response=np.stack([np.linalg.matrix_power(a,ticks-1-k)@b for k in range(ticks)],axis=1)
+    unit=np.eye(ticks);d2=np.diff(unit,n=2,axis=0)
+    constraints=np.vstack((unit[0],unit[1]-unit[0],unit[-1],unit[-1]-unit[-2],response))
+    rhs=np.r_[1.,0.,0.,0.,0.,0.]
+    cost=d2.T@d2+np.eye(ticks)*1e-6
+    inverse=np.linalg.solve(cost,constraints.T)
+    profile=inverse@np.linalg.solve(constraints@inverse,rhs)
+    if np.max(np.abs(constraints@profile-rhs))>1e-7:raise RuntimeError('Source budget too short for continuous drive takeover')
+    return profile
