@@ -126,3 +126,42 @@ def project_boundary_target(start,target,budget,planning,dt=None):
     goal['state_origin']='unvalidated_source_conditioned_boundary_proposal'
     goal['physically_acquired_state']=False
     return goal
+
+
+def feedback_boundary_target(start,goal,planned_pose,actual_state,source_target,budget,dt,planning):
+    """Develop one canonical boundary using a preceding physical rollout.
+
+    Only the next oracle boundary conditions this fit. No relaxed reference
+    trajectory is tracked and the fitted target is never a physical artifact.
+    A new cuRobo plan and real execution must validate the proposal.
+    """
+    from scipy.optimize import minimize
+    from multipath.validation.physics import OBJECT_POSITION_TOLERANCE_M,OBJECT_ROTATION_TOLERANCE_RAD
+    from multipath.execution.mounted_scene import pose_matrix
+    from multipath.planning.floating import coordinates_pose
+    if not actual_state.get('physically_acquired_state'):
+        raise ValueError('Boundary feedback requires real physical execution')
+    held=np.asarray(start['hand_object_transform']);source_target=np.asarray(source_target)
+    planned_tool=pose_matrix(planned_pose)@held;actual_tool=pose_matrix(actual_state['objects']['tool']['pose'])
+    offset=actual_tool[:3,3]-planned_tool[:3,3]
+    q0=pose_coordinates(start['wrist_xyz_wxyz']);seed=pose_coordinates(goal['wrist_xyz_wxyz'],q0)
+    v0=coordinate_velocity(start['wrist_xyz_wxyz'],start['wrist_twist'],q0)
+    vmax=np.asarray(planning['velocity_limits'])*.98;amax=np.asarray(planning['acceleration_limits'])*.95
+    def tool(x):return pose_matrix(coordinates_pose(x))@held
+    def constraints(x):
+        pose=coordinates_pose(x);v1=coordinate_velocity(pose,goal['wrist_twist'],x)
+        low,high=discrete_displacement_bounds(v0,v1,budget,dt,vmax,amax);m=tool(x)
+        return np.r_[x-q0-low,q0+high-x,
+            (.98*OBJECT_POSITION_TOLERANCE_M)**2-np.sum((m[:3,3]-source_target[:3,3])**2),
+            (.98*OBJECT_ROTATION_TOLERANCE_RAD)**2-Rotation.from_matrix(source_target[:3,:3].T@m[:3,:3]).magnitude()**2]
+    def objective(x):
+        return np.sum((tool(x)[:3,3]+offset-source_target[:3,3])**2)/OBJECT_POSITION_TOLERANCE_M**2+.1*np.sum((x-seed)**2)
+    result=minimize(objective,seed,method='SLSQP',constraints=[dict(type='ineq',fun=constraints)],
+                    options={'maxiter':80,'ftol':1e-10})
+    if not result.success or min(constraints(result.x)) < -1e-8:
+        raise RuntimeError('No feedback boundary proposal within original source/time conditions')
+    proposal=dict(goal,wrist_xyz_wxyz=coordinates_pose(result.x).tolist(),
+                  physically_acquired_state=False,state_origin='unvalidated_physical_feedback_boundary_proposal')
+    return proposal,dict(measured_tool_position_offset_m=offset.tolist(),
+        predicted_tool_position_error_m=float(np.linalg.norm(tool(result.x)[:3,3]+offset-source_target[:3,3])),
+        source_condition_unchanged=True,physics_acceptance=False)
