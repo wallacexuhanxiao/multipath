@@ -83,10 +83,12 @@ class FloatingScene:
                 else 'measured_force')},sort_keys=True).encode()).hexdigest()
         self.last_wrench=np.zeros(6);self.command_pose=np.asarray(initial_wrist).copy();self.command_twist=np.zeros(6)
         self.initial_drive_pose=np.asarray(initial_wrist).copy();self.initial_drive_hand=self.hand_command.copy()
-        # Initialization before the source clock. No settling is inserted at segment boundaries.
-        for _ in range(120):self._drive(initial_wrist,self.hand_command,np.zeros(6));self.world.step(render=False)
-        self.lineage={'initial_scene':self.scene_id}
-        self.begin_recording(out,mesh=True);self.capture('INITIAL',0)
+        # Use exactly the same physical initialization as local episodes.
+        # Constructor defaults and explicit episode initialization differed
+        # by micrometres at contact, then diverged during grasp execution.
+        # This runs only before t=0; there are no segment-boundary resets.
+        self.begin_initial_trial(out,mesh=True)
+        self.restore_count=0
 
     def root_motion(self):
         p,q=self.wrist.get_world_pose()

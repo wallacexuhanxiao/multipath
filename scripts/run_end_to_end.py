@@ -102,6 +102,8 @@ def main():
             elif failed.get('transition') and not failed['transition']['success'] and failed.get('contact')=='grasped':
                 boundary_feedback=candidate;repair['method']='measured_boundary_feedback'
             elif failed.get('contact')=='grasped' and ('Persistent grasp constraint failed' in value.get('error','')
+                    or 'No collision-free trajectory in source time' in value.get('error','')
+                    or 'No collision-free oracle boundary proposal' in value.get('error','')
                     or failed.get('boundary_precheck',{}).get('feasible') is False):
                 preceding=next(w for w in schedule.windows if w['end']==failed['start'])
                 if preceding['mode']!='ANCHOR':raise RuntimeError('Carry failure has no preceding interaction Anchor')
