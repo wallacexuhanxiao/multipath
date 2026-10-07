@@ -27,6 +27,7 @@ def main():
     p.add_argument('--max-attempts',type=int,default=10)
     p.add_argument('--mpc-candidates',type=int,default=16);p.add_argument('--mpc-iters',type=int,default=2)
     p.add_argument('--ppo-updates',type=int,default=20)
+    p.add_argument('--solutions-per-interval',type=int,default=3,help='1 stops after V0; otherwise run interval diversity and full validation')
     args=p.parse_args();out=args.output_dir.resolve();out.mkdir(parents=True,exist_ok=True)
     if bool(args.template_artifacts)!=bool(args.template_proposals):p.error('Template artifact and source data must be supplied together')
     from multipath.oracle_schedule import OracleSchedule
@@ -130,11 +131,23 @@ def main():
             '--validated-anchors',candidate/'anchors','--planned-bridges',candidate,'--output-dir',final],
             True,final/'pipeline_result.json','full_pipeline_success')
         if not value.get('full_pipeline_success'):raise RuntimeError(f'Fresh full rollout failed: {value.get("error")}')
-        report.update(success=True,status='complete',candidate_run=str(candidate),final_run=str(final),
+        report.update(success=False,v0_success=True,status='v0_complete',candidate_run=str(candidate),final_run=str(final),
             actual_duration_s=value['actual_duration_s'],state_resets_between_segments=value['state_resets_between_segments'],
             task=value['task'],video_ready_for_render=True)
+        save()
+        if args.solutions_per_interval>1:
+            diversity=out/'diversity'
+            params=['--v0-run',out,'--schedule',args.schedule,'--floating-config',args.floating_config,
+                '--xhand-urdf',args.xhand_urdf,'--object-cache',args.object_cache,'--output-dir',diversity,
+                '--solutions-per-interval',args.solutions_per_interval]
+            if args.sim_prefix:params+=['--sim-prefix',args.sim_prefix]
+            result=run('diversity','run_oracle_diversity.py',params,False,diversity/'diversity_result.json','success')
+            report['diversity_run']=str(diversity)
+            if not result.get('success'):raise RuntimeError(f'Diversity failed: {result.get("error")}')
+            report['complete_rollout_count']=result['complete_rollout_count']
+        report.update(success=True,status='complete')
     except Exception as error:
-        report.update(status='failed',error=str(error));print('E2E_FAILED',str(error),flush=True)
+        report.update(success=False,status='failed',error=str(error));print('E2E_FAILED',str(error),flush=True)
     finally:save()
     print('E2E_RESULT',report['status'],report['elapsed_s'],flush=True)
     if not report['success']:raise SystemExit(1)

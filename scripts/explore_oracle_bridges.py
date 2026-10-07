@@ -15,7 +15,8 @@ def main():
                  'floating-config','xhand-urdf','object-cache','output-dir'):
         p.add_argument('--'+name,type=Path,required=True)
     p.add_argument('--solutions-per-interval',type=int,default=3)
-    p.add_argument('--attempts-per-solution',type=int,default=18)
+    p.add_argument('--planned-bridges',type=Path,help='cuRobo artifacts associated with the passed baseline; defaults to baseline-run')
+    p.add_argument('--attempts-per-solution',type=int,default=24)
     p.add_argument('--resume-bank',type=Path,help='Reuse accepted local artifacts; final continuous validation is still required')
     p.add_argument('--predecessor-run',type=Path,help='Acquire entries by physically executing an already passed prefix of this full attempt')
     p.add_argument('--repair-window-start',type=int,help='Resynthesize this interval from predecessor-run; reuse the other local banks')
@@ -35,12 +36,17 @@ def main():
         raise ValueError('Diversity requires the passed continuous oracle V0 of this source')
     canonical={a.id:load_validated_anchor(args.validated_anchors,a,provenance=manifest['provenance'])
                for a in schedule.anchors.values()}
-    bridges={}
+    bridges={};planned=args.planned_bridges or args.baseline_run
+    planned_report=json.loads((planned/'pipeline_result.json').read_text())
+    if planned_report['source_provenance']!=manifest['provenance'] or not planned_report.get('task_success'):
+        raise ValueError('Bridge artifacts must belong to the successful baseline source')
     for w in schedule.windows:
         if w['mode']!='RELAXED':continue
         stem=f'relaxed_{w["start"]}_{w["end"]}'
-        bridges[w['start']]=dict(json.loads((args.baseline_run/(stem+'.json')).read_text()),
-                                commands=np.load(args.baseline_run/(stem+'.npz'))['commands'])
+        commands=np.load(args.baseline_run/(stem+'.npz'))['commands']
+        if not np.array_equal(commands,np.load(planned/(stem+'.npz'))['commands']):
+            raise ValueError('Passed baseline and cuRobo artifact commands differ')
+        bridges[w['start']]=dict(json.loads((planned/(stem+'.json')).read_text()),commands=commands)
     trace=json.loads((args.baseline_run/'actual_trace.json').read_text())
     bank=dict(status='running',source_provenance=manifest['provenance'],source='oracle',
               baseline_run=str(args.baseline_run),solutions_per_interval=args.solutions_per_interval,
@@ -87,12 +93,12 @@ def main():
         from multipath.execution.wrench_handoff import segment_wrenches
         from multipath.anchors.mpc import WindowEvaluation
         from multipath.validation.physics import check_retention
-        first=min(schedule.anchors.values(),key=lambda a:a.core_start)
-        data=dict(np.load(args.proposals/manifest['anchors'][first.id]))
-        initial=data['wrist_hand_q'][0,:7].copy()
-        initial[2]+=max(.1,float(np.linalg.norm(np.ptp(data['human_joints'][0],axis=0))))
+        # Reproduce the passed free-hand preparation, not a newly constructed
+        # source pose. Later boundaries still come from real predecessor steps.
+        initial=np.asarray(base['initial_state']['command_wrist'])
+        initial_hand=np.asarray(base['initial_state']['command_hand_q'])
         app=start_simulation(out)
-        scene=FloatingScene(args,manifest,out,initial,initial_hand=data['wrist_hand_q'][0,7:])
+        scene=FloatingScene(args,manifest,out,initial,initial_hand=initial_hand)
         initial_state=scene.snapshot()
         if not compatible(boundary_errors(initial_state,base['initial_state'])):
             raise ValueError('Diversity initial scene differs from passed V0')
@@ -105,7 +111,7 @@ def main():
             from isaacsim.core.api import World
             from isaacsim.core.utils.stage import create_new_stage
             World.clear_instance();create_new_stage()
-            scene=FloatingScene(args,manifest,prefix_out,initial,initial_hand=data['wrist_hand_q'][0,7:])
+            scene=FloatingScene(args,manifest,prefix_out,initial,initial_hand=initial_hand)
             scene.record_mesh=False
             for w in schedule.windows:
                 if w['start']>=frame:break
@@ -242,10 +248,14 @@ def main():
             goal_state=canonical[later['anchor']]['entry'] if later else base_bridge['exit']
             reached_start=start;needs_reach=False;planner=None
             for index in range(len(item['solutions']),args.solutions_per_interval):
-                accepted=False
+                accepted=False;handoff_failures=0
                 for attempt in range(args.attempts_per_solution):
                     trial=interval/f'solution_{index}_attempt_{attempt}';trial.mkdir()
-                    seed_index=attempt%DETOUR_DIRECTION_COUNT;multiplier=.5**(attempt//(2*DETOUR_DIRECTION_COUNT))
+                    # Cover every direction at each size. The former loop
+                    # spent almost its entire budget at one infeasible size,
+                    # then tried just two directions at the smaller envelope.
+                    sweep=attempt//DETOUR_DIRECTION_COUNT
+                    seed_index=attempt%DETOUR_DIRECTION_COUNT;multiplier=.5**sweep
                     proposal=replay_proposals[attempt] if attempt<len(replay_proposals) else None
                     if proposal:
                         previous_exclusion=json.loads((proposal[0]/'exclusions.json').read_text())
@@ -259,6 +269,12 @@ def main():
                         scene.capture('INITIAL',w['start'])
                         if planner is None:planner=FloatingPlanner(scene,w['contact']=='grasped',trial/'planner')
                         common=boundary_history_ticks(scene,w['contact']=='grasped',len(base_bridge['commands']),bool(later))
+                        if later and w['contact']=='free' and handoff_failures:
+                            # A passed geometric detour can still perturb the
+                            # following grasp. Preserve more moving canonical
+                            # drive history within this same RELAXED budget.
+                            common=min(len(base_bridge['commands'])//2,int(np.ceil(common*(1+.5*handoff_failures))))
+                        stats['terminal_history_ticks']=common
                         try:
                             exclusions=interval_exclusions(paths,item['window'],budget,scene.cfg['planning'],multiplier,
                                                            free_budget_s=budget-common*scene.dt)
@@ -269,6 +285,10 @@ def main():
                             from multipath.execution.interaction_boundary import grasp_conditioned_boundary
                             current_baseline=rebase_grasp_commands(current_baseline,base_bridge['entry'],start,scene.dt)
                             current_goal=grasp_conditioned_boundary(goal_state,start)
+                        elif not later and w['contact']=='free':
+                            from multipath.planning.floating_diversity import free_terminal_nominal
+                            current_baseline,current_goal=free_terminal_nominal(scene,start,len(base_bridge['commands']))
+                            stats['terminal_target_origin']='actual_released_state_free_stop'
                         from multipath.execution.floating_executor import measured_drive_matches
                         if proposal and measured_drive_matches(start,proposal[2]):
                             commands=np.load(proposal[0]/'commands.npz')['commands']
@@ -286,7 +306,7 @@ def main():
                             commands,timing=plan_detour(planner,start,current_baseline[-1],
                                 len(base_bridge['commands']),exclusions,current_goal,seed_index,
                                 baseline_commands=current_baseline,has_next_anchor=bool(later),
-                                regularize=bool((attempt//DETOUR_DIRECTION_COUNT)%2))
+                                regularize=bool(sweep%2),terminal_history_ticks=common)
                         check=validate_commands(scene,commands,start)
                         if not check['feasible']:raise RuntimeError(f'Detour command limits: {check}')
                         np.savez_compressed(trial/'commands.npz',commands=commands)
@@ -305,7 +325,7 @@ def main():
                                 raise RuntimeError('Measured RELAXED collision')
                         exit_state=scene.snapshot()
                         np.savez_compressed(trial/'actual_wrist_path.npz',actual_wrist_path=np.asarray(actual))
-                        transition=check_interaction_boundary(scene,current_goal,w['contact'])
+                        transition=check_interaction_boundary(scene,current_goal,w['contact'],terminal=not later and w['contact']=='free')
                         if not transition['success']:raise RuntimeError(f'Detour boundary mismatch: {transition}')
                         exclusions,diversity=actual_feasible_exclusions(exclusions,np.asarray(actual),budget,scene.cfg['planning'])
                         if not diversity['actual_wrist_exclusion_pass'] or not diversity['smooth_arc_pass']:
@@ -346,6 +366,8 @@ def main():
                         print('DIVERSE_BRIDGE_ACCEPTED',item['window'],index,flush=True)
                     except RuntimeError as error:
                         stats.update(status='rejected',error=str(error))
+                        if str(error).startswith('Following Anchor'):
+                            handoff_failures+=1
                         print('DIVERSE_BRIDGE_REJECTED',item['window'],index,attempt,str(error)[:200],flush=True)
                     finally:
                         (trial/'actual_trace.json').write_text(json.dumps(scene.records))

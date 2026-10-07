@@ -50,7 +50,7 @@ def main():
             if a not in paths:
                 paths[a]=np.asarray([r['wrist_xyz_wxyz'][:3] for r in trace if a<=r['source_frame']<=b])
         records.append(paths)
-    rows=2 if args.local_bank and len(intervals)==4 else 1
+    rows=2 if len(intervals)==4 else 1
     cols=int(np.ceil(len(intervals)/rows))
     fig,axes=plt.subplots(rows,cols,figsize=(5.5*cols,4.7*rows),squeeze=False)
     colors=['#168aad','#ed4c78','#f6b83e','#7b52ab']

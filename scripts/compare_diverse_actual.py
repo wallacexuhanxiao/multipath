@@ -27,8 +27,11 @@ def main():
             raise ValueError('Recorded clock does not match video')
         if count is not None and (count!=n or abs(fps-rate)>.001):
             raise ValueError('Rollouts must share frame count and fps')
-        count=n;fps=rate;captures.append(cap);sample_offsets.append(offset)
+        count=n;fps=rate;captures.append(cap)
         passed=report.get('full_pipeline_success') and (not report.get('path_exclusions') or report.get('diverse_solution_success'))
+        # Full initial-state renders sample t=0 for source frame 0. N+1 trace
+        # boundaries still describe N video frames; that is not a time offset.
+        sample_offsets.append(0 if passed and trace[0].get('source_frame')==0 else offset)
         label = 'Baseline' if index == 0 else (f'Solution {index + 1}' if passed else f'Candidate {index}')
         labels.append(f"{label} | {'checks passed' if passed else 'REJECTED'}")
     args.output.parent.mkdir(parents=True,exist_ok=True)

@@ -1,0 +1,45 @@
+#!/bin/bash
+#PBS -P CFP04-CF-057
+#PBS -q interactive
+#PBS -N oracle_diversity
+#PBS -j oe
+#PBS -k oed
+#PBS -l walltime=00:20:00
+#PBS -l select=1:ncpus=12:mem=120gb:ngpus=1:gpu_model=H200
+set -euo pipefail
+ROOT=/scratch/e0985859/multipath_v0_fc2da7b
+RUNTIME=/scratch/e0985859/egoengine_baseline
+ENGINE=/scratch/e0985859/dv_xhand_faithful_20260907/vendor/egoengine
+IMAGE=/app1/common/singularity-img/hopper/pytorch/pytorch_2.7.0_cuda_12.8.sif
+: "${MULTIPATH_V0_RUN:?passed end-to-end source run}"
+: "${MULTIPATH_SCHEDULE:?static oracle schedule}"
+: "${MULTIPATH_RUN_NAME:?unique output name}"
+OUT=$ROOT/outputs/$MULTIPATH_RUN_NAME
+mkdir -p "$OUT/cache"
+cd "$ROOT"
+module load singularity
+source "$ROOT/hpc/stage_torch_imports.sh"
+MP_ENV=( --env "LD_LIBRARY_PATH=/scratch/e0985859/semantic_verifier/compat_libs/x11-ubuntu22:/usr/local/cuda/compat/lib:/.singularity.d/libs"
+ --env TRITON_LIBCUDA_PATH=/usr/local/cuda/compat/lib --env "XDG_CACHE_HOME=$OUT/cache"
+ --bind "$MULTIPATH_IMPORT_ROOT:$MULTIPATH_IMPORT_ROOT:ro"
+ --env "PYTHONPATH=$MULTIPATH_IMPORT_ROOT:$ROOT/deps:$ROOT/src" --env PYTHONDONTWRITEBYTECODE=1 --env PYTHONNOUSERSITE=1
+ --env OMNI_KIT_ACCEPT_EULA=YES --env "PBS_JOBID=${PBS_JOBID:-unknown}"
+ --env OMP_NUM_THREADS=2 --env OPENBLAS_NUM_THREADS=2 --env MKL_NUM_THREADS=2
+ --bind "$ROOT/hpc/container_env/92-env-torch-distributed.sh:/.singularity.d/env/92-env-torch-distributed.sh:ro" )
+[[ -z "${CUDA_VISIBLE_DEVICES:-}" ]] || MP_ENV+=(--env "CUDA_VISIBLE_DEVICES=$CUDA_VISIBLE_DEVICES")
+"$RUNTIME/envs/retarget/bin/python" - "$OUT/sim_prefix.json" singularity exec --nv -e "${MP_ENV[@]}" "$IMAGE" "$RUNTIME/envs/sim-isaac510/bin/python" -u <<'PY'
+import json,sys
+with open(sys.argv[1],'w') as stream:json.dump(sys.argv[2:],stream)
+PY
+EXTRA=()
+[[ -z "${MULTIPATH_RESUME_BANK:-}" ]] || EXTRA+=(--resume-bank "$MULTIPATH_RESUME_BANK")
+[[ -z "${MULTIPATH_BOUNDARY_FEEDBACK_RUN:-}" ]] || EXTRA+=(--boundary-feedback-run "$MULTIPATH_BOUNDARY_FEEDBACK_RUN")
+[[ -z "${MULTIPATH_VALIDATED_ANCHORS:-}" ]] || EXTRA+=(--validated-anchors "$MULTIPATH_VALIDATED_ANCHORS")
+[[ -z "${MULTIPATH_EXECUTED_PREFIX_RUN:-}" ]] || EXTRA+=(--executed-prefix-run "$MULTIPATH_EXECUTED_PREFIX_RUN")
+"$RUNTIME/envs/retarget/bin/python" -u scripts/run_oracle_diversity.py \
+ --v0-run "$MULTIPATH_V0_RUN" --schedule "$MULTIPATH_SCHEDULE" \
+ --floating-config configs/floating_xhand.json --xhand-urdf "$ENGINE/assets/xhand/spider/xhand_right.urdf" \
+ --object-cache "$ENGINE/outputs/sim_usd" --sim-prefix "$OUT/sim_prefix.json" --output-dir "$OUT" \
+ --solutions-per-interval "${MULTIPATH_SOLUTIONS_PER_INTERVAL:-3}" \
+ --attempts-per-solution "${MULTIPATH_ATTEMPTS_PER_SOLUTION:-24}" \
+ --full-attempts "${MULTIPATH_FULL_ATTEMPTS:-3}" "${EXTRA[@]}" >"$OUT/run.log" 2>&1

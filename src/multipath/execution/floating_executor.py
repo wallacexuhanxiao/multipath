@@ -172,6 +172,11 @@ def execute(scene,schedule,manifest,proposal_dir,report):
                 if carry:
                     baseline_commands=rebase_grasp_commands(baseline_commands,base_bridge['entry'],scene.snapshot(),scene.dt)
                     goal=grasp_conditioned_boundary(goal,start)
+                elif not later:
+                    from multipath.planning.floating_diversity import free_terminal_nominal
+                    baseline_commands,goal=free_terminal_nominal(scene,start,(terminal_frame-window['start'])*tpf)
+                    info['terminal_target_origin']='actual_released_state_free_stop'
+                    info['terminal_wrist_endpoint_is_task_constraint']=False
                 set_arc_reference(exclusion,start,baseline_commands[-1],
                     (terminal_frame-window['start'])*tpf,scene.dt,scene.cfg['planning'])
                 # The bank selects a geometric detour. Each bridge is fitted
@@ -182,6 +187,7 @@ def execute(scene,schedule,manifest,proposal_dir,report):
                 # entry and controller memory match. This avoids changing a
                 # proved upstream path solely because the fitter improved.
                 entry=bridge['entry'];same_entry=measured_drive_matches(start,entry)
+                if not later and not carry:same_entry=False
                 if (same_entry and not carry and later and not info.get('physically_verified_prefix_drive_reused') and
                     bridge['planning'].get('common_terminal_history_ticks',0)<boundary_history_ticks(scene,False,
                         (terminal_frame-window['start'])*tpf,True)):
@@ -201,7 +207,8 @@ def execute(scene,schedule,manifest,proposal_dir,report):
                             commands,timing=plan_detour(planner,scene.snapshot(),baseline_commands[-1],
                                 (terminal_frame-window['start'])*tpf,exclusion,goal,seed_index,
                                 baseline_commands=baseline_commands,has_next_anchor=bool(later),
-                                regularize=bridge['planning'].get('trajectory_cost','').startswith('normalized'))
+                                regularize=bridge['planning'].get('trajectory_cost','').startswith('normalized'),
+                                terminal_history_ticks=bridge['planning'].get('common_terminal_history_ticks'))
                             timing.update(actual_predecessor_replanning=True,selected_local_seed=selected_seed,
                                           replanning_rejections=failures)
                             break
@@ -261,7 +268,7 @@ def execute(scene,schedule,manifest,proposal_dir,report):
                     raise RuntimeError('Continuous measured wrist path failed its interval exclusion')
             if diverse:
                 from multipath.execution.interaction_boundary import check_interaction_boundary
-                transition=check_interaction_boundary(scene,goal,window['contact'])
+                transition=check_interaction_boundary(scene,goal,window['contact'],terminal=not later and not carry)
                 info['measured_exit']=scene.snapshot()
             else:
                 transition=scene.check_transition(np.asarray(goal['wrist_xyz_wxyz']),window['contact'],canonical=goal if later and not prefix else None)

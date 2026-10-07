@@ -70,10 +70,8 @@ def main():
             command_points=np.vstack((entry['wrist_xyz_wxyz'][:3],data['commands'][:,:3]))))
     local=dict(np.load(args.proposals/manifest['anchors'][anchor.id]))
     core=np.load(args.entry_run/'anchors'/anchor.id/'executed_core.npz')['commands']
-    first=min(schedule.anchors.values(),key=lambda a:a.core_start)
-    initial_data=dict(np.load(args.proposals/manifest['anchors'][first.id]))
-    initial=initial_data['wrist_hand_q'][0,:7].copy()
-    initial[2]+=max(.1,float(np.linalg.norm(np.ptp(initial_data['human_joints'][0],axis=0))))
+    initial=np.asarray(prior['initial_state']['command_wrist'])
+    initial_hand=np.asarray(prior['initial_state']['command_hand_q'])
     report=dict(status='initializing',anchor_id=anchor.id,success=False,source_provenance=manifest['provenance'],
         entry_run=str(args.entry_run),core_interval=[anchor.core_start,anchor.core_end],
         synthesis_interval=[anchor.synth_start,anchor.synth_end],trials=[],source_time_stretch=False)
@@ -87,7 +85,7 @@ def main():
                 from isaacsim.core.api import World
                 from isaacsim.core.utils.stage import create_new_stage
                 World.clear_instance();create_new_stage()
-            scene=FloatingScene(args,manifest,folder,initial,initial_hand=initial_data['wrist_hand_q'][0,7:])
+            scene=FloatingScene(args,manifest,folder,initial,initial_hand=initial_hand)
             padded_entry=None
             for w in schedule.windows:
                 if w['start']>=anchor.core_start:break

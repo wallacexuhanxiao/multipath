@@ -22,15 +22,19 @@ def interval_exclusions(paths, window, budget_s, limits, multiplier=1.,free_budg
     distance-based size by the same source-time velocity/acceleration budgets.
     This is a proposal size, never a relaxation of physical acceptance.
     """
-    profile=interval_distance_profile(paths[0]['points'],peak_ratio=.35,
-                                     target_arc_ratio=.35)
     free_budget_s=budget_s if free_budget_s is None else free_budget_s
+    movable_fraction=np.clip(free_budget_s/budget_s,0.,1.)
+    def movable_prefix(points):
+        points=np.asarray(points)
+        stop=max(2,1+int(np.floor((len(points)-1)*movable_fraction)))
+        return points[:stop]
+    profile=interval_distance_profile(movable_prefix(paths[0]['points']),peak_ratio=.35,
+                                     target_arc_ratio=.35)
     time_cap=min(min(limits['velocity_limits'][:3])*free_budget_s/(2*np.pi),
                  min(limits['acceleration_limits'][:3])*free_budget_s**2/(4*np.pi**2))
     peak=min(profile['requested_max_half_size_m'],time_cap)*multiplier
     clearance=max(.00025,min(.002,peak/5))
     boxes={};planning_boxes={};sources=[]
-    endpoints=np.asarray(paths[0]['points'])[[0,-1]]
     # Common boundary neighborhoods need room for velocity continuity. Their
     # radius scales with the interval rather than a sample's frame indices.
     def protect(points):
@@ -41,24 +45,25 @@ def interval_exclusions(paths, window, budget_s, limits, multiplier=1.,free_budg
             turnaround=np.linalg.norm(residual**2/(2*np.asarray(limits['acceleration_limits'][:3])),axis=1)
             radius=np.maximum(radius,turnaround)
         return np.c_[points[[0,-1]],radius]
-    protection=protect(paths[0]['points'])
+    protection=protect(movable_prefix(paths[0]['points']))
     for i,path in enumerate(paths):
         generated,stats=tapered_obstacles_along_path(
-            path['points'],peak,boundary_spheres=protection,
+            movable_prefix(path['points']),peak,boundary_spheres=protection,
             clearance=clearance,oriented=True)
         boxes.update({f'path_exclusion_{i}_{j}':b for j,b in enumerate(generated.values())})
         sources.append(dict(run=path['id'],wrist_path_xyz=resample(path['points']).tolist(),
+                            source_time_wrist_path_xyz=np.asarray(path['points']).tolist(),
                             placement_diagnostics=stats))
         # A held object's executed wrist can lag its drive by centimetres.
         # Exclude old drive curves in planning, old actual curves in PhysX.
         # These are two distinct evidence spaces with the same source budget.
         command=np.asarray(path.get('command_points',path['points']))
-        command_profile=interval_distance_profile(command,peak_ratio=.35,target_arc_ratio=.35)
-        protected=protect(command)
-        generated,command_stats=tapered_obstacles_along_path(command,peak,boundary_spheres=protected,
+        protected=protect(movable_prefix(command))
+        generated,command_stats=tapered_obstacles_along_path(movable_prefix(command),peak,boundary_spheres=protected,
                                                             clearance=clearance,oriented=True)
         planning_boxes.update({f'path_exclusion_{i}_{j}':b for j,b in enumerate(generated.values())})
-        sources[-1].update(command_wrist_path_xyz=resample(command).tolist(),command_placement_diagnostics=command_stats)
+        sources[-1].update(command_wrist_path_xyz=resample(command).tolist(),source_time_command_path_xyz=command.tolist(),
+                          command_placement_diagnostics=command_stats)
     return dict(window=list(window),cuboid=boxes,planning_cuboid=planning_boxes,sources=sources,
                 minimum_arc_distance_m=0.,virtual_exclusion_scope='wrist',
                 clearance_threshold_m=clearance,
@@ -66,6 +71,8 @@ def interval_exclusions(paths, window, budget_s, limits, multiplier=1.,free_budg
                 physical_collision_scope='hand_carried_object_world',
                 distance_profile=profile,source_time_cap_m=time_cap,
                 free_diversity_budget_s=free_budget_s,
+                shared_terminal_fraction=1-float(movable_fraction),
+                shared_handoff_history_excluded_from_obstacle_placement=True,
                 requested_peak_half_size_m=peak,size_multiplier=multiplier,
                 size_profile='small_large_small',intervals_share_exclusions=False,
                 boundary_velocity=None if boundary_velocity is None else np.asarray(boundary_velocity).tolist(),
@@ -80,8 +87,8 @@ def actual_feasible_exclusions(exclusions,points,budget_s,limits):
     """
     original=compare_path(points,exclusions)
     if original['actual_wrist_exclusion_pass']:return exclusions,original
-    paths=[dict(id=s['run'],points=np.asarray(s['wrist_path_xyz']),
-        command_points=np.asarray(s.get('command_wrist_path_xyz',s['wrist_path_xyz']))) for s in exclusions['sources']]
+    paths=[dict(id=s['run'],points=np.asarray(s.get('source_time_wrist_path_xyz',s['wrist_path_xyz'])),
+        command_points=np.asarray(s.get('source_time_command_path_xyz',s.get('command_wrist_path_xyz',s['wrist_path_xyz'])))) for s in exclusions['sources']]
     attempts=[]
     for reduction in (.5,.25,.125,.0625,.03125,.015625):
         try:
@@ -175,6 +182,25 @@ def set_arc_reference(exclusions,start,goal_command,ticks,dt,limits):
         np.asarray(limits['velocity_limits']),np.asarray(limits['acceleration_limits'])*1.00005,dq0,dq1)
     exclusions.update(arc_reference_length_m=float(np.linalg.norm(np.diff(path[:,:3],axis=0),axis=1).sum()),
         arc_reference_method='fixed_time_straight_bridge_with_actual_boundary_velocities')
+
+
+def free_terminal_nominal(scene,start,ticks):
+    """No next Anchor: derive a feasible braking target from the real release.
+
+    This is a planning proposal, never an assigned state. cuRobo detour
+    geometry, measured collision and the unchanged object task contract still
+    decide acceptance. The old free-hand endpoint is not a task constraint.
+    """
+    from multipath.planning.bridge import terminal_stop_target
+    limits=scene.cfg['planning'];goal=terminal_stop_target(start,ticks*scene.dt,scene.dt,limits)
+    goal['hand_q']=list(start['command_hand_q']);goal['hand_dq']=np.zeros(12).tolist()
+    q0=pose_coordinates(start['wrist_xyz_wxyz']);q1=pose_coordinates(goal['wrist_xyz_wxyz'],q0)
+    dq0=pose_velocity(start['wrist_xyz_wxyz'],start['wrist_twist'],q0)
+    path,_=boundary_fitted_path(np.vstack((q0,q1)),ticks,scene.dt,
+        np.asarray(limits['velocity_limits']),np.asarray(limits['acceleration_limits'])*1.00005,dq0,np.zeros(6))
+    poses=np.asarray([coordinates_pose(q) for q in path])
+    hands=np.repeat(np.asarray(start['command_hand_q'])[None],ticks+1,axis=0)
+    return controls_from_poses(poses,hands,scene.dt),goal
 
 
 def dynamic_detour_seed(baseline,dt,limits,dq0,dq1,exclusions,index):
@@ -335,7 +361,7 @@ def exclusion_fitted_path(raw,ticks,dt,limits,dq0,dq1,exclusions,direction,fixed
 
 
 def plan_detour(planner,start,goal_command,ticks,exclusions,goal_state,seed_index,
-                baseline_commands=None,has_next_anchor=True,regularize=False):
+                baseline_commands=None,has_next_anchor=True,regularize=False,terminal_history_ticks=None):
     """cuRobo graph subplans -> one source-time fit -> both collision checks.
 
     Waypoints introduce no stops or extra time. Measured start velocity and
@@ -360,6 +386,8 @@ def plan_detour(planner,start,goal_command,ticks,exclusions,goal_state,seed_inde
         # wrist orientation/finger drives and their interaction handoff.
         fixed=np.full_like(baseline_coordinates,np.nan)
         tail_ticks=boundary_history_ticks(scene,planner.carry,ticks,has_next_anchor)
+        if terminal_history_ticks is not None:
+            tail_ticks=max(tail_ticks,min(int(terminal_history_ticks),ticks//2))
         if tail_ticks:fixed[-tail_ticks:]=baseline_coordinates[-tail_ticks:]
     if baseline_commands is not None:
         points,seed,seed_progress=dynamic_detour_seed(baseline_coordinates,dt,limits,dq0,dq1,
@@ -403,8 +431,8 @@ def plan_detour(planner,start,goal_command,ticks,exclusions,goal_state,seed_inde
         desired=desired if desired is not None else np.empty((0,6)),
         fixed=fixed if fixed is not None else np.empty((0,6)),dq0=dq0,dq1=dq1)
     variants=[('original',exclusions,planning_exclusions)]
-    prior_paths=[dict(id=s['run'],points=np.asarray(s['wrist_path_xyz']),
-        command_points=np.asarray(s.get('command_wrist_path_xyz',s['wrist_path_xyz']))) for s in exclusions['sources']]
+    prior_paths=[dict(id=s['run'],points=np.asarray(s.get('source_time_wrist_path_xyz',s['wrist_path_xyz'])),
+        command_points=np.asarray(s.get('source_time_command_path_xyz',s.get('command_wrist_path_xyz',s['wrist_path_xyz'])))) for s in exclusions['sources']]
     try:
         moving=interval_exclusions(prior_paths,exclusions['window'],ticks*dt,limits,
             exclusions['size_multiplier'],exclusions.get('free_diversity_budget_s',ticks*dt),

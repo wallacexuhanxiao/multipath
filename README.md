@@ -10,6 +10,10 @@ The predecessor's last padding frames provide physical synthesis context;
 fresh padded and exported-core validation use the same controller handoff.
 It exports local cores and bridges only after one whole physical candidate
 passes, then requires a fresh continuous artifact-consuming PhysX rollout.
+The default next stage generates three solutions per RELAXED interval and
+validates the two alternative full sequences. Set `--solutions-per-interval 1`
+(`MULTIPATH_SOLUTIONS_PER_INTERVAL=1` on Hopper) to stop after Oracle V0.
+Local bridge banks and complete physical trajectories are reported separately.
 
 On Hopper, use `hpc/run_end_to_end.pbs` with `MULTIPATH_SCHEDULE`,
 `MULTIPATH_TRIPLET`, `MULTIPATH_SEQUENCE`, and `MULTIPATH_RUN_NAME`.
@@ -38,6 +42,17 @@ They use a validated local interaction library as initialization. `258` still
 fails its carry-boundary angle condition; see
 [the current result report](docs/END_TO_END_RESULT_20261007.md) and
 [iteration history](docs/END_TO_END_20261007.md).
+
+The initial new-source results each contained **one** trajectory. On 2026-10-08,
+`248` also passed **three complete 4.2 s trajectories**, with three solutions in
+each of its four RELAXED intervals, task success and no segment resets.
+`243` currently has one complete trajectory. See the
+[new-source diversity report](docs/DIVERSITY_E2E_20261008.md),
+[synchronized three-solution video](docs/evidence/oracle_diversity_20261008/solutions_stacked.mp4)
+and [measured path plot](docs/evidence/oracle_diversity_20261008/actual_wrist_paths.png).
+`scripts/run_oracle_diversity.py` and `hpc/run_oracle_diversity.pbs` extend a
+passed V0 run. `scripts/collect_oracle_diversity.py` exports measured path plots
+and a synchronized stack of the successful full solution videos.
 
 Older progress notes below describe the earlier development stages.
 

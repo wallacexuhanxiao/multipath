@@ -158,4 +158,6 @@ carry 动态兼容性。本轮已得到两条不同新 source 的完整成功视
   retarget 的冷启动收敛证明，也不需要完整 EgoEngine 机器人参考。
 - 当前 embodiment 为 floating XHand。mounted arm、自碰撞强化验证和
   流体/内容物转移不在本次成功声明内。
-- 新 source 的多解尚未完成；先把不同 source 的单条完整执行跑通。
+- 本报告记录的是新 source 的单条 V0。2026-10-08，`248` 已补齐每个
+  RELAXED 区间三解和三条完整连续执行；见
+  [后续多解报告](DIVERSITY_E2E_20261008.md)。`243` 仍是一条。

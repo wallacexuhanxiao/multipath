@@ -54,6 +54,10 @@ def main():
             actual_duration_s=physical['actual_duration_s'],state_resets_between_segments=physical['state_resets_between_segments'],
             task=physical['task'],actual_video=str(actual.resolve()),source_comparison=str(comparison.resolve())))
         print('LOCAL_VIDEO_READY',report['sequence'],str(comparison.resolve()),flush=True)
+        if report.get('diversity_run'):
+            subprocess.run([args.render_python,str(Path(__file__).with_name('collect_oracle_diversity.py')),
+                '--host',args.host,'--remote-run',report['diversity_run'],'--output-dir',str(folder/'diversity'),
+                '--render-python',args.render_python],env=env,check=True)
     index=args.output_dir/'collection.json'
     previous=json.loads(index.read_text()) if index.exists() else []
     by_run={}
