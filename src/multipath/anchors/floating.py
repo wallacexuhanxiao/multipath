@@ -41,6 +41,25 @@ def controls_from_poses(poses,hands,dt):
     return np.c_[poses[1:],hands[1:],velocity,omega]
 
 
+def stopping_context(last_command,ticks,dt):
+    """Local post-padding proposal: retain finger drive and stop smoothly.
+
+    Padding has no reference-fidelity requirement. This is a command proposal,
+    never a constructed entry state or proof that contact will be retained.
+    """
+    if ticks==0:return np.empty((0,25))
+    last=np.asarray(last_command,dtype=float)
+    phase=np.arange(1,ticks+1)/ticks
+    scale=1-3*phase**2+2*phase**3
+    elapsed=np.cumsum(scale)*dt
+    post=np.repeat(last[None],ticks,axis=0)
+    post[:,:3]=last[:3]+elapsed[:,None]*last[19:22]
+    post[:,3:7]=(Rotation.from_rotvec(elapsed[:,None]*last[22:25])*
+        Rotation.from_quat(last[[4,5,6,3]])).as_quat()[:,[3,0,1,2]]
+    post[:,19:25]=scale[:,None]*last[19:25]
+    return post
+
+
 def rebase_grasp_commands(commands,previous_entry,reached_entry,dt):
     """Retain a local interaction's tool targets under the reached grasp frame.
 
@@ -163,7 +182,8 @@ def grasp_command_bounds(scene,start,anchor=None):
     preload and move non-contacting fingers, but cannot command its release.
     """
     low,high=np.asarray(scene.hand_limits,dtype=float).T.copy()
-    if (anchor is None or anchor.entry_contact!=anchor.exit_contact or anchor.entry_contact!='grasped'
+    if (anchor is None or anchor.entry_contact!='grasped' or anchor.exit_contact!='grasped'
+            or start.get('contact',{}).get('mode')!='grasped'
             or 'command_hand_q' not in start):return low,high
     from multipath.xhand import RIGHT_XHAND_FINGER_JOINT_NAMES,RIGHT_XHAND_CLOSING_DIRECTION
     contact=start['contact'];groups=('thumb','index','mid','ring','pinky')
@@ -179,6 +199,27 @@ def grasp_command_bounds(scene,start,anchor=None):
     return low,high
 
 
+def acquisition_preload(scene,anchor,command,bounds=None):
+    """Preserve preload only during an already acquired persistent grasp.
+
+    This projects and records commands during synthesis. The resulting
+    command trajectory must still pass fresh padded/core physical Replay.
+    Acquisition and release Anchors retain their original finger action space.
+    Transient opposition during acquisition is not a load-bearing grasp and
+    must not lock all subsequent candidates into monotonically closing drives.
+    """
+    if anchor.entry_contact!='grasped' or anchor.exit_contact!='grasped':return command,bounds
+    measured=scene.snapshot()
+    if measured['contact']['mode']=='grasped':
+        low,high=grasp_command_bounds(scene,measured,anchor)
+        bounds=(low,high) if bounds is None else (np.maximum(bounds[0],low),np.minimum(bounds[1],high))
+    if bounds is None:return command,bounds
+    result=np.asarray(command).copy();step=scene.hand_velocity*scene.dt
+    result[7:19]=np.clip(result[7:19],np.maximum(bounds[0],scene.hand_command-step),
+                         np.minimum(bounds[1],scene.hand_command+step))
+    return result,bounds
+
+
 def project_hand_commands(scene,commands,start,anchor=None):
     """Keep the recorded drive boundary and joint slew inside source time.
 
@@ -186,6 +227,27 @@ def project_hand_commands(scene,commands,start,anchor=None):
     must still succeed before its commands become a validated artifact.
     """
     controls=np.asarray(commands).copy();previous=hand_command_boundary(start)
+    if (getattr(scene,'freeze_carry_core',False) and anchor is not None
+            and anchor.exit_contact=='grasped'):
+        core_tick=round((anchor.core_end/scene.manifest['fps']-start['time_s'])/scene.dt)
+        if 0<core_tick<len(controls):
+            # Residual optimization can move the last core target. Padding
+            # must stop that optimized target, not jump to the old baseline.
+            post_ticks=physics_ticks_per_frame(scene.manifest['fps'],scene.dt)*(anchor.synth_end-anchor.core_end)
+            bridge_context=getattr(scene,'post_context_commands',None)
+            if bridge_context is None:
+                post=stopping_context(controls[core_tick-1],post_ticks,scene.dt)
+            else:
+                # A known carry failure supplies a planned bridge as local
+                # synthesis context. It is an initialization, never a passed
+                # RELAXED artifact. Join its drive to this candidate's core
+                # exit and retain the candidate's actual holding posture.
+                last=controls[core_tick-1]
+                boundary=dict(start,time_s=anchor.core_end/scene.manifest['fps'],
+                    command_wrist=last[:7],command_twist=last[19:25],command_hand_q=last[7:19])
+                post=np.asarray(bridge_context).copy();post[:,7:19]=last[7:19]
+                post=join_core_controls(scene,anchor,post,boundary)
+            controls[core_tick:]=post[:len(controls)-core_tick]
     low,high=grasp_command_bounds(scene,start,anchor)
     # A transport-compatible padding may stabilize an existing grasp, but must
     # not synthesize a new finger posture that the frozen-grasp bridge cannot
@@ -250,7 +312,13 @@ def rollout(scene,anchor,data,commands,start,out,mode='LOCAL_PADDED',core_only=F
         for k,c in enumerate(commands):
             if failure is not None and not collect_tracking_failures:break
             if controller_handoff:
-                scene.wrench_bias=drive_bias*drive_profile[k]
+                if getattr(scene,'post_context_commands',None) is not None and start_frame+(k/tpf)>=anchor.core_end:
+                    if start_frame+(k/tpf)==anchor.core_end:
+                        from multipath.execution.wrench_handoff import segment_wrenches
+                        post_wrenches=segment_wrenches(scene,scene.snapshot(),commands[k:],transport=True)
+                        post_begin=k
+                    scene.wrench_bias=post_wrenches[k-post_begin]
+                else:scene.wrench_bias=drive_bias*drive_profile[k]
             frame=start_frame+(k+1)/tpf;scene.step_control(c,mode,frame);executed=k+1
             if (k+1)%tpf:continue
             if frame==anchor.core_start:entry=scene.snapshot()
@@ -377,6 +445,7 @@ class AcquiredGraspProposal:
     def __init__(self,scene,anchor,data):
         self.scene,self.anchor,self.data=scene,anchor,data
         self.contact_run=0;self.held=None;self.handoff=None;self.acquired_frame=None
+        self.preload_bounds=None
 
     def command(self,frame,baseline):
         measured=self.scene.snapshot()
@@ -384,10 +453,23 @@ class AcquiredGraspProposal:
         tpf=physics_ticks_per_frame(self.scene.manifest['fps'],self.scene.dt)
         if self.held is None and self.contact_run>=tpf:
             self.held=np.asarray(measured['hand_object_transform'])
+            self.preload_bounds=grasp_command_bounds(self.scene,measured,self.anchor)
             self.acquired_frame=measured['time_s']*self.scene.manifest['fps']
             self.handoff=object_relative_handoff(self.scene,self.anchor,self.data,self.acquired_frame,self.held)
         if self.held is None:return baseline
-        return object_relative_command(self.scene,self.anchor,self.data,frame,baseline,self.held,self.handoff)
+        if (self.anchor.entry_contact=='free' and measured['contact']['mode']=='grasped'
+                and self.scene.ticks%tpf==0):
+            # Opposition starts before finger closure finishes. Acquisition
+            # is not yet a rigid grasp: update its retarget frame at source
+            # frequency. Persistent-grasp Anchors keep their fixed frame.
+            self.held=np.asarray(measured['hand_object_transform'])
+            low,high=grasp_command_bounds(self.scene,measured,self.anchor)
+            self.preload_bounds=(np.maximum(self.preload_bounds[0],low),np.minimum(self.preload_bounds[1],high))
+        command=object_relative_command(self.scene,self.anchor,self.data,frame,baseline,self.held,self.handoff)
+        low,high=self.preload_bounds;step=self.scene.hand_velocity*self.scene.dt
+        command[7:19]=np.clip(command[7:19],np.maximum(low,self.scene.hand_command-step),
+                              np.minimum(high,self.scene.hand_command+step))
+        return command
 
 
 def join_core_controls(scene,anchor,commands,start):

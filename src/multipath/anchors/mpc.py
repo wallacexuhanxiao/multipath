@@ -74,7 +74,7 @@ class WindowEvaluation:
     Padding has no reference-fidelity gate. Auxiliary contact reward is
     optimization-only; evaluation uses object tracking alone.
     """
-    def __init__(self, scene, anchor, data, start):
+    def __init__(self, scene, anchor, data, start, *, continue_tracking_failures=False):
         self.scene, self.anchor, self.data = scene, anchor, data
         frame = start['time_s'] * scene.manifest['fps']
         self.held = None
@@ -85,6 +85,8 @@ class WindowEvaluation:
         self.evaluation_return = 0.
         self.last_reward = 0.
         self.failure = None
+        self.continue_tracking_failures = continue_tracking_failures
+        self.tracking_failures = []
 
     def observe(self, frame, command, measured=None):
         a = self.anchor
@@ -175,6 +177,12 @@ class WindowEvaluation:
         self.total_return += float(reward)
         self.evaluation_return += float(tracking_reward)
         if reason:
+            if self.continue_tracking_failures and reason == 'core_object_fidelity':
+                # Search needs the remaining interaction's dense reward. A
+                # temporary tracking miss is recorded, never a successful
+                # candidate. Fresh padded/core Replay still uses hard gates.
+                self.tracking_failures.append({'source_frame': float(frame), 'reason': reason})
+                return True
             self.failure = {'source_frame': float(frame), 'reason': reason}
             return False
         return True

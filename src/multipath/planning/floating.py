@@ -266,10 +266,13 @@ class FloatingPlanner:
         self.scene=scene;self.tensor=TensorDeviceType(device='cuda:0');self.carry=carry;self.out=Path(out)
         cfg,self.sphere_count=robot_model(scene,carry,out)
         live={'cuboid':{'table':scene.table}}
-        for role in (['target'] if carry else ['tool','target']):
+        for role in ['target']:
             p,q=scene.objects[role].get_world_pose();bounds=scene.meshes[role].bounds;rot=Rotation.from_quat(np.asarray(q)[[1,2,3,0]])
             live['cuboid'][role]={'dims':(bounds[1]-bounds[0]).tolist(),'pose':np.r_[p+rot.apply(bounds.mean(0)),q].tolist()}
-        self.obstacle_roles=['target'] if carry else ['tool','target']
+        if not carry:
+            p,q=scene.objects['tool'].get_world_pose();oid=scene.manifest['initial_objects']['tool']['id']
+            live['mesh']={'tool':dict(file_path=str(scene.args.object_cache/oid/(oid+'_m.obj')),pose=np.r_[p,q].tolist())}
+        self.obstacle_roles=['target']
         self.nominal_spheres=cfg['kinematics']['collision_spheres']['wrist']
         self.live=live
         import json
@@ -295,7 +298,8 @@ class FloatingPlanner:
             (self.out/'collision_geometry.json').write_text(json.dumps(geometry,indent=2))
         self.planner=MotionGen(MotionGenConfig.load_from_robot_config(cfg,live,tensor_args=self.tensor,interpolation_dt=scene.dt,
             optimize_dt=False,trajopt_dt=1/scene.manifest['fps'],js_trajopt_dt=1/scene.manifest['fps'],
-            self_collision_check=False,self_collision_opt=False,collision_checker_type=CollisionCheckerType.PRIMITIVE,use_cuda_graph=False))
+            self_collision_check=False,self_collision_opt=False,
+            collision_checker_type=CollisionCheckerType.MESH if live.get('mesh') else CollisionCheckerType.PRIMITIVE,use_cuda_graph=False))
         # Catch a virtual-coordinate convention mismatch before physical use.
         pose,_=scene.root_motion();q=pose_coordinates(pose)
         fk=self.planner.kinematics.get_state(self.tensor.to_device(q.copy())[None])
@@ -310,6 +314,36 @@ class FloatingPlanner:
     def valid(self,q):
         try:return bool(self.planner.check_start_state(self.js(q))[0])
         finally:self.planner.rollout_fn.primitive_collision_constraint.enable_cost()
+
+    def goal_clearance(self,pose):
+        """Signed sphere/world clearance from the planning collision backend.
+
+        Mesh bowls retain their empty cavities. The cover already includes
+        each cell's radius; adding a second cell radius at the goal would
+        displace an otherwise valid pregrasp by centimetres.
+        """
+        if not self.live.get('mesh'):
+            return sphere_world_clearance(pose,self.nominal_spheres,self.live['cuboid'])[1]
+        spheres=self.nominal_spheres;pose=np.asarray(pose)
+        centers=Rotation.from_quat(pose[[4,5,6,3]]).apply(np.asarray([s['center'] for s in spheres]))+pose[:3]
+        return self.world_clearance(centers,np.asarray([s['radius'] for s in spheres]),gradient=True)
+
+    def world_clearance(self,centers,radii,gradient=False):
+        from curobo.geom.sdf.world import CollisionQueryBuffer
+        query=self.tensor.to_device(np.c_[centers,radii])[None,None].requires_grad_(gradient)
+        checker=self.planner.world_coll_checker
+        if self.live.get('mesh'):
+            from curobo.types.math import Pose
+            p,q=self.scene.objects['tool'].get_world_pose()
+            checker.update_mesh_pose(w_obj_pose=Pose.from_list(np.r_[p,q].tolist(),self.tensor),name='tool')
+        buffer=CollisionQueryBuffer.initialize_from_shape(query.shape,self.tensor,checker.collision_types)
+        distance=checker.get_sphere_distance(query,buffer,self.tensor.to_device([1.]),self.tensor.to_device([0.]),compute_esdf=True)
+        penetration=distance.max();direction=np.zeros(3)
+        if gradient:
+            penetration.backward();direction=-query.grad[0,0,:,:3].sum(0).detach().cpu().numpy()
+            norm=np.linalg.norm(direction)
+            if norm>1e-12:direction/=norm
+        return float(-penetration.detach().cpu()),direction,'world'
 
     def measured_clearance(self):
         # Tracking margin is for commanded paths. Do not count it a second time
@@ -338,6 +372,7 @@ class FloatingPlanner:
             local=rotation.inv().apply(centers-b[:3]);offset=np.abs(local)-np.asarray(box['dims'])/2
             distance=np.linalg.norm(np.maximum(offset,0),axis=1)+np.minimum(np.max(offset,axis=1),0)-radii
             clearances[role]=float(distance.min())
+        if self.live.get('mesh'):clearances['mesh_world']=self.world_clearance(centers,radii)[0]
         return clearances
 
     def current_boxes(self):
@@ -359,8 +394,29 @@ class FloatingPlanner:
             p,q=self.scene.objects['tool'].get_world_pose();mesh=self.scene.meshes['tool']
             vertices=Rotation.from_quat(np.asarray(q)[[1,2,3,0]]).apply(mesh.vertices)+p
             meshes.append(('tool',vertices,mesh.faces,mesh.is_watertight))
-        return [dict(mesh=name,obstacle=role) for name,vertices,faces,closed in meshes
+        collisions=[dict(mesh=name,obstacle=role) for name,vertices,faces,closed in meshes
                 for role,box in self.current_boxes().items() if mesh_box_intersects(vertices,faces,box,closed)]
+        if self.live.get('mesh'):
+            # Exact mesh confirmation avoids treating a bowl's cavity as solid
+            # and distinguishes a conservative sphere overlap from penetration.
+            import fcl
+            if not hasattr(self,'fcl_meshes'):
+                self.fcl_meshes={}
+                for prim,scale,_ in self.scene.measured_hand_collision_meshes:
+                    vertices,faces=self.scene.measured_hand_mesh_data[str(prim.GetPath())]
+                    model=fcl.BVHModel();model.beginModel(len(vertices),len(faces))
+                    model.addSubModel(vertices*scale,faces);model.endModel()
+                    self.fcl_meshes[str(prim.GetPath())]=model
+                tool=self.scene.meshes['tool'];model=fcl.BVHModel();model.beginModel(len(tool.vertices),len(tool.faces))
+                model.addSubModel(tool.vertices,tool.faces);model.endModel();self.fcl_tool=model
+            p,q=self.scene.objects['tool'].get_world_pose()
+            obstacle=fcl.CollisionObject(self.fcl_tool,fcl.Transform(Rotation.from_quat(np.asarray(q)[[1,2,3,0]]).as_matrix(),p))
+            for prim,scale,_ in self.scene.measured_hand_collision_meshes:
+                matrix=np.asarray(cache.GetLocalToWorldTransform(prim)).T
+                body=fcl.CollisionObject(self.fcl_meshes[str(prim.GetPath())],fcl.Transform(matrix[:3,:3]/scale,matrix[:3,3]))
+                if fcl.collide(body,obstacle,fcl.CollisionRequest(),fcl.CollisionResult()):
+                    collisions.append(dict(mesh=str(prim.GetPath()),obstacle='tool',geometry='triangle_mesh'))
+        return collisions
 
     def measured_valid(self):
         return min(self.measured_clearance().values())>=0.

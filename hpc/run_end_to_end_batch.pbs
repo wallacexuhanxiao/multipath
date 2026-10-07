@@ -1,0 +1,42 @@
+#!/bin/bash
+#PBS -P CFP04-CF-057
+#PBS -q interactive
+#PBS -N oracle_source_batch
+#PBS -j oe
+#PBS -k oed
+#PBS -l walltime=00:20:00
+#PBS -l select=1:ncpus=12:mem=120gb:ngpus=1:gpu_model=H200
+set -euo pipefail
+ROOT=/scratch/e0985859/multipath_v0_fc2da7b
+RUNTIME=/scratch/e0985859/egoengine_baseline
+: "${MULTIPATH_CASES:?JSON list of source inputs}"
+: "${MULTIPATH_RUN_NAME:?unique batch name}"
+cd "$ROOT"
+source "$ROOT/hpc/stage_torch_imports.sh"
+export MULTIPATH_IMPORT_ROOT
+"$RUNTIME/envs/retarget/bin/python" -u - "$MULTIPATH_CASES" "$MULTIPATH_RUN_NAME" "$ROOT" <<'PY'
+import json,os,pathlib,subprocess,sys,time
+cases=json.loads(pathlib.Path(sys.argv[1]).read_text())
+name=sys.argv[2];root=pathlib.Path(sys.argv[3]);out=root/'outputs'/name
+out.mkdir(parents=True,exist_ok=True)
+started=time.monotonic();processes=[]
+for case in cases:
+    run_name=name+'_'+case['sequence'];folder=root/'outputs'/run_name;folder.mkdir(exist_ok=True)
+    env=dict(os.environ,MULTIPATH_RUN_NAME=run_name,MULTIPATH_SCHEDULE=case['schedule'],
+             MULTIPATH_TRIPLET=case['triplet'],MULTIPATH_SEQUENCE=case['sequence'])
+    for field,variable in [('seed_artifacts','MULTIPATH_SEED_ARTIFACTS'),('initial_bridge_run','MULTIPATH_INITIAL_BRIDGE_RUN')]:
+        if case.get(field):env[variable]=case[field]
+    stream=(folder/'allocation.log').open('w')
+    process=subprocess.Popen(['bash',str(root/'hpc/run_end_to_end.pbs')],cwd=root,env=env,stdout=stream,stderr=subprocess.STDOUT)
+    processes.append((case,folder,process,stream));print('SOURCE_BEGIN',case['sequence'],process.pid,flush=True)
+results=[]
+for case,folder,process,stream in processes:
+    code=process.wait();stream.close();f=folder/'end_to_end_result.json'
+    value=json.loads(f.read_text()) if f.exists() else {'success':False,'error':'result missing; see allocation.log'}
+    results.append(dict(sequence=case['sequence'],run=str(folder),returncode=code,success=value.get('success',False),error=value.get('error')))
+    print('SOURCE_END',case['sequence'],results[-1],flush=True)
+report=dict(success=all(r['success'] for r in results),elapsed_s=time.monotonic()-started,
+            pbs_job_id=os.environ.get('PBS_JOBID'),sources=results)
+(out/'batch_result.json').write_text(json.dumps(report,indent=2))
+if not report['success']:raise SystemExit(1)
+PY

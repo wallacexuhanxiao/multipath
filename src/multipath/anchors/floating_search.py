@@ -8,7 +8,7 @@ from pathlib import Path
 import numpy as np
 from scipy.spatial.transform import Rotation
 from multipath.anchors.mpc import WindowEvaluation,mppi_mean,RefinementRequired
-from multipath.anchors.floating import controls_from_poses,validate_commands,object_relative_command,object_relative_handoff,hand_command_boundary,project_hand_commands,grasp_command_bounds
+from multipath.anchors.floating import controls_from_poses,validate_commands,object_relative_command,object_relative_handoff,hand_command_boundary,project_hand_commands,grasp_command_bounds,stopping_context,acquisition_preload
 from multipath.anchors.ppo import MountedResidualEnv,LocalPPOSolver,PPOConfig
 from multipath.planning.timing import physics_ticks_per_frame
 from multipath.validation.physics import object_tracking_parameters
@@ -43,7 +43,7 @@ class FloatingResidualEnv(MountedResidualEnv):
         self.baseline,self.start,self.begin=project_hand_commands(scene,baseline,start,anchor),start,begin
         self.out=Path(out);self.out.mkdir(parents=True,exist_ok=True)
         self.fps=scene.manifest['fps'];self.tpf=physics_ticks_per_frame(self.fps,scene.dt);self.horizon=len(baseline)//self.tpf
-        if self.horizon<1 or len(baseline)%self.tpf or not validate_commands(scene,baseline,start)['feasible']:
+        if self.horizon<1 or len(baseline)%self.tpf or not validate_commands(scene,self.baseline,start)['feasible']:
             raise ValueError('PPO requires feasible whole-source-frame local commands')
         if not np.isclose(start['time_s']*self.fps,anchor.synth_start+begin/self.tpf,atol=1e-8,rtol=0):
             raise ValueError('PPO entry does not match local source time')
@@ -76,7 +76,8 @@ class FloatingResidualEnv(MountedResidualEnv):
             self.scene.begin_recording(self.out/'episode',mesh=False)
             self.metadata['entry_acquisition']='physical_predecessor_execution_each_episode'
         self.k=0;self.commands=[];self.previous_action=np.zeros(18);self.residuals=[];self.physical_prefix=None
-        self.objective=WindowEvaluation(self.scene,self.anchor,self.data,self.start);self.failure=None
+        self.contact_run=0;self.preload_bounds=None
+        self.objective=WindowEvaluation(self.scene,self.anchor,self.data,self.start,continue_tracking_failures=True);self.failure=None
         self.last_observation=self.observation(self.start)
         return self.last_observation
 
@@ -111,18 +112,29 @@ class FloatingResidualEnv(MountedResidualEnv):
                 self.wrenches=segment_wrenches(self.scene,self.start,handoff_commands)
             for tick in range(self.k*self.tpf,end):
                 c=candidate[tick];frame=self.anchor.synth_start+(self.begin+tick+1)/self.tpf
-                if self.controller_handoff:self.scene.wrench_bias=self.wrenches[tick]
+                c,self.preload_bounds=acquisition_preload(self.scene,self.anchor,c,self.preload_bounds)
+                if self.controller_handoff:
+                    if getattr(self.scene,'post_context_commands',None) is not None and frame>self.anchor.core_end:
+                        if frame-self.fps*self.scene.dt==self.anchor.core_end:
+                            from multipath.execution.wrench_handoff import segment_wrenches
+                            complete=self.continuation_proposal();complete[:end]=candidate
+                            self.post_wrenches=segment_wrenches(self.scene,self.scene.snapshot(),complete[tick:],transport=True)
+                            self.post_begin=tick
+                        self.scene.wrench_bias=self.post_wrenches[tick-self.post_begin]
+                    else:self.scene.wrench_bias=self.wrenches[tick]
                 self.scene.step_control(c,'LOCAL_PPO',frame);self.commands.append(c)
             self.objective.observe(frame,c);self.failure=self.objective.failure
         except (RuntimeError,ValueError) as error:self.failure={'source_frame':self.scene.ticks*self.scene.dt*self.fps,'reason':str(error)}
         self.k+=1;self.previous_action=action
-        if self.failure is None and self.k==min(20,self.horizon):
+        if self.failure is None and not self.objective.tracking_failures and self.k==min(20,self.horizon):
             self.physical_prefix={'state':self.scene.snapshot(),'trace':list(self.scene.records)}
         done=self.failure is not None or self.k==self.horizon
         obs=self.observation(self.scene.snapshot()) if self.failure is None else np.zeros_like(self.last_observation)
         self.last_observation=obs
-        return obs,float(self.objective.last_reward),done,{'success':bool(done and self.failure is None and len(self.commands)==len(self.baseline)),
-            'failure':self.failure,'source_steps':self.k,'evaluation_return':self.objective.evaluation_return}
+        tracking_failure=next(iter(self.objective.tracking_failures),None)
+        return obs,float(self.objective.last_reward),done,{'success':bool(done and self.failure is None and tracking_failure is None and len(self.commands)==len(self.baseline)),
+            'failure':self.failure or tracking_failure,'tracking_failure_count':len(self.objective.tracking_failures),
+            'source_steps':self.k,'evaluation_return':self.objective.evaluation_return}
 
 
 def refine(scene,anchor,data,baseline,start,out,candidates=64,iterations=3,use_ppo=True,ppo_config=None):
@@ -132,7 +144,7 @@ def refine(scene,anchor,data,baseline,start,out,candidates=64,iterations=3,use_p
         raise ValueError('MPC baseline/entry does not match the padded source interval')
     prior_origin={}
     def ppo_env(*args):
-        env=FloatingResidualEnv(*args)
+        env=FloatingResidualEnv(*args,controller_handoff=True)
         env.metadata.update(residual_center='best_physically_evaluated_local_command_proposal',
                             initialization_proposal=dict(prior_origin),initialization_is_acceptance=False)
         return env
@@ -140,10 +152,11 @@ def refine(scene,anchor,data,baseline,start,out,candidates=64,iterations=3,use_p
     def evaluate(control,boundary,begin,label,folder,object_relative=False,prefix_ticks=None):
         check=validate_commands(scene,control,boundary)
         if not check['feasible']:return -np.inf,False,{'precheck':check},None
-        scene.begin_trial(folder,boundary,mesh=object_relative);objective=WindowEvaluation(scene,anchor,data,boundary)
+        scene.begin_trial(folder,boundary,mesh=object_relative);objective=WindowEvaluation(scene,anchor,data,boundary,continue_tracking_failures=True)
         prefix=None
-        executed_control=np.array(control).copy();held=None;acquired_frame=None;handoff=None;contact_run=0;executed=0
-        if object_relative and boundary['contact']['mode']=='grasped':held=np.asarray(boundary['hand_object_transform'])
+        executed_control=np.array(control).copy();held=None;acquired_frame=None;handoff=None;contact_run=0;executed=0;preload_bounds=None
+        if object_relative and boundary['contact']['mode']=='grasped':
+            held=np.asarray(boundary['hand_object_transform']);preload_bounds=grasp_command_bounds(scene,boundary,anchor)
         try:
             for j,c in enumerate(control):
                 frame=anchor.synth_start+(begin+j+1)/tpf
@@ -155,16 +168,44 @@ def refine(scene,anchor,data,baseline,start,out,candidates=64,iterations=3,use_p
                     # condition and not additional waiting/source time.
                     if held is None and frame>anchor.core_start and contact_run>=tpf:
                         held=np.asarray(measured['hand_object_transform']);acquired_frame=scene.ticks*scene.dt*scene.manifest['fps']
-                    if held is not None:
+                        preload_bounds=grasp_command_bounds(scene,measured,anchor)
+                    if (held is not None and anchor.entry_contact=='free'
+                            and measured['contact']['mode']=='grasped' and scene.ticks%tpf==0):
+                        # Use the acquired frame while fingers continue to
+                        # close, rather than freezing the first rim contact.
+                        # Only acquisition is adaptive; carry retention uses
+                        # its original, fixed physically reached transform.
+                        held=np.asarray(measured['hand_object_transform'])
+                        low,high=grasp_command_bounds(scene,measured,anchor)
+                        preload_bounds=(np.maximum(preload_bounds[0],low),np.minimum(preload_bounds[1],high))
+                    if held is not None and frame<=anchor.core_end:
                         if handoff is None:
                             handoff=object_relative_handoff(scene,anchor,data,scene.ticks*scene.dt*scene.manifest['fps'],held)
-                        c=object_relative_command(scene,anchor,data,frame,c,held,handoff);executed_control[j]=c
+                        c=object_relative_command(scene,anchor,data,frame,c,held,handoff)
+                        low,high=preload_bounds;step=scene.hand_velocity*scene.dt
+                        c[7:19]=np.clip(c[7:19],np.maximum(low,scene.hand_command-step),
+                                       np.minimum(high,scene.hand_command+step));executed_control[j]=c
+                        if frame==anchor.core_end and getattr(scene,'freeze_carry_core',False):
+                            control[:j+1]=executed_control[:j+1]
+                            control[j+1:]=project_hand_commands(scene,control,boundary,anchor)[j+1:]
+                            executed_control[j+1:]=control[j+1:]
                         # Acquisition Anchor may transfer contact while closing.
                         # Its original core/object and exit-contact gates apply;
                         # persistent retention already applies to entry-grasped Anchors.
+                if j==0:
+                    from multipath.execution.wrench_handoff import segment_wrenches
+                    handoff_controls=np.asarray(control).copy();handoff_controls[0]=c
+                    wrenches=segment_wrenches(scene,boundary,handoff_controls)
+                if getattr(scene,'post_context_commands',None) is not None and frame>anchor.core_end:
+                    if frame-scene.dt*scene.manifest['fps']==anchor.core_end:
+                        post_wrenches=segment_wrenches(scene,scene.snapshot(),control[j:],transport=True);post_begin=j
+                    scene.wrench_bias=post_wrenches[j-post_begin]
+                else:scene.wrench_bias=wrenches[j]
+                c,preload_bounds=acquisition_preload(scene,anchor,c,preload_bounds)
+                control[j]=c;executed_control[j]=c
                 scene.step_control(c,label,frame);executed=j+1
                 if (j+1)%tpf==0 and not objective.observe(frame,c):break
-                if j+1==prefix_ticks:
+                if j+1==prefix_ticks and not objective.tracking_failures:
                     prefix={'state':scene.snapshot(),'trace':list(scene.records)}
         except (RuntimeError,ValueError) as error:objective.failure={'reason':str(error)};objective.total_return=-np.inf
         scene.save()
@@ -174,10 +215,19 @@ def refine(scene,anchor,data,baseline,start,out,candidates=64,iterations=3,use_p
             if handoff is not None:
                 for future in range(executed,len(control)):
                     frame=anchor.synth_start+(begin+future+1)/tpf
+                    if frame>anchor.core_end and getattr(scene,'freeze_carry_core',False):
+                        core_tick=round((anchor.core_end-anchor.synth_start)*tpf)-begin
+                        if core_tick>0:
+                            executed_control[core_tick:]=stopping_context(executed_control[core_tick-1],
+                                (anchor.synth_end-anchor.core_end)*tpf,scene.dt)[:len(control)-core_tick]
+                        break
                     executed_control[future]=object_relative_command(scene,anchor,data,frame,control[future],held,handoff)
+                    executed_control[future,7:19]=np.clip(executed_control[future,7:19],*preload_bounds)
             control[:]=executed_control
             np.savez_compressed(Path(folder)/'commands.npz',commands=executed_control)
-        return objective.total_return,objective.failure is None and executed==len(control),{'failure':objective.failure,'score':objective.total_return,
+        tracking_failure=next(iter(objective.tracking_failures),None)
+        return objective.total_return,objective.failure is None and tracking_failure is None and executed==len(control),{'failure':objective.failure or tracking_failure,'score':objective.total_return,
+            'tracking_failure_count':len(objective.tracking_failures),
             'proposal':'measured_grasp_object_relative' if object_relative else 'pose_residual',
             'grasp_acquired_frame':acquired_frame,'target_handoff':handoff,'physics_steps_executed':executed,
             'prediction_complete':executed==len(control)},prefix
@@ -232,6 +282,9 @@ def refine(scene,anchor,data,baseline,start,out,candidates=64,iterations=3,use_p
             best=ppo(seed,state,begin)
             if best is not None:
                 best_state=retain_prefix(ppo.selected_prefix,best,begin)
+            elif ppo.best_proposal is not None:
+                seed=ppo.best_proposal.copy()
+                prior_origin.update(proposal='best_failed_PPO_continuation',physical_acceptance=False)
         if best is None:
             methods='Replay/MPPI/PPO' if use_ppo else 'Replay/MPPI (PPO disabled for attribution)'
             error=RefinementRequired(f'Floating {methods} failed at source frame {anchor.synth_start+begin/tpf}')

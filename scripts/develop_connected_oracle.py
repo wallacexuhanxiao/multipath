@@ -15,6 +15,8 @@ def main():
     p.add_argument('--initial-bridge-run',type=Path,help='Freeze a passed initial cuRobo segment while refining local Anchors')
     p.add_argument('--boundary-feedback-run',type=Path,help='Actual failed bridge rollout for next-boundary proposal correction')
     p.add_argument('--exit-geometry-feedback-run',type=Path,help='Actual released Anchor exit for geometric boundary resynthesis')
+    p.add_argument('--template-artifacts',type=Path,help='Optional physically validated local interaction library; initialization only.')
+    p.add_argument('--template-proposals',type=Path,help='Local source observations corresponding to that library.')
     args=p.parse_args();out=args.output_dir;out.mkdir(parents=True,exist_ok=True)
     from multipath.oracle_schedule import OracleSchedule
     schedule=OracleSchedule.load(args.schedule);manifest=json.loads((args.proposals/'manifest.json').read_text())
@@ -40,15 +42,30 @@ def main():
         from multipath.execution.mounted_scene import pose_matrix
         from multipath.execution.wrench_handoff import segment_wrenches
         from multipath.anchors.floating import (join_core_controls,source_grasp_core_controls,
-            source_retarget_core_controls,quiet_release_exit,validate_commands,AcquiredGraspProposal)
+            source_retarget_core_controls,quiet_release_exit,validate_commands,AcquiredGraspProposal,project_hand_commands,acquisition_preload)
         from multipath.anchors.mpc import WindowEvaluation
         from multipath.validation.physics import check_retention,core_pose_errors,object_tracking_score
         from multipath.validation.task import evaluate_task
         first=min(schedule.anchors.values(),key=lambda a:a.core_start)
         local={a.id:dict(np.load(args.proposals/manifest['anchors'][a.id],allow_pickle=False)) for a in schedule.anchors.values()}
+        templates={}
+        if args.template_artifacts:
+            if not args.template_proposals:raise ValueError('Template source observations required')
+            from multipath.anchors.template import acquisition_proposals
+            templates=acquisition_proposals(args.template_artifacts,args.template_proposals,manifest,schedule,local,FloatingScene.dt,
+                planning=json.loads(args.floating_config.read_text())['planning'])
+            report['interaction_initialization']={key:value['provenance'] for key,value in templates.items()}
         data=local[first.id];initial=data['wrist_hand_q'][0,:7].copy()
         initial[2]+=max(.1,float(np.linalg.norm(np.ptp(data['human_joints'][0],axis=0))))
-        app=start_simulation(out);scene=FloatingScene(args,manifest,out,initial,initial_hand=data['wrist_hand_q'][0,7:])
+        initial_hand=(templates[first.id]['entry']['command_hand_q'] if first.id in templates
+                      else data['wrist_hand_q'][0,7:])
+        if args.initial_bridge_run:
+            prior=json.loads((args.initial_bridge_run/'pipeline_result.json').read_text())
+            if prior['source_provenance']!=manifest['provenance']:raise ValueError('Initial preparation source mismatch')
+            initial=np.asarray(prior['initial_state']['command_wrist'])
+            initial_hand=np.asarray(prior['initial_state']['command_hand_q'])
+        app=start_simulation(out);scene=FloatingScene(args,manifest,out,initial,initial_hand=initial_hand)
+        report['initial_hand_origin']=('local_interaction_canonical_free_pregrasp' if first.id in templates else 'local_human_context')
         initial_state=scene.snapshot();start_frame=0;resets=0
         report.update(embodiment=scene.embodiment,physics='PhysX CPU',table_z=float(scene.table['pose'][2]+.02),initial_state=initial_state)
         if args.start_core_run:
@@ -93,6 +110,7 @@ def main():
                     else:
                         entry_path=args.seed_artifacts/a.id/'entry.json'
                         entry=json.loads(entry_path.read_text()) if entry_path.exists() else None
+                        if entry is None and a.id in templates:entry=templates[a.id]['entry']
                         pose=np.asarray(entry['wrist_xyz_wxyz']) if entry else d['wrist_hand_q'][index,:7]
                         twist=np.zeros(6)
                     goal=dict(wrist_xyz_wxyz=pose.tolist(),wrist_twist=twist.tolist(),hand_q=start['hand_q'],hand_dq=start['hand_dq'],
@@ -101,6 +119,12 @@ def main():
                         # A free bridge may prepare the next Anchor's fingers;
                         # acquired grasps retain their existing preload above.
                         for key in ('hand_q','hand_dq','command_hand_q'):goal[key]=entry[key]
+                    elif not carry:
+                        # A raw local Anchor still supplies its core-entry
+                        # pregrasp posture. Keeping synth_start's fingers here
+                        # postpones their preparation until after CORE begins.
+                        hand=np.clip(d['wrist_hand_q'][index,7:],scene.hand_limits[:,0],scene.hand_limits[:,1])
+                        goal.update(hand_q=hand.tolist(),hand_dq=np.zeros_like(hand).tolist(),command_hand_q=hand.tolist())
                     goal=project_boundary_target(start,goal,budget,scene.cfg['planning'],dt=scene.dt)
                 else:
                     # No next interaction imposes a return-to-initial condition.
@@ -123,9 +147,9 @@ def main():
                 # Conservative task-boundary projection is a command proposal;
                 # the actual object condition must still pass after execution.
                 if not cached_initial:
-                    clearance=1e-4 if carry else max(s['radius'] for s in planner.nominal_spheres)
+                    clearance=1e-4
                     for _ in range(20):
-                        _,worst=sphere_world_clearance(goal['wrist_xyz_wxyz'],planner.nominal_spheres,planner.live['cuboid'])
+                        worst=planner.goal_clearance(goal['wrist_xyz_wxyz'])
                         if worst[0]>=clearance-1e-8:break
                         pose=np.asarray(goal['wrist_xyz_wxyz']);pose[:3]+=(clearance-worst[0])*worst[1];goal['wrist_xyz_wxyz']=pose.tolist()
                     else:raise RuntimeError('No collision-free oracle boundary proposal')
@@ -150,16 +174,36 @@ def main():
                 if not transition['success']:raise RuntimeError('Actual oracle boundary failed')
             else:
                 a=schedule.anchors[w['anchor']];d=local[a.id];reused=False
-                if a.entry_contact==a.exit_contact=='grasped':commands,handoff=source_grasp_core_controls(scene,a,d,start)
+                template_used=False
+                folder=out/'cores'/a.id;folder.mkdir(parents=True,exist_ok=True)
+                (folder/'entry.json').write_text(json.dumps(start,indent=2))
+                seed_path=args.seed_artifacts/a.id/'commands.npz'
+                if seed_path.exists():
+                    from multipath.anchors.artifact import load_validated_anchor
+                    from multipath.anchors.compatibility import boundary_errors,compatible
+                    from multipath.anchors.floating import rebase_grasp_commands
+                    seed=load_validated_anchor(args.seed_artifacts,a,provenance=manifest['provenance'],fps=schedule.fps,dt=scene.dt)
+                    reused=compatible(boundary_errors(start,seed['entry'])) and all(np.allclose(start[k],seed['entry'][k],rtol=0,atol=1e-8) for k in ['command_wrist','command_twist','command_hand_q'])
+                    commands=seed['commands'].copy()
+                    if not reused:
+                        if a.entry_contact=='grasped':
+                            commands=rebase_grasp_commands(commands,seed['entry'],start,scene.dt)
+                        commands=join_core_controls(scene,a,commands,start)
+                    info['canonical_core_reused']=reused
+                    info['validated_local_seed']=str(seed_path.parent)
+                elif a.entry_contact==a.exit_contact=='grasped':
+                    commands,handoff=source_grasp_core_controls(scene,a,d,start)
                 else:
-                    seed_path=args.seed_artifacts/a.id/'commands.npz'
-                    if a.entry_contact=='free' and seed_path.exists():
-                        from multipath.anchors.artifact import load_validated_anchor
-                        from multipath.anchors.compatibility import boundary_errors,compatible
-                        seed=load_validated_anchor(args.seed_artifacts,a,provenance=manifest['provenance'],fps=schedule.fps,dt=scene.dt)
-                        reused=compatible(boundary_errors(start,seed['entry'])) and all(np.allclose(start[k],seed['entry'][k],rtol=0,atol=1e-8) for k in ['command_wrist','command_twist','command_hand_q'])
-                        commands=seed['commands'].copy() if reused else join_core_controls(scene,a,seed['commands'],start)
-                        info['canonical_core_reused']=reused
+                    if a.id in templates:
+                        template=templates[a.id]
+                        drive_matches=(np.allclose(pose_matrix(start['command_wrist']),pose_matrix(template['previous_drive_wrist']),atol=1e-5,rtol=0)
+                            and np.allclose(start['command_hand_q'],template['previous_drive_hand'],atol=1e-5,rtol=0))
+                        # The standard wrench handoff already preserves the
+                        # measured response across feedforward changes. A tiny
+                        # terminal twist difference need not warp learned poses.
+                        commands=(template['commands'].copy() if drive_matches else join_core_controls(scene,a,template['commands'],start))
+                        info['template_drive_boundary_matches']=drive_matches
+                        template_used=True;info['interaction_initialization']=templates[a.id]['provenance']
                     else:commands=source_retarget_core_controls(scene,a,d,start)
                 terminal_offset=None
                 if a.exit_contact=='free' and args.exit_geometry_feedback_run:
@@ -176,19 +220,21 @@ def main():
                     feedback['offset_m']=terminal_offset.tolist()
                     feedback['previous_offset_m']=previous_offset.tolist()
                     info['exit_geometry_feedback']=dict(feedback,physical_rollout=str(args.exit_geometry_feedback_run))
+                commands=project_hand_commands(scene,commands,start,a)
                 commands=quiet_release_exit(scene,a,commands,terminal_offset)
+                np.savez_compressed(folder/'commands.npz',commands=commands)
                 check=validate_commands(scene,commands,start);info['command_precheck']=check
                 if not check['feasible']:raise RuntimeError('Local core command rejected')
-                folder=out/'cores'/a.id;folder.mkdir(parents=True,exist_ok=True)
-                (folder/'entry.json').write_text(json.dumps(start,indent=2));np.savez_compressed(folder/'commands.npz',commands=commands)
                 objective=WindowEvaluation(scene,a,d,start)
                 if not objective.observe(a.core_start,commands[0]):raise RuntimeError(str(objective.failure))
                 wrenches=segment_wrenches(scene,start,commands)
-                acquisition=AcquiredGraspProposal(scene,a,d) if not reused and a.entry_contact=='free' and a.exit_contact=='grasped' else None
+                acquisition=AcquiredGraspProposal(scene,a,d) if not reused and not template_used and a.entry_contact=='free' and a.exit_contact=='grasped' else None
+                preload=None
                 for k,c in enumerate(commands):
                     scene.wrench_bias=wrenches[k];frame=a.core_start+(k+1)*scene.dt*schedule.fps
                     if acquisition is not None:
-                        c=acquisition.command(frame,c);commands[k]=c
+                        c=acquisition.command(frame,c)
+                    c,preload=acquisition_preload(scene,a,c,preload);commands[k]=c
                     scene.step_control(c,'ANCHOR',frame)
                     if (k+1)%scene.tpf==0 and not objective.observe(frame,c):
                         np.savez_compressed(folder/'commands.npz',commands=commands)
@@ -197,6 +243,7 @@ def main():
                     info['local_refinement']=dict(method='measured_grasp_object_relative_MPC_proposal',
                         grasp_acquired_frame=acquisition.acquired_frame,target_handoff=acquisition.handoff)
                 exit_state=scene.snapshot();(folder/'exit.json').write_text(json.dumps(exit_state,indent=2))
+                info['native_preload_retained_during_synthesis']=preload is not None
                 np.savez_compressed(folder/'commands.npz',commands=commands)
                 report['anchors'].append(dict(id=a.id,core_interval=[a.core_start,a.core_end],synthesis_interval=[a.synth_start,a.synth_end],
                     local_rollout_success=True,handoff_verified=True,entry_physically_reachable=True,entry_origin=start['entry_origin']))

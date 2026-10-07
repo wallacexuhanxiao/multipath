@@ -5,8 +5,10 @@ from pathlib import Path
 
 def main():
     p=argparse.ArgumentParser()
-    for name in ('schedule','proposals','entry-run','context-controls','xhand-urdf','object-cache','floating-config','output-dir'):
+    for name in ('schedule','proposals','entry-run','xhand-urdf','object-cache','floating-config','output-dir'):
         p.add_argument('--'+name,type=Path,required=True)
+    p.add_argument('--context-controls',type=Path,help='Optional padded warm start; otherwise derive stabilizing post-context from this local core proposal.')
+    p.add_argument('--bridge-context-run',type=Path,help='Actual failed following carry bridge; its planned commands condition local post-context.')
     p.add_argument('--anchor-id',required=True)
     p.add_argument('--mpc-candidates',type=int,default=16);p.add_argument('--mpc-iters',type=int,default=2)
     p.add_argument('--ppo-updates',type=int,default=20)
@@ -37,31 +39,68 @@ def main():
     local=replace(anchor,synth_start=anchor.core_start)
     cropped={k:(v[skip:] if v.ndim and len(v)==anchor.synth_end-anchor.synth_start else v) for k,v in data.items()}
     core=np.load(args.entry_run/'cores'/anchor.id/'commands.npz')['commands']
-    context=np.load(args.context_controls)['commands']
-    controls=np.concatenate((core,context[(anchor.core_end-anchor.synth_start)*tpf:]))
+    bridge_context=None
+    if args.bridge_context_run:
+        context_report=json.loads((args.bridge_context_run/'pipeline_result.json').read_text())
+        if context_report['source_provenance']!=manifest['provenance']:
+            raise ValueError('Carry context source mismatch')
+        window=next(w for w in schedule.windows if w['start']==anchor.core_end)
+        if window['mode']!='RELAXED' or window.get('contact')!='grasped':
+            raise ValueError('Carry context requires the outgoing grasped RELAXED interval')
+        bridge_context=np.load(args.bridge_context_run/f'relaxed_{window["start"]}_{window["end"]}.npz')['commands']
+        needed=(anchor.synth_end-anchor.core_end)*tpf
+        if len(bridge_context)<needed:raise ValueError('Planned bridge does not cover this local padding')
+        bridge_context=bridge_context[:needed];post=bridge_context.copy()
+    elif args.context_controls:
+        context=np.load(args.context_controls)['commands']
+        post=context[(anchor.core_end-anchor.synth_start)*tpf:]
+    else:
+        from multipath.anchors.floating import stopping_context
+        post=stopping_context(core[-1],(anchor.synth_end-anchor.core_end)*tpf,FloatingScene.dt)
+    controls=np.concatenate((core,post))
     report=dict(anchor_id=anchor.id,core_success=False,full_pipeline_success=False,source_provenance=manifest['provenance'],
         synthesis_interval=[anchor.synth_start,anchor.synth_end],optimization_interval=[local.synth_start,local.synth_end],
         pre_context='actual cuRobo predecessor; no reference state initialization',entry_run=str(args.entry_run))
     first=min(schedule.anchors.values(),key=lambda a:a.core_start)
     initial_data=dict(np.load(args.proposals/manifest['anchors'][first.id],allow_pickle=False))
-    initial=initial_data['wrist_hand_q'][0,:7].copy();initial[2]+=max(.1,float(np.linalg.norm(np.ptp(initial_data['human_joints'][0],axis=0))))
+    # Recreate the predecessor's actual initial preparation. A template can
+    # choose a free pregrasp posture; raw synth_start fingers are then a
+    # different initial condition, even when the bridge commands are identical.
+    initial=np.asarray(predecessor['initial_state']['command_wrist'])
+    initial_hand=np.asarray(predecessor['initial_state']['command_hand_q'])
     app=None;scene=None
     try:
-        app=start_simulation(out);scene=FloatingScene(args,manifest,out/'initial',initial,initial_hand=initial_data['wrist_hand_q'][0,7:])
+        app=start_simulation(out);scene=FloatingScene(args,manifest,out/'initial',initial,initial_hand=initial_hand)
+        scene.freeze_carry_core=anchor.exit_contact=='grasped'
+        # Actual outgoing speed is a planning boundary requirement, not an
+        # actuator acceleration gate. This protects the already observed case
+        # where a locally valid interaction cannot enter its fixed-time bridge.
+        scene.bridge_exit_constraints=True
+        if bridge_context is not None:
+            scene.post_context_commands=bridge_context
+            report['post_context_origin']='planned carry commands from observed failed bridge; fresh physical acceptance required'
         initial_state=scene.snapshot();controls=project_hand_commands(scene,controls,entry,local)
         def predecessor_commands(window):
             path=(args.entry_run/f'relaxed_{window["start"]}_{window["end"]}.npz' if window['mode']=='RELAXED'
                   else args.entry_run/'cores'/window['anchor']/'commands.npz')
             return np.load(path)['commands']
-        def reach(frame,folder):
-            scene.begin_trial(folder,initial_state,mesh=False)
+        def reach(frame,folder,record_from=None):
+            scene.begin_initial_trial(folder,mesh=False)
+            if record_from==0:
+                scene.capture('PHYSICAL_CONTEXT_ENTRY',0)
+                scene.context_entry=scene.snapshot()
             for window in schedule.windows:
                 if window['start']>=frame:break
                 command=predecessor_commands(window)[:(min(window['end'],frame)-window['start'])*tpf]
                 carry=window.get('contact')=='grasped'
                 wrench=segment_wrenches(scene,scene.snapshot(),command,transport=carry) if window['start']>0 else np.zeros((len(command),6))
                 for k,c in enumerate(command):
-                    scene.wrench_bias=wrench[k];scene.step_control(c,window['mode'],window['start']+(k+1)/tpf)
+                    source_frame=window['start']+(k+1)/tpf
+                    scene.wrench_bias=wrench[k];scene.step_control(c,window['mode'],source_frame)
+                    if record_from is not None and source_frame==record_from:
+                        scene.begin_recording(folder,mesh=False)
+                        scene.capture('PHYSICAL_CONTEXT_ENTRY',source_frame)
+                        scene.context_entry=scene.snapshot()
             scene.save();return scene.snapshot()
         entry=reach(anchor.core_start,out/'replay_entry_acquisition')
         result,_,_=rollout(scene,local,cropped,controls,entry,out/'replay',continue_from_current=True,controller_handoff=True)
@@ -98,13 +137,29 @@ def main():
         report['local_replay']=result
         np.savez_compressed(out/'local_controls.npz',commands=controls)
         if not result['success']:raise RuntimeError('Reached-entry local interaction failed')
-        pre=[]
-        for window in schedule.windows:
-            lo=max(anchor.synth_start,window['start']);hi=min(anchor.core_start,window['end'])
-            if lo<hi:pre.append(predecessor_commands(window)[(lo-window['start'])*tpf:(hi-window['start'])*tpf])
-        padded=np.concatenate((*pre,controls))
-        padded_entry=reach(anchor.synth_start,out/'padded_entry_acquisition')
-        padded_result,_,_=rollout(scene,anchor,data,padded,padded_entry,out/'fresh_padded',continue_from_current=True)
+        # Execute the exact predecessor controller through the pre-context,
+        # then switch to the same local CORE controller as final execution.
+        # No state restore occurs at synth_start or core_start.
+        reached=reach(anchor.core_start,out/'padded_entry_acquisition',record_from=anchor.synth_start)
+        pre_trace=list(scene.records);padded_entry=scene.context_entry
+        from multipath.anchors.mpc import WindowEvaluation
+        context=WindowEvaluation(scene,anchor,data,padded_entry)
+        for state in pre_trace:
+            command=np.r_[state['command_wrist'],state['command_hand_q'],state['command_twist']]
+            if not context.observe(state['source_frame'],command,measured=state):
+                raise RuntimeError(f'Physical pre-context failed: {context.failure}')
+        padded_result,_,_=rollout(scene,local,cropped,controls,reached,out/'fresh_padded',
+                                 continue_from_current=True,controller_handoff=True,mesh=False)
+        core_trace=list(scene.records)
+        padded_result.update(rollout_interval=[anchor.synth_start,anchor.synth_end],
+            pre_context='actual predecessor controller execution; no boundary reset',
+            padded_rollout_complete=padded_result['success'])
+        (out/'fresh_padded'/'actual_trace.json').write_text(json.dumps(pre_trace+core_trace))
+        (out/'fresh_padded'/'local_result.json').write_text(json.dumps(padded_result,indent=2))
+        padded_meta=json.loads((out/'fresh_padded'/'pipeline_result.json').read_text())
+        padded_meta.update(actual_duration_s=(anchor.synth_end-anchor.synth_start)/schedule.fps,
+                           validation_scope='continuous actual predecessor padding plus local core/post-context')
+        (out/'fresh_padded'/'pipeline_result.json').write_text(json.dumps(padded_meta,indent=2))
         report['padded_replay']=padded_result
         if not padded_result['success']:raise RuntimeError('Continuous padded local replay failed')
         # Reexecute the real initial-state cuRobo prefix. The exported CORE

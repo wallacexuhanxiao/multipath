@@ -180,6 +180,7 @@ class LocalPPOSolver:
 
     def __call__(self,baseline,start,begin):
         self.selected_prefix=None
+        self.best_proposal=None;proposal_rank=None
         from multipath.anchors.ppo_model import SmallResidualPPO
         cfg=self.config
         if self.deadline is None:self.deadline=time.monotonic()+cfg.max_seconds
@@ -199,6 +200,7 @@ class LocalPPOSolver:
             (self.out/'rl_result.json').write_text(json.dumps({'windows':self.reports},indent=2))
 
         def rollout(deterministic):
+            nonlocal proposal_rank
             obs=env.reset();episode=[];total=0.
             for _ in range(env.horizon):
                 action,info=learner.act(obs,deterministic=deterministic)
@@ -211,6 +213,13 @@ class LocalPPOSolver:
             if result['success']:
                 check=env.command_precheck()
                 result['command_precheck']=check;result['success']=check['feasible']
+            if hasattr(env,'continuation_proposal'):
+                rank=(result['source_steps'],result['evaluation_return'])
+                if proposal_rank is None or rank>proposal_rank:
+                    self.best_proposal=env.continuation_proposal().copy();proposal_rank=rank
+                    np.savez_compressed(folder/'best_proposal.npz',commands=self.best_proposal)
+                    report['best_proposal']=dict(source_steps=rank[0],evaluation_return=rank[1],
+                        physical_acceptance=False,role='initialization_for_fresh_local_replay')
             report['episodes']+=1
             return episode,result
 

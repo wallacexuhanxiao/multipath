@@ -1,5 +1,41 @@
 # multipath — Interaction-Anchored Trajectory Generation
 
+## Current end-to-end entry
+
+`scripts/run_end_to_end.py` starts from raw TACO hand/object data and a static
+Oracle schedule. It prepares only local Anchor inputs, acquires core entries
+through their actual cuRobo predecessors, and invokes local Replay/MPPI/
+small residual PPO or measured boundary/geometry feedback for observed failures.
+The predecessor's last padding frames provide physical synthesis context;
+fresh padded and exported-core validation use the same controller handoff.
+It exports local cores and bridges only after one whole physical candidate
+passes, then requires a fresh continuous artifact-consuming PhysX rollout.
+
+On Hopper, use `hpc/run_end_to_end.pbs` with `MULTIPATH_SCHEDULE`,
+`MULTIPATH_TRIPLET`, `MULTIPATH_SEQUENCE`, and `MULTIPATH_RUN_NAME`.
+The job requests interactive/H200 for 20 minutes. Old artifacts and feedback
+paths are optional warm starts, not required inputs. Failed physical reports
+remain failures even when Isaac shutdown returns a zero process status.
+
+`hpc/run_end_to_end_batch.pbs` runs independent source inputs from
+`MULTIPATH_CASES` in the same allocation, sharing only the staged import bundle.
+`configs/oracle/taco_put_in_batch.json` lists the original source and three new
+manually reviewed Oracle schedules; physics worlds and output folders are separate.
+
+`scripts/collect_end_to_end.py --remote-run <Hopper run directory>
+--output-dir <local folder> --render-python <Python with MuJoCo/OpenCV>` downloads
+the actual trace/geometry, renders the actual-state video, and creates a source
+RGB / actual PhysX comparison at the original frame count and frame rate.
+
+The existing successful Oracle V0 and three complete spatial trajectories are
+documented in [V0 results](docs/ORACLE_V0_RESULT_20261006.md) and
+[diversity results](docs/ORACLE_DIVERSITY_RESULT_20261007.md). Fresh raw-input
+end-to-end and additional source-video evidence are reported separately.
+The additional sources have not passed full end-to-end acceptance yet; see
+[the current experiment report](docs/END_TO_END_20261007.md).
+
+Older progress notes below describe the earlier development stages.
+
 **Semantic correction (2026-09-30):** direct inspection of the original
 144-frame / 30-fps video shows a held-bowl tilt over the board, return to the
 source location, and only then release. Earlier runs below used an incorrect

@@ -46,7 +46,7 @@ def main():
         from multipath.execution.startup import start_simulation
         from multipath.execution.floating_scene import FloatingScene
         from multipath.planning.floating import FloatingPlanner,pose_coordinates
-        from multipath.anchors.floating import local_controls,rollout,validate_commands,validate_local_data,project_hand_commands
+        from multipath.anchors.floating import local_controls,rollout,validate_commands,validate_local_data,project_hand_commands,stopping_context
         from multipath.planning.timing import physics_ticks_per_frame
         from multipath.anchors.artifact import save_anchor
         data=dict(np.load(args.proposals/manifest['anchors'][anchor.id],allow_pickle=False))
@@ -123,8 +123,11 @@ def main():
             np.savez_compressed(out/'predecessor_commands.npz',commands=commands)
             for i,command in enumerate(commands):
                 frame=(i+1)*scene.dt*schedule.fps;scene.step_control(command,'RELAXED',frame)
-                if (i+1)%tpf==0:
-                    if not planner.measured_valid():raise RuntimeError('Measured floating bridge collision')
+                if not planner.measured_valid():
+                    collisions=planner.measured_mesh_collisions()
+                    report.setdefault('predecessor_collision_diagnostics',[]).append(
+                        dict(source_frame=frame,proxy_clearance_m=planner.measured_clearance(),actual_mesh_collisions=collisions))
+                    if collisions:raise RuntimeError(f'Measured floating bridge mesh collision: {collisions}')
             transition=scene.check_transition(target,anchor.entry_contact);report['predecessor_transition']=transition
             scene.save()
             if not transition['success']:raise RuntimeError('Floating bridge handoff failed')
@@ -132,6 +135,26 @@ def main():
                 'source_frame':anchor.synth_start,'planner':'cuRobo','predecessor_success':True}
             entry=scene.snapshot();(out/'acquired_snapshot.json').write_text(json.dumps(entry,indent=2))
         print('FLOATING_PREDECESSOR_PASSED',flush=True)
+        def reach_synthesis(folder):
+            if args.entry_snapshot:
+                scene.begin_trial(folder,entry,mesh=False)
+                return scene.snapshot()
+            # Reacquire the entry by execution, including the predecessor's
+            # controller and PhysX history. Only the task initial state resets.
+            scene.begin_initial_trial(folder,mesh=False)
+            for k,c in enumerate(commands):
+                scene.step_control(c,'RELAXED',(k+1)/tpf)
+            scene.lineage={'trace':str(scene.out/'actual_trace.json'),'source_frame':anchor.synth_start,
+                           'planner':'cuRobo','predecessor_success':True}
+            scene.save()
+            return scene.snapshot()
+        def replay_padded(candidate,folder,**options):
+            acquired=reach_synthesis(Path(folder).with_name(Path(folder).name+'_entry'))
+            return rollout(scene,anchor,data,candidate,acquired,folder,
+                           continue_from_current=True,controller_handoff=True,**options)
+        report['fresh_entry_acquisition']=('physically_acquired_snapshot' if args.entry_snapshot
+            else 'initial_state_then_actual_cuRobo_execution_each_acceptance_and_PPO_episode')
+        scene.freeze_carry_core=anchor.exit_contact=='grasped'
         scene.bridge_exit_constraints=args.bridge_compatible_exit
         if args.bridge_compatible_exit:report['exit_bridge_constraints']='configured boundary velocity budget and collision-free carried object for grasped exits'
         if args.bridge_compatible_entry:
@@ -152,6 +175,10 @@ def main():
             report['local_wrist_target']=('source_object_pose_with_measured_grasp' if anchor.entry_contact==anchor.exit_contact=='grasped'
                                          else 'local_human_retarget')
             report['entry_blend_deadline_source_frame']=anchor.core_start
+        if anchor.exit_contact=='grasped':
+            core_end_tick=(anchor.core_end-anchor.synth_start)*tpf
+            controls[core_end_tick:]=stopping_context(controls[core_end_tick-1],len(controls)-core_end_tick,scene.dt)
+            report['post_context_proposal']='freeze_core_exit_finger_drive_and_stop_wrist_inside_existing_padding'
         if args.freeze_carry_core:
             from multipath.anchors.floating import carry_boundary_commands
             controls=carry_boundary_commands(scene,anchor,controls,entry)
@@ -160,7 +187,7 @@ def main():
         check=validate_commands(scene,controls,entry);report['command_precheck']=check
         if not check['feasible']:raise RuntimeError('Floating local command precheck failed')
         np.savez_compressed(out/'local_controls.npz',commands=controls)
-        validation,core_entry,core_exit=rollout(scene,anchor,data,controls,entry,out/'replay',collect_tracking_failures=True)
+        validation,core_entry,core_exit=replay_padded(controls,out/'replay',collect_tracking_failures=True)
         report['padded_replay']=validation
         if not validation['success'] and not args.replay_only:
             from multipath.anchors.floating_search import refine
@@ -177,7 +204,7 @@ def main():
                 report['window_refinement_failure']={'reason':str(error),'proposal_only':True,
                     'next':'fresh_padded_replay_then_whole_anchor_PPO_if_needed'}
             np.savez_compressed(out/'refined_controls.npz',commands=controls)
-            validation,core_entry,core_exit=rollout(scene,anchor,data,controls,entry,out/'refined_replay')
+            validation,core_entry,core_exit=replay_padded(controls,out/'refined_replay')
             report['refined_padded_replay']=validation
             if not validation['success'] and not args.mpc_only:
                 # A successful snapshot-based window chain can fail when run
@@ -188,14 +215,17 @@ def main():
                 accepted_state={};attempts=[]
                 def accept_full(candidate):
                     folder=out/'whole_anchor_replay'/f'candidate_{len(attempts):03d}'
-                    value,acquired,exited=rollout(scene,anchor,data,candidate,entry,folder)
+                    value,acquired,exited=replay_padded(candidate,folder)
                     attempts.append(dict(value,trace=str(folder/'actual_trace.json')))
                     report['whole_anchor_replay_attempts']=attempts
                     if value['success']:accepted_state.update(validation=value,entry=acquired,exit=exited)
                     print('WHOLE_ANCHOR_REPLAY',len(attempts),value['success'],value['failure'],flush=True)
                     return value['success']
+                def reached_env(*values):
+                    return FloatingResidualEnv(*values,entry_acquirer=lambda:reach_synthesis(out/'ppo_entry_acquisition'),
+                        controller_handoff=True)
                 solver=LocalPPOSolver(scene,anchor,data,out/'whole_anchor_ppo',PPOConfig(iterations=args.ppo_updates),
-                                      env_factory=FloatingResidualEnv,accept_controls=accept_full)
+                                      env_factory=reached_env,accept_controls=accept_full)
                 candidate=solver(controls,entry,0)
                 if candidate is not None:
                     controls=candidate;validation=accepted_state['validation']
@@ -207,13 +237,16 @@ def main():
         padded_exit=core_exit
         # Reach the core boundary by actual execution of its local context;
         # core validation must not depend on restoring a mid-interaction cache.
-        scene.begin_trial(out/'core_entry_acquisition',entry,mesh=False)
+        acquired=reach_synthesis(out/'core_entry_acquisition')
+        from multipath.execution.wrench_handoff import segment_wrenches
+        wrenches=segment_wrenches(scene,acquired,controls)
         for i,command in enumerate(controls[:(anchor.core_start-anchor.synth_start)*tpf]):
+            scene.wrench_bias=wrenches[i]
             scene.step_control(command,'SYNTHESIS_CONTEXT',anchor.synth_start+(i+1)/tpf)
         scene.save();core_entry=scene.snapshot()
         report['core_entry_acquisition']='physical_padding_execution; no_reset_at_core_boundary'
         core_result,_,core_exit=rollout(scene,anchor,data,core,core_entry,out/'exported_core',mode='EXPORTED_CORE',
-                                     core_only=True,continue_from_current=True)
+                                     core_only=True,continue_from_current=True,controller_handoff=True)
         report['core_replay']=core_result
         if not core_result['success'] or core_exit is None:raise RuntimeError('Exported core physical replay failed')
         from multipath.anchors.compatibility import boundary_errors

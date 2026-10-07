@@ -89,7 +89,15 @@ def main():
             data=dict(np.load(args.proposals/manifest['anchors'][first.id],allow_pickle=False))
             initial=data['wrist_hand_q'][0,:7].copy()
             initial[2]+=max(.1,float(np.linalg.norm(np.ptp(data['human_joints'][0],axis=0))))
-            scene=FloatingScene(args,manifest,out,initial,initial_hand=data['wrist_hand_q'][0,7:])
+            initial_hand=data['wrist_hand_q'][0,7:]
+            if args.planned_bridges:
+                prepared=json.loads((args.planned_bridges/'pipeline_result.json').read_text())
+                if prepared['source_provenance']!=manifest['provenance']:
+                    raise ValueError('Initial preparation source mismatch')
+                initial=np.asarray(prepared['initial_state']['command_wrist'])
+                initial_hand=np.asarray(prepared['initial_state']['command_hand_q'])
+                report['initial_preparation_origin']='passed physical candidate free-hand drive'
+            scene=FloatingScene(args,manifest,out,initial,initial_hand=initial_hand)
             report.update(embodiment=scene.embodiment,assembly_self_collision=False)
         else:
             from multipath.execution.mounted_scene import MountedScene

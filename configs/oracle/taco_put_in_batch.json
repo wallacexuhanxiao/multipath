@@ -1,0 +1,22 @@
+[
+  {
+    "schedule": "configs/oracle/put_in.json",
+    "triplet": "(put in, bowl, plate)",
+    "sequence": "20231024_253"
+  },
+  {
+    "schedule": "configs/oracle/taco_put_in_20231024_248.json",
+    "triplet": "(put in, bowl, plate)",
+    "sequence": "20231024_248"
+  },
+  {
+    "schedule": "configs/oracle/taco_put_in_20231024_258.json",
+    "triplet": "(put in, bowl, plate)",
+    "sequence": "20231024_258"
+  },
+  {
+    "triplet": "(put in, bowl, plate)",
+    "sequence": "20231024_243",
+    "schedule": "configs/oracle/taco_put_in_20231024_243.json"
+  }
+]

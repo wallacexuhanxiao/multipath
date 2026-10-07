@@ -38,6 +38,10 @@ def save_anchor(root, anchor, entry, exit_state, commands, validation, provenanc
     (root/'entry.json').write_text(json.dumps(entry, indent=2))
     (root/'exit.json').write_text(json.dumps(exit_state, indent=2))
     np.savez_compressed(root/'commands.npz', commands=np.asarray(commands))
+    trace_path=Path(validation.get('physical_trace') or entry.get('entry_provenance',{}).get('trace',''))
+    if trace_path.is_file():
+        samples=[s for s in json.loads(trace_path.read_text()) if anchor.core_start<=s.get('source_frame',-1)<=anchor.core_end]
+        (root/'local_actual_trace.json').write_text(json.dumps(samples))
     return report
 
 

@@ -1,0 +1,90 @@
+{
+  "source": "oracle",
+  "fps": 30.0,
+  "num_frames": 129,
+  "instruction": "grasp the bowl, hold it while tilting over the target, return it to the source position, then release",
+  "task_contract": {
+    "kind": "anchor_sequence_and_final_object_pose",
+    "position_tolerance_m": 0.05,
+    "rotation_tolerance_rad": 0.35,
+    "stable_speed_m_s": 0.03
+  },
+  "synthesis_context_note": "6 source frames per side; context is not core and does not alter runtime segmentation",
+  "sequence": "20231024_243",
+  "triplet": "(put in, bowl, plate)",
+  "segmentation_provenance": "manual review of original RGB contact sheets and object annotations; static oracle input, no runtime segmentation inference",
+  "semantic_review": "Right hand grasps and initially reorients bowl, carries it to target, tilts while holding, returns and releases. The left hand also adjusts the target; V0 executes right XHand only.",
+  "windows": [
+    {
+      "start": 0,
+      "end": 23,
+      "mode": "RELAXED",
+      "contact": "free"
+    },
+    {
+      "start": 23,
+      "end": 61,
+      "mode": "ANCHOR",
+      "anchor": "anchor_0"
+    },
+    {
+      "start": 61,
+      "end": 70,
+      "mode": "RELAXED",
+      "contact": "grasped"
+    },
+    {
+      "start": 70,
+      "end": 97,
+      "mode": "ANCHOR",
+      "anchor": "anchor_1"
+    },
+    {
+      "start": 97,
+      "end": 105,
+      "mode": "RELAXED",
+      "contact": "grasped"
+    },
+    {
+      "start": 105,
+      "end": 123,
+      "mode": "ANCHOR",
+      "anchor": "anchor_2"
+    },
+    {
+      "start": 123,
+      "end": 129,
+      "mode": "RELAXED",
+      "contact": "free"
+    }
+  ],
+  "anchors": [
+    {
+      "id": "anchor_0",
+      "core_start": 23,
+      "core_end": 61,
+      "synth_start": 17,
+      "synth_end": 67,
+      "entry_contact": "free",
+      "exit_contact": "grasped"
+    },
+    {
+      "id": "anchor_1",
+      "core_start": 70,
+      "core_end": 97,
+      "synth_start": 64,
+      "synth_end": 103,
+      "entry_contact": "grasped",
+      "exit_contact": "grasped"
+    },
+    {
+      "id": "anchor_2",
+      "core_start": 105,
+      "core_end": 123,
+      "synth_start": 99,
+      "synth_end": 129,
+      "entry_contact": "grasped",
+      "exit_contact": "free"
+    }
+  ]
+}

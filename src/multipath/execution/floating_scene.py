@@ -78,8 +78,11 @@ class FloatingScene:
         self.robot.set_joint_positions(q);self.robot.set_joint_velocities(np.zeros_like(q))
         self.av=view._physics_view
         self.ticks=0;self.records=[];self.record_mesh=False;self.restore_count=0
-        self.scene_id=hashlib.sha256(json.dumps({'objects':initial,'embodiment':self.embodiment,'controller':self.cfg},sort_keys=True).encode()).hexdigest()
+        self.scene_id=hashlib.sha256(json.dumps({'objects':initial,'embodiment':self.embodiment,'controller':self.cfg,
+            'hand_weight_compensation':('measured_force_and_moment' if self.cfg['controller'].get('hand_gravity_moment_compensation',False)
+                else 'measured_force')},sort_keys=True).encode()).hexdigest()
         self.last_wrench=np.zeros(6);self.command_pose=np.asarray(initial_wrist).copy();self.command_twist=np.zeros(6)
+        self.initial_drive_pose=np.asarray(initial_wrist).copy();self.initial_drive_hand=self.hand_command.copy()
         # Initialization before the source clock. No settling is inserted at segment boundaries.
         for _ in range(120):self._drive(initial_wrist,self.hand_command,np.zeros(6));self.world.step(render=False)
         self.lineage={'initial_scene':self.scene_id}
@@ -97,6 +100,10 @@ class FloatingScene:
         actual,velocity=self.root_motion();cfg=self.cfg['controller']
         from multipath.execution.wrench_handoff import feedback_wrench,carried_gravity_wrench
         response=feedback_wrench(pose,twist,actual,velocity,cfg)+getattr(self,'wrench_bias',np.zeros(6))
+        from multipath.execution.transport_dynamics import hand_gravity_torque
+        self.self_gravity_torque=(hand_gravity_torque(self,actual)
+            if cfg.get('hand_gravity_moment_compensation',False) else np.zeros(3))
+        response[3:]+=self.self_gravity_torque
         if getattr(self,'transport_load',False):response+=carried_gravity_wrench(self)
         force=np.clip(response[:3],-cfg['wrist_max_force'],cfg['wrist_max_force'])
         torque=np.clip(response[3:],-cfg['wrist_max_torque'],cfg['wrist_max_torque'])
@@ -123,6 +130,7 @@ class FloatingScene:
             'contact':hand_tool_contact(self.contacts.prim_paths,self.contacts.get_contact_force_matrix(dt=self.dt)),
             'scene_id':self.scene_id,'time_s':self.ticks*self.dt,'physically_acquired_state':True,'state_origin':'continuous_PhysX_rollout',
             'controller_wrench_bias':getattr(self,'wrench_bias',np.zeros(6)).tolist(),
+            'hand_self_gravity_torque':self.self_gravity_torque.tolist(),
             'command_wrist':self.command_pose.tolist(),'command_twist':self.command_twist.tolist(),'command_hand_q':self.hand_command.tolist()}
 
     def capture(self,mode,frame):
@@ -179,6 +187,33 @@ class FloatingScene:
 
     def begin_trial(self,out,state,mesh=False):
         self.restore_development(state);self.begin_recording(out,mesh)
+
+    def begin_initial_trial(self,out,mesh=False):
+        """Reacquire the initial preparation with fresh solver contact history.
+
+        Used only by local development before source time zero. Merely
+        restoring q/dq and object snapshots leaves PhysX warm-start contacts
+        from the preceding optimization episode. The final continuous runtime
+        still initializes once and never calls this method between segments.
+        """
+        self.world.reset();self.wrist.initialize()
+        view=self.robot._articulation_view;self.av=view._physics_view
+        view.set_gains(kps=np.full((1,12),5.),kds=np.full((1,12),.5),joint_indices=self.fingers)
+        view.set_max_efforts(np.full((1,12),3.),joint_indices=self.fingers)
+        pose=self.initial_drive_pose
+        self.robot.set_world_pose(position=pose[:3],orientation=pose[3:])
+        self.robot.set_linear_velocity(np.zeros(3));self.robot.set_angular_velocity(np.zeros(3))
+        q=np.zeros(self.robot.num_dof);q[self.fingers]=self.initial_drive_hand
+        self.robot.set_joint_positions(q);self.robot.set_joint_velocities(np.zeros_like(q))
+        for role,obj in self.objects.items():
+            initial=self.manifest['initial_objects'][role]['pose']
+            obj.set_world_pose(position=np.asarray(initial[:3]),orientation=np.asarray(initial[3:]))
+            obj.set_linear_velocity(np.zeros(3));obj.set_angular_velocity(np.zeros(3))
+        self.wrench_bias=np.zeros(6);self.transport_load=False
+        for _ in range(120):
+            self._drive(pose,self.initial_drive_hand,np.zeros(6));self.world.step(render=False)
+        self.ticks=0;self.restored_tick=None;self.restore_count+=1;self.lineage={'initial_scene':self.scene_id}
+        self.begin_recording(out,mesh);self.capture('INITIAL',0)
 
     def save(self):
         if self.record_mesh:self.recorder.save()
