@@ -49,4 +49,4 @@ EXTRA=()
  --xhand-urdf "$ENGINE/assets/xhand/spider/xhand_right.urdf" --object-cache "$ENGINE/outputs/sim_usd" \
  --sim-prefix "$OUT/sim_prefix.json" --output-dir "$OUT" "${EXTRA[@]}" \
  --mpc-candidates "${MULTIPATH_MPC_CANDIDATES:-16}" --mpc-iters "${MULTIPATH_MPC_ITERS:-2}" \
- --ppo-updates "${MULTIPATH_PPO_UPDATES:-20}" >"$OUT/run.log" 2>&1
+ --ppo-updates "${MULTIPATH_PPO_UPDATES:-20}" --max-attempts "${MULTIPATH_MAX_ATTEMPTS:-10}" >"$OUT/run.log" 2>&1

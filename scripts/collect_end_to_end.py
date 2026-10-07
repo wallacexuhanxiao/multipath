@@ -50,11 +50,17 @@ def main():
         while verify.read()[0]:decoded+=1
         verify.release()
         if decoded!=count:raise RuntimeError('Comparison video is incomplete')
-        results.append(dict(sequence=report['sequence'],success=True,source_duration_s=report['source_duration_s'],
+        results.append(dict(sequence=report['sequence'],run=str(folder.resolve()),success=True,source_duration_s=report['source_duration_s'],
             actual_duration_s=physical['actual_duration_s'],state_resets_between_segments=physical['state_resets_between_segments'],
             task=physical['task'],actual_video=str(actual.resolve()),source_comparison=str(comparison.resolve())))
         print('LOCAL_VIDEO_READY',report['sequence'],str(comparison.resolve()),flush=True)
-    (args.output_dir/'collection.json').write_text(json.dumps(results,indent=2))
+    index=args.output_dir/'collection.json'
+    previous=json.loads(index.read_text()) if index.exists() else []
+    by_run={}
+    for entry in previous+results:
+        run=Path(entry['run']).resolve() if entry.get('run') else Path(entry['actual_video']).parents[1]
+        by_run[str(run)]=dict(entry,run=str(run))
+    index.write_text(json.dumps(list(by_run.values()),indent=2))
 
 
 if __name__=='__main__':main()

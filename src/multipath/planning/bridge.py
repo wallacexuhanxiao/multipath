@@ -5,7 +5,7 @@ from multipath.planning.floating import pose_coordinates,carried_proxy
 
 
 def carried_object_clearance(scene,state):
-    """Use the same carried-object sphere and world-box model as cuRobo.
+    """Check table support clearance and actual carried/target mesh separation.
 
     A hand/tool contact while the table supports the bowl is not a transportable
     bridge boundary. This cheap exit check avoids accepting that local optimum.
@@ -14,16 +14,27 @@ def carried_object_clearance(scene,state):
     rotation=Rotation.from_quat(tool[[4,5,6,3]])
     centers=rotation.apply(np.array([x['center'] for x in spheres]))+tool[:3]
     radii=np.array([x['radius'] for x in spheres]);boxes={'table':scene.table}
-    for role in ('target',):
-        pose=np.asarray(state['objects'][role]['pose']);bounds=scene.meshes[role].bounds
-        rot=Rotation.from_quat(pose[[4,5,6,3]])
-        boxes[role]=dict(dims=(bounds[1]-bounds[0]).tolist(),pose=np.r_[pose[:3]+rot.apply(bounds.mean(0)),pose[3:]].tolist())
     result={}
     for role,box in boxes.items():
         pose=np.asarray(box['pose']);local=Rotation.from_quat(pose[[4,5,6,3]]).inv().apply(centers-pose[:3])
         offset=np.abs(local)-np.asarray(box['dims'])/2
         distance=np.linalg.norm(np.maximum(offset,0),axis=1)+np.minimum(np.max(offset,axis=1),0)-radii
         result[role]=float(np.min(distance))
+    # A target's bounding box can fill a tray/bowl cavity or empty corners.
+    # That rejected a carried exit with 4.2 cm actual mesh separation.
+    import fcl
+    if not hasattr(scene,'object_clearance_meshes'):
+        scene.object_clearance_meshes={}
+        for role in ('tool','target'):
+            mesh=scene.meshes[role];model=fcl.BVHModel();model.beginModel(len(mesh.vertices),len(mesh.faces))
+            model.addSubModel(mesh.vertices,mesh.faces);model.endModel();scene.object_clearance_meshes[role]=model
+    bodies=[]
+    for role in ('tool','target'):
+        pose=np.asarray(state['objects'][role]['pose'])
+        bodies.append(fcl.CollisionObject(scene.object_clearance_meshes[role],
+            fcl.Transform(Rotation.from_quat(pose[[4,5,6,3]]).as_matrix(),pose[:3])))
+    result['target']=float(fcl.distance(*bodies,fcl.DistanceRequest(),fcl.DistanceResult()))
+    if fcl.collide(*bodies,fcl.CollisionRequest(),fcl.CollisionResult()):result['target']=-1e-6
     return result
 
 
@@ -187,26 +198,52 @@ def feedback_boundary_target(start,goal,planned_pose,actual_state,source_target,
     held=np.asarray(start['hand_object_transform']);source_target=np.asarray(source_target)
     planned_tool=pose_matrix(planned_pose)@held;actual_tool=pose_matrix(actual_state['objects']['tool']['pose'])
     offset=actual_tool[:3,3]-planned_tool[:3,3]
+    correction=actual_tool@np.linalg.inv(planned_tool)
+    tracking=pose_matrix(actual_state['wrist_xyz_wxyz'])@np.linalg.inv(pose_matrix(planned_pose))
+    measured_held=np.asarray(actual_state['hand_object_transform'])
     q0=pose_coordinates(start['wrist_xyz_wxyz']);seed=pose_coordinates(goal['wrist_xyz_wxyz'],q0)
     v0=coordinate_velocity(start['wrist_xyz_wxyz'],start['wrist_twist'],q0)
-    vmax=np.asarray(planning['velocity_limits'])*.98;amax=np.asarray(planning['acceleration_limits'])*.95
+    vmax=np.asarray(planning['velocity_limits']);amax=np.asarray(planning['acceleration_limits'])
+    v1_seed=coordinate_velocity(goal['wrist_xyz_wxyz'],goal['wrist_twist'],seed)
     def tool(x):return pose_matrix(coordinates_pose(x))@held
+    def predicted_tool(x):
+        # Grasp deflection belongs to the hand frame. A single left/world
+        # transform of the tool also rotates that deflection when the new goal
+        # changes orientation, causing successive feedback fits to oscillate.
+        return tracking@pose_matrix(coordinates_pose(x))@measured_held
     def constraints(x):
-        pose=coordinates_pose(x);v1=coordinate_velocity(pose,goal['wrist_twist'],x)
-        low,high=discrete_displacement_bounds(v0,v1,budget,dt,vmax,amax);m=tool(x)
-        return np.r_[x-q0-low,q0+high-x,
+        q,v1=x[:6],x[6:]
+        low,high=discrete_displacement_bounds(v0,v1,budget,dt,vmax,amax);m=tool(q)
+        return np.r_[q-q0-low,q0+high-q,
             (.98*OBJECT_POSITION_TOLERANCE_M)**2-np.sum((m[:3,3]-source_target[:3,3])**2),
             (.98*OBJECT_ROTATION_TOLERANCE_RAD)**2-Rotation.from_matrix(source_target[:3,:3].T@m[:3,:3]).magnitude()**2]
     def objective(x):
-        return np.sum((tool(x)[:3,3]+offset-source_target[:3,3])**2)/OBJECT_POSITION_TOLERANCE_M**2+.1*np.sum((x-seed)**2)
-    result=minimize(objective,seed,method='SLSQP',constraints=[dict(type='ineq',fun=constraints)],
-                    options={'maxiter':80,'ftol':1e-10})
+        predicted=predicted_tool(x[:6])
+        position=np.sum((predicted[:3,3]-source_target[:3,3])**2)/OBJECT_POSITION_TOLERANCE_M**2
+        rotation=Rotation.from_matrix(source_target[:3,:3].T@predicted[:3,:3]).magnitude()**2/OBJECT_ROTATION_TOLERANCE_RAD**2
+        return position+rotation+.01*np.sum((x[:6]-seed)**2)+.01*np.sum((x[6:]/vmax)**2)
+    # The oracle fixes interaction pose/contact/time, not the human velocity.
+    # Keeping its velocity fixed exhausted the reachable rotation envelope and
+    # repeated the same failed boundary. Choose a canonical velocity together
+    # with the pose; the subsequent physical Anchor must accept this entry.
+    result=minimize(objective,np.r_[seed,np.clip(v1_seed,-vmax,vmax)],method='SLSQP',
+                    bounds=[(None,None)]*6+list(zip(-vmax,vmax)),
+                    constraints=[dict(type='ineq',fun=constraints)],options={'maxiter':120,'ftol':1e-10})
     if not result.success or min(constraints(result.x)) < -1e-8:
         raise RuntimeError('No feedback boundary proposal within original source/time conditions')
-    proposal=dict(goal,wrist_xyz_wxyz=coordinates_pose(result.x).tolist(),
+    q,v1=result.x[:6],result.x[6:];pose=coordinates_pose(q);eps=1e-5
+    advanced=coordinates_pose(q+eps*v1)
+    twist=np.r_[v1[:3],(Rotation.from_quat(advanced[[4,5,6,3]])*
+        Rotation.from_quat(pose[[4,5,6,3]]).inv()).as_rotvec()/eps]
+    proposal=dict(goal,wrist_xyz_wxyz=pose.tolist(),wrist_twist=twist.tolist(),
                   physically_acquired_state=False,state_origin='unvalidated_physical_feedback_boundary_proposal')
+    predicted=predicted_tool(q)
     return proposal,dict(measured_tool_position_offset_m=offset.tolist(),
-        predicted_tool_position_error_m=float(np.linalg.norm(tool(result.x)[:3,3]+offset-source_target[:3,3])),
+        measured_tool_rotation_offset_rad=float(Rotation.from_matrix(correction[:3,:3]).magnitude()),
+        predicted_tool_position_error_m=float(np.linalg.norm(predicted[:3,3]-source_target[:3,3])),
+        predicted_tool_rotation_error_rad=float(Rotation.from_matrix(source_target[:3,:3].T@predicted[:3,:3]).magnitude()),
+        canonical_boundary_velocity_selected=True,nominal_planning_limits_unchanged=True,
+        feedback_model='world_wrist_tracking_and_measured_hand_object_transform',
         source_condition_unchanged=True,physics_acceptance=False)
 
 

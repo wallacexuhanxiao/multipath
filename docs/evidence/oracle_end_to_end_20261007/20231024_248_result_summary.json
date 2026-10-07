@@ -1,0 +1,148 @@
+{
+  "sequence": "20231024_248",
+  "success": true,
+  "source_duration_s": 4.2,
+  "actual_duration_s": 4.2,
+  "state_resets_between_segments": 0,
+  "pbs_job_id": "653289.hopper-m-02",
+  "task": {
+    "success": true,
+    "final_errors": {
+      "position_m": 0.01061642315939011,
+      "rotation_rad": 0.22867183980274275
+    },
+    "final_speed_m_s": 0.00010015160262888642,
+    "released": true
+  },
+  "end_to_end_wall_s": 144.46480227820575,
+  "segments": [
+    {
+      "start": 0,
+      "end": 26,
+      "mode": "RELAXED",
+      "anchor": null,
+      "budget_s": 0.8666666666666667,
+      "actual_end_s": 0.8666666666666667,
+      "success": true
+    },
+    {
+      "start": 26,
+      "end": 65,
+      "mode": "ANCHOR",
+      "anchor": "anchor_0",
+      "budget_s": 1.3,
+      "actual_end_s": 2.1666666666666665,
+      "success": true
+    },
+    {
+      "start": 65,
+      "end": 74,
+      "mode": "RELAXED",
+      "anchor": null,
+      "budget_s": 0.3,
+      "actual_end_s": 2.466666666666667,
+      "success": true
+    },
+    {
+      "start": 74,
+      "end": 89,
+      "mode": "ANCHOR",
+      "anchor": "anchor_1",
+      "budget_s": 0.5,
+      "actual_end_s": 2.966666666666667,
+      "success": true
+    },
+    {
+      "start": 89,
+      "end": 96,
+      "mode": "RELAXED",
+      "anchor": null,
+      "budget_s": 0.23333333333333334,
+      "actual_end_s": 3.2,
+      "success": true
+    },
+    {
+      "start": 96,
+      "end": 120,
+      "mode": "ANCHOR",
+      "anchor": "anchor_2",
+      "budget_s": 0.8,
+      "actual_end_s": 4.0,
+      "success": true
+    },
+    {
+      "start": 120,
+      "end": 126,
+      "mode": "RELAXED",
+      "anchor": null,
+      "budget_s": 0.2,
+      "actual_end_s": 4.2,
+      "success": true
+    }
+  ],
+  "anchors": [
+    {
+      "id": "anchor_0",
+      "core_interval": [
+        26,
+        65
+      ],
+      "synthesis_interval": [
+        20,
+        71
+      ],
+      "local_rollout_success": true,
+      "entry_physically_reachable": true,
+      "entry_origin": "predecessor_rollout",
+      "handoff_verified": true,
+      "validation": {
+        "padded_rollout_complete": true,
+        "core_replay_success": true,
+        "state_resets_within_padded_rollout": 0,
+        "state_resets_within_core_replay": 0
+      }
+    },
+    {
+      "id": "anchor_1",
+      "core_interval": [
+        74,
+        89
+      ],
+      "synthesis_interval": [
+        68,
+        95
+      ],
+      "local_rollout_success": true,
+      "entry_physically_reachable": true,
+      "entry_origin": "predecessor_rollout",
+      "handoff_verified": true,
+      "validation": {
+        "padded_rollout_complete": true,
+        "core_replay_success": true,
+        "state_resets_within_padded_rollout": 0,
+        "state_resets_within_core_replay": 0
+      }
+    },
+    {
+      "id": "anchor_2",
+      "core_interval": [
+        96,
+        120
+      ],
+      "synthesis_interval": [
+        90,
+        126
+      ],
+      "local_rollout_success": true,
+      "entry_physically_reachable": true,
+      "entry_origin": "predecessor_rollout",
+      "handoff_verified": true,
+      "validation": {
+        "padded_rollout_complete": true,
+        "core_replay_success": true,
+        "state_resets_within_padded_rollout": 0,
+        "state_resets_within_core_replay": 0
+      }
+    }
+  ]
+}

@@ -31,8 +31,13 @@ The existing successful Oracle V0 and three complete spatial trajectories are
 documented in [V0 results](docs/ORACLE_V0_RESULT_20261006.md) and
 [diversity results](docs/ORACLE_DIVERSITY_RESULT_20261007.md). Fresh raw-input
 end-to-end and additional source-video evidence are reported separately.
-The additional sources have not passed full end-to-end acceptance yet; see
-[the current experiment report](docs/END_TO_END_20261007.md).
+New TACO sources `20231024_248` and `20231024_243` passed the complete end-to-end
+pipeline: respectively 4.2 s and 4.3 s source-aligned actual PhysX execution,
+three validated local Anchors each, zero segment resets and task success.
+They use a validated local interaction library as initialization. `258` still
+fails its carry-boundary angle condition; see
+[the current result report](docs/END_TO_END_RESULT_20261007.md) and
+[iteration history](docs/END_TO_END_20261007.md).
 
 Older progress notes below describe the earlier development stages.
 

@@ -134,7 +134,7 @@ def mesh_box_intersects(vertices,faces,box,closed=False):
     return False
 
 
-def boundary_collision_cover(vertices,faces,pose,boxes):
+def boundary_collision_cover(vertices,faces,pose,boxes,clearance=None):
     """Conservative surface spheres without false overlap at a reached entry.
 
     Start with the usual coarse cells. Only near a collision-free boundary,
@@ -144,15 +144,20 @@ def boundary_collision_cover(vertices,faces,pose,boxes):
     pose=np.asarray(pose);rotation=Rotation.from_quat(pose[[4,5,6,3]])
     vertices=np.asarray(vertices);faces=np.asarray(faces,dtype=int)
     coarse=cover_points(rotation.inv().apply(vertices-pose[:3]),faces=faces)
-    if min(sphere_world_clearance(pose,coarse,boxes)[0].values())>=0:return coarse
+    def clear_mask(center,radius):
+        if clearance is not None:return np.asarray(clearance(center,radius))>=0
+        clear=np.ones(len(center),dtype=bool)
+        for box in boxes.values():
+            b=np.asarray(box['pose']);r=Rotation.from_quat(b[[4,5,6,3]])
+            offset=np.abs(r.inv().apply(center-b[:3]))-np.asarray(box['dims'])/2
+            clear&=np.linalg.norm(np.maximum(offset,0),axis=1)+np.minimum(offset.max(1),0)-radius>=0
+        return clear
+    center=rotation.apply(np.asarray([s['center'] for s in coarse]))+pose[:3]
+    radius=np.asarray([s['radius'] for s in coarse])
+    if clear_mask(center,radius).all():return coarse
     collisions=[name for name,box in boxes.items() if mesh_box_intersects(vertices,faces,box)]
     if collisions:raise RuntimeError(f'Actual mesh intersects a planning obstacle at entry: {collisions}')
-    center=rotation.apply(np.asarray([s['center'] for s in coarse]))+pose[:3]
-    radius=np.asarray([s['radius'] for s in coarse]);clear=np.ones(len(coarse),dtype=bool)
-    for box in boxes.values():
-        b=np.asarray(box['pose']);r=Rotation.from_quat(b[[4,5,6,3]])
-        offset=np.abs(r.inv().apply(center-b[:3]))-np.asarray(box['dims'])/2
-        clear&=np.linalg.norm(np.maximum(offset,0),axis=1)+np.minimum(offset.max(1),0)-radius>=0
+    clear=clear_mask(center,radius)
     centers=[center[clear]];radii=[radius[clear]];triangles=vertices[faces]
     needed=np.zeros(len(triangles),dtype=bool);lo=triangles.min(1);hi=triangles.max(1)
     for c,s in zip(center[~clear],radius[~clear]):
@@ -162,12 +167,7 @@ def boundary_collision_cover(vertices,faces,pose,boxes):
     pending=triangles[needed]
     for _ in range(18):
         center=pending.mean(1);radius=np.linalg.norm(pending-center[:,None],axis=2).max(1)+1e-7
-        clear=np.ones(len(pending),dtype=bool)
-        for box in boxes.values():
-            b=np.asarray(box['pose']);r=Rotation.from_quat(b[[4,5,6,3]])
-            offset=np.abs(r.inv().apply(center-b[:3]))-np.asarray(box['dims'])/2
-            distance=np.linalg.norm(np.maximum(offset,0),axis=1)+np.minimum(offset.max(1),0)-radius
-            clear&=distance>=0
+        clear=clear_mask(center,radius)
         centers.append(center[clear]);radii.append(radius[clear])
         if clear.all():
             local=rotation.inv().apply(np.concatenate(centers)-pose[:3]);sizes=np.concatenate(radii)
@@ -181,11 +181,24 @@ def boundary_collision_cover(vertices,faces,pose,boxes):
     raise RuntimeError('Boundary collision cover could not resolve a safe entry')
 
 
-def compact_collision_cover(spheres,pose,boxes,cell=.025):
+def compact_collision_cover(spheres,pose,boxes,cell=.025,clearance=None):
     """Merge child spheres only when their enclosing parent remains clear."""
     pose=np.asarray(pose);rotation=Rotation.from_quat(pose[[4,5,6,3]])
     centers=rotation.apply(np.asarray([s['center'] for s in spheres]))+pose[:3]
     radii=np.asarray([s['radius'] for s in spheres])
+    if clearance is not None:
+        minimum=float(np.min(clearance(centers,radii)))
+        for width in (cell,cell/2,cell/4):
+            _,groups=np.unique(np.floor((centers-centers.min(0))/width).astype(int),axis=0,return_inverse=True)
+            members=[np.flatnonzero(groups==group) for group in range(groups.max()+1)]
+            parents=np.array([centers[indices].mean(0) for indices in members])
+            sizes=np.array([np.max(np.linalg.norm(centers[indices]-center,axis=1)+radii[indices])
+                for indices,center in zip(members,parents)])
+            safe=np.asarray(clearance(parents,sizes))>=minimum-1e-10
+            centers=np.concatenate([parents[i:i+1] if safe[i] else centers[indices] for i,indices in enumerate(members)])
+            radii=np.concatenate([sizes[i:i+1] if safe[i] else radii[indices] for i,indices in enumerate(members)])
+        local=rotation.inv().apply(centers-pose[:3])
+        return [dict(center=c.tolist(),radius=float(s)) for c,s in zip(local,radii)]
     minimum=sphere_world_clearance(pose,spheres,boxes)[0]
     for width in (cell,cell/2,cell/4):
         _,groups=np.unique(np.floor((centers-centers.min(0))/width).astype(int),axis=0,return_inverse=True)
@@ -265,14 +278,11 @@ class FloatingPlanner:
         from curobo.geom.sdf.world import CollisionCheckerType
         self.scene=scene;self.tensor=TensorDeviceType(device='cuda:0');self.carry=carry;self.out=Path(out)
         cfg,self.sphere_count=robot_model(scene,carry,out)
-        live={'cuboid':{'table':scene.table}}
-        for role in ['target']:
-            p,q=scene.objects[role].get_world_pose();bounds=scene.meshes[role].bounds;rot=Rotation.from_quat(np.asarray(q)[[1,2,3,0]])
-            live['cuboid'][role]={'dims':(bounds[1]-bounds[0]).tolist(),'pose':np.r_[p+rot.apply(bounds.mean(0)),q].tolist()}
-        if not carry:
-            p,q=scene.objects['tool'].get_world_pose();oid=scene.manifest['initial_objects']['tool']['id']
-            live['mesh']={'tool':dict(file_path=str(scene.args.object_cache/oid/(oid+'_m.obj')),pose=np.r_[p,q].tolist())}
-        self.obstacle_roles=['target']
+        live={'cuboid':{'table':scene.table},'mesh':{}}
+        for role in (['target'] if carry else ['tool','target']):
+            p,q=scene.objects[role].get_world_pose();oid=scene.manifest['initial_objects'][role]['id']
+            live['mesh'][role]=dict(file_path=str(scene.args.object_cache/oid/(oid+'_m.obj')),pose=np.r_[p,q].tolist())
+        self.obstacle_roles=[]
         self.nominal_spheres=cfg['kinematics']['collision_spheres']['wrist']
         self.live=live
         import json
@@ -296,10 +306,42 @@ class FloatingPlanner:
             geometry=json.loads((self.out/'collision_geometry.json').read_text())
             geometry.update(spheres=refined,proxy='coarse surface cells with exact boundary triangle subdivision')
             (self.out/'collision_geometry.json').write_text(json.dumps(geometry,indent=2))
-        self.planner=MotionGen(MotionGenConfig.load_from_robot_config(cfg,live,tensor_args=self.tensor,interpolation_dt=scene.dt,
-            optimize_dt=False,trajopt_dt=1/scene.manifest['fps'],js_trajopt_dt=1/scene.manifest['fps'],
-            self_collision_check=False,self_collision_opt=False,
-            collision_checker_type=CollisionCheckerType.MESH if live.get('mesh') else CollisionCheckerType.PRIMITIVE,use_cuda_graph=False))
+        def build_planner():
+            return MotionGen(MotionGenConfig.load_from_robot_config(cfg,live,tensor_args=self.tensor,interpolation_dt=scene.dt,
+                optimize_dt=False,trajopt_dt=1/scene.manifest['fps'],js_trajopt_dt=1/scene.manifest['fps'],
+                self_collision_check=False,self_collision_opt=False,
+                collision_checker_type=CollisionCheckerType.MESH if live.get('mesh') else CollisionCheckerType.PRIMITIVE,use_cuda_graph=False))
+        self.planner=build_planner()
+        pose,_=scene.root_motion()
+        centers=Rotation.from_quat(pose[[4,5,6,3]]).apply(np.array([s['center'] for s in self.nominal_spheres]))+pose[:3]
+        radii=np.array([s['radius'] for s in self.nominal_spheres])
+        if live.get('mesh') and np.min(self.world_clearance(centers,radii,per_sphere=True))<0:
+            collisions=self.measured_mesh_collisions()
+            if collisions:raise RuntimeError(f'Actual mesh intersects a planning obstacle at entry: {collisions}')
+            # The box-only cover refinement missed conservative sphere overlap
+            # with mesh obstacles. Refine the same full surfaces against the
+            # actual cuRobo world, without disabling collision or shrinking a
+            # triangle's coverage.
+            from pxr import UsdGeom
+            cache=UsdGeom.XformCache();refined=[]
+            clearance=lambda c,r:self.world_clearance(c,r,per_sphere=True)
+            for prim,_,_ in scene.measured_hand_collision_meshes:
+                vertices,faces=scene.measured_hand_mesh_data[str(prim.GetPath())]
+                matrix=np.asarray(cache.GetLocalToWorldTransform(prim)).T
+                refined+=boundary_collision_cover(vertices@matrix[:3,:3].T+matrix[:3,3],faces,pose,live['cuboid'],clearance=clearance)
+            if carry:
+                p,q=scene.objects['tool'].get_world_pose();mesh=scene.meshes['tool']
+                vertices=Rotation.from_quat(np.asarray(q)[[1,2,3,0]]).apply(mesh.vertices)+p
+                refined+=boundary_collision_cover(vertices,mesh.faces,pose,live['cuboid'],clearance=clearance)
+            refined=compact_collision_cover(refined,pose,live['cuboid'],clearance=clearance)
+            self.nominal_spheres=refined;self.sphere_count=len(refined)
+            cfg['kinematics']['collision_spheres']['wrist']=refined
+            self.planner=build_planner()
+            geometry=json.loads((self.out/'collision_geometry.json').read_text())
+            geometry.update(spheres=refined,proxy='full surface coverage refined against actual mesh world')
+            (self.out/'collision_geometry.json').write_text(json.dumps(geometry,indent=2))
+            (self.out/'boundary_collision_cover.json').write_text(json.dumps(dict(conservative_surface_coverage=True,
+                sphere_count=len(refined),obstacles='actual cuboid and mesh world'),indent=2))
         # Catch a virtual-coordinate convention mismatch before physical use.
         pose,_=scene.root_motion();q=pose_coordinates(pose)
         fk=self.planner.kinematics.get_state(self.tensor.to_device(q.copy())[None])
@@ -328,16 +370,24 @@ class FloatingPlanner:
         centers=Rotation.from_quat(pose[[4,5,6,3]]).apply(np.asarray([s['center'] for s in spheres]))+pose[:3]
         return self.world_clearance(centers,np.asarray([s['radius'] for s in spheres]),gradient=True)
 
-    def world_clearance(self,centers,radii,gradient=False):
+    def world_clearance(self,centers,radii,gradient=False,per_sphere=False):
         from curobo.geom.sdf.world import CollisionQueryBuffer
-        query=self.tensor.to_device(np.c_[centers,radii])[None,None].requires_grad_(gradient)
+        # cuRobo's mesh ESDF kernel returns distance to the sphere *center*;
+        # its collision-cost kernel adds the radius separately. Query points
+        # explicitly and add the radius after the world union so the clearance
+        # used for projection/refinement matches the planner's sphere collision.
+        # This also avoids relying on primitive/mesh ESDF radius conventions.
+        query=self.tensor.to_device(np.c_[centers,np.zeros(len(radii))])[None,None].requires_grad_(gradient)
         checker=self.planner.world_coll_checker
         if self.live.get('mesh'):
             from curobo.types.math import Pose
-            p,q=self.scene.objects['tool'].get_world_pose()
-            checker.update_mesh_pose(w_obj_pose=Pose.from_list(np.r_[p,q].tolist(),self.tensor),name='tool')
+            for role in self.live['mesh']:
+                p,q=self.scene.objects[role].get_world_pose()
+                checker.update_mesh_pose(w_obj_pose=Pose.from_list(np.r_[p,q].tolist(),self.tensor),name=role)
         buffer=CollisionQueryBuffer.initialize_from_shape(query.shape,self.tensor,checker.collision_types)
         distance=checker.get_sphere_distance(query,buffer,self.tensor.to_device([1.]),self.tensor.to_device([0.]),compute_esdf=True)
+        distance=distance+self.tensor.to_device(np.asarray(radii).copy())[None,None]
+        if per_sphere:return -distance.detach().cpu().numpy().reshape(-1)
         penetration=distance.max();direction=np.zeros(3)
         if gradient:
             penetration.backward();direction=-query.grad[0,0,:,:3].sum(0).detach().cpu().numpy()
@@ -407,15 +457,23 @@ class FloatingPlanner:
                     model=fcl.BVHModel();model.beginModel(len(vertices),len(faces))
                     model.addSubModel(vertices*scale,faces);model.endModel()
                     self.fcl_meshes[str(prim.GetPath())]=model
-                tool=self.scene.meshes['tool'];model=fcl.BVHModel();model.beginModel(len(tool.vertices),len(tool.faces))
-                model.addSubModel(tool.vertices,tool.faces);model.endModel();self.fcl_tool=model
-            p,q=self.scene.objects['tool'].get_world_pose()
-            obstacle=fcl.CollisionObject(self.fcl_tool,fcl.Transform(Rotation.from_quat(np.asarray(q)[[1,2,3,0]]).as_matrix(),p))
-            for prim,scale,_ in self.scene.measured_hand_collision_meshes:
-                matrix=np.asarray(cache.GetLocalToWorldTransform(prim)).T
-                body=fcl.CollisionObject(self.fcl_meshes[str(prim.GetPath())],fcl.Transform(matrix[:3,:3]/scale,matrix[:3,3]))
-                if fcl.collide(body,obstacle,fcl.CollisionRequest(),fcl.CollisionResult()):
-                    collisions.append(dict(mesh=str(prim.GetPath()),obstacle='tool',geometry='triangle_mesh'))
+                self.fcl_objects={}
+                for role,mesh in self.scene.meshes.items():
+                    model=fcl.BVHModel();model.beginModel(len(mesh.vertices),len(mesh.faces))
+                    model.addSubModel(mesh.vertices,mesh.faces);model.endModel();self.fcl_objects[role]=model
+            for role in self.live['mesh']:
+                p,q=self.scene.objects[role].get_world_pose()
+                obstacle=fcl.CollisionObject(self.fcl_objects[role],fcl.Transform(Rotation.from_quat(np.asarray(q)[[1,2,3,0]]).as_matrix(),p))
+                bodies=[]
+                for prim,scale,_ in self.scene.measured_hand_collision_meshes:
+                    matrix=np.asarray(cache.GetLocalToWorldTransform(prim)).T
+                    bodies.append((str(prim.GetPath()),fcl.CollisionObject(self.fcl_meshes[str(prim.GetPath())],fcl.Transform(matrix[:3,:3]/scale,matrix[:3,3]))))
+                if self.carry:
+                    p,q=self.scene.objects['tool'].get_world_pose()
+                    bodies.append(('tool',fcl.CollisionObject(self.fcl_objects['tool'],fcl.Transform(Rotation.from_quat(np.asarray(q)[[1,2,3,0]]).as_matrix(),p))))
+                for name,body in bodies:
+                    if fcl.collide(body,obstacle,fcl.CollisionRequest(),fcl.CollisionResult()):
+                        collisions.append(dict(mesh=name,obstacle=role,geometry='triangle_mesh'))
         return collisions
 
     def measured_valid(self):
@@ -450,7 +508,24 @@ class FloatingPlanner:
             # path still needs the same fixed-time dynamics/collision fit.
             result=self.planner.plan_single_js(begin,end,MotionGenPlanConfig(enable_graph=True,enable_opt=False,max_attempts=2))
             geometry_solver='curobo_graph_then_fixed_source_time_fit'
-        if not bool(result.success.item()):raise RuntimeError(f'Floating cuRobo failed: {result.status}')
+        if not bool(result.success.item()):
+            import json
+            states=self.tensor.to_device(np.stack((q0,q1)))[:,None]
+            details={}
+            # GRAPH_FAIL's "in collision" text also covers other feasibility
+            # terms. Save their actual values rather than repeatedly repairing
+            # an Anchor that already passes local physics.
+            for label,rollout in [('motion',self.planner.rollout_fn),('graph',self.planner.graph_planner.safety_rollout_fn)]:
+                state=rollout.dynamics_model.forward(rollout.start_state,states)
+                components=dict(bounds=rollout.bound_constraint.forward(state.state_seq))
+                if rollout.primitive_collision_constraint.enabled:
+                    components['world']=rollout.primitive_collision_constraint.forward(state.robot_spheres,env_query_idx=None)
+                if rollout.robot_self_collision_constraint.enabled:
+                    components['self']=rollout.robot_self_collision_constraint.forward(state.robot_spheres)
+                details[label]={k:v.detach().cpu().numpy().tolist() for k,v in components.items()}
+            (self.out/'planner_failure.json').write_text(json.dumps(dict(status=str(result.status),
+                entry_coordinates=q0.tolist(),goal_coordinates=q1.tolist(),constraints=details),indent=2))
+            raise RuntimeError(f'Floating cuRobo failed: {result.status}')
         raw=result.get_interpolated_plan().position.detach().cpu().numpy().reshape(-1,6).copy()
         limits=scene.cfg['planning'];dt=scene.dt
         # Impose command boundaries before time fitting and collision checks;

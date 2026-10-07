@@ -1,0 +1,148 @@
+{
+  "sequence": "20231024_243",
+  "success": true,
+  "source_duration_s": 4.3,
+  "actual_duration_s": 4.3,
+  "state_resets_between_segments": 0,
+  "pbs_job_id": "653339.hopper-m-02",
+  "task": {
+    "success": true,
+    "final_errors": {
+      "position_m": 0.006449989749850827,
+      "rotation_rad": 0.06482669543331508
+    },
+    "final_speed_m_s": 2.1953843393192566e-05,
+    "released": true
+  },
+  "end_to_end_wall_s": 358.0409427881241,
+  "segments": [
+    {
+      "start": 0,
+      "end": 23,
+      "mode": "RELAXED",
+      "anchor": null,
+      "budget_s": 0.7666666666666666,
+      "actual_end_s": 0.7666666666666666,
+      "success": true
+    },
+    {
+      "start": 23,
+      "end": 61,
+      "mode": "ANCHOR",
+      "anchor": "anchor_0",
+      "budget_s": 1.2666666666666666,
+      "actual_end_s": 2.033333333333333,
+      "success": true
+    },
+    {
+      "start": 61,
+      "end": 70,
+      "mode": "RELAXED",
+      "anchor": null,
+      "budget_s": 0.3,
+      "actual_end_s": 2.3333333333333335,
+      "success": true
+    },
+    {
+      "start": 70,
+      "end": 97,
+      "mode": "ANCHOR",
+      "anchor": "anchor_1",
+      "budget_s": 0.9,
+      "actual_end_s": 3.2333333333333334,
+      "success": true
+    },
+    {
+      "start": 97,
+      "end": 105,
+      "mode": "RELAXED",
+      "anchor": null,
+      "budget_s": 0.26666666666666666,
+      "actual_end_s": 3.5,
+      "success": true
+    },
+    {
+      "start": 105,
+      "end": 123,
+      "mode": "ANCHOR",
+      "anchor": "anchor_2",
+      "budget_s": 0.6,
+      "actual_end_s": 4.1,
+      "success": true
+    },
+    {
+      "start": 123,
+      "end": 129,
+      "mode": "RELAXED",
+      "anchor": null,
+      "budget_s": 0.2,
+      "actual_end_s": 4.3,
+      "success": true
+    }
+  ],
+  "anchors": [
+    {
+      "id": "anchor_0",
+      "core_interval": [
+        23,
+        61
+      ],
+      "synthesis_interval": [
+        17,
+        67
+      ],
+      "local_rollout_success": true,
+      "entry_physically_reachable": true,
+      "entry_origin": "predecessor_rollout",
+      "handoff_verified": true,
+      "validation": {
+        "padded_rollout_complete": true,
+        "core_replay_success": true,
+        "state_resets_within_padded_rollout": 0,
+        "state_resets_within_core_replay": 0
+      }
+    },
+    {
+      "id": "anchor_1",
+      "core_interval": [
+        70,
+        97
+      ],
+      "synthesis_interval": [
+        64,
+        103
+      ],
+      "local_rollout_success": true,
+      "entry_physically_reachable": true,
+      "entry_origin": "predecessor_rollout",
+      "handoff_verified": true,
+      "validation": {
+        "padded_rollout_complete": true,
+        "core_replay_success": true,
+        "state_resets_within_padded_rollout": 0,
+        "state_resets_within_core_replay": 0
+      }
+    },
+    {
+      "id": "anchor_2",
+      "core_interval": [
+        105,
+        123
+      ],
+      "synthesis_interval": [
+        99,
+        129
+      ],
+      "local_rollout_success": true,
+      "entry_physically_reachable": true,
+      "entry_origin": "predecessor_rollout",
+      "handoff_verified": true,
+      "validation": {
+        "padded_rollout_complete": true,
+        "core_replay_success": true,
+        "state_resets_within_padded_rollout": 0,
+        "state_resets_within_core_replay": 0
+      }
+    }
+  ]
+}
