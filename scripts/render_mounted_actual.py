@@ -18,6 +18,8 @@ def main():
         # N+1 measured boundaries describe N source-frame time intervals.
         video_frames=min(video_frames,max(1,int(np.ceil(report['actual_duration_s']*fps-1e-8))))
     endpoint_samples=report.get('embodiment')=='floating_xhand' and trace and trace[0]['mode']=='INITIAL'
+    source_aligned=bool(endpoint_samples and report.get('full_pipeline_success')
+        and report.get('state_resets_between_segments')==0 and trace[0]['source_frame']==0)
     if endpoint_samples:
         # Initial plus N endpoint samples describe N source-time intervals.
         video_frames=min(video_frames,len(trace)-1)
@@ -71,7 +73,10 @@ def main():
         # After a development restore, the INITIAL USD mesh capture can lag
         # the native PhysX state. N executed endpoint captures still represent
         # N source intervals at the same fps; use those measured captures.
-        sample=frame+1 if endpoint_samples else frame
+        # A successful uninterrupted initial-state run has a valid t=0 mesh
+        # capture. Source RGB frame k must show measured state k, not k+1.
+        # The terminal boundary remains in the trace, outside the N-frame clip.
+        sample=frame+1 if endpoint_samples and not source_aligned else frame
         item=trace[sample]
         if exclusions:
             active=False
