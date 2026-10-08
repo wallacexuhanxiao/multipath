@@ -1,0 +1,324 @@
+[
+  {
+    "sequence": "20231024_248",
+    "complete_solutions": 3,
+    "success": true,
+    "solutions": [
+      {
+        "index": 0,
+        "duration_s": 4.2,
+        "task": {
+          "success": true,
+          "final_errors": {
+            "position_m": 0.01061642315939011,
+            "rotation_rad": 0.22867183980274275
+          },
+          "final_speed_m_s": 0.00010015160262888642,
+          "released": true
+        },
+        "resets": 0,
+        "intervals": [
+          {
+            "window": [
+              0,
+              26
+            ],
+            "budget_s": 0.8666666666666667,
+            "contact": "free",
+            "finger_drive_change_rad": 0.0,
+            "max_distances_mm": null
+          },
+          {
+            "window": [
+              65,
+              74
+            ],
+            "budget_s": 0.3,
+            "contact": "grasped",
+            "finger_drive_change_rad": 0.0,
+            "max_distances_mm": null
+          },
+          {
+            "window": [
+              89,
+              96
+            ],
+            "budget_s": 0.23333333333333334,
+            "contact": "grasped",
+            "finger_drive_change_rad": 0.0,
+            "max_distances_mm": null
+          },
+          {
+            "window": [
+              120,
+              126
+            ],
+            "budget_s": 0.2,
+            "contact": "free",
+            "finger_drive_change_rad": 0.0,
+            "max_distances_mm": null
+          }
+        ]
+      },
+      {
+        "index": 1,
+        "duration_s": 4.2,
+        "task": {
+          "success": true,
+          "final_errors": {
+            "position_m": 0.023464026935432602,
+            "rotation_rad": 0.07883054228222226
+          },
+          "final_speed_m_s": 1.4347379738876389e-07,
+          "released": true
+        },
+        "resets": 0,
+        "intervals": [
+          {
+            "window": [
+              0,
+              26
+            ],
+            "budget_s": 0.8666666666666667,
+            "contact": "free",
+            "finger_drive_change_rad": 0.0,
+            "max_distances_mm": [
+              18.061122678861192
+            ]
+          },
+          {
+            "window": [
+              65,
+              74
+            ],
+            "budget_s": 0.3,
+            "contact": "grasped",
+            "finger_drive_change_rad": 0.0,
+            "max_distances_mm": [
+              22.37868123111855
+            ]
+          },
+          {
+            "window": [
+              89,
+              96
+            ],
+            "budget_s": 0.23333333333333334,
+            "contact": "grasped",
+            "finger_drive_change_rad": 0.0,
+            "max_distances_mm": [
+              19.572566600330276
+            ]
+          },
+          {
+            "window": [
+              120,
+              126
+            ],
+            "budget_s": 0.2,
+            "contact": "free",
+            "finger_drive_change_rad": 0.0,
+            "max_distances_mm": [
+              11.20077071455971
+            ]
+          }
+        ]
+      },
+      {
+        "index": 2,
+        "duration_s": 4.2,
+        "task": {
+          "success": true,
+          "final_errors": {
+            "position_m": 0.01841222339561705,
+            "rotation_rad": 0.056193376526262245
+          },
+          "final_speed_m_s": 6.766493633451647e-05,
+          "released": true
+        },
+        "resets": 0,
+        "intervals": [
+          {
+            "window": [
+              0,
+              26
+            ],
+            "budget_s": 0.8666666666666667,
+            "contact": "free",
+            "finger_drive_change_rad": 0.0,
+            "max_distances_mm": [
+              22.65446883002961,
+              21.72476042012121
+            ]
+          },
+          {
+            "window": [
+              65,
+              74
+            ],
+            "budget_s": 0.3,
+            "contact": "grasped",
+            "finger_drive_change_rad": 0.0,
+            "max_distances_mm": [
+              11.838968392755877,
+              11.874560558696631
+            ]
+          },
+          {
+            "window": [
+              89,
+              96
+            ],
+            "budget_s": 0.23333333333333334,
+            "contact": "grasped",
+            "finger_drive_change_rad": 0.0,
+            "max_distances_mm": [
+              12.277698910117877,
+              31.550793861835896
+            ]
+          },
+          {
+            "window": [
+              120,
+              126
+            ],
+            "budget_s": 0.2,
+            "contact": "free",
+            "finger_drive_change_rad": 0.0,
+            "max_distances_mm": [
+              16.199242134664935,
+              6.883457239804534
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "sequence": "20231024_243",
+    "complete_solutions": 2,
+    "success": false,
+    "solutions": [
+      {
+        "index": 0,
+        "duration_s": 4.3,
+        "task": {
+          "success": true,
+          "final_errors": {
+            "position_m": 0.0062208457249197605,
+            "rotation_rad": 0.0648917070318897
+          },
+          "final_speed_m_s": 0.00035622203192334326,
+          "released": true
+        },
+        "resets": 0,
+        "intervals": [
+          {
+            "window": [
+              0,
+              23
+            ],
+            "budget_s": 0.7666666666666666,
+            "contact": "free",
+            "finger_drive_change_rad": 0.0,
+            "max_distances_mm": null
+          },
+          {
+            "window": [
+              61,
+              70
+            ],
+            "budget_s": 0.3,
+            "contact": "grasped",
+            "finger_drive_change_rad": 0.0,
+            "max_distances_mm": null
+          },
+          {
+            "window": [
+              97,
+              105
+            ],
+            "budget_s": 0.26666666666666666,
+            "contact": "grasped",
+            "finger_drive_change_rad": 0.0,
+            "max_distances_mm": null
+          },
+          {
+            "window": [
+              123,
+              129
+            ],
+            "budget_s": 0.2,
+            "contact": "free",
+            "finger_drive_change_rad": 0.0,
+            "max_distances_mm": null
+          }
+        ]
+      },
+      {
+        "index": 1,
+        "duration_s": 4.3,
+        "task": {
+          "success": true,
+          "final_errors": {
+            "position_m": 0.005296897928066404,
+            "rotation_rad": 0.11587399317229835
+          },
+          "final_speed_m_s": 8.468974841958639e-06,
+          "released": true
+        },
+        "resets": 0,
+        "intervals": [
+          {
+            "window": [
+              0,
+              23
+            ],
+            "budget_s": 0.7666666666666666,
+            "contact": "free",
+            "finger_drive_change_rad": 0.0,
+            "max_distances_mm": [
+              99.3152485114906
+            ]
+          },
+          {
+            "window": [
+              61,
+              70
+            ],
+            "budget_s": 0.3,
+            "contact": "grasped",
+            "finger_drive_change_rad": 0.0,
+            "max_distances_mm": [
+              33.157852964789434
+            ]
+          },
+          {
+            "window": [
+              97,
+              105
+            ],
+            "budget_s": 0.26666666666666666,
+            "contact": "grasped",
+            "finger_drive_change_rad": 0.0,
+            "max_distances_mm": [
+              14.351631166643589
+            ]
+          },
+          {
+            "window": [
+              123,
+              129
+            ],
+            "budget_s": 0.2,
+            "contact": "free",
+            "finger_drive_change_rad": 0.0,
+            "max_distances_mm": [
+              4.655354714855952
+            ]
+          }
+        ]
+      }
+    ]
+  }
+]

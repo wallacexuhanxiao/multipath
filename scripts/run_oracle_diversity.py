@@ -5,6 +5,7 @@ paths of the same RELAXED interval. A local bank never counts as a full run.
 """
 import argparse
 import json
+import shutil
 import subprocess
 import sys
 import time
@@ -19,6 +20,7 @@ def main():
     p.add_argument('--solutions-per-interval',type=int,default=3)
     p.add_argument('--attempts-per-solution',type=int,default=24)
     p.add_argument('--resume-bank',type=Path,help='Keep passed local interval solutions and search only missing ones')
+    p.add_argument('--resume-diversity-run',type=Path,help='Preserve already successful full runs and repair the first failed remaining solution')
     p.add_argument('--boundary-feedback-run',type=Path,help='Previously observed continuous carry-boundary failure; refine its preceding Anchor first')
     p.add_argument('--validated-anchors',type=Path,help='Optional already physically refined local artifacts of this source')
     p.add_argument('--executed-prefix-run',type=Path,help='Reuse the actually passed prefix for its solution index; replay from initial state')
@@ -78,7 +80,41 @@ def main():
         common[common.index('--validated-anchors')+1]=folder/'anchors'
         report.setdefault('physical_boundary_refinements',[]).append(str(folder))
         save()
+    def refine_anchor(entry_run,name):
+        actual=json.loads((entry_run/'pipeline_result.json').read_text())
+        failed=next(s for s in actual['segments'] if not s.get('success'))
+        geometry_failure=(failed['mode']=='RELAXED' and failed.get('contact')=='free' and
+            'Actual mesh intersects a planning obstacle at entry' in actual.get('error',''))
+        if geometry_failure:
+            windows=json.loads(args.schedule.read_text())['windows']
+            failed=next(w for w in windows if w['end']==failed['start'])
+            if failed['mode']!='ANCHOR':raise ValueError('Free-exit repair needs a preceding interaction Anchor')
+        elif failed['mode']!='ANCHOR':raise ValueError('Anchor repair needs an actual interaction failure')
+        folder=out/name
+        params=list(common);position=params.index('--validated-anchors');old_anchors=Path(params[position+1]);del params[position:position+2]
+        params+=['--entry-run',entry_run,'--anchor-id',failed['anchor'],'--output-dir',folder]
+        if geometry_failure:params+=['--exit-geometry-feedback-run',entry_run]
+        result=run(name,'develop_reached_anchor.py',params,folder/'development_result.json','core_success')
+        if not result.get('core_success'):raise RuntimeError(f'Local interaction repair failed: {result.get("error")}')
+        combined=folder/'combined_anchors';shutil.copytree(old_anchors,combined)
+        shutil.copytree(folder/'anchors',combined,dirs_exist_ok=True)
+        common[common.index('--validated-anchors')+1]=combined
+        report.setdefault('physical_anchor_repairs',[]).append(dict(anchor=failed['anchor'],entry_run=str(entry_run),artifact=str(combined)))
+        save()
     try:
+        resumed=None
+        if args.resume_diversity_run:
+            if not args.resume_bank:raise ValueError('A resumed full diversity run requires its local bridge bank')
+            resumed=json.loads((args.resume_diversity_run/'diversity_result.json').read_text())
+            if resumed['source_provenance']!=passed['source_provenance']:raise ValueError('Resumed full source differs')
+            for entry in resumed['full_runs'][1:]:
+                actual=json.loads((Path(entry['run'])/'pipeline_result.json').read_text())
+                if not (actual.get('full_pipeline_success') and actual.get('diverse_solution_success') and
+                        actual.get('state_resets_between_segments')==0 and actual['source_provenance']==passed['source_provenance'] and
+                        abs(actual['actual_duration_s']-passed['source_duration_s'])<1e-8):
+                    raise ValueError('Resumed full trajectory lacks continuous physical evidence')
+                report['full_runs'].append(entry)
+            report['resumed_from']=str(args.resume_diversity_run);save()
         if args.boundary_feedback_run:
             if not args.resume_bank:raise ValueError('Boundary feedback requires its local bridge bank')
             refine_boundary(args.boundary_feedback_run,args.resume_bank,'boundary_feedback')
@@ -89,9 +125,18 @@ def main():
             bank/'bridge_bank.json','status')
         available=min((len(i['solutions']) for i in local['intervals']),default=0)
         if local['status']=='failed' or available<2:raise RuntimeError('No alternative solution available in every interval')
-        accepted=[]
+        accepted=[Path(entry['run']) for entry in report['full_runs'][1:]]
         for index in range(1,min(args.solutions_per_interval,available)):
+            if any(entry['index']==index for entry in report['full_runs']):continue
             prefix=None
+            if resumed:
+                previous=args.resume_diversity_run/f'full_solution_{index}_attempt_0'
+                if (previous/'pipeline_result.json').exists():
+                    actual=json.loads((previous/'pipeline_result.json').read_text())
+                    failed=next((s for s in actual.get('segments',[]) if not s.get('success')),None)
+                    if failed and (failed['mode']=='ANCHOR' or (failed.get('contact')=='free' and
+                            'Actual mesh intersects a planning obstacle at entry' in actual.get('error',''))):
+                        refine_anchor(previous,f'anchor_feedback_{index}');prefix=previous
             if args.executed_prefix_run:
                 prior=json.loads((args.executed_prefix_run/'pipeline_result.json').read_text())
                 if prior.get('bridge_solution')==index:prefix=args.executed_prefix_run
@@ -110,8 +155,13 @@ def main():
                             for s in actual['segments'] if s['mode']=='RELAXED']))
                     save();break
                 failed=next((s for s in actual.get('segments',[]) if not s.get('success')),None)
-                if not failed or failed['mode']!='RELAXED' or attempt+1==args.full_attempts:
+                if not failed or attempt+1==args.full_attempts:
                     raise RuntimeError(f'Continuous solution {index} failed: {actual.get("error")}')
+                if failed['mode']=='ANCHOR':
+                    refine_anchor(folder,f'anchor_solution_{index}_{attempt}');prefix=folder;continue
+                if failed['mode']!='RELAXED':raise RuntimeError(f'Unsupported failed segment: {failed}')
+                if failed.get('contact')=='free' and 'Actual mesh intersects a planning obstacle at entry' in actual.get('error',''):
+                    refine_anchor(folder,f'free_exit_solution_{index}_{attempt}');prefix=folder;continue
                 if failed.get('contact')=='grasped' and 'fixed-time boundary trajectory' in actual.get('error',''):
                     refine_boundary(folder,bank,f'boundary_solution_{index}_{attempt}')
                     prefix=None

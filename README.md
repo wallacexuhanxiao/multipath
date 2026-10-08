@@ -54,6 +54,13 @@ and [measured path plot](docs/evidence/oracle_diversity_20261008/actual_wrist_pa
 passed V0 run. `scripts/collect_oracle_diversity.py` exports measured path plots
 and a synchronized stack of the successful full solution videos.
 
+The default E2E entry requests three solutions per interval and reports success
+only after all three continuous executions pass. The multi-source runner uses
+the same entry, propagates each case's local-library inputs and reports V0 and
+diversity counts separately. `configs/oracle/taco_put_in_multisource.json`
+contains the additional-source runs with saved local initialization resources;
+see [the integrated multi-source experiment](docs/MULTISOURCE_PIPELINE_20261008.md).
+
 Older progress notes below describe the earlier development stages.
 
 **Semantic correction (2026-09-30):** direct inspection of the original

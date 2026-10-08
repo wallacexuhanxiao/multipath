@@ -8,7 +8,9 @@ def main():
     for name in ('schedule','proposals','entry-run','xhand-urdf','object-cache','floating-config','output-dir'):
         p.add_argument('--'+name,type=Path,required=True)
     p.add_argument('--context-controls',type=Path,help='Optional padded warm start; otherwise derive stabilizing post-context from this local core proposal.')
+    p.add_argument('--planned-bridges',type=Path,help='Original cuRobo drives used by a diverse runtime prefix for its dynamics feedforward.')
     p.add_argument('--bridge-context-run',type=Path,help='Actual failed following carry bridge; its planned commands condition local post-context.')
+    p.add_argument('--exit-geometry-feedback-run',type=Path,help='Actual free-exit collision; reshape this Anchor before local physical validation.')
     p.add_argument('--anchor-id',required=True)
     p.add_argument('--mpc-candidates',type=int,default=16);p.add_argument('--mpc-iters',type=int,default=2)
     p.add_argument('--ppo-updates',type=int,default=20)
@@ -32,13 +34,23 @@ def main():
     if predecessor['source_provenance']!=manifest['provenance']:raise ValueError('Predecessor source mismatch')
     if any(not s['success'] for s in predecessor['segments'] if s['end']<=anchor.core_start):
         raise ValueError('Core entry was not reached by successful predecessors')
-    entry=json.loads((args.entry_run/'cores'/anchor.id/'entry.json').read_text())
+    runtime_prefix=not (args.entry_run/'cores'/anchor.id/'entry.json').exists()
+    if runtime_prefix:
+        trace=json.loads((args.entry_run/'actual_trace.json').read_text())
+        entry=dict(next(s for s in trace if np.isclose(s['source_frame'],anchor.core_start)),
+            entry_origin='predecessor_rollout',source_provenance=manifest['provenance'],
+            entry_provenance=dict(trace=str(args.entry_run/'actual_trace.json'),source_frame=anchor.core_start))
+        if not entry.get('physically_acquired_state') or predecessor.get('state_resets_between_segments')!=0:
+            raise ValueError('Runtime local repair requires a continuous physically acquired entry')
+    else:entry=json.loads((args.entry_run/'cores'/anchor.id/'entry.json').read_text())
     data=dict(np.load(args.proposals/manifest['anchors'][anchor.id],allow_pickle=False))
     tpf=physics_ticks_per_frame(schedule.fps,FloatingScene.dt)
     skip=anchor.core_start-anchor.synth_start
     local=replace(anchor,synth_start=anchor.core_start)
     cropped={k:(v[skip:] if v.ndim and len(v)==anchor.synth_end-anchor.synth_start else v) for k,v in data.items()}
-    core=np.load(args.entry_run/'cores'/anchor.id/'commands.npz')['commands']
+    core_path=(args.entry_run/'anchors'/anchor.id/'executed_core.npz' if runtime_prefix
+               else args.entry_run/'cores'/anchor.id/'commands.npz')
+    core=np.load(core_path)['commands']
     bridge_context=None
     if args.bridge_context_run:
         context_report=json.loads((args.bridge_context_run/'pipeline_result.json').read_text())
@@ -71,6 +83,9 @@ def main():
     app=None;scene=None
     try:
         app=start_simulation(out);scene=FloatingScene(args,manifest,out/'initial',initial,initial_hand=initial_hand)
+        if anchor.exit_contact=='free' and anchor.synth_end==schedule.num_frames:
+            scene.terminal_task_contract=schedule.metadata['task_contract']
+            report['terminal_task_contract']=scene.terminal_task_contract
         scene.freeze_carry_core=anchor.exit_contact=='grasped'
         # Actual outgoing speed is a planning boundary requirement, not an
         # actuator acceleration gate. This protects the already observed case
@@ -79,9 +94,29 @@ def main():
         if bridge_context is not None:
             scene.post_context_commands=bridge_context
             report['post_context_origin']='planned carry commands from observed failed bridge; fresh physical acceptance required'
-        initial_state=scene.snapshot();controls=project_hand_commands(scene,controls,entry,local)
+        initial_state=scene.snapshot()
+        if args.exit_geometry_feedback_run:
+            from multipath.planning.bridge import free_exit_clearance_offset
+            from multipath.anchors.floating import quiet_release_exit,stopping_context
+            feedback_run=args.exit_geometry_feedback_run
+            feedback_report=json.loads((feedback_run/'pipeline_result.json').read_text())
+            if feedback_report['source_provenance']!=manifest['provenance'] or feedback_report.get('state_resets_between_segments')!=0:
+                raise ValueError('Free exit feedback must be a continuous actual rollout of this source')
+            state=next(s for s in json.loads((feedback_run/'actual_trace.json').read_text()) if np.isclose(s['source_frame'],anchor.core_end))
+            geometry=json.loads((feedback_run/f'planner_{anchor.core_end}'/'collision_geometry.json').read_text())
+            import ast
+            reported=ast.literal_eval(feedback_report['error'].split('Actual mesh intersects a planning obstacle at entry: ',1)[1])
+            roles=[item['obstacle'] if isinstance(item,dict) else item for item in reported]
+            offset,feedback=free_exit_clearance_offset(scene,state,geometry,obstacle_roles=roles)
+            core=quiet_release_exit(scene,anchor,core,offset,preserve_motion=True)
+            post=stopping_context(core[-1],(anchor.synth_end-anchor.core_end)*tpf,scene.dt)
+            controls=np.concatenate((core,post))
+            report['exit_geometry_feedback']=dict(feedback,physical_run=str(feedback_run),
+                original_rotation_and_finger_commands_preserved=True)
+        controls=project_hand_commands(scene,controls,entry,local)
         def predecessor_commands(window):
             path=(args.entry_run/f'relaxed_{window["start"]}_{window["end"]}.npz' if window['mode']=='RELAXED'
+                  else args.entry_run/'anchors'/window['anchor']/'executed_core.npz' if runtime_prefix
                   else args.entry_run/'cores'/window['anchor']/'commands.npz')
             return np.load(path)['commands']
         def reach(frame,folder,record_from=None):
@@ -93,7 +128,13 @@ def main():
                 if window['start']>=frame:break
                 command=predecessor_commands(window)[:(min(window['end'],frame)-window['start'])*tpf]
                 carry=window.get('contact')=='grasped'
-                wrench=segment_wrenches(scene,scene.snapshot(),command,transport=carry) if window['start']>0 else np.zeros((len(command),6))
+                segment=next(s for s in predecessor['segments'] if s['start']==window['start'])
+                delta=None
+                if segment.get('delta_dynamics_feedforward'):
+                    if not args.planned_bridges:raise ValueError('Diverse prefix requires its baseline cuRobo drives')
+                    delta=np.load(args.planned_bridges/f'relaxed_{window["start"]}_{window["end"]}.npz')['commands'][:len(command)]
+                wrench=segment_wrenches(scene,scene.snapshot(),command,transport=carry,baseline_commands=delta) if (
+                    window['start']>0 or delta is not None) else np.zeros((len(command),6))
                 for k,c in enumerate(command):
                     source_frame=window['start']+(k+1)/tpf
                     scene.wrench_bias=wrench[k];scene.step_control(c,window['mode'],source_frame)
@@ -168,6 +209,8 @@ def main():
         validation,core_entry,core_exit=rollout(scene,anchor,data,core,reached,out/'exported_core',
             core_only=True,continue_from_current=True,controller_handoff=True)
         report['core_replay']=validation
+        if hasattr(scene,'last_bridge_exit_hand_clearance'):
+            report['core_exit_hand_clearance']=scene.last_bridge_exit_hand_clearance
         if not validation['success']:raise RuntimeError('Fresh physically reached CORE failed')
         valid=dict(padded_result,success=True,padded_rollout_complete=True,core_replay_success=True,
             state_resets_within_padded_rollout=0,state_resets_within_core_replay=0,handoff_verified=True,

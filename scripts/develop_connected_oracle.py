@@ -94,8 +94,13 @@ def main():
                     if not segment['success'] or prior['source_provenance']!=manifest['provenance']:
                         raise ValueError('Initial bridge cache was not physically validated for this source')
                     from multipath.anchors.compatibility import boundary_errors,compatible
-                    if not compatible(boundary_errors(start,prior['initial_state'])):raise ValueError('Initial bridge state differs')
-                    cached_initial=segment
+                    errors=boundary_errors(start,prior['initial_state'])
+                    if compatible(errors):cached_initial=segment
+                    else:
+                        # An optional cache is not a requirement. Different
+                        # scene/config provenance needs fresh planning and
+                        # physics, never a relaxed compatibility check.
+                        info['initial_bridge_cache_rejected']=errors
                 if start['contact']['mode']!=w['contact']:raise RuntimeError('Planner cannot change contact mode')
                 later=next((v for v in schedule.windows[wi+1:] if v['mode']=='ANCHOR'),None)
                 source_target=None
@@ -113,6 +118,14 @@ def main():
                         if entry is None and a.id in templates:entry=templates[a.id]['entry']
                         pose=np.asarray(entry['wrist_xyz_wxyz']) if entry else d['wrist_hand_q'][index,:7]
                         twist=np.zeros(6)
+                        if entry_path.exists() and entry.get('physically_acquired_state'):
+                            # The actual reachable wrist state and the drive
+                            # which produced it are different boundary data.
+                            # Replanning to the measured pose as a drive changes
+                            # the next grasp's controller handoff unnecessarily.
+                            pose=np.asarray(entry['command_wrist'])
+                            twist=np.asarray(entry['command_twist'])
+                            info['next_anchor_target_origin']='physically_validated_entry_drive'
                     goal=dict(wrist_xyz_wxyz=pose.tolist(),wrist_twist=twist.tolist(),hand_q=start['hand_q'],hand_dq=start['hand_dq'],
                         command_hand_q=start['command_hand_q'],contact={'mode':w['contact']},scene_id=start['scene_id'])
                     if not carry and entry:
@@ -184,12 +197,17 @@ def main():
                     from multipath.anchors.floating import rebase_grasp_commands
                     seed=load_validated_anchor(args.seed_artifacts,a,provenance=manifest['provenance'],fps=schedule.fps,dt=scene.dt)
                     reused=compatible(boundary_errors(start,seed['entry'])) and all(np.allclose(start[k],seed['entry'][k],rtol=0,atol=1e-8) for k in ['command_wrist','command_twist','command_hand_q'])
+                    drive_matches=all(np.allclose(start[k],seed['entry'][k],rtol=0,atol=1e-6)
+                        for k in ['command_wrist','command_twist','command_hand_q'])
                     commands=seed['commands'].copy()
-                    if not reused:
+                    preserve_free_drive=a.entry_contact=='free' and drive_matches
+                    if not reused and not preserve_free_drive:
                         if a.entry_contact=='grasped':
                             commands=rebase_grasp_commands(commands,seed['entry'],start,scene.dt)
                         commands=join_core_controls(scene,a,commands,start)
                     info['canonical_core_reused']=reused
+                    info['seed_drive_boundary_matches']=drive_matches
+                    info['seed_commands_preserved']=bool(reused or preserve_free_drive)
                     info['validated_local_seed']=str(seed_path.parent)
                 elif a.entry_contact==a.exit_contact=='grasped':
                     commands,handoff=source_grasp_core_controls(scene,a,d,start)

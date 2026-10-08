@@ -1,0 +1,388 @@
+{
+  "success": true,
+  "status": "complete",
+  "source_provenance": {
+    "triplet": "(put in, bowl, plate)",
+    "sequence": "20231024_248",
+    "input": "raw TACO MANO and object poses",
+    "source_video": "/scratch/e0985859/egoengine_baseline/data/taco_v1/Egocentric_RGB_Videos/(put in, bowl, plate)/20231024_248/color.mp4",
+    "schedule_sha256": "f3bc463017238ac180caed8fd1f3b5225a224959ec4d60cabce314e67f88492a",
+    "full_robot_reference_used": false,
+    "vlm_used": false,
+    "transform_world_to_robot": [
+      [
+        -0.29857514301489907,
+        0.954386146813969,
+        0.0,
+        0.5912632672955277
+      ],
+      [
+        -0.9543861309440634,
+        -0.29857513805007496,
+        -0.0,
+        0.03228619171994321
+      ],
+      [
+        0.0,
+        0.0,
+        1.0,
+        -0.19556914806365966
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ]
+  },
+  "v0_run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_e2e_multisource_r166_20231024_248",
+  "baseline_run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_e2e_multisource_r166_20231024_248/final",
+  "source_duration_s": 4.2,
+  "solutions_per_interval": 3,
+  "intervals_share_exclusions": false,
+  "full_runs": [
+    {
+      "index": 0,
+      "run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_e2e_multisource_r166_20231024_248/final",
+      "full_pipeline_success": true
+    },
+    {
+      "index": 1,
+      "run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_e2e_multisource_r166_20231024_248/diversity/full_solution_1_attempt_0",
+      "full_pipeline_success": true,
+      "actual_duration_s": 4.2,
+      "state_resets_between_segments": 0,
+      "task": {
+        "success": true,
+        "final_errors": {
+          "position_m": 0.023464026935432602,
+          "rotation_rad": 0.07883054228222226
+        },
+        "final_speed_m_s": 1.4347379738876389e-07,
+        "released": true
+      },
+      "intervals": [
+        {
+          "window": [
+            0,
+            26
+          ],
+          "diversity": {
+            "actual_wrist_min_exclusion_clearance_m": 0.006209785875935405,
+            "actual_wrist_exclusion_pass": true,
+            "minimum_arc_distance_m": 0.0,
+            "actual_arc_pass": true,
+            "path_length_m": 0.1986426302749257,
+            "endpoint_distance_m": 0.1744443397387611,
+            "arc_reference_length_m": 0.1744443397387611,
+            "arc_length_ratio": 1.1387163984363304,
+            "backward_progress_fraction": 0.00501445235677056,
+            "endpoint_overshoot_fraction": 0.005014452356770782,
+            "smooth_arc_pass": true,
+            "comparisons": [
+              {
+                "source_run": "baseline",
+                "mean_nearest_path_distance_m": 0.006347437262986135,
+                "max_nearest_path_distance_m": 0.018061122678861192,
+                "middle_median_path_distance_m": 0.003650201927291908,
+                "symmetric_hausdorff_m": 0.018061122678861192
+              }
+            ]
+          }
+        },
+        {
+          "window": [
+            65,
+            74
+          ],
+          "diversity": {
+            "actual_wrist_min_exclusion_clearance_m": 0.004409555202415818,
+            "actual_wrist_exclusion_pass": true,
+            "minimum_arc_distance_m": 0.0,
+            "actual_arc_pass": true,
+            "path_length_m": 0.12063108709728973,
+            "endpoint_distance_m": 0.08101392980833827,
+            "arc_reference_length_m": 0.10591616981195091,
+            "arc_length_ratio": 1.1389298471750295,
+            "backward_progress_fraction": 0.0,
+            "endpoint_overshoot_fraction": 0.0,
+            "smooth_arc_pass": true,
+            "comparisons": [
+              {
+                "source_run": "baseline",
+                "mean_nearest_path_distance_m": 0.009547216397897797,
+                "max_nearest_path_distance_m": 0.02237868123111855,
+                "middle_median_path_distance_m": 0.012066328065826974,
+                "symmetric_hausdorff_m": 0.023559230365470717
+              }
+            ]
+          }
+        },
+        {
+          "window": [
+            89,
+            96
+          ],
+          "diversity": {
+            "actual_wrist_min_exclusion_clearance_m": 0.007899176469154341,
+            "actual_wrist_exclusion_pass": true,
+            "minimum_arc_distance_m": 0.0,
+            "actual_arc_pass": true,
+            "path_length_m": 0.15525580832274152,
+            "endpoint_distance_m": 0.14328376609721208,
+            "arc_reference_length_m": 0.14328376609721208,
+            "arc_length_ratio": 1.0835547707296227,
+            "backward_progress_fraction": 0.0,
+            "endpoint_overshoot_fraction": 2.220446049250313e-16,
+            "smooth_arc_pass": true,
+            "comparisons": [
+              {
+                "source_run": "baseline",
+                "mean_nearest_path_distance_m": 0.011322132458191409,
+                "max_nearest_path_distance_m": 0.019572566600330275,
+                "middle_median_path_distance_m": 0.01660266183782806,
+                "symmetric_hausdorff_m": 0.019572566600330275
+              }
+            ]
+          }
+        },
+        {
+          "window": [
+            120,
+            126
+          ],
+          "diversity": {
+            "actual_wrist_min_exclusion_clearance_m": 0.003308456173891338,
+            "actual_wrist_exclusion_pass": true,
+            "minimum_arc_distance_m": 0.0,
+            "actual_arc_pass": true,
+            "path_length_m": 0.06211757930835756,
+            "endpoint_distance_m": 0.0496344864671234,
+            "arc_reference_length_m": 0.0496344864671234,
+            "arc_length_ratio": 1.2515003927662802,
+            "backward_progress_fraction": 0.026380922231162618,
+            "endpoint_overshoot_fraction": 0.026380922231162618,
+            "smooth_arc_pass": true,
+            "comparisons": [
+              {
+                "source_run": "baseline",
+                "mean_nearest_path_distance_m": 0.0070871273958266765,
+                "max_nearest_path_distance_m": 0.011200770714559709,
+                "middle_median_path_distance_m": 0.010383679213081639,
+                "symmetric_hausdorff_m": 0.011767971859275531
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_e2e_multisource_r166_20231024_248/diversity/full_solution_2_attempt_1",
+      "full_pipeline_success": true,
+      "actual_duration_s": 4.2,
+      "state_resets_between_segments": 0,
+      "task": {
+        "success": true,
+        "final_errors": {
+          "position_m": 0.01841222339561705,
+          "rotation_rad": 0.056193376526262245
+        },
+        "final_speed_m_s": 6.766493633451647e-05,
+        "released": true
+      },
+      "intervals": [
+        {
+          "window": [
+            0,
+            26
+          ],
+          "diversity": {
+            "actual_wrist_min_exclusion_clearance_m": 0.00439806735172746,
+            "actual_wrist_exclusion_pass": true,
+            "minimum_arc_distance_m": 0.0,
+            "actual_arc_pass": true,
+            "path_length_m": 0.20438568294711376,
+            "endpoint_distance_m": 0.17459042513452577,
+            "arc_reference_length_m": 0.17459042513452577,
+            "arc_length_ratio": 1.1706580288674484,
+            "backward_progress_fraction": 0.010607114172423202,
+            "endpoint_overshoot_fraction": 0.006151387348711666,
+            "smooth_arc_pass": true,
+            "comparisons": [
+              {
+                "source_run": "baseline",
+                "mean_nearest_path_distance_m": 0.007335466369963857,
+                "max_nearest_path_distance_m": 0.02265446883002961,
+                "middle_median_path_distance_m": 0.002407933653918969,
+                "symmetric_hausdorff_m": 0.02265446883002961
+              },
+              {
+                "source_run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_e2e_multisource_r166_20231024_248/diversity/full_solution_1_attempt_0",
+                "mean_nearest_path_distance_m": 0.00832521168896341,
+                "max_nearest_path_distance_m": 0.02172476042012121,
+                "middle_median_path_distance_m": 0.005442328845050237,
+                "symmetric_hausdorff_m": 0.021740533967414943
+              }
+            ]
+          }
+        },
+        {
+          "window": [
+            65,
+            74
+          ],
+          "diversity": {
+            "actual_wrist_min_exclusion_clearance_m": 0.0016784049868298202,
+            "actual_wrist_exclusion_pass": true,
+            "minimum_arc_distance_m": 0.0,
+            "actual_arc_pass": true,
+            "path_length_m": 0.11095992339004163,
+            "endpoint_distance_m": 0.08003764195400838,
+            "arc_reference_length_m": 0.10373757144965637,
+            "arc_length_ratio": 1.0696213709214337,
+            "backward_progress_fraction": 0.0,
+            "endpoint_overshoot_fraction": 0.0,
+            "smooth_arc_pass": true,
+            "comparisons": [
+              {
+                "source_run": "baseline",
+                "mean_nearest_path_distance_m": 0.004588287422342627,
+                "max_nearest_path_distance_m": 0.011838968392755876,
+                "middle_median_path_distance_m": 0.006007782749919385,
+                "symmetric_hausdorff_m": 0.012152935698856487
+              },
+              {
+                "source_run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_e2e_multisource_r166_20231024_248/diversity/full_solution_1_attempt_0",
+                "mean_nearest_path_distance_m": 0.005794498484563451,
+                "max_nearest_path_distance_m": 0.011874560558696632,
+                "middle_median_path_distance_m": 0.007070324788533763,
+                "symmetric_hausdorff_m": 0.011879884913057507
+              }
+            ]
+          }
+        },
+        {
+          "window": [
+            89,
+            96
+          ],
+          "diversity": {
+            "actual_wrist_min_exclusion_clearance_m": 0.00574030404638606,
+            "actual_wrist_exclusion_pass": true,
+            "minimum_arc_distance_m": 0.0,
+            "actual_arc_pass": true,
+            "path_length_m": 0.15189131962276686,
+            "endpoint_distance_m": 0.14325972983274488,
+            "arc_reference_length_m": 0.14325972983274488,
+            "arc_length_ratio": 1.0602513337146409,
+            "backward_progress_fraction": 0.0,
+            "endpoint_overshoot_fraction": 2.220446049250313e-16,
+            "smooth_arc_pass": true,
+            "comparisons": [
+              {
+                "source_run": "baseline",
+                "mean_nearest_path_distance_m": 0.007950106262316495,
+                "max_nearest_path_distance_m": 0.012277698910117877,
+                "middle_median_path_distance_m": 0.011063311603712407,
+                "symmetric_hausdorff_m": 0.012277698910117877
+              },
+              {
+                "source_run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_e2e_multisource_r166_20231024_248/diversity/full_solution_1_attempt_0",
+                "mean_nearest_path_distance_m": 0.01788550779343534,
+                "max_nearest_path_distance_m": 0.031550793861835895,
+                "middle_median_path_distance_m": 0.02608692003804417,
+                "symmetric_hausdorff_m": 0.031550793861835895
+              }
+            ]
+          }
+        },
+        {
+          "window": [
+            120,
+            126
+          ],
+          "diversity": {
+            "actual_wrist_min_exclusion_clearance_m": 0.0021043858388060084,
+            "actual_wrist_exclusion_pass": true,
+            "minimum_arc_distance_m": 0.0,
+            "actual_arc_pass": true,
+            "path_length_m": 0.06545915500236074,
+            "endpoint_distance_m": 0.04980114815294082,
+            "arc_reference_length_m": 0.04980114815294082,
+            "arc_length_ratio": 1.3144105593978217,
+            "backward_progress_fraction": 0.03765732231759844,
+            "endpoint_overshoot_fraction": 0.03765732231759822,
+            "smooth_arc_pass": true,
+            "comparisons": [
+              {
+                "source_run": "baseline",
+                "mean_nearest_path_distance_m": 0.0111675605033535,
+                "max_nearest_path_distance_m": 0.016199242134664935,
+                "middle_median_path_distance_m": 0.01369711568819042,
+                "symmetric_hausdorff_m": 0.016199242134664935
+              },
+              {
+                "source_run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_e2e_multisource_r166_20231024_248/diversity/full_solution_1_attempt_0",
+                "mean_nearest_path_distance_m": 0.004797869707472291,
+                "max_nearest_path_distance_m": 0.006883457239804535,
+                "middle_median_path_distance_m": 0.005487241003707831,
+                "symmetric_hausdorff_m": 0.006883457239804535
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "steps": [
+    {
+      "name": "bank_00",
+      "status": "finished",
+      "returncode": 0,
+      "elapsed_s": 44.53109077736735,
+      "success": true,
+      "result": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_e2e_multisource_r166_20231024_248/diversity/bank_00/bridge_bank.json"
+    },
+    {
+      "name": "full_solution_1_attempt_0",
+      "status": "finished",
+      "returncode": 0,
+      "elapsed_s": 52.73534233868122,
+      "success": true,
+      "result": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_e2e_multisource_r166_20231024_248/diversity/full_solution_1_attempt_0/pipeline_result.json"
+    },
+    {
+      "name": "full_solution_2_attempt_0",
+      "status": "finished",
+      "returncode": 0,
+      "elapsed_s": 41.618182169273496,
+      "success": false,
+      "result": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_e2e_multisource_r166_20231024_248/diversity/full_solution_2_attempt_0/pipeline_result.json"
+    },
+    {
+      "name": "boundary_solution_2_0",
+      "status": "finished",
+      "returncode": 0,
+      "elapsed_s": 57.60989470034838,
+      "success": true,
+      "result": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_e2e_multisource_r166_20231024_248/diversity/boundary_solution_2_0/development_result.json"
+    },
+    {
+      "name": "full_solution_2_attempt_1",
+      "status": "finished",
+      "returncode": 0,
+      "elapsed_s": 58.48191721178591,
+      "success": true,
+      "result": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_e2e_multisource_r166_20231024_248/diversity/full_solution_2_attempt_1/pipeline_result.json"
+    }
+  ],
+  "elapsed_s": 255.02230371907353,
+  "physical_boundary_refinements": [
+    "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_e2e_multisource_r166_20231024_248/diversity/boundary_solution_2_0"
+  ],
+  "bridge_bank": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_e2e_multisource_r166_20231024_248/diversity/bank_00",
+  "complete_rollout_count": 3,
+  "all_cartesian_combinations_verified": false
+}

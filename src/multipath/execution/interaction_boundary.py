@@ -42,8 +42,14 @@ def check_interaction_boundary(scene,expected,contact,terminal=False):
         static=errors['embodiment_match'] and errors['scene_match'] and actual['contact']['mode']=='free'
     environment=all(value<(.05 if key.endswith('_position_m') else .35 if key.endswith('_rotation_rad') else .15)
         for key,value in errors.items()
-        if key.endswith(('_position_m','_rotation_rad','_velocity'))
+        if key.endswith(('_position_m','_rotation_rad'))
         and not key.startswith(('wrist_','tool_')))
+    # Canonical contact impulses are not a persistent environment constraint.
+    # A stationary plate must not fail because the old rollout's plate was
+    # briefly rotating. Preserve and propagate actual velocities; subsequent
+    # planning/physics and the final task still have to succeed.
+    environment_velocity_match=all(value<.15 for key,value in errors.items()
+        if key.endswith('_velocity') and not key.startswith(('wrist_','tool_')))
     drive_error=float(np.max(np.abs(np.asarray(actual['command_hand_q'])-
                                   expected.get('command_hand_q',expected['hand_q']))))
     return dict(success=bool(static and environment and drive_error<.10 and object_tracking_score(pose_error)['feasible']),
@@ -51,6 +57,8 @@ def check_interaction_boundary(scene,expected,contact,terminal=False):
                     'interaction_pose_contact_environment_and_continuous_physical_execution'),
                 terminal_pose_tracking_diagnostic_only=bool(terminal),
                 canonical_errors=errors,canonical_dynamics_match_diagnostic=compatible(errors),
+                environment_pose_compatible=bool(environment),
+                environment_velocity_match_diagnostic=bool(environment_velocity_match),
                 object_boundary_error=pose_error,finger_drive_error_rad=drive_error,
                 actual_contact=actual['contact'],actual_wrist_twist=actual['wrist_twist'],
                 actual_state_propagated=True,state_assigned=False)

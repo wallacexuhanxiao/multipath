@@ -286,13 +286,20 @@ def execute(scene,schedule,manifest,proposal_dir,report):
             prefix_core=False
             if diverse and window['start'] in passed_prefix:
                 entry=next(r for r in prefix_trace if np.isclose(r['source_frame'],window['start']))
-                if measured_drive_matches(start,entry):
+                previous_artifact=next(a for a in prefix_report['anchors'] if a['id']==anchor.id)
+                artifact_matches=all(previous_artifact.get(k)==artifact['report'].get(k)
+                    for k in ('entry_provenance','validation'))
+                info['prefix_anchor_artifact_matches']=artifact_matches
+                if artifact_matches and measured_drive_matches(start,entry):
                     commands=np.load(prefix_root/'anchors'/anchor.id/'executed_core.npz')['commands']
                     info['physically_verified_prefix_core_reused']=True;prefix_core=True
             if diverse and anchor.entry_contact=='grasped' and not prefix_core:
                 from multipath.anchors.floating import rebase_grasp_commands
                 commands=rebase_grasp_commands(commands,artifact['entry'],scene.snapshot(),scene.dt)
                 info['core_grasp_frame_conditioned']=True
+            # Preserve attempted controls too, so a real interaction failure
+            # can be repaired locally from this physically executed prefix.
+            np.savez_compressed(scene.out/'anchors'/anchor.id/'executed_core.npz',commands=commands)
             check=validate_commands(scene,commands,start)
             if not check['feasible']:raise RuntimeError(f'Canonical commands infeasible from actual entry: {check}')
             objective=WindowEvaluation(scene,anchor,data,start)

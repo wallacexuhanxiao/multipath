@@ -19,7 +19,7 @@ def main():
         subprocess.run(['rsync','-a',f'{args.host}:{remote}/end_to_end_result.json',str(folder)+'/'],check=True)
         report=json.loads((folder/'end_to_end_result.json').read_text())
         subprocess.run(['rsync','-a',f'{args.host}:{remote}/run.log',str(folder)+'/'],check=True)
-        if not report.get('success'):
+        if not (report.get('success') or report.get('v0_success')):
             results.append(dict(sequence=report['sequence'],success=False,error=report.get('error'),run=str(folder)))
             continue
         final=folder/'final';final.mkdir(exist_ok=True)
@@ -50,7 +50,9 @@ def main():
         while verify.read()[0]:decoded+=1
         verify.release()
         if decoded!=count:raise RuntimeError('Comparison video is incomplete')
-        results.append(dict(sequence=report['sequence'],run=str(folder.resolve()),success=True,source_duration_s=report['source_duration_s'],
+        results.append(dict(sequence=report['sequence'],run=str(folder.resolve()),success=report['success'],
+            v0_success=physical['full_pipeline_success'],complete_rollout_count=report.get('complete_rollout_count',1),
+            source_duration_s=report['source_duration_s'],
             actual_duration_s=physical['actual_duration_s'],state_resets_between_segments=physical['state_resets_between_segments'],
             task=physical['task'],actual_video=str(actual.resolve()),source_comparison=str(comparison.resolve())))
         print('LOCAL_VIDEO_READY',report['sequence'],str(comparison.resolve()),flush=True)

@@ -521,13 +521,23 @@ def source_retarget_core_controls(scene,anchor,data,start):
     return join_core_controls(scene,anchor,controls_from_poses(pose,hand,scene.dt),start)
 
 
-def quiet_release_exit(scene,anchor,commands,terminal_offset=None):
+def quiet_release_exit(scene,anchor,commands,terminal_offset=None,*,preserve_motion=False):
     """Reach the local withdrawal position with a quiet free-hand boundary."""
     if anchor.exit_contact!='free':return np.asarray(commands).copy()
     c=np.asarray(commands).copy();tpf=physics_ticks_per_frame(scene.manifest['fps'],scene.dt)
     context=max(anchor.core_start-anchor.synth_start,anchor.synth_end-anchor.core_end)
     count=min(len(c)-1,max(tpf,context*tpf));begin=len(c)-count
     previous=c[begin-1];duration=count*scene.dt;s=np.arange(count+1)/count
+    if preserve_motion:
+        if terminal_offset is None:raise ValueError('Geometry-only refinement requires a measured offset')
+        # A geometric overlap does not invalidate the previously executed
+        # orientation/withdrawal controller. Add only the measured translation
+        # correction; preserve wrist rotation, fingers and nominal angular twist.
+        shift=(10*s**3-15*s**4+6*s**5)[:,None]*np.asarray(terminal_offset)
+        c[begin:,:3]+=shift[1:]
+        c[begin:,19:22]+=np.diff(shift,axis=0)/scene.dt
+        c[-1,19:22]=commands[-1,19:22]
+        return c
     # Braking must retain the retargeted withdrawal endpoint. Integrating a
     # decaying velocity alone truncated the retreat and left released fingers
     # inside the next planner's obstacle. This pose is a local command target;

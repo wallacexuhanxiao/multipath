@@ -22,6 +22,7 @@ def main():
     p.add_argument('--retarget-python',default=sys.executable)
     p.add_argument('--seed-artifacts',type=Path,help='Optional local warm start of this source; not required.')
     p.add_argument('--initial-bridge-run',type=Path,help='Optional physically passed initial cuRobo segment of this source.')
+    p.add_argument('--resume-diversity-bank',type=Path,help='Optional passed local bridge candidates; full rollouts remain mandatory.')
     p.add_argument('--template-artifacts',type=Path,help='Optional validated local interaction library; new-source initialization only.')
     p.add_argument('--template-proposals',type=Path,help='Local source data associated with the interaction library.')
     p.add_argument('--max-attempts',type=int,default=10)
@@ -29,6 +30,7 @@ def main():
     p.add_argument('--ppo-updates',type=int,default=20)
     p.add_argument('--solutions-per-interval',type=int,default=3,help='1 stops after V0; otherwise run interval diversity and full validation')
     args=p.parse_args();out=args.output_dir.resolve();out.mkdir(parents=True,exist_ok=True)
+    if args.solutions_per_interval<1:p.error('Request at least one solution')
     if bool(args.template_artifacts)!=bool(args.template_proposals):p.error('Template artifact and source data must be supplied together')
     from multipath.oracle_schedule import OracleSchedule
     schedule=OracleSchedule.load(args.schedule)
@@ -40,6 +42,7 @@ def main():
         interaction_template=str(args.template_artifacts) if args.template_artifacts else None,
         initial_bridge_cache=str(args.initial_bridge_run) if args.initial_bridge_run else None,
         template_source_data=str(args.template_proposals) if args.template_proposals else None,
+        solutions_per_interval=args.solutions_per_interval,
         steps=[],repairs=[],started_at=time.strftime('%Y-%m-%dT%H:%M:%S%z'))
     started=time.monotonic()
     def save():
@@ -58,7 +61,8 @@ def main():
         step['success']=bool(value.get(key)) if key and value else process.returncode==0 and not key
         save();print('E2E_END',name,step['success'],round(step['elapsed_s'],2),flush=True)
         if key and value is None:raise RuntimeError(f'{name}: physical result missing; see {log}')
-        if not physical and process.returncode:raise RuntimeError(f'{name}: process failed; see {log}')
+        if not physical and process.returncode and not (key and value):
+            raise RuntimeError(f'{name}: process failed; see {log}')
         return value
     common=['--schedule',args.schedule,'--proposals',out/'proposals','--floating-config',args.floating_config,
         '--xhand-urdf',args.xhand_urdf,'--object-cache',args.object_cache]
@@ -84,9 +88,16 @@ def main():
             connected.append(candidate)
             if value.get('task_success'):break
             failed=next((s for s in value.get('segments',[]) if not s.get('success')),None)
+            if failed is None and value.get('continuous_execution_success') and not value.get('task_success'):
+                # Every segment may pass while the released object misses the
+                # stricter final task condition. Repair the final interaction,
+                # whose local post-context must enforce that same condition.
+                failed=dict(next(w for w in reversed(schedule.windows) if w['mode']=='ANCHOR'))
+                failed['failure']=dict(reason='final_task_state',task=value['task'])
             if failed is None:raise RuntimeError(value.get('error','No repairable segment'))
             if value['segments'][0].get('success') and initial_bridge is None:initial_bridge=candidate
-            repair=dict(attempt=attempt,window=[failed['start'],failed['end']],error=value.get('error'),physical_run=str(candidate))
+            repair=dict(attempt=attempt,window=[failed['start'],failed['end']],
+                error=value.get('error') or failed.get('failure'),physical_run=str(candidate))
             report['repairs'].append(repair);save()
             if failed.get('contact')=='grasped' and (candidate/f'relaxed_{failed["start"]}_{failed["end"]}.npz').exists():
                 carry_context[failed['start']]=candidate
@@ -133,16 +144,18 @@ def main():
         if not value.get('full_pipeline_success'):raise RuntimeError(f'Fresh full rollout failed: {value.get("error")}')
         report.update(success=False,v0_success=True,status='v0_complete',candidate_run=str(candidate),final_run=str(final),
             actual_duration_s=value['actual_duration_s'],state_resets_between_segments=value['state_resets_between_segments'],
-            task=value['task'],video_ready_for_render=True)
+            task=value['task'],video_ready_for_render=True,complete_rollout_count=1)
         save()
         if args.solutions_per_interval>1:
             diversity=out/'diversity'
+            report['diversity_run']=str(diversity);save()
             params=['--v0-run',out,'--schedule',args.schedule,'--floating-config',args.floating_config,
                 '--xhand-urdf',args.xhand_urdf,'--object-cache',args.object_cache,'--output-dir',diversity,
                 '--solutions-per-interval',args.solutions_per_interval]
             if args.sim_prefix:params+=['--sim-prefix',args.sim_prefix]
+            if args.resume_diversity_bank:params+=['--resume-bank',args.resume_diversity_bank]
             result=run('diversity','run_oracle_diversity.py',params,False,diversity/'diversity_result.json','success')
-            report['diversity_run']=str(diversity)
+            report['complete_rollout_count']=len(result.get('full_runs',[]))
             if not result.get('success'):raise RuntimeError(f'Diversity failed: {result.get("error")}')
             report['complete_rollout_count']=result['complete_rollout_count']
         report.update(success=True,status='complete')

@@ -1,0 +1,350 @@
+{
+  "status": "complete",
+  "success": true,
+  "requested_solutions": 3,
+  "successful_full_rollouts": [
+    {
+      "index": 0,
+      "run": "/Users/apple/Desktop/semantic verifier/multipath/outputs/oracle_multisource_20261008/oracle_diversity_r170_20231024_243/solution_0",
+      "actual_duration_s": 4.3,
+      "task": {
+        "success": true,
+        "final_errors": {
+          "position_m": 0.0062208457249197605,
+          "rotation_rad": 0.0648917070318897
+        },
+        "final_speed_m_s": 0.00035622203192334326,
+        "released": true
+      },
+      "video": "/Users/apple/Desktop/semantic verifier/multipath/outputs/oracle_multisource_20261008/oracle_diversity_r170_20231024_243/solution_0/floating_xhand_actual.mp4",
+      "intervals": [
+        {
+          "window": [
+            0,
+            23
+          ],
+          "budget_s": 0.7666666666666666,
+          "diversity": null
+        },
+        {
+          "window": [
+            61,
+            70
+          ],
+          "budget_s": 0.3,
+          "diversity": null
+        },
+        {
+          "window": [
+            97,
+            105
+          ],
+          "budget_s": 0.26666666666666666,
+          "diversity": null
+        },
+        {
+          "window": [
+            123,
+            129
+          ],
+          "budget_s": 0.2,
+          "diversity": null
+        }
+      ]
+    },
+    {
+      "index": 1,
+      "run": "/Users/apple/Desktop/semantic verifier/multipath/outputs/oracle_multisource_20261008/oracle_diversity_r170_20231024_243/solution_1",
+      "actual_duration_s": 4.3,
+      "task": {
+        "success": true,
+        "final_errors": {
+          "position_m": 0.005296897928066404,
+          "rotation_rad": 0.11587399317229835
+        },
+        "final_speed_m_s": 8.468974841958639e-06,
+        "released": true
+      },
+      "video": "/Users/apple/Desktop/semantic verifier/multipath/outputs/oracle_multisource_20261008/oracle_diversity_r170_20231024_243/solution_1/floating_xhand_actual.mp4",
+      "intervals": [
+        {
+          "window": [
+            0,
+            23
+          ],
+          "budget_s": 0.7666666666666666,
+          "diversity": {
+            "actual_wrist_min_exclusion_clearance_m": 0.008934055660062857,
+            "actual_wrist_exclusion_pass": true,
+            "minimum_arc_distance_m": 0.0,
+            "actual_arc_pass": true,
+            "path_length_m": 0.3059737376322553,
+            "endpoint_distance_m": 0.14628911977107442,
+            "arc_reference_length_m": 0.14628911977107442,
+            "arc_length_ratio": 2.0915686560358617,
+            "backward_progress_fraction": 0.05069397763451011,
+            "endpoint_overshoot_fraction": 2.220446049250313e-16,
+            "smooth_arc_pass": true,
+            "comparisons": [
+              {
+                "source_run": "baseline",
+                "mean_nearest_path_distance_m": 0.04510276710678899,
+                "max_nearest_path_distance_m": 0.0993152485114906,
+                "middle_median_path_distance_m": 0.0702675527822606,
+                "symmetric_hausdorff_m": 0.0993152485114906
+              }
+            ]
+          }
+        },
+        {
+          "window": [
+            61,
+            70
+          ],
+          "budget_s": 0.3,
+          "diversity": {
+            "actual_wrist_min_exclusion_clearance_m": 0.007829767114728466,
+            "actual_wrist_exclusion_pass": true,
+            "minimum_arc_distance_m": 0.0,
+            "actual_arc_pass": true,
+            "path_length_m": 0.15476256484737497,
+            "endpoint_distance_m": 0.14098991680032708,
+            "arc_reference_length_m": 0.14407500324440836,
+            "arc_length_ratio": 1.074180540428906,
+            "backward_progress_fraction": 0.0,
+            "endpoint_overshoot_fraction": 2.220446049250313e-16,
+            "smooth_arc_pass": true,
+            "comparisons": [
+              {
+                "source_run": "baseline",
+                "mean_nearest_path_distance_m": 0.016380642586917224,
+                "max_nearest_path_distance_m": 0.03315785296478944,
+                "middle_median_path_distance_m": 0.024679902397906028,
+                "symmetric_hausdorff_m": 0.03315785296478944
+              }
+            ]
+          }
+        },
+        {
+          "window": [
+            97,
+            105
+          ],
+          "budget_s": 0.26666666666666666,
+          "diversity": {
+            "actual_wrist_min_exclusion_clearance_m": 0.0023968035009609588,
+            "actual_wrist_exclusion_pass": true,
+            "minimum_arc_distance_m": 0.0,
+            "actual_arc_pass": true,
+            "path_length_m": 0.15282718926904498,
+            "endpoint_distance_m": 0.14555794160638194,
+            "arc_reference_length_m": 0.14705796271498517,
+            "arc_length_ratio": 1.0392309702075855,
+            "backward_progress_fraction": 0.0,
+            "endpoint_overshoot_fraction": 2.220446049250313e-16,
+            "smooth_arc_pass": true,
+            "comparisons": [
+              {
+                "source_run": "baseline",
+                "mean_nearest_path_distance_m": 0.007961097427538515,
+                "max_nearest_path_distance_m": 0.01435163116664359,
+                "middle_median_path_distance_m": 0.012139764767236605,
+                "symmetric_hausdorff_m": 0.01435163116664359
+              }
+            ]
+          }
+        },
+        {
+          "window": [
+            123,
+            129
+          ],
+          "budget_s": 0.2,
+          "diversity": {
+            "actual_wrist_min_exclusion_clearance_m": 0.0030898112212755873,
+            "actual_wrist_exclusion_pass": true,
+            "minimum_arc_distance_m": 0.0,
+            "actual_arc_pass": true,
+            "path_length_m": 0.05061007322439829,
+            "endpoint_distance_m": 0.039207856951910425,
+            "arc_reference_length_m": 0.039207856951910425,
+            "arc_length_ratio": 1.290814575417193,
+            "backward_progress_fraction": 0.12443881758378794,
+            "endpoint_overshoot_fraction": 0.12443881758378783,
+            "smooth_arc_pass": true,
+            "comparisons": [
+              {
+                "source_run": "baseline",
+                "mean_nearest_path_distance_m": 0.003943186155440591,
+                "max_nearest_path_distance_m": 0.004655354714855952,
+                "middle_median_path_distance_m": 0.004002594858855517,
+                "symmetric_hausdorff_m": 0.004655354714855952
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "run": "/Users/apple/Desktop/semantic verifier/multipath/outputs/oracle_multisource_20261008/oracle_diversity_r170_20231024_243/solution_2",
+      "actual_duration_s": 4.3,
+      "task": {
+        "success": true,
+        "final_errors": {
+          "position_m": 0.013474004168013271,
+          "rotation_rad": 0.33593264845003795
+        },
+        "final_speed_m_s": 0.024377758705194322,
+        "released": true
+      },
+      "video": "/Users/apple/Desktop/semantic verifier/multipath/outputs/oracle_multisource_20261008/oracle_diversity_r170_20231024_243/solution_2/floating_xhand_actual.mp4",
+      "intervals": [
+        {
+          "window": [
+            0,
+            23
+          ],
+          "budget_s": 0.7666666666666666,
+          "diversity": {
+            "actual_wrist_min_exclusion_clearance_m": 0.011340544196354536,
+            "actual_wrist_exclusion_pass": true,
+            "minimum_arc_distance_m": 0.0,
+            "actual_arc_pass": true,
+            "path_length_m": 0.2677684523309214,
+            "endpoint_distance_m": 0.14536582237420917,
+            "arc_reference_length_m": 0.14536582237420917,
+            "arc_length_ratio": 1.8420316960173502,
+            "backward_progress_fraction": 0.0026489106584622014,
+            "endpoint_overshoot_fraction": 0.0007823754261374801,
+            "smooth_arc_pass": true,
+            "comparisons": [
+              {
+                "source_run": "baseline",
+                "mean_nearest_path_distance_m": 0.02976176599566559,
+                "max_nearest_path_distance_m": 0.07897678789557752,
+                "middle_median_path_distance_m": 0.04845676983017779,
+                "symmetric_hausdorff_m": 0.07897678789557752
+              },
+              {
+                "source_run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_e2e_multisource_r166_20231024_243/diversity/full_solution_1_attempt_0",
+                "mean_nearest_path_distance_m": 0.03798985071556314,
+                "max_nearest_path_distance_m": 0.09247304600585889,
+                "middle_median_path_distance_m": 0.05633265364120808,
+                "symmetric_hausdorff_m": 0.0994932310725212
+              }
+            ]
+          }
+        },
+        {
+          "window": [
+            61,
+            70
+          ],
+          "budget_s": 0.3,
+          "diversity": {
+            "actual_wrist_min_exclusion_clearance_m": 0.0025778033068170622,
+            "actual_wrist_exclusion_pass": true,
+            "minimum_arc_distance_m": 0.0,
+            "actual_arc_pass": true,
+            "path_length_m": 0.15031691033813752,
+            "endpoint_distance_m": 0.1431139068923411,
+            "arc_reference_length_m": 0.14473665484405016,
+            "arc_length_ratio": 1.0385545423866533,
+            "backward_progress_fraction": 0.0,
+            "endpoint_overshoot_fraction": 0.0,
+            "smooth_arc_pass": true,
+            "comparisons": [
+              {
+                "source_run": "baseline",
+                "mean_nearest_path_distance_m": 0.009079364998252432,
+                "max_nearest_path_distance_m": 0.01785611170806832,
+                "middle_median_path_distance_m": 0.01440231130055048,
+                "symmetric_hausdorff_m": 0.01785611170806832
+              },
+              {
+                "source_run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_e2e_multisource_r166_20231024_243/diversity/full_solution_1_attempt_0",
+                "mean_nearest_path_distance_m": 0.01274181696779912,
+                "max_nearest_path_distance_m": 0.026634896207041292,
+                "middle_median_path_distance_m": 0.019594122449441954,
+                "symmetric_hausdorff_m": 0.02668308217358588
+              }
+            ]
+          }
+        },
+        {
+          "window": [
+            97,
+            105
+          ],
+          "budget_s": 0.26666666666666666,
+          "diversity": {
+            "actual_wrist_min_exclusion_clearance_m": 0.0007367253938130926,
+            "actual_wrist_exclusion_pass": true,
+            "minimum_arc_distance_m": 0.0,
+            "actual_arc_pass": true,
+            "path_length_m": 0.1598933292897353,
+            "endpoint_distance_m": 0.147479571237612,
+            "arc_reference_length_m": 0.14862714251817344,
+            "arc_length_ratio": 1.075801677813891,
+            "backward_progress_fraction": 0.0,
+            "endpoint_overshoot_fraction": 0.0,
+            "smooth_arc_pass": true,
+            "comparisons": [
+              {
+                "source_run": "baseline",
+                "mean_nearest_path_distance_m": 0.009041773009808046,
+                "max_nearest_path_distance_m": 0.017143387859805705,
+                "middle_median_path_distance_m": 0.014221780648581279,
+                "symmetric_hausdorff_m": 0.017143387859805705
+              },
+              {
+                "source_run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_e2e_multisource_r166_20231024_243/diversity/full_solution_1_attempt_0",
+                "mean_nearest_path_distance_m": 0.0026806205877302454,
+                "max_nearest_path_distance_m": 0.004719749912865535,
+                "middle_median_path_distance_m": 0.0029725135426153728,
+                "symmetric_hausdorff_m": 0.004719749912865535
+              }
+            ]
+          }
+        },
+        {
+          "window": [
+            123,
+            129
+          ],
+          "budget_s": 0.2,
+          "diversity": {
+            "actual_wrist_min_exclusion_clearance_m": 0.016573684952072332,
+            "actual_wrist_exclusion_pass": true,
+            "minimum_arc_distance_m": 0.0,
+            "actual_arc_pass": true,
+            "path_length_m": 0.08507662154701913,
+            "endpoint_distance_m": 0.035065058427460966,
+            "arc_reference_length_m": 0.035065058427460966,
+            "arc_length_ratio": 2.426250671249187,
+            "backward_progress_fraction": 0.5217383395964079,
+            "endpoint_overshoot_fraction": 0.5217383395964081,
+            "smooth_arc_pass": true,
+            "comparisons": [
+              {
+                "source_run": "baseline",
+                "mean_nearest_path_distance_m": 0.02579844017615178,
+                "max_nearest_path_distance_m": 0.03304880459895027,
+                "middle_median_path_distance_m": 0.02459659075315536,
+                "symmetric_hausdorff_m": 0.03304880459895027
+              },
+              {
+                "source_run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_e2e_multisource_r166_20231024_243/diversity/full_solution_1_attempt_0",
+                "mean_nearest_path_distance_m": 0.026054865348595236,
+                "max_nearest_path_distance_m": 0.03384480744556964,
+                "middle_median_path_distance_m": 0.025026319734943184,
+                "symmetric_hausdorff_m": 0.03384480744556964
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

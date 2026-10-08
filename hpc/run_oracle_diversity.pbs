@@ -33,6 +33,7 @@ with open(sys.argv[1],'w') as stream:json.dump(sys.argv[2:],stream)
 PY
 EXTRA=()
 [[ -z "${MULTIPATH_RESUME_BANK:-}" ]] || EXTRA+=(--resume-bank "$MULTIPATH_RESUME_BANK")
+[[ -z "${MULTIPATH_RESUME_DIVERSITY_RUN:-}" ]] || EXTRA+=(--resume-diversity-run "$MULTIPATH_RESUME_DIVERSITY_RUN")
 [[ -z "${MULTIPATH_BOUNDARY_FEEDBACK_RUN:-}" ]] || EXTRA+=(--boundary-feedback-run "$MULTIPATH_BOUNDARY_FEEDBACK_RUN")
 [[ -z "${MULTIPATH_VALIDATED_ANCHORS:-}" ]] || EXTRA+=(--validated-anchors "$MULTIPATH_VALIDATED_ANCHORS")
 [[ -z "${MULTIPATH_EXECUTED_PREFIX_RUN:-}" ]] || EXTRA+=(--executed-prefix-run "$MULTIPATH_EXECUTED_PREFIX_RUN")

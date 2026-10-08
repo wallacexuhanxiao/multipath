@@ -4,6 +4,37 @@ from scipy.spatial.transform import Rotation
 from multipath.planning.floating import pose_coordinates,carried_proxy
 
 
+def hand_table_clearance(scene):
+    """Exact reached hand/table boundary, shared by local synthesis and planning.
+
+    A successful release is not enough if the next planner starts with a hand
+    mesh inside the table. Use the same measured surfaces as FloatingPlanner;
+    do not substitute a coarse sphere overlap for a physical collision.
+    """
+    from pxr import Usd,UsdGeom
+    from multipath.planning.floating import mesh_box_intersects,usd_mesh_faces
+    if not hasattr(scene,'anchor_hand_meshes'):
+        scene.anchor_hand_meshes=[]
+        for prim in Usd.PrimRange.Stage(scene.world.stage,Usd.TraverseInstanceProxies()):
+            if not str(prim.GetPath()).startswith(scene.root+'/') or not prim.IsA(UsdGeom.Mesh):continue
+            if 'collision' in str(prim.GetPath()).lower():continue
+            mesh=UsdGeom.Mesh(prim)
+            scene.anchor_hand_meshes.append((prim,np.asarray(mesh.GetPointsAttr().Get()),usd_mesh_faces(mesh)))
+    cache=UsdGeom.XformCache();box=scene.table;b=np.asarray(box['pose']);half=np.asarray(box['dims'])/2
+    rotation=Rotation.from_quat(b[[4,5,6,3]]);minimum=np.inf;collisions=[]
+    for prim,points,faces in scene.anchor_hand_meshes:
+        matrix=np.asarray(cache.GetLocalToWorldTransform(prim)).T
+        vertices=points@matrix[:3,:3].T+matrix[:3,3]
+        offset=np.abs(rotation.inv().apply(vertices-b[:3]))-half
+        distance=np.linalg.norm(np.maximum(offset,0),axis=1)+np.minimum(offset.max(1),0)
+        minimum=min(minimum,float(distance.min()))
+        if mesh_box_intersects(vertices,faces,box):collisions.append(str(prim.GetPath()))
+    if not np.isfinite(minimum):raise RuntimeError('Anchor boundary has no measured hand geometry')
+    return dict(clearance_m=float(min(minimum,-1e-7) if collisions else minimum),
+                collision_free=not collisions,intersecting_meshes=collisions,
+                geometry='measured triangle surfaces against unchanged table')
+
+
 def carried_object_clearance(scene,state):
     """Check table support clearance and actual carried/target mesh separation.
 
@@ -153,7 +184,7 @@ def terminal_stop_target(start,budget,dt,planning):
     return project_boundary_target(start,goal,budget,planning,dt=dt)
 
 
-def free_exit_clearance_offset(scene,actual,geometry):
+def free_exit_clearance_offset(scene,actual,geometry,obstacle_roles=None):
     """Resynthesize a released Anchor boundary from real collision feedback.
 
     The offset is a command proposal. Its size comes from the recorded hand
@@ -163,8 +194,11 @@ def free_exit_clearance_offset(scene,actual,geometry):
     if not actual.get('physically_acquired_state') or actual['contact']['mode']!='free':
         raise ValueError('Free-exit feedback requires a real released state')
     spheres=geometry['spheres'];pose=np.asarray(actual['wrist_xyz_wxyz']);target=pose.copy()
-    boxes={'table':scene.table}
+    roles=set(obstacle_roles) if obstacle_roles is not None else {'table','tool','target'}
+    if not roles or not roles<={'table','tool','target'}:raise ValueError('Unknown free-exit collision feedback role')
+    boxes={'table':scene.table} if 'table' in roles else {}
     for role in ('tool','target'):
+        if role not in roles:continue
         state=actual['objects'][role];p=np.asarray(state['pose']);bounds=scene.meshes[role].bounds
         rotation=Rotation.from_quat(p[[4,5,6,3]])
         boxes[role]={'dims':(bounds[1]-bounds[0]).tolist(),'pose':np.r_[p[:3]+rotation.apply(bounds.mean(0)),p[3:]].tolist()}
@@ -179,7 +213,7 @@ def free_exit_clearance_offset(scene,actual,geometry):
     else:raise RuntimeError('No free Anchor exit-clearance proposal')
     offset=target[:3]-pose[:3]
     return offset,dict(offset_m=offset.tolist(),surface_motion_margin_m=float(margin),initial_clearance_m=initial,
-        physically_acquired_feedback=True,physics_acceptance=False,source_time_stretch=False)
+        obstacle_roles=sorted(roles),physically_acquired_feedback=True,physics_acceptance=False,source_time_stretch=False)
 
 
 def feedback_boundary_target(start,goal,planned_pose,actual_state,source_target,budget,dt,planning):

@@ -24,8 +24,11 @@ for case in cases:
     run_name=name+'_'+case['sequence'];folder=root/'outputs'/run_name;folder.mkdir(exist_ok=True)
     env=dict(os.environ,MULTIPATH_RUN_NAME=run_name,MULTIPATH_SCHEDULE=case['schedule'],
              MULTIPATH_TRIPLET=case['triplet'],MULTIPATH_SEQUENCE=case['sequence'])
-    for field,variable in [('seed_artifacts','MULTIPATH_SEED_ARTIFACTS'),('initial_bridge_run','MULTIPATH_INITIAL_BRIDGE_RUN')]:
-        if case.get(field):env[variable]=case[field]
+    for field,variable in [('seed_artifacts','MULTIPATH_SEED_ARTIFACTS'),('initial_bridge_run','MULTIPATH_INITIAL_BRIDGE_RUN'),
+                           ('template_artifacts','MULTIPATH_TEMPLATE_ARTIFACTS'),('template_proposals','MULTIPATH_TEMPLATE_PROPOSALS'),
+                           ('resume_diversity_bank','MULTIPATH_RESUME_DIVERSITY_BANK'),
+                           ('solutions_per_interval','MULTIPATH_SOLUTIONS_PER_INTERVAL')]:
+        if case.get(field) is not None:env[variable]=str(case[field])
     stream=(folder/'allocation.log').open('w')
     process=subprocess.Popen(['bash',str(root/'hpc/run_end_to_end.pbs')],cwd=root,env=env,stdout=stream,stderr=subprocess.STDOUT)
     processes.append((case,folder,process,stream));print('SOURCE_BEGIN',case['sequence'],process.pid,flush=True)
@@ -33,7 +36,9 @@ results=[]
 for case,folder,process,stream in processes:
     code=process.wait();stream.close();f=folder/'end_to_end_result.json'
     value=json.loads(f.read_text()) if f.exists() else {'success':False,'error':'result missing; see allocation.log'}
-    results.append(dict(sequence=case['sequence'],run=str(folder),returncode=code,success=value.get('success',False),error=value.get('error')))
+    results.append(dict(sequence=case['sequence'],run=str(folder),returncode=code,success=value.get('success',False),
+        v0_success=value.get('v0_success',False),solutions_per_interval=value.get('solutions_per_interval'),
+        complete_rollout_count=value.get('complete_rollout_count',0),diversity_run=value.get('diversity_run'),error=value.get('error')))
     print('SOURCE_END',case['sequence'],results[-1],flush=True)
 report=dict(success=all(r['success'] for r in results),elapsed_s=time.monotonic()-started,
             pbs_job_id=os.environ.get('PBS_JOBID'),sources=results)

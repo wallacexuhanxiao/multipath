@@ -1,0 +1,187 @@
+{
+  "anchor_id": "anchor_2",
+  "core_success": false,
+  "full_pipeline_success": false,
+  "source_provenance": {
+    "triplet": "(put in, bowl, plate)",
+    "sequence": "20231024_243",
+    "input": "raw TACO MANO and object poses",
+    "source_video": "/scratch/e0985859/egoengine_baseline/data/taco_v1/Egocentric_RGB_Videos/(put in, bowl, plate)/20231024_243/color.mp4",
+    "schedule_sha256": "5b22609b9a2e2d96d06b2f814a2e8a8487dc8c0d34e361f40fbc0234a106076f",
+    "full_robot_reference_used": false,
+    "vlm_used": false,
+    "transform_world_to_robot": [
+      [
+        -0.2810599251746801,
+        0.9596902281825671,
+        0.0,
+        0.5879876838264226
+      ],
+      [
+        -0.9596902206929987,
+        -0.28105992298124566,
+        -0.0,
+        0.022208397868123134
+      ],
+      [
+        0.0,
+        0.0,
+        1.0,
+        -0.20252405643463134
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ]
+  },
+  "synthesis_interval": [
+    99,
+    129
+  ],
+  "optimization_interval": [
+    105,
+    129
+  ],
+  "pre_context": "actual cuRobo predecessor; no reference state initialization",
+  "entry_run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r167_20231024_243/full_solution_2_attempt_0",
+  "terminal_task_contract": {
+    "kind": "anchor_sequence_and_final_object_pose",
+    "position_tolerance_m": 0.05,
+    "rotation_tolerance_rad": 0.35,
+    "stable_speed_m_s": 0.03
+  },
+  "exit_geometry_feedback": {
+    "offset_m": [
+      -0.027935567610638368,
+      -0.019945199613424308,
+      0.03912337391519294
+    ],
+    "surface_motion_margin_m": 0.013110403644766877,
+    "initial_clearance_m": {
+      "table": -0.011108636689806998,
+      "tool": -0.021694729266454216,
+      "target": -0.023452322263082505
+    },
+    "physically_acquired_feedback": true,
+    "physics_acceptance": false,
+    "source_time_stretch": false,
+    "physical_run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r167_20231024_243/full_solution_2_attempt_0"
+  },
+  "replay": {
+    "success": false,
+    "failure": {
+      "source_frame": 123.0,
+      "reason": "core_exit_bridge_velocity"
+    },
+    "failures": [
+      {
+        "source_frame": 123.0,
+        "reason": "core_exit_bridge_velocity"
+      }
+    ],
+    "rollout_complete": false,
+    "padded_rollout_complete": false,
+    "core_rollout_complete": false,
+    "rollout_interval": [
+      105,
+      129
+    ],
+    "tracking_failures_collected": false,
+    "core_entry_acquired": true,
+    "core_exit_acquired": true,
+    "state_resets_within_rollout": 0,
+    "source_fps": 30.0,
+    "control_dt": 0.008333333333333333,
+    "tracking_parameters": {
+      "C": 1.0,
+      "lambda_p": 399.99999999999994,
+      "lambda_R": 3.6475626111241604,
+      "position_tolerance_m": 0.05,
+      "rotation_tolerance_rad": 0.5235987755982988,
+      "acceptance": "independent_position_and_rotation_limits"
+    },
+    "embodiment": "floating_xhand",
+    "command_format": "wrist_xyz_wxyz_hand12_twist6",
+    "actual_end_frame": 122.99999999999999,
+    "controller_handoff": {
+      "initial_wrench_bias": [
+        -6.237503504585463,
+        -1.7674182338953628,
+        6.036588040778424,
+        0.6977954539421554,
+        0.08677993656162905,
+        0.26117225314833964
+      ],
+      "extra_time_s": 0.0,
+      "profile": "measured_mass_inertia_gain_response"
+    },
+    "core_entry_source_boundary": {
+      "source_frame": 105,
+      "position_m": 0.036585298067982455,
+      "rotation_rad": 0.333009599468278,
+      "accepted": true
+    },
+    "bridge_exit_velocity_ratio": 1.3718818138460283
+  },
+  "refinement_failure": "Floating Replay/MPPI/PPO failed at source frame 105.0",
+  "local_replay": {
+    "success": false,
+    "failure": {
+      "source_frame": 108.0,
+      "reason": "core_object_fidelity"
+    },
+    "failures": [
+      {
+        "source_frame": 108.0,
+        "reason": "core_object_fidelity"
+      }
+    ],
+    "rollout_complete": false,
+    "padded_rollout_complete": false,
+    "core_rollout_complete": false,
+    "rollout_interval": [
+      105,
+      129
+    ],
+    "tracking_failures_collected": false,
+    "core_entry_acquired": true,
+    "core_exit_acquired": false,
+    "state_resets_within_rollout": 0,
+    "source_fps": 30.0,
+    "control_dt": 0.008333333333333333,
+    "tracking_parameters": {
+      "C": 1.0,
+      "lambda_p": 399.99999999999994,
+      "lambda_R": 3.6475626111241604,
+      "position_tolerance_m": 0.05,
+      "rotation_tolerance_rad": 0.5235987755982988,
+      "acceptance": "independent_position_and_rotation_limits"
+    },
+    "embodiment": "floating_xhand",
+    "command_format": "wrist_xyz_wxyz_hand12_twist6",
+    "actual_end_frame": 108.0,
+    "controller_handoff": {
+      "initial_wrench_bias": [
+        -3.632126947608151,
+        -4.577504202481611,
+        6.837120942072694,
+        0.529235729221349,
+        0.0657556976644477,
+        0.41835469327896985
+      ],
+      "extra_time_s": 0.0,
+      "profile": "measured_mass_inertia_gain_response"
+    },
+    "core_entry_source_boundary": {
+      "source_frame": 105,
+      "position_m": 0.036585298067982455,
+      "rotation_rad": 0.333009599468278,
+      "accepted": true
+    }
+  },
+  "status": "failed",
+  "error": "Reached-entry local interaction failed"
+}

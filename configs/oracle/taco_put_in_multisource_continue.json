@@ -1,0 +1,24 @@
+[
+  {
+    "sequence": "20231024_243",
+    "triplet": "(put in, bowl, plate)",
+    "schedule": "configs/oracle/taco_put_in_20231024_243.json",
+    "seed_artifacts": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_e2e_multisource_r164_20231024_243/candidate_00/anchors",
+    "initial_bridge_run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_e2e_multisource_r164_20231024_243/candidate_00",
+    "template_artifacts": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_e2e_r140_20231024_248/local_anchor_0_00/anchors",
+    "template_proposals": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_e2e_r140_20231024_248/proposals",
+    "solutions_per_interval": 3,
+    "resume_diversity_bank": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_e2e_multisource_r164_20231024_243/diversity/bank_00"
+  },
+  {
+    "sequence": "20231024_248",
+    "triplet": "(put in, bowl, plate)",
+    "schedule": "configs/oracle/taco_put_in_20231024_248.json",
+    "seed_artifacts": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_e2e_multisource_r164_20231024_248/candidate_00/anchors",
+    "initial_bridge_run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_e2e_multisource_r164_20231024_248/candidate_00",
+    "template_artifacts": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_e2e_r140_20231024_248/local_anchor_0_00/anchors",
+    "template_proposals": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_e2e_r140_20231024_248/proposals",
+    "solutions_per_interval": 3,
+    "resume_diversity_bank": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_e2e_multisource_r164_20231024_248/diversity/bank_00"
+  }
+]

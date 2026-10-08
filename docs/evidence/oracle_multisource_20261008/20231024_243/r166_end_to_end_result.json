@@ -1,0 +1,83 @@
+{
+  "status": "failed",
+  "success": false,
+  "triplet": "(put in, bowl, plate)",
+  "sequence": "20231024_243",
+  "source": "oracle",
+  "vlm_used": false,
+  "source_duration_s": 4.3,
+  "full_robot_reference_required": false,
+  "seed_artifacts": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_e2e_multisource_r165_20231024_243/candidate_00/anchors",
+  "interaction_template": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_e2e_r140_20231024_248/local_anchor_0_00/anchors",
+  "initial_bridge_cache": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_e2e_multisource_r165_20231024_243/candidate_00",
+  "template_source_data": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_e2e_r140_20231024_248/proposals",
+  "solutions_per_interval": 3,
+  "steps": [
+    {
+      "name": "prepare",
+      "log": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_e2e_multisource_r166_20231024_243/prepare.log",
+      "status": "finished",
+      "result_path": null,
+      "returncode": 0,
+      "elapsed_s": 11.01966618746519,
+      "success": true
+    },
+    {
+      "name": "candidate_00",
+      "log": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_e2e_multisource_r166_20231024_243/candidate_00.log",
+      "status": "finished",
+      "result_path": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_e2e_multisource_r166_20231024_243/candidate_00/pipeline_result.json",
+      "returncode": 0,
+      "elapsed_s": 105.10938498564065,
+      "success": true
+    },
+    {
+      "name": "export",
+      "log": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_e2e_multisource_r166_20231024_243/export.log",
+      "status": "finished",
+      "result_path": null,
+      "returncode": 0,
+      "elapsed_s": 0.9642354790121317,
+      "success": true
+    },
+    {
+      "name": "final",
+      "log": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_e2e_multisource_r166_20231024_243/final.log",
+      "status": "finished",
+      "result_path": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_e2e_multisource_r166_20231024_243/final/pipeline_result.json",
+      "returncode": 0,
+      "elapsed_s": 45.38170974701643,
+      "success": true
+    },
+    {
+      "name": "diversity",
+      "log": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_e2e_multisource_r166_20231024_243/diversity.log",
+      "status": "finished",
+      "result_path": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_e2e_multisource_r166_20231024_243/diversity/diversity_result.json",
+      "returncode": 1,
+      "elapsed_s": 221.77489269524813,
+      "success": false
+    }
+  ],
+  "repairs": [],
+  "started_at": "2026-10-08T10:58:18+0800",
+  "elapsed_s": 384.4158411156386,
+  "v0_success": true,
+  "candidate_run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_e2e_multisource_r166_20231024_243/candidate_00",
+  "final_run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_e2e_multisource_r166_20231024_243/final",
+  "actual_duration_s": 4.3,
+  "state_resets_between_segments": 0,
+  "task": {
+    "success": true,
+    "final_errors": {
+      "position_m": 0.0062208457249197605,
+      "rotation_rad": 0.0648917070318897
+    },
+    "final_speed_m_s": 0.00035622203192334326,
+    "released": true
+  },
+  "video_ready_for_render": true,
+  "complete_rollout_count": 2,
+  "diversity_run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_e2e_multisource_r166_20231024_243/diversity",
+  "error": "Diversity failed: Continuous solution 2 failed: RuntimeError: Actual segment handoff failed"
+}

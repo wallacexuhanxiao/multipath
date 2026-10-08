@@ -1,0 +1,13 @@
+{
+  "source_frame": 123,
+  "table_z_m": 0.34379983872611686,
+  "source": "recorded actual PhysX mesh transforms; planning triangle geometry",
+  "intersections": [
+    {
+      "mesh": "/xhand_right/right_hand_pinky_link1/visuals/right_hand_pinky_link1/node_STL_BINARY_/mesh",
+      "minimum_surface_z_m": 0.34295105934143066,
+      "depth_below_table_m": 0.0008487701416015625
+    }
+  ],
+  "collision_gate_removed": false
+}

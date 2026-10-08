@@ -1,0 +1,58 @@
+{
+  "status": "failed",
+  "success": false,
+  "triplet": "(put in, bowl, plate)",
+  "sequence": "20231024_253",
+  "source": "oracle",
+  "vlm_used": false,
+  "source_duration_s": 4.8,
+  "full_robot_reference_required": false,
+  "seed_artifacts": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_connected_r110/full/anchors",
+  "interaction_template": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_e2e_r140_20231024_248/local_anchor_0_00/anchors",
+  "initial_bridge_cache": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_connected_r110/full",
+  "template_source_data": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_e2e_r140_20231024_248/proposals",
+  "solutions_per_interval": 3,
+  "steps": [
+    {
+      "name": "prepare",
+      "log": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_e2e_multisource_r166_20231024_253/prepare.log",
+      "status": "finished",
+      "result_path": null,
+      "returncode": 0,
+      "elapsed_s": 11.0380541626364,
+      "success": true
+    },
+    {
+      "name": "candidate_00",
+      "log": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_e2e_multisource_r166_20231024_253/candidate_00.log",
+      "status": "finished",
+      "result_path": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_e2e_multisource_r166_20231024_253/candidate_00/pipeline_result.json",
+      "returncode": 0,
+      "elapsed_s": 121.10137623362243,
+      "success": false
+    },
+    {
+      "name": "local_anchor_0_00",
+      "log": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_e2e_multisource_r166_20231024_253/local_anchor_0_00.log",
+      "status": "finished",
+      "result_path": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_e2e_multisource_r166_20231024_253/local_anchor_0_00/development_result.json",
+      "returncode": 0,
+      "elapsed_s": 344.6486923918128,
+      "success": false
+    }
+  ],
+  "repairs": [
+    {
+      "attempt": 0,
+      "window": [
+        35,
+        76
+      ],
+      "error": "RuntimeError: {'source_frame': 53.0, 'reason': 'core_object_fidelity'}",
+      "physical_run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_e2e_multisource_r166_20231024_253/candidate_00"
+    }
+  ],
+  "started_at": "2026-10-08T10:58:18+0800",
+  "elapsed_s": 476.9252396300435,
+  "error": "Local anchor_0 failed: Reached-entry local interaction failed"
+}

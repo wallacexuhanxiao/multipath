@@ -72,7 +72,8 @@ class WindowEvaluation:
     """Appendix C tracking score with project core/contact boundary checks.
 
     Padding has no reference-fidelity gate. Auxiliary contact reward is
-    optimization-only; evaluation uses object tracking alone.
+    optimization-only; evaluation uses object tracking alone. A final release
+    may also check its existing task contract at the end of post-context.
     """
     def __init__(self, scene, anchor, data, start, *, continue_tracking_failures=False):
         self.scene, self.anchor, self.data = scene, anchor, data
@@ -161,11 +162,33 @@ class WindowEvaluation:
                     if min(clearance.values())<0:
                         if reason is None:reason='core_exit_carried_object_collision'
                         reward-=2*max(0.,-min(clearance.values()))/.025
+                else:
+                    from multipath.planning.bridge import hand_table_clearance
+                    clearance=hand_table_clearance(self.scene)
+                    self.scene.last_bridge_exit_hand_clearance=clearance
+                    if not clearance['collision_free']:
+                        if reason is None:reason='core_exit_hand_table_collision'
+                        reward-=2*max(0.,-clearance['clearance_m'])/.025
             self.held = np.asarray(measured['hand_object_transform']) if a.exit_contact == 'grasped' else None
         if frame > a.core_end and self.held is not None:
             r = retention_errors(measured, self.held)
             if r['position_m'] > .05 or r['rotation_rad'] > .35 or not r['contact_retained']:
                 reason = 'post_context_grasp_retention'
+        contract=getattr(self.scene,'terminal_task_contract',None)
+        if contract and frame==a.synth_end and a.synth_end==self.scene.manifest['num_frames'] and a.exit_contact=='free':
+            # The final release may satisfy CORE's interaction tolerance but
+            # miss the task's actual settled-object condition. Use the existing
+            # final task contract inside its original post-context budget.
+            from multipath.execution.mounted_scene import pose_matrix
+            error=core_pose_errors(measured,pose_matrix(self.scene.manifest['final_objects']['tool']))
+            speed=float(np.linalg.norm(measured['objects']['tool']['velocity'][:3]))
+            task_reward=1.-float(np.hypot(error['position_m']/contract['position_tolerance_m'],
+                                        error['rotation_rad']/contract['rotation_tolerance_rad']))
+            reward+=task_reward;tracking_reward+=task_reward
+            if (error['position_m']>=contract['position_tolerance_m'] or
+                error['rotation_rad']>=contract['rotation_tolerance_rad'] or
+                speed>=contract['stable_speed_m_s'] or measured['contact']['mode']!='free'):
+                reason='terminal_task_state'
         # Padding has no human-trajectory fidelity objective, but preserving a
         # required physical grasp still needs a learning signal. Zero returns
         # for all early retention failures made the local PPO fallback blind.

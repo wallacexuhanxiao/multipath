@@ -1,0 +1,203 @@
+{
+  "sequence": "20231024_243",
+  "run": "oracle_diversity_r170_20231024_243",
+  "complete_solutions": 3,
+  "success": true,
+  "source_duration_s": 4.3,
+  "solutions": [
+    {
+      "index": 0,
+      "task": {
+        "success": true,
+        "final_errors": {
+          "position_m": 0.0062208457249197605,
+          "rotation_rad": 0.0648917070318897
+        },
+        "final_speed_m_s": 0.00035622203192334326,
+        "released": true
+      },
+      "duration_s": 4.3,
+      "resets": 0,
+      "intervals": [
+        {
+          "window": [
+            0,
+            23
+          ],
+          "budget_s": 0.7666666666666666,
+          "contact": "free",
+          "finger_drive_change_rad": 0.0,
+          "max_distances_mm": []
+        },
+        {
+          "window": [
+            61,
+            70
+          ],
+          "budget_s": 0.3,
+          "contact": "grasped",
+          "finger_drive_change_rad": 0.0,
+          "max_distances_mm": []
+        },
+        {
+          "window": [
+            97,
+            105
+          ],
+          "budget_s": 0.26666666666666666,
+          "contact": "grasped",
+          "finger_drive_change_rad": 0.0,
+          "max_distances_mm": []
+        },
+        {
+          "window": [
+            123,
+            129
+          ],
+          "budget_s": 0.2,
+          "contact": "free",
+          "finger_drive_change_rad": 0.0,
+          "max_distances_mm": []
+        }
+      ]
+    },
+    {
+      "index": 1,
+      "task": {
+        "success": true,
+        "final_errors": {
+          "position_m": 0.005296897928066404,
+          "rotation_rad": 0.11587399317229835
+        },
+        "final_speed_m_s": 8.468974841958639e-06,
+        "released": true
+      },
+      "duration_s": 4.3,
+      "resets": 0,
+      "intervals": [
+        {
+          "window": [
+            0,
+            23
+          ],
+          "budget_s": 0.7666666666666666,
+          "contact": "free",
+          "finger_drive_change_rad": 0.0,
+          "max_distances_mm": [
+            99.3152485114906
+          ]
+        },
+        {
+          "window": [
+            61,
+            70
+          ],
+          "budget_s": 0.3,
+          "contact": "grasped",
+          "finger_drive_change_rad": 0.0,
+          "max_distances_mm": [
+            33.157852964789434
+          ]
+        },
+        {
+          "window": [
+            97,
+            105
+          ],
+          "budget_s": 0.26666666666666666,
+          "contact": "grasped",
+          "finger_drive_change_rad": 0.0,
+          "max_distances_mm": [
+            14.351631166643589
+          ]
+        },
+        {
+          "window": [
+            123,
+            129
+          ],
+          "budget_s": 0.2,
+          "contact": "free",
+          "finger_drive_change_rad": 0.0,
+          "max_distances_mm": [
+            4.655354714855952
+          ]
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "task": {
+        "success": true,
+        "final_errors": {
+          "position_m": 0.013474004168013271,
+          "rotation_rad": 0.33593264845003795
+        },
+        "final_speed_m_s": 0.024377758705194322,
+        "released": true
+      },
+      "duration_s": 4.3,
+      "resets": 0,
+      "intervals": [
+        {
+          "window": [
+            0,
+            23
+          ],
+          "budget_s": 0.7666666666666666,
+          "contact": "free",
+          "finger_drive_change_rad": 0.0,
+          "max_distances_mm": [
+            78.97678789557752,
+            92.47304600585889
+          ]
+        },
+        {
+          "window": [
+            61,
+            70
+          ],
+          "budget_s": 0.3,
+          "contact": "grasped",
+          "finger_drive_change_rad": 0.0,
+          "max_distances_mm": [
+            17.85611170806832,
+            26.634896207041294
+          ]
+        },
+        {
+          "window": [
+            97,
+            105
+          ],
+          "budget_s": 0.26666666666666666,
+          "contact": "grasped",
+          "finger_drive_change_rad": 0.0,
+          "max_distances_mm": [
+            17.143387859805706,
+            4.719749912865535
+          ]
+        },
+        {
+          "window": [
+            123,
+            129
+          ],
+          "budget_s": 0.2,
+          "contact": "free",
+          "finger_drive_change_rad": 0.0,
+          "max_distances_mm": [
+            33.04880459895027,
+            33.84480744556964
+          ]
+        }
+      ]
+    }
+  ],
+  "video": {
+    "fps": 30.0,
+    "frames": 129,
+    "decoded_frames": 129,
+    "duration_s": 4.3
+  }
+}

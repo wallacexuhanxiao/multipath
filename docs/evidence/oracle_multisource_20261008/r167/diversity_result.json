@@ -1,0 +1,225 @@
+{
+  "success": false,
+  "status": "failed",
+  "source_provenance": {
+    "triplet": "(put in, bowl, plate)",
+    "sequence": "20231024_243",
+    "input": "raw TACO MANO and object poses",
+    "source_video": "/scratch/e0985859/egoengine_baseline/data/taco_v1/Egocentric_RGB_Videos/(put in, bowl, plate)/20231024_243/color.mp4",
+    "schedule_sha256": "5b22609b9a2e2d96d06b2f814a2e8a8487dc8c0d34e361f40fbc0234a106076f",
+    "full_robot_reference_used": false,
+    "vlm_used": false,
+    "transform_world_to_robot": [
+      [
+        -0.2810599251746801,
+        0.9596902281825671,
+        0.0,
+        0.5879876838264226
+      ],
+      [
+        -0.9596902206929987,
+        -0.28105992298124566,
+        -0.0,
+        0.022208397868123134
+      ],
+      [
+        0.0,
+        0.0,
+        1.0,
+        -0.20252405643463134
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ]
+  },
+  "v0_run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_e2e_multisource_r166_20231024_243",
+  "baseline_run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_e2e_multisource_r166_20231024_243/final",
+  "source_duration_s": 4.3,
+  "solutions_per_interval": 3,
+  "intervals_share_exclusions": false,
+  "full_runs": [
+    {
+      "index": 0,
+      "run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_e2e_multisource_r166_20231024_243/final",
+      "full_pipeline_success": true
+    },
+    {
+      "index": 1,
+      "run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_e2e_multisource_r166_20231024_243/diversity/full_solution_1_attempt_0",
+      "full_pipeline_success": true,
+      "actual_duration_s": 4.3,
+      "state_resets_between_segments": 0,
+      "task": {
+        "success": true,
+        "final_errors": {
+          "position_m": 0.005296897928066404,
+          "rotation_rad": 0.11587399317229835
+        },
+        "final_speed_m_s": 8.468974841958639e-06,
+        "released": true
+      },
+      "intervals": [
+        {
+          "window": [
+            0,
+            23
+          ],
+          "diversity": {
+            "actual_wrist_min_exclusion_clearance_m": 0.008934055660062857,
+            "actual_wrist_exclusion_pass": true,
+            "minimum_arc_distance_m": 0.0,
+            "actual_arc_pass": true,
+            "path_length_m": 0.3059737376322553,
+            "endpoint_distance_m": 0.14628911977107442,
+            "arc_reference_length_m": 0.14628911977107442,
+            "arc_length_ratio": 2.0915686560358617,
+            "backward_progress_fraction": 0.05069397763451011,
+            "endpoint_overshoot_fraction": 2.220446049250313e-16,
+            "smooth_arc_pass": true,
+            "comparisons": [
+              {
+                "source_run": "baseline",
+                "mean_nearest_path_distance_m": 0.04510276710678899,
+                "max_nearest_path_distance_m": 0.0993152485114906,
+                "middle_median_path_distance_m": 0.0702675527822606,
+                "symmetric_hausdorff_m": 0.0993152485114906
+              }
+            ]
+          }
+        },
+        {
+          "window": [
+            61,
+            70
+          ],
+          "diversity": {
+            "actual_wrist_min_exclusion_clearance_m": 0.007829767114728466,
+            "actual_wrist_exclusion_pass": true,
+            "minimum_arc_distance_m": 0.0,
+            "actual_arc_pass": true,
+            "path_length_m": 0.15476256484737497,
+            "endpoint_distance_m": 0.14098991680032708,
+            "arc_reference_length_m": 0.14407500324440836,
+            "arc_length_ratio": 1.074180540428906,
+            "backward_progress_fraction": 0.0,
+            "endpoint_overshoot_fraction": 2.220446049250313e-16,
+            "smooth_arc_pass": true,
+            "comparisons": [
+              {
+                "source_run": "baseline",
+                "mean_nearest_path_distance_m": 0.016380642586917224,
+                "max_nearest_path_distance_m": 0.03315785296478944,
+                "middle_median_path_distance_m": 0.024679902397906028,
+                "symmetric_hausdorff_m": 0.03315785296478944
+              }
+            ]
+          }
+        },
+        {
+          "window": [
+            97,
+            105
+          ],
+          "diversity": {
+            "actual_wrist_min_exclusion_clearance_m": 0.0023968035009609588,
+            "actual_wrist_exclusion_pass": true,
+            "minimum_arc_distance_m": 0.0,
+            "actual_arc_pass": true,
+            "path_length_m": 0.15282718926904498,
+            "endpoint_distance_m": 0.14555794160638194,
+            "arc_reference_length_m": 0.14705796271498517,
+            "arc_length_ratio": 1.0392309702075855,
+            "backward_progress_fraction": 0.0,
+            "endpoint_overshoot_fraction": 2.220446049250313e-16,
+            "smooth_arc_pass": true,
+            "comparisons": [
+              {
+                "source_run": "baseline",
+                "mean_nearest_path_distance_m": 0.007961097427538515,
+                "max_nearest_path_distance_m": 0.01435163116664359,
+                "middle_median_path_distance_m": 0.012139764767236605,
+                "symmetric_hausdorff_m": 0.01435163116664359
+              }
+            ]
+          }
+        },
+        {
+          "window": [
+            123,
+            129
+          ],
+          "diversity": {
+            "actual_wrist_min_exclusion_clearance_m": 0.0030898112212755873,
+            "actual_wrist_exclusion_pass": true,
+            "minimum_arc_distance_m": 0.0,
+            "actual_arc_pass": true,
+            "path_length_m": 0.05061007322439829,
+            "endpoint_distance_m": 0.039207856951910425,
+            "arc_reference_length_m": 0.039207856951910425,
+            "arc_length_ratio": 1.290814575417193,
+            "backward_progress_fraction": 0.12443881758378794,
+            "endpoint_overshoot_fraction": 0.12443881758378783,
+            "smooth_arc_pass": true,
+            "comparisons": [
+              {
+                "source_run": "baseline",
+                "mean_nearest_path_distance_m": 0.003943186155440591,
+                "max_nearest_path_distance_m": 0.004655354714855952,
+                "middle_median_path_distance_m": 0.004002594858855517,
+                "symmetric_hausdorff_m": 0.004655354714855952
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "steps": [
+    {
+      "name": "bank_00",
+      "status": "finished",
+      "returncode": 0,
+      "elapsed_s": 89.90864439308643,
+      "success": true,
+      "result": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r167_20231024_243/bank_00/bridge_bank.json"
+    },
+    {
+      "name": "anchor_feedback_2",
+      "status": "finished",
+      "returncode": 0,
+      "elapsed_s": 112.69337565288879,
+      "success": true,
+      "result": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r167_20231024_243/anchor_feedback_2/development_result.json"
+    },
+    {
+      "name": "full_solution_2_attempt_0",
+      "status": "finished",
+      "returncode": 0,
+      "elapsed_s": 88.49545695795678,
+      "success": false,
+      "result": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r167_20231024_243/full_solution_2_attempt_0/pipeline_result.json"
+    },
+    {
+      "name": "bank_solution_2_repair_0",
+      "status": "finished",
+      "returncode": 0,
+      "elapsed_s": 72.25722886808217,
+      "success": false,
+      "result": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r167_20231024_243/bank_solution_2_repair_0/bridge_bank.json"
+    }
+  ],
+  "resumed_from": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_e2e_multisource_r166_20231024_243/diversity",
+  "elapsed_s": 363.5701888280455,
+  "physical_anchor_repairs": [
+    {
+      "anchor": "anchor_2",
+      "entry_run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_e2e_multisource_r166_20231024_243/diversity/full_solution_2_attempt_0",
+      "artifact": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r167_20231024_243/anchor_feedback_2/combined_anchors"
+    }
+  ],
+  "error": "Observed bridge repair exhausted its search budget for this solution"
+}

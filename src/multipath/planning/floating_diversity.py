@@ -39,14 +39,22 @@ def interval_exclusions(paths, window, budget_s, limits, multiplier=1.,free_budg
     # radius scales with the interval rather than a sample's frame indices.
     def protect(points):
         points=np.asarray(points);chord=points[-1]-points[0]
-        radius=np.full(2,max(.008,.25*np.linalg.norm(chord)))
+        length=float(np.linalg.norm(np.diff(points,axis=0),axis=1).sum())
+        floor=max(4*clearance,min(.008,.45*length))
+        radius=np.full(2,max(floor,.25*np.linalg.norm(chord)))
         if boundary_velocity is not None:
             residual=np.asarray(boundary_velocity)-chord/budget_s
             turnaround=np.linalg.norm(residual**2/(2*np.asarray(limits['acceleration_limits'][:3])),axis=1)
             radius=np.maximum(radius,turnaround)
+        # A shared boundary neighborhood must leave an interior to exclude.
+        # Short braking paths otherwise lie wholly inside the old fixed floor
+        # or a conservative turnaround sphere. Dynamics remain hard in fitting.
+        gap=np.minimum(np.linalg.norm(points-points[0],axis=1),
+                       np.linalg.norm(points-points[-1],axis=1)).max()
+        radius=np.minimum(radius,max(clearance,.9*gap))
         return np.c_[points[[0,-1]],radius]
-    protection=protect(movable_prefix(paths[0]['points']))
     for i,path in enumerate(paths):
+        protection=protect(movable_prefix(path['points']))
         generated,stats=tapered_obstacles_along_path(
             movable_prefix(path['points']),peak,boundary_spheres=protection,
             clearance=clearance,oriented=True)
@@ -76,7 +84,7 @@ def interval_exclusions(paths, window, budget_s, limits, multiplier=1.,free_budg
                 requested_peak_half_size_m=peak,size_multiplier=multiplier,
                 size_profile='small_large_small',intervals_share_exclusions=False,
                 boundary_velocity=None if boundary_velocity is None else np.asarray(boundary_velocity).tolist(),
-                boundary_protection_method='source_time_velocity_turnaround_envelope')
+                boundary_protection_method='path_extent_capped_source_time_velocity_turnaround_envelope')
 
 
 def actual_feasible_exclusions(exclusions,points,budget_s,limits):
@@ -242,7 +250,7 @@ def dynamic_detour_seed(baseline,dt,limits,dq0,dq1,exclusions,index):
                        method='source_time_reachability_seed'),progress
 
 
-def exclusion_fitted_path(raw,ticks,dt,limits,dq0,dq1,exclusions,direction,fixed_positions=None,desired=None,face_mode='seed',regularize=False):
+def exclusion_fitted_path(raw,ticks,dt,limits,dq0,dq1,exclusions,direction,fixed_positions=None,desired=None,face_mode='seed',regularize=False,refit_rotation_history=False):
     """Keep fixed-time fitting outside the chosen side of virtual obstacles.
 
     An unconstrained fit can erase a geometric detour to meet acceleration
@@ -293,6 +301,21 @@ def exclusion_fitted_path(raw,ticks,dt,limits,dq0,dq1,exclusions,direction,fixed
     initial=linprog(objective,A_ub=matrix,b_ub=rhs,
                    bounds=bounds,method='highs',
                    options={'primal_feasibility_tolerance':1e-9,'dual_feasibility_tolerance':1e-9})
+    rotation_refitted=False
+    if not initial.success and refit_rotation_history and fixed_positions is not None:
+        # A free approach's old angular drive history can be unreachable from
+        # its measured entry. Keep translation/finger history and both angular
+        # boundary velocities, but fit interior orientation in the same clock.
+        # The following interaction still has to physically execute successfully.
+        for j in range(3,dof):
+            for k in np.flatnonzero(np.isfinite(fixed_positions[:,j])):
+                bounds[j*n+k]=(None,None)
+            for k,value in [(0,raw[0,j]),(1,raw[0,j]+dq0[j]*dt),
+                            (n-2,raw[-1,j]-dq1[j]*dt),(n-1,raw[-1,j])]:
+                bounds[j*n+k]=(value,value)
+        initial=linprog(objective,A_ub=matrix,b_ub=rhs,bounds=bounds,method='highs',
+            options={'primal_feasibility_tolerance':1e-9,'dual_feasibility_tolerance':1e-9})
+        rotation_refitted=bool(initial.success)
     if not initial.success:raise RuntimeError('No source-time fit preserving controller boundary history')
     path=initial.x[:size].reshape(dof,n).T
     separated=set();planes=[];offsets=[]
@@ -349,6 +372,7 @@ def exclusion_fitted_path(raw,ticks,dt,limits,dq0,dq1,exclusions,direction,fixed
                 timing['exclusion_bounds_enforced']=True
                 timing['trajectory_cost']='normalized_acceleration_change_and_geometry_L1' if regularize else 'geometry_L1'
                 timing['separation_face_mode']=face_mode
+                timing['controller_history_rotation_refitted']=rotation_refitted
                 return path,timing
             raise RuntimeError('Fixed-time interpolated path still crosses a virtual exclusion')
         result=linprog(objective,
@@ -416,10 +440,10 @@ def plan_detour(planner,start,goal_command,ticks,exclusions,goal_state,seed_inde
         result=planner.planner.plan_single_js(planner.js(current),planner.js(target),
                     MotionGenPlanConfig(enable_graph=True,enable_opt=False,max_attempts=1))
         if not bool(result.success.item()):raise RuntimeError(f'cuRobo detour subplan: {result.status}')
-        piece=result.get_interpolated_plan().position.detach().cpu().numpy().reshape(-1,6).copy()
+        piece=result.get_interpolated_plan().position.detach().cpu().numpy().reshape(-1,6).astype(float)
         piece[0]=current;piece[-1]=target
         pieces.append(piece if not pieces else piece[1:]);current=target
-    raw=np.concatenate(pieces);rejected=[];desired=None
+    raw=np.concatenate(pieces);raw[0]=q0;raw[-1]=q1;rejected=[];desired=None
     if baseline_commands is not None:
         # cuRobo supplies geometry; the successful robot drive supplies source
         # time progress. Graph sample counts are not a time parameterization.
@@ -446,19 +470,40 @@ def plan_detour(planner,start,goal_command,ticks,exclusions,goal_state,seed_inde
                 'sources':[{**s,'wrist_path_xyz':s['command_wrist_path_xyz']} for s in moving['sources']]}
             variants.append(('moving_boundary',moving,moving_plan))
     except ValueError:pass
+    # Search smaller nonempty envelopes when a short source interval has no
+    # room for the initial proposal. Every incumbent actual curve must still
+    # be excluded; shrinking is recorded and never changes physical limits.
+    for reduction in (.5,.25,.125,.0625,.03125,.015625):
+        try:
+            smaller=interval_exclusions(prior_paths,exclusions['window'],ticks*dt,limits,
+                exclusions['size_multiplier']*reduction,exclusions.get('free_diversity_budget_s',ticks*dt),
+                np.array([start['wrist_twist'][:3],goal_command[19:22]]))
+        except ValueError:continue
+        if any(compare_path(p['points'],smaller)['actual_wrist_exclusion_pass'] for p in prior_paths):continue
+        smaller.update(arc_reference_length_m=exclusions['arc_reference_length_m'],
+            arc_reference_method=exclusions['arc_reference_method'],planning_feedback_sizing=True,
+            proposal_peak_half_size_m=exclusions['requested_peak_half_size_m'],size_reduction=reduction,
+            previous_paths_remain_excluded=True,physical_constraints_changed=False)
+        smaller_plan={**smaller,'cuboid':smaller['planning_cuboid'],
+            'sources':[{**s,'wrist_path_xyz':s['command_wrist_path_xyz']} for s in smaller['sources']]}
+        variants.append((f'size_{reduction}',smaller,smaller_plan))
     fits=[]
     for variant,actual_exclusion,plan_exclusion in variants:
         for mode in ['seed','direction']:
             fits.append((variant+'_'+mode,actual_exclusion,plan_exclusion,
                 lambda e=plan_exclusion,m=mode:exclusion_fitted_path(raw,ticks,dt,limits,dq0,dq1,
-                    e,seed['direction'],fixed,desired,m,regularize)))
+                    e,seed['direction'],fixed,desired,m,regularize,
+                    refit_rotation_history=bool(has_next_anchor and not planner.carry))))
     fits.append(('fixed_budget',exclusions,planning_exclusions,
         lambda:fixed_budget_path(raw,dt,ticks,dt,np.asarray(limits['velocity_limits']),
                                 np.asarray(limits['acceleration_limits']),dq0,dq1)))
     for name,actual_exclusion,plan_exclusion,fit in fits:
         try:
             path,timing=fit();metrics=compare_path(path[:,:3],plan_exclusion)
-            if fixed is not None and np.isfinite(fixed).any() and np.max(np.abs((path-fixed)[np.isfinite(fixed)]))>1e-8:
+            constrained=np.isfinite(fixed) if fixed is not None else None
+            if constrained is not None and timing.get('controller_history_rotation_refitted'):
+                constrained[:,3:]=False
+            if constrained is not None and constrained.any() and np.max(np.abs((path-fixed)[constrained]))>1e-8:
                 raise RuntimeError('Time fitting changed fixed controller boundary history')
             if not metrics['actual_wrist_exclusion_pass']:
                 raise RuntimeError('Source-time fit crosses an excluded wrist path')
