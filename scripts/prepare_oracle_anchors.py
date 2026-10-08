@@ -15,6 +15,7 @@ def main():
     p.add_argument('--sequence',required=True)
     p.add_argument('--mount-report',type=Path,required=True)
     p.add_argument('--output-dir',type=Path,required=True)
+    p.add_argument('--object-cache',type=Path,help='Optional existing meshes for local object-aware grasp retargeting.')
     args=p.parse_args()
     from egoengine.taco import load_sequence, mano_forward, compute_pseudo_base
     from egoengine.taco.loader import HandData
@@ -40,7 +41,12 @@ def main():
             return np.r_[t[:3,3],Rotation.from_matrix(t[:3,:3]).as_quat()[[3,0,1,2]]].tolist()
         initial[role]={'id':obj.object_id,'pose':pose(0)}
         final[role]=pose(seq.n_frames-1)
-    paths={}
+    paths={};retarget_details={};table_z=None
+    if args.object_cache:
+        import trimesh
+        table_z=min(((transform@obj.poses[0])[:3,:3]@
+            trimesh.load(args.object_cache/obj.object_id/(obj.object_id+'_m.obj'),force='mesh').vertices.T).T[:,2].min()
+            +(transform@obj.poses[0])[2,3] for obj in seq.objects.values())-.001
     for anchor in schedule.anchors.values():
         s,e=anchor.synth_start,anchor.synth_end
         local=HandData(side='right',pose=hand.pose[s:e],trans=hand.trans[s:e],betas=hand.betas,frame_ids=hand.frame_ids[s:e])
@@ -48,12 +54,24 @@ def main():
         joints=joints@transform[:3,:3].T+transform[:3,3]
         result=HandRetargeter('right',calibration[0]).retarget(joints)
         arrays={'source_frames':np.arange(s,e),'wrist_hand_q':result.qpos,'human_joints':joints}
+        arrays['raw_wrist_hand_q']=np.array(result.qpos,copy=True)
         for role,obj in seq.objects.items():arrays[role+'_pose']=transform[None]@obj.poses[s:e]
+        if args.object_cache:
+            import trimesh
+            from egoengine.retarget.ik import SIM_URDF
+            from multipath.anchors.grasp_retarget import surface_grasp_prior
+            oid=initial['tool']['id'];mesh=trimesh.load(args.object_cache/oid/(oid+'_m.obj'),force='mesh')
+            arrays['wrist_hand_q'],detail=surface_grasp_prior(anchor,arrays['source_frames'],arrays['wrist_hand_q'],
+                joints,arrays['tool_pose'],mesh,SIM_URDF['right'],fps=schedule.fps,table_z=table_z,
+                geometry_cache=out/'geometry_cache')
+            if detail:retarget_details[anchor.id]=detail
         path=out/(anchor.id+'.npz');np.savez_compressed(path,**arrays)
         paths[anchor.id]=path.name
         print(anchor.id,s,e,'retargeted',flush=True)
     manifest={'provenance':provenance,'initial_objects':initial,'final_objects':final,
               'anchors':paths,'mount_xyzw':mount['candidate_mount_quaternion_xyzw'],
+              'interaction_constraints':schedule.metadata.get('interaction_constraints',{}),
+              'retarget_details':retarget_details,
               'fps':schedule.fps,'num_frames':schedule.num_frames,
               'physical_validation':False,'kind':'local_kinematic_proposals'}
     (out/'manifest.json').write_text(json.dumps(manifest,indent=2))

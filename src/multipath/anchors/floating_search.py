@@ -8,7 +8,7 @@ from pathlib import Path
 import numpy as np
 from scipy.spatial.transform import Rotation
 from multipath.anchors.mpc import WindowEvaluation,mppi_mean,RefinementRequired
-from multipath.anchors.floating import controls_from_poses,validate_commands,object_relative_command,object_relative_handoff,hand_command_boundary,project_hand_commands,grasp_command_bounds,stopping_context,acquisition_preload
+from multipath.anchors.floating import controls_from_poses,validate_commands,object_relative_command,object_relative_handoff,hand_command_boundary,project_hand_commands,grasp_command_bounds,stopping_context,acquisition_preload,AcquiredGraspProposal
 from multipath.anchors.ppo import MountedResidualEnv,LocalPPOSolver,PPOConfig
 from multipath.planning.timing import physics_ticks_per_frame
 from multipath.validation.physics import object_tracking_parameters
@@ -53,6 +53,8 @@ class FloatingResidualEnv(MountedResidualEnv):
             'entry_provenance':start.get('entry_provenance'),'source_provenance':scene.manifest['provenance'],
             'action':'wrist_xyz_rotvec_and_12_fingers','action_scales':self.action_scales.tolist(),'residual_center':'local_floating_replay',
             'training_scene':'floating_PhysX','residual_velocity_feedforward':'nominal_replay_unchanged','objective':'Appendix weighted object tracking + thumb AND finger contact',
+            'residual_after_grasp':'wrist pose residual retained over acquired-grasp nominal command',
+            'acquisition_residual_velocity':'nominal drive history; pose residuals are not differentiated',
             'tracking_parameters':object_tracking_parameters(),
             'finger_projection':'URDF_limits_slew_and_native_contact_preload',
             'clock_stretched':False,'state_resets_within_episode':0,'domain_randomization':False,'arm_ik_used':False}
@@ -77,6 +79,9 @@ class FloatingResidualEnv(MountedResidualEnv):
             self.metadata['entry_acquisition']='physical_predecessor_execution_each_episode'
         self.k=0;self.commands=[];self.previous_action=np.zeros(18);self.residuals=[];self.physical_prefix=None
         self.contact_run=0;self.preload_bounds=None
+        self.acquisition=(AcquiredGraspProposal(self.scene,self.anchor,self.data)
+            if self.anchor.entry_contact=='free' and self.anchor.exit_contact=='grasped' else None)
+        self.acquisition_nominal_command=np.r_[self.scene.command_pose,self.scene.hand_command,self.scene.command_twist]
         self.objective=WindowEvaluation(self.scene,self.anchor,self.data,self.start,continue_tracking_failures=True);self.failure=None
         self.last_observation=self.observation(self.start)
         return self.last_observation
@@ -112,6 +117,17 @@ class FloatingResidualEnv(MountedResidualEnv):
                 self.wrenches=segment_wrenches(self.scene,self.start,handoff_commands)
             for tick in range(self.k*self.tpf,end):
                 c=candidate[tick];frame=self.anchor.synth_start+(self.begin+tick+1)/self.tpf
+                if self.acquisition is not None and frame<=self.anchor.core_end:
+                    desired=c;nominal=self.baseline[tick].copy();nominal[7:19]=desired[7:19]
+                    c=self.acquisition.command(frame,nominal,previous_command=self.acquisition_nominal_command)
+                    self.acquisition_nominal_command=c.copy()
+                    # Execute pose residuals after the nominal acquisition
+                    # controller, before and after grasp. Its feedforward and
+                    # handoff follow nominal drive history rather than finite
+                    # differences of random policy targets. Zero stays Replay.
+                    c[:3]+=desired[:3]-nominal[:3]
+                    residual_rotation=Rotation.from_quat(desired[[4,5,6,3]])*Rotation.from_quat(nominal[[4,5,6,3]]).inv()
+                    c[3:7]=(residual_rotation*Rotation.from_quat(c[[4,5,6,3]])).as_quat()[[3,0,1,2]]
                 c,self.preload_bounds=acquisition_preload(self.scene,self.anchor,c,self.preload_bounds)
                 if self.controller_handoff:
                     if getattr(self.scene,'post_context_commands',None) is not None and frame>self.anchor.core_end:
@@ -129,6 +145,7 @@ class FloatingResidualEnv(MountedResidualEnv):
         if self.failure is None and not self.objective.tracking_failures and self.k==min(20,self.horizon):
             self.physical_prefix={'state':self.scene.snapshot(),'trace':list(self.scene.records)}
         done=self.failure is not None or self.k==self.horizon
+        if done:self.scene.save()
         obs=self.observation(self.scene.snapshot()) if self.failure is None else np.zeros_like(self.last_observation)
         self.last_observation=obs
         tracking_failure=next(iter(self.objective.tracking_failures),None)
@@ -157,10 +174,20 @@ def refine(scene,anchor,data,baseline,start,out,candidates=64,iterations=3,use_p
         executed_control=np.array(control).copy();held=None;acquired_frame=None;handoff=None;contact_run=0;executed=0;preload_bounds=None
         if object_relative and boundary['contact']['mode']=='grasped':
             held=np.asarray(boundary['hand_object_transform']);preload_bounds=grasp_command_bounds(scene,boundary,anchor)
+        acquisition=(AcquiredGraspProposal(scene,anchor,data)
+            if object_relative and anchor.entry_contact=='free' and anchor.exit_contact=='grasped' else None)
         try:
             for j,c in enumerate(control):
                 frame=anchor.synth_start+(begin+j+1)/tpf
-                if object_relative:
+                if acquisition is not None and frame<=anchor.core_end:
+                    c=acquisition.command(frame,c);held=acquisition.held
+                    acquired_frame=acquisition.acquired_frame;preload_bounds=acquisition.preload_bounds
+                    handoff=acquisition.handoff;contact_run=acquisition.contact_run;executed_control[j]=c
+                    if frame==anchor.core_end and getattr(scene,'freeze_carry_core',False):
+                        control[:j+1]=executed_control[:j+1]
+                        control[j+1:]=project_hand_commands(scene,control,boundary,anchor)[j+1:]
+                        executed_control[j+1:]=control[j+1:]
+                elif object_relative:
                     measured=scene.snapshot()
                     contact_run=contact_run+1 if measured['contact']['mode']=='grasped' else 0
                     # One source frame of consecutive measured opposition is

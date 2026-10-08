@@ -1,0 +1,40 @@
+{
+  "success": false,
+  "elapsed_s": 196.05681440187618,
+  "pbs_job_id": "655730.hopper-m-02",
+  "sources": [
+    {
+      "sequence": "20231024_246",
+      "run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_action_types_r187_20231024_246",
+      "returncode": 1,
+      "success": false,
+      "v0_success": false,
+      "solutions_per_interval": 3,
+      "complete_rollout_count": 0,
+      "diversity_run": null,
+      "error": "Unresolved physical failure at [0, 30]: AttributeError: 'CudaRobotModelState' object has no attribute 'robot_spheres'"
+    },
+    {
+      "sequence": "20231103_057",
+      "run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_action_types_r187_20231103_057",
+      "returncode": 1,
+      "success": false,
+      "v0_success": false,
+      "solutions_per_interval": 3,
+      "complete_rollout_count": 0,
+      "diversity_run": null,
+      "error": "Unresolved physical failure at [0, 20]: AttributeError: 'CudaRobotModelState' object has no attribute 'robot_spheres'"
+    },
+    {
+      "sequence": "20231102_003",
+      "run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_action_types_r187_20231102_003",
+      "returncode": 1,
+      "success": false,
+      "v0_success": false,
+      "solutions_per_interval": 3,
+      "complete_rollout_count": 0,
+      "diversity_run": null,
+      "error": "Unresolved physical failure at [0, 24]: AttributeError: 'CudaRobotModelState' object has no attribute 'robot_spheres'"
+    }
+  ]
+}

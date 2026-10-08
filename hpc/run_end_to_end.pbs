@@ -40,6 +40,7 @@ import json,sys
 with open(sys.argv[1],'w') as stream:json.dump(sys.argv[2:],stream)
 PY
 EXTRA=()
+[[ -z "${MULTIPATH_PREPARED_PROPOSALS:-}" ]] || EXTRA+=(--prepared-proposals "$MULTIPATH_PREPARED_PROPOSALS")
 [[ -z "${MULTIPATH_SEED_ARTIFACTS:-}" ]] || EXTRA+=(--seed-artifacts "$MULTIPATH_SEED_ARTIFACTS")
 [[ -z "${MULTIPATH_INITIAL_BRIDGE_RUN:-}" ]] || EXTRA+=(--initial-bridge-run "$MULTIPATH_INITIAL_BRIDGE_RUN")
 [[ -z "${MULTIPATH_RESUME_DIVERSITY_BANK:-}" ]] || EXTRA+=(--resume-diversity-bank "$MULTIPATH_RESUME_DIVERSITY_BANK")

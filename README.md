@@ -63,6 +63,14 @@ see [the integrated multi-source experiment](docs/MULTISOURCE_PIPELINE_20261008.
 
 Older progress notes below describe the earlier development stages.
 
+Different-action inputs are in `configs/oracle/taco_action_types.json`
+(pour, brush, hit). They use the same E2E entrypoint and default three paths
+per RELAXED interval. These additional action types remain under physical
+validation; see [the action-type report](docs/ACTION_TYPE_PIPELINE_20261008.md).
+Mesh-aware local retargeting requires `pip install -e '.[retarget]'` in the
+retarget environment. Cached local proposals only save CPU preparation;
+every new run still reacquires entries and executes all physical gates.
+
 **Semantic correction (2026-09-30):** direct inspection of the original
 144-frame / 30-fps video shows a held-bowl tilt over the board, return to the
 source location, and only then release. Earlier runs below used an incorrect

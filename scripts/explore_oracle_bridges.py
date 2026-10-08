@@ -127,8 +127,10 @@ def main():
                 else:commands=bridges[w['start']]['commands']
                 carry=w.get('contact')=='grasped'
                 delta=bridges[w['start']]['commands'] if (w['mode']=='RELAXED' and segment and segment.get('delta_dynamics_feedforward')) else None
-                wrench=segment_wrenches(scene,scene.snapshot(),commands,transport=carry,baseline_commands=delta) if (
-                    w['start']>0 or delta is not None) else np.zeros((len(commands),6))
+                free_model=(segment or {}).get('free_motion_dynamics_feedforward',False) if prefix_report else (
+                    w['mode']=='RELAXED' and bridges[w['start']].get('planning',{}).get('free_motion_dynamics_feedforward',False))
+                wrench=segment_wrenches(scene,scene.snapshot(),commands,transport=carry,baseline_commands=delta,free_motion=free_model) if (
+                    w['start']>0 or delta is not None or free_model) else np.zeros((len(commands),6))
                 for j,command in enumerate(commands):
                     scene.wrench_bias=wrench[j]
                     scene.step_control(command,w['mode'],w['start']+(j+1)/scene.tpf)
@@ -310,10 +312,13 @@ def main():
                         check=validate_commands(scene,commands,start)
                         if not check['feasible']:raise RuntimeError(f'Detour command limits: {check}')
                         np.savez_compressed(trial/'commands.npz',commands=commands)
+                        if base_bridge.get('planning',{}).get('free_motion_dynamics_feedforward'):
+                            timing['free_motion_dynamics_feedforward']=True
                         (trial/'planning.json').write_text(json.dumps(timing,indent=2))
                         held=np.asarray(start['hand_object_transform'])
                         wrench=segment_wrenches(scene,start,commands,transport=w['contact']=='grasped',
-                            baseline_commands=base_bridge['commands'] if w['contact']=='free' else None)
+                            baseline_commands=base_bridge['commands'] if w['contact']=='free' else None,
+                            free_motion=base_bridge.get('planning',{}).get('free_motion_dynamics_feedforward',False))
                         actual=[start['wrist_xyz_wxyz'][:3]]
                         needs_reach=True
                         for j,command in enumerate(commands):

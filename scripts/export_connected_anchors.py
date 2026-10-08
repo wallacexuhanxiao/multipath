@@ -50,6 +50,11 @@ def main():
             padding_execution='actual adjacent cuRobo intervals; core proposal used local retarget/context',
             physical_trace=str(root/'actual_trace.json'),context_samples=len(context),
             controller_handoff='measured_mass_inertia_gain_response',core_command_only=True)
+        interaction=schedule.metadata.get('interaction_constraints',{}).get(a.id,{})
+        if interaction.get('tool_target_contact'):
+            count=exit_state.get('interaction_contacts',{}).get('tool_target_contact_steps',0)-entry.get('interaction_contacts',{}).get('tool_target_contact_steps',0)
+            if count<=0:raise ValueError(f'{a.id}: physical tool-target interaction missing')
+            validation['tool_target_contact_steps']=count
         exported.append(save_anchor(root/'anchors',a,entry,exit_state,commands,validation,report['source_provenance']))
     (root/'anchor_export.json').write_text(json.dumps(dict(anchors=exported,padded_contexts_complete=True,
         fresh_artifact_rollout_pending=True),indent=2))

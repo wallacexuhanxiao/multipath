@@ -1,0 +1,94 @@
+{
+  "source": "oracle",
+  "fps": 30.0,
+  "num_frames": 170,
+  "sequence": "20231102_003",
+  "triplet": "(hit, hammer, box)",
+  "instruction": "grasp hammer, strike the box, return and release",
+  "segmentation_provenance": "Manual review of original RGB contact sheets and detailed boundary frames; static input, no automatic discovery or VLM.",
+  "task_contract": {
+    "kind": "anchor_sequence_and_final_object_pose",
+    "position_tolerance_m": 0.05,
+    "rotation_tolerance_rad": 0.35,
+    "stable_speed_m_s": 0.03
+  },
+  "windows": [
+    {
+      "start": 0,
+      "end": 24,
+      "mode": "RELAXED",
+      "contact": "free"
+    },
+    {
+      "start": 24,
+      "end": 42,
+      "mode": "ANCHOR",
+      "anchor": "anchor_0"
+    },
+    {
+      "start": 42,
+      "end": 48,
+      "mode": "RELAXED",
+      "contact": "grasped"
+    },
+    {
+      "start": 48,
+      "end": 99,
+      "mode": "ANCHOR",
+      "anchor": "anchor_1"
+    },
+    {
+      "start": 99,
+      "end": 105,
+      "mode": "RELAXED",
+      "contact": "grasped"
+    },
+    {
+      "start": 105,
+      "end": 119,
+      "mode": "ANCHOR",
+      "anchor": "anchor_2"
+    },
+    {
+      "start": 119,
+      "end": 170,
+      "mode": "RELAXED",
+      "contact": "free"
+    }
+  ],
+  "anchors": [
+    {
+      "id": "anchor_0",
+      "core_start": 24,
+      "core_end": 42,
+      "synth_start": 18,
+      "synth_end": 48,
+      "entry_contact": "free",
+      "exit_contact": "grasped"
+    },
+    {
+      "id": "anchor_1",
+      "core_start": 48,
+      "core_end": 99,
+      "synth_start": 42,
+      "synth_end": 105,
+      "entry_contact": "grasped",
+      "exit_contact": "grasped"
+    },
+    {
+      "id": "anchor_2",
+      "core_start": 105,
+      "core_end": 119,
+      "synth_start": 99,
+      "synth_end": 125,
+      "entry_contact": "grasped",
+      "exit_contact": "free"
+    }
+  ],
+  "interaction_constraints": {
+    "anchor_1": {
+      "tool_target_contact": true
+    }
+  },
+  "semantic_scope": "Right hand only; native hammer-box contact required, no damage model."
+}

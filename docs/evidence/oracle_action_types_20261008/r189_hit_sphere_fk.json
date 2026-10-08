@@ -1,0 +1,7 @@
+{
+  "sphere_count": 18647,
+  "max_position_error_m": 8.456970305876726e-08,
+  "max_radius_error_m": 1.4587532015664095e-09,
+  "forward_sphere_chunk_size": 8192,
+  "full_geometry_retained": true
+}

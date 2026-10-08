@@ -1,0 +1,15 @@
+[
+  {
+    "schedule": "/scratch/e0985859/multipath_v0_fc2da7b/configs/oracle/taco_pour_20231024_246.json",
+    "triplet": "(pour in some, bowl, plate)",
+    "sequence": "20231024_246",
+    "template_artifacts": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_e2e_multisource_r166_20231024_248/candidate_00/anchors",
+    "template_proposals": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_e2e_multisource_r166_20231024_248/proposals",
+    "initial_bridge_run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_action_types_r171_20231024_246/candidate_00"
+  },
+  {
+    "schedule": "/scratch/e0985859/multipath_v0_fc2da7b/configs/oracle/taco_brush_20231103_057.json",
+    "triplet": "(brush, eraser, plate)",
+    "sequence": "20231103_057"
+  }
+]

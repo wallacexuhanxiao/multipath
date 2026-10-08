@@ -17,6 +17,7 @@ def main():
     p.add_argument('--exit-geometry-feedback-run',type=Path,help='Actual released Anchor exit for geometric boundary resynthesis')
     p.add_argument('--template-artifacts',type=Path,help='Optional physically validated local interaction library; initialization only.')
     p.add_argument('--template-proposals',type=Path,help='Local source observations corresponding to that library.')
+    p.add_argument('--template-free-entry-rank',type=int,default=0)
     args=p.parse_args();out=args.output_dir;out.mkdir(parents=True,exist_ok=True)
     from multipath.oracle_schedule import OracleSchedule
     schedule=OracleSchedule.load(args.schedule);manifest=json.loads((args.proposals/'manifest.json').read_text())
@@ -42,7 +43,8 @@ def main():
         from multipath.execution.mounted_scene import pose_matrix
         from multipath.execution.wrench_handoff import segment_wrenches
         from multipath.anchors.floating import (join_core_controls,source_grasp_core_controls,
-            source_retarget_core_controls,quiet_release_exit,validate_commands,AcquiredGraspProposal,project_hand_commands,acquisition_preload)
+            source_retarget_core_controls,quiet_release_exit,validate_commands,AcquiredGraspProposal,project_hand_commands,acquisition_preload,
+            free_grasp_registration,register_grasp_controls)
         from multipath.anchors.mpc import WindowEvaluation
         from multipath.validation.physics import check_retention,core_pose_errors,object_tracking_score
         from multipath.validation.task import evaluate_task
@@ -53,7 +55,7 @@ def main():
             if not args.template_proposals:raise ValueError('Template source observations required')
             from multipath.anchors.template import acquisition_proposals
             templates=acquisition_proposals(args.template_artifacts,args.template_proposals,manifest,schedule,local,FloatingScene.dt,
-                planning=json.loads(args.floating_config.read_text())['planning'])
+                planning=json.loads(args.floating_config.read_text())['planning'],free_entry_rank=args.template_free_entry_rank)
             report['interaction_initialization']={key:value['provenance'] for key,value in templates.items()}
         data=local[first.id];initial=data['wrist_hand_q'][0,:7].copy()
         initial[2]+=max(.1,float(np.linalg.norm(np.ptp(data['human_joints'][0],axis=0))))
@@ -63,7 +65,9 @@ def main():
             prior=json.loads((args.initial_bridge_run/'pipeline_result.json').read_text())
             if prior['source_provenance']!=manifest['provenance']:raise ValueError('Initial preparation source mismatch')
             initial=np.asarray(prior['initial_state']['command_wrist'])
-            initial_hand=np.asarray(prior['initial_state']['command_hand_q'])
+            # A refitted canonical pregrasp must also prepare the initial
+            # fingers. Reusing the old fingers made their unused geometry
+            # collide at the new goal and displaced the free entry again.
         app=start_simulation(out);scene=FloatingScene(args,manifest,out,initial,initial_hand=initial_hand)
         report['initial_hand_origin']=('local_interaction_canonical_free_pregrasp' if first.id in templates else 'local_human_context')
         initial_state=scene.snapshot();start_frame=0;resets=0
@@ -118,6 +122,9 @@ def main():
                         if entry is None and a.id in templates:entry=templates[a.id]['entry']
                         pose=np.asarray(entry['wrist_xyz_wxyz']) if entry else d['wrist_hand_q'][index,:7]
                         twist=np.zeros(6)
+                        if entry is None or not entry_path.exists():
+                            matrix=free_grasp_registration(a,d,start)@pose_matrix(pose)
+                            pose=np.r_[matrix[:3,3],Rotation.from_matrix(matrix[:3,:3]).as_quat()[[3,0,1,2]]]
                         if entry_path.exists() and entry.get('physically_acquired_state'):
                             # The actual reachable wrist state and the drive
                             # which produced it are different boundary data.
@@ -156,7 +163,23 @@ def main():
                         previous=np.load(args.boundary_feedback_run/f'relaxed_{w["start"]}_{w["end"]}.npz')['commands'][-1]
                         goal,feedback=feedback_boundary_target(start,goal,previous[:7],measured[w['end']],source_target,budget,scene.dt,scene.cfg['planning'])
                         info['boundary_feedback']=dict(feedback,physical_rollout=str(args.boundary_feedback_run))
-                planner=FloatingPlanner(scene,carry,out/f'planner_{w["start"]}')
+                if not carry and later and args.boundary_feedback_run:
+                    prior=json.loads((args.boundary_feedback_run/'pipeline_result.json').read_text())
+                    if prior['source_provenance']!=manifest['provenance']:raise ValueError('Free boundary feedback source mismatch')
+                    segment=next((s for s in prior['segments'] if s['start']==w['start'] and not s['success']),None)
+                    if segment:
+                        from multipath.planning.floating import pose_coordinates,coordinates_pose
+                        fraction=segment.get('free_entry_fraction',1.)*.9
+                        q0=pose_coordinates(start['wrist_xyz_wxyz']);q1=pose_coordinates(goal['wrist_xyz_wxyz'],q0)
+                        goal['wrist_xyz_wxyz']=coordinates_pose(q0+fraction*(q1-q0)).tolist()
+                        info['free_entry_fraction']=fraction
+                planner=FloatingPlanner(scene,carry,out/f'planner_{w["start"]}',goal_hand=goal.get('command_hand_q') if not carry else None)
+                if cached_initial:
+                    cached_commands=np.load(args.initial_bridge_run/f'relaxed_{w["start"]}_{w["end"]}.npz')['commands']
+                    if (not np.allclose(pose_matrix(cached_commands[-1,:7]),pose_matrix(goal['wrist_xyz_wxyz']),atol=1e-5,rtol=0)
+                            or not np.allclose(cached_commands[-1,7:19],goal['command_hand_q'],atol=1e-5,rtol=0)):
+                        info['initial_bridge_cache_goal_rejected']='canonical free entry/drive changed; reacquire with cuRobo'
+                        cached_initial=None
                 # Conservative task-boundary projection is a command proposal;
                 # the actual object condition must still pass after execution.
                 if not cached_initial:
@@ -174,14 +197,48 @@ def main():
                     if commands.shape!=(round(budget/scene.dt),25) or not validate_commands(scene,commands,start)['feasible']:
                         raise ValueError('Initial bridge cache violates source time or hand limits')
                     timing=cached_initial['planning'];info['frozen_initial_curobo']=str(args.initial_bridge_run)
-                else:commands,timing=planner.plan(np.asarray(goal['wrist_xyz_wxyz']),round(budget/scene.dt),np.asarray(goal['wrist_twist']),goal_state=goal)
-                info['planning']=timing;wrenches=segment_wrenches(scene,start,commands,transport=carry) if carry or w['start']>0 else np.zeros((len(commands),6))
+                else:
+                    rejections=[]
+                    for attempt in range(5):
+                        try:
+                            commands,timing=planner.plan(np.asarray(goal['wrist_xyz_wxyz']),round(budget/scene.dt),np.asarray(goal['wrist_twist']),goal_state=goal)
+                            break
+                        except RuntimeError as error:
+                            if (carry or not later or not any(text in str(error) for text in
+                                ['No collision-free trajectory in source time','Floating cuRobo failed:'])):raise
+                            rejections.append(str(error))
+                            if attempt==4:raise
+                            # Free entry has no validated hand pose yet. Choose
+                            # a closer free boundary; object/contact conditions
+                            # and the original source-time budget stay fixed.
+                            from multipath.planning.floating import pose_coordinates,coordinates_pose
+                            q0=pose_coordinates(start['wrist_xyz_wxyz']);q1=pose_coordinates(goal['wrist_xyz_wxyz'],q0)
+                            goal['wrist_xyz_wxyz']=coordinates_pose(q0+.9*(q1-q0)).tolist()
+                            info['free_entry_fraction']=info.get('free_entry_fraction',1.)*.9
+                            for _ in range(20):
+                                worst=planner.goal_clearance(goal['wrist_xyz_wxyz'])
+                                if worst[0]>=1e-4-1e-8:break
+                                goal['wrist_xyz_wxyz'][:3]=(np.asarray(goal['wrist_xyz_wxyz'][:3])+(1e-4-worst[0])*worst[1]).tolist()
+                            check=bridge_precheck(start,goal,budget,scene.cfg['planning'])
+                            info['boundary_precheck']=check
+                            if not check['feasible']:raise
+                    if rejections:info['free_entry_resynthesis']=dict(rejected_paths=rejections,
+                        actual_object_boundary_unchanged=True,source_time_stretch=False)
+                if not cached_initial and not carry:timing['free_motion_dynamics_feedforward']=True
+                free_model=timing.get('free_motion_dynamics_feedforward',False)
+                info['planning']=timing
+                wrenches=segment_wrenches(scene,start,commands,transport=carry,free_motion=free_model) if carry or w['start']>0 or free_model else np.zeros((len(commands),6))
                 np.savez_compressed(out/f'relaxed_{w["start"]}_{w["end"]}.npz',commands=commands)
                 for k,c in enumerate(commands):
                     scene.wrench_bias=wrenches[k];scene.step_control(c,'RELAXED',w['start']+(k+1)*scene.dt*schedule.fps)
                     if carry:check_retention(scene.state(),held)
-                    if min(planner.measured_clearance().values())<0 and planner.measured_mesh_collisions():
-                        raise RuntimeError('Actual RELAXED mesh collision')
+                    clearance=planner.measured_clearance()
+                    if min(clearance.values())<0:
+                        collisions=planner.measured_mesh_collisions()
+                        if collisions:
+                            info['collision_failure']=dict(source_frame=w['start']+(k+1)*scene.dt*schedule.fps,
+                                measured_meshes=collisions,clearance_m=clearance)
+                            raise RuntimeError('Actual RELAXED mesh collision')
                 transition=scene.check_transition(np.asarray(goal['wrist_xyz_wxyz']),w['contact'],expected_object=source_target)
                 info['transition']=transition
                 if not transition['success']:raise RuntimeError('Actual oracle boundary failed')
@@ -219,7 +276,8 @@ def main():
                         # The standard wrench handoff already preserves the
                         # measured response across feedforward changes. A tiny
                         # terminal twist difference need not warp learned poses.
-                        commands=(template['commands'].copy() if drive_matches else join_core_controls(scene,a,template['commands'],start))
+                        local_template=register_grasp_controls(a,d,start,template['commands'])
+                        commands=(local_template if drive_matches else join_core_controls(scene,a,local_template,start))
                         info['template_drive_boundary_matches']=drive_matches
                         template_used=True;info['interaction_initialization']=templates[a.id]['provenance']
                     else:commands=source_retarget_core_controls(scene,a,d,start)
@@ -246,7 +304,7 @@ def main():
                 objective=WindowEvaluation(scene,a,d,start)
                 if not objective.observe(a.core_start,commands[0]):raise RuntimeError(str(objective.failure))
                 wrenches=segment_wrenches(scene,start,commands)
-                acquisition=AcquiredGraspProposal(scene,a,d) if not reused and not template_used and a.entry_contact=='free' and a.exit_contact=='grasped' else None
+                acquisition=AcquiredGraspProposal(scene,a,d) if not reused and a.entry_contact=='free' and a.exit_contact=='grasped' else None
                 preload=None
                 for k,c in enumerate(commands):
                     scene.wrench_bias=wrenches[k];frame=a.core_start+(k+1)*scene.dt*schedule.fps

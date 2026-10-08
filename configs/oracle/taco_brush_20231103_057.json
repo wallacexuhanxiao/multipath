@@ -1,0 +1,94 @@
+{
+  "source": "oracle",
+  "fps": 30.0,
+  "num_frames": 110,
+  "sequence": "20231103_057",
+  "triplet": "(brush, eraser, plate)",
+  "instruction": "grasp eraser, rub the plate surface, return and release",
+  "segmentation_provenance": "Manual review of original RGB contact sheets and detailed boundary frames; static input, no automatic discovery or VLM. Brush surface contact included from frame 39 through withdrawal at 84; placement context begins at 87.",
+  "task_contract": {
+    "kind": "anchor_sequence_and_final_object_pose",
+    "position_tolerance_m": 0.05,
+    "rotation_tolerance_rad": 0.35,
+    "stable_speed_m_s": 0.03
+  },
+  "windows": [
+    {
+      "start": 0,
+      "end": 20,
+      "mode": "RELAXED",
+      "contact": "free"
+    },
+    {
+      "start": 20,
+      "end": 32,
+      "mode": "ANCHOR",
+      "anchor": "anchor_0"
+    },
+    {
+      "start": 32,
+      "end": 39,
+      "mode": "RELAXED",
+      "contact": "grasped"
+    },
+    {
+      "start": 39,
+      "end": 84,
+      "mode": "ANCHOR",
+      "anchor": "anchor_1"
+    },
+    {
+      "start": 84,
+      "end": 87,
+      "mode": "RELAXED",
+      "contact": "grasped"
+    },
+    {
+      "start": 87,
+      "end": 101,
+      "mode": "ANCHOR",
+      "anchor": "anchor_2"
+    },
+    {
+      "start": 101,
+      "end": 110,
+      "mode": "RELAXED",
+      "contact": "free"
+    }
+  ],
+  "anchors": [
+    {
+      "id": "anchor_0",
+      "core_start": 20,
+      "core_end": 32,
+      "synth_start": 14,
+      "synth_end": 38,
+      "entry_contact": "free",
+      "exit_contact": "grasped"
+    },
+    {
+      "id": "anchor_1",
+      "core_start": 39,
+      "core_end": 84,
+      "synth_start": 33,
+      "synth_end": 90,
+      "entry_contact": "grasped",
+      "exit_contact": "grasped"
+    },
+    {
+      "id": "anchor_2",
+      "core_start": 87,
+      "core_end": 101,
+      "synth_start": 81,
+      "synth_end": 107,
+      "entry_contact": "grasped",
+      "exit_contact": "free"
+    }
+  ],
+  "interaction_constraints": {
+    "anchor_1": {
+      "tool_target_contact": true
+    }
+  },
+  "semantic_scope": "Right hand only; native eraser-plate contact required, no appearance-cleaning model."
+}

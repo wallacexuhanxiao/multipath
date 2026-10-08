@@ -1,0 +1,60 @@
+{
+  "source": {
+    "triplet": "(hit, hammer, box)",
+    "sequence": "20231102_003",
+    "input": "raw TACO MANO and object poses",
+    "source_video": "/scratch/e0985859/egoengine_baseline/data/taco_v1/Egocentric_RGB_Videos/(hit, hammer, box)/20231102_003/color.mp4",
+    "schedule_sha256": "de9538c12863da9bc8e28adac64e62bde82979e3ffe475cec55eb13279a59855",
+    "full_robot_reference_used": false,
+    "vlm_used": false,
+    "transform_world_to_robot": [
+      [
+        -0.31040026441317004,
+        0.950605980468548,
+        0.0,
+        0.6378621443095444
+      ],
+      [
+        -0.9506059546832025,
+        -0.31040025599351123,
+        -0.0,
+        -0.008671103840534149
+      ],
+      [
+        0.0,
+        0.0,
+        1.0,
+        -0.2035103940963745
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ]
+  },
+  "kind": "local_command_geometry_diagnosis",
+  "physical_acceptance": false,
+  "labels": [
+    "Thumb",
+    "Index",
+    "Middle",
+    "Ring",
+    "Little"
+  ],
+  "actual_mesh_signed_clearance_mm": [
+    -0.4999882082543156,
+    -0.4999565234194547,
+    -0.49991847329495925,
+    -0.49755366569193576,
+    -0.49929554184067765
+  ],
+  "whole_tool_convex_hull_signed_clearance_mm": [
+    -7.728577125520873,
+    -8.579944945482895,
+    -8.53666528263394,
+    -7.219975248540619,
+    -6.10613566394582
+  ]
+}

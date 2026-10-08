@@ -394,13 +394,14 @@ def object_relative_command(scene,anchor,data,frame,baseline,held_transform,hand
     return command
 
 
-def object_relative_handoff(scene,anchor,data,frame,held_transform):
+def object_relative_handoff(scene,anchor,data,frame,held_transform,previous_command=None):
     """Match the current drive target before changing the Anchor proposal.
 
     Fade the target offset during existing source time, sized by the shared
     wrist velocity budget. This does not wait, reset, or relax acceptance.
     """
-    previous=np.r_[scene.command_pose,scene.hand_command,scene.command_twist]
+    previous=(np.r_[scene.command_pose,scene.hand_command,scene.command_twist]
+              if previous_command is None else np.asarray(previous_command))
     raw=object_relative_command(scene,anchor,data,frame,previous,held_transform)
     offset=previous[:3]-raw[:3]
     rotation=(Rotation.from_quat(previous[[4,5,6,3]])*Rotation.from_quat(raw[[4,5,6,3]]).inv()).as_rotvec()
@@ -444,25 +445,63 @@ class AcquiredGraspProposal:
     """Existing object-relative MPC proposal, initialized by real opposition."""
     def __init__(self,scene,anchor,data):
         self.scene,self.anchor,self.data=scene,anchor,data
-        self.contact_run=0;self.held=None;self.handoff=None;self.acquired_frame=None
+        self.contact_run=0;self.contact_loss_run=0;self.held=None;self.handoff=None;self.acquired_frame=None
         self.preload_bounds=None
+        from multipath.execution.mounted_scene import pose_matrix
+        self.entry_tool=pose_matrix(scene.state()['objects']['tool']['pose'])
+        self.source_entry=data['tool_pose'][anchor.core_start-anchor.synth_start]
+        self.stationary_prior=scene.manifest.get('retarget_details',{}).get(anchor.id,{}).get('pre_acquisition_tool_motion')=='stationary_entry'
 
-    def command(self,frame,baseline):
+    def acquisition_command(self,frame,baseline,measured,previous_command=None):
+        """Execute an acquisition proposal relative to the real resting tool.
+
+        Light one-sided contact can slide the tool before opposition forms.
+        Keeping a world-fixed human target then closes around empty space.
+        This is measured-state wrist control, not object placement or proof.
+        """
+        from multipath.execution.mounted_scene import pose_matrix
+        reference=self.entry_tool
+        if not self.stationary_prior:
+            index=float(np.clip(frame-self.anchor.synth_start,0,len(self.data['tool_pose'])-1))
+            lo=int(index);hi=min(lo+1,len(self.data['tool_pose'])-1);alpha=index-lo
+            source=self.data['tool_pose'][lo].copy()
+            if hi!=lo:
+                source[:3,3]=(1-alpha)*source[:3,3]+alpha*self.data['tool_pose'][hi,:3,3]
+                source[:3,:3]=Slerp([0,1],Rotation.from_matrix(self.data['tool_pose'][[lo,hi],:3,:3]))([alpha])[0].as_matrix()
+            reference=self.entry_tool@np.linalg.inv(self.source_entry)@source
+        actual=pose_matrix(measured['objects']['tool']['pose']);delta=actual@np.linalg.inv(reference)
+        matrix=delta@pose_matrix(baseline[:7]);command=np.asarray(baseline).copy()
+        command[:3]=matrix[:3,3];command[3:7]=Rotation.from_matrix(matrix[:3,:3]).as_quat()[[3,0,1,2]]
+        # PPO supplies the previous nominal drive so sampled pose residuals
+        # do not become velocity impulses. Replay uses its actual last drive.
+        previous=(self.scene.command_pose if previous_command is None else previous_command[:7])
+        command[19:22]=(command[:3]-previous[:3])/self.scene.dt
+        command[22:25]=(Rotation.from_quat(command[[4,5,6,3]])*
+            Rotation.from_quat(np.asarray(previous)[[4,5,6,3]]).inv()).as_rotvec()/self.scene.dt
+        return command
+
+    def command(self,frame,baseline,*,previous_command=None):
         measured=self.scene.snapshot()
-        self.contact_run=self.contact_run+1 if measured['contact']['mode']=='grasped' else 0
         tpf=physics_ticks_per_frame(self.scene.manifest['fps'],self.scene.dt)
+        self.contact_loss_run=(self.contact_loss_run+1 if measured['contact']['mode']!='grasped' else 0)
+        # A single solver step without opposition must not restart a target
+        # handoff. This is controller memory only: physical contact/retention
+        # checks still use the native measured state, with unchanged gates.
+        if self.anchor.entry_contact=='free' and self.contact_loss_run>=tpf and self.held is not None:
+            self.held=None;self.handoff=None;self.preload_bounds=None
+        self.contact_run=self.contact_run+1 if measured['contact']['mode']=='grasped' else 0
         if self.held is None and self.contact_run>=tpf:
             self.held=np.asarray(measured['hand_object_transform'])
             self.preload_bounds=grasp_command_bounds(self.scene,measured,self.anchor)
             self.acquired_frame=measured['time_s']*self.scene.manifest['fps']
-            self.handoff=object_relative_handoff(self.scene,self.anchor,self.data,self.acquired_frame,self.held)
-        if self.held is None:return baseline
+            self.handoff=object_relative_handoff(self.scene,self.anchor,self.data,self.acquired_frame,self.held,previous_command)
+        if self.held is None:return self.acquisition_command(frame,baseline,measured,previous_command)
         if (self.anchor.entry_contact=='free' and measured['contact']['mode']=='grasped'
                 and self.scene.ticks%tpf==0):
-            # Opposition starts before finger closure finishes. Acquisition
-            # is not yet a rigid grasp: update its retarget frame at source
-            # frequency. Persistent-grasp Anchors keep their fixed frame.
-            self.held=np.asarray(measured['hand_object_transform'])
+            # Keep the physically acquired transform fixed. Replacing it
+            # every frame incorporated wrist tracking lag into the next pose
+            # target without its velocity, repeatedly cancelling the lift.
+            # Finger closure still runs, and physics verifies its retention.
             low,high=grasp_command_bounds(self.scene,measured,self.anchor)
             self.preload_bounds=(np.maximum(self.preload_bounds[0],low),np.minimum(self.preload_bounds[1],high))
         command=object_relative_command(self.scene,self.anchor,self.data,frame,baseline,self.held,self.handoff)
@@ -500,6 +539,24 @@ def join_core_controls(scene,anchor,commands,start):
     return project_hand_commands(scene,joined,start,anchor)
 
 
+def free_grasp_registration(anchor,data,start):
+    """Register a proposal to the reached tool; never move the object state."""
+    from multipath.execution.mounted_scene import pose_matrix
+    if (anchor.entry_contact,anchor.exit_contact)!=('free','grasped'):return np.eye(4)
+    source=data['tool_pose'][anchor.core_start-anchor.synth_start]
+    return pose_matrix(start['objects']['tool']['pose'])@np.linalg.inv(source)
+
+
+def register_grasp_controls(anchor,data,start,commands):
+    from multipath.execution.mounted_scene import pose_matrix
+    transform=free_grasp_registration(anchor,data,start)
+    c=np.asarray(commands).copy();matrices=np.asarray([transform@pose_matrix(p) for p in c[:,:7]])
+    c[:,:3]=matrices[:,:3,3]
+    c[:,3:7]=Rotation.from_matrix(matrices[:,:3,:3]).as_quat()[:,[3,0,1,2]]
+    c[:,19:22]=c[:,19:22]@transform[:3,:3].T;c[:,22:25]=c[:,22:25]@transform[:3,:3].T
+    return c
+
+
 def source_retarget_core_controls(scene,anchor,data,start):
     """Local retarget for acquisition/release, calibrated at a reached grasp.
 
@@ -518,7 +575,9 @@ def source_retarget_core_controls(scene,anchor,data,start):
         offset=np.linalg.inv(pose_matrix(pose[0]))@target
         matrices=np.asarray([pose_matrix(p)@offset for p in pose])
         pose=np.c_[matrices[:,:3,3],Rotation.from_matrix(matrices[:,:3,:3]).as_quat()[:,[3,0,1,2]]]
-    return join_core_controls(scene,anchor,controls_from_poses(pose,hand,scene.dt),start)
+    controls=controls_from_poses(pose,hand,scene.dt)
+    if anchor.entry_contact=='free':controls=register_grasp_controls(anchor,data,start,controls)
+    return join_core_controls(scene,anchor,controls,start)
 
 
 def quiet_release_exit(scene,anchor,commands,terminal_offset=None,*,preserve_motion=False):

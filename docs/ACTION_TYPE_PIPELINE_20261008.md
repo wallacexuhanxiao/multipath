@@ -1,0 +1,233 @@
+# 不同 TACO 动作类型的端到端验证
+
+目标：同一默认入口处理不同动作类型；每个 RELAXED 区间三解，
+每条解都从任务初态进行完整连续 PhysX 验证。使用静态人工 Oracle，
+只 retarget/synthesize padded Anchor，保留原始 source clock。
+
+## 本轮输入
+
+| 类型 | TACO source | 源时间 | 交互证据 |
+|---|---|---:|---|
+| 倒碗 | `(pour in some, bowl, plate)/20231024_246` | 145 / 30 = 4.833 s | native 抓握、持碗倾斜、返回释放；无液体模型 |
+| 擦盘 | `(brush, eraser, plate)/20231103_057` | 110 / 30 = 3.667 s | native 抓握及 eraser/plate 实际接触；无清洁外观模型 |
+| 锤击 | `(hit, hammer, box)/20231102_003` | 170 / 30 = 5.667 s | native 抓握及 hammer/box 实际接触；无破坏模型 |
+
+Oracle 来自本轮原始 RGB 的人工逐帧检查。配置只保存输入身份、
+区间及必要交互条件；三者使用相同 controller、规划预算和小型 PPO。
+没有动作名称或 source ID 的运行时控制分支。
+当前执行右侧 floating XHand；左手对 target 的动作未复现。
+
+## 真实失败及通用修复
+
+1. **短暂接触被用作局部库的抓握终点。** r171 pour 的首个 core
+   有 opposition contact，但工具仍受桌面支撑，随后的 carry bridge
+   不能离开碰撞边界。局部库迁移现只选择已验证的 canonical CORE
+   exit，不再按人类姿态相似度截取较早的短暂接触。
+2. **free bridge 缺少完整动力学前馈。** r171/r172 brush 在 Anchor
+   前出现拇指/工具真实 mesh 交叠。新增 free-motion Newton–Euler 前馈，沿用
+   measured-state 连续 takeover；已通过的旧 bridge 保留其原执行
+   语义。前馈标记随 bridge artifact、局部前驱重执行和多解传递。
+3. **规划只覆盖入口手姿。** free bridge 在准备 pregrasp 时改变手指
+   驱动。现用 URDF FK 覆盖这些手姿的几何，仍逐 physics step 检查
+   actual mesh；不改 PhysX 状态来计算规划几何。
+4. **缩放 MANO 指尖没有落在细柄抓握表面。** r171 hammer 实测只有
+   非拇指接触，未形成对握；原 retarget 指尖距工具 18–37 mm。
+   增加 local object-aware grasp 初始化：按工具 mesh 截面及局部
+   human grasp 求 XHand 实际接触面 IK，覆盖完整手几何。只拟合
+   dummy 指尖曾把 distal phalanges 放进工具，现直接拟合接触三角面。
+   它只产生 proposal，
+   不能直接被标为 physically valid；仍走 Replay/MPC/PPO 与 fresh
+   padded/core 验证。
+5. **出口抬升不能靠最后一帧猛补。** r172 pour 的持续对握到 frame 49
+   才出现，frame 50 前不足以抬离桌面；实际出口速度失败。抬升
+   proposal 现在检查剩余原时间中的 nominal v/a 可行性。时间不足
+   就要求重新合成抓握，不能加等待、拉长时钟或设置物体状态。
+6. **姿态接近不等于接触交互。** brush/hit 的 Oracle 明确要求 core
+   内工具/目标发生真实接触；记录每个 physics step 的接触次数和
+   impulse，避免漏掉短暂锤击。padding 或 bridge 接触不代替 core
+   证据。
+7. **准备手型的闭合距离超过原时间预算。** r176 brush 的部分关节
+   需要闭合 1.145 rad。实测 brush/hit 工具几乎没动，但参考已在
+   抬升：brush frame 30 参考位移约 70 mm，实际约 1 mm；hit frame
+   35 参考约 60 mm，实际不足 1 mm。不能把这两类失败描述成侧推。
+   r179 使用相同几何目标，求最近的无接触准备手型，并按 Oracle
+   fps、CORE 长度、URDF 关节速度计算闭合行程边界。brush 本地
+   proposal 的最大关节行程降至 0.0745 rad，表面几何覆盖的最小
+   准备间距约 2 mm。这只是名义可执行性，尚待 PhysX 验证。
+8. **静态自由入口误用了移动中的 drive target。** 复用库 frame 35
+   的自由手实际无接触，但 drive target 相对实测腕部低约 42 mm。
+   这是运动跟踪滞后，不能当作静态 grasp preload。r179 将自由
+   入口改为该帧的实测腕姿和手姿，CORE 内保留已有抓握 drive。
+   迁移后的入口仍须由实际 cuRobo 执行到达，不能复制旧验证标记。
+9. **只细化规划起点的碰撞球，改变了终点的抓握准备姿态。** r179
+   brush/hit 名义准备手型到闭手的腕部行程仅约 0.7 / 5 mm，但
+   真实 bridge 入口分别被抬高 38.7 / 40.2 mm。碰撞边界投影
+   导致 CORE 用时先下探。r180 针对已经实际
+   出现的失败，将完整手指 sweep 的表面覆盖同时细化到起点和
+   终点。真实 mesh 若交叠则仍保留正常的边界投影；不缩小覆盖、
+   不移除障碍物、不放松物理 gate。
+   **r180 否定了“只需细化粗球”的判断**：完整 mesh 检查拒绝了
+   原来的准备姿态，因此保守覆盖保持原样，入口偏移也仍在。
+   进一步修正的是 retarget 的碰撞初始化：之前仅有每 link 32
+   个点和局部截断的工具 hull，会遗漏指节面穿过工具及工具的
+   其余部分。改为完整三角面的保守球覆盖和全工具支撑 hull。
+   高密度扫描生成的 2422 个近重复支撑面降至最多 80 个，删除
+   约束只扩大外 hull，不删除工具实体。实际 PhysX 验证仍必需。
+10. **接触波动和逐帧 grasp frame 更新让接管目标跳动。** r179 brush
+    frame 24 已有对握，但 frame 26–29 腕部目标仍往返，下一个
+    velocity target 曾达到 -0.91 m/s。r180 保留首次持续 native
+    opposition 取得的实际 hand-object transform，避免逐帧把腕部
+    tracking lag 写进新目标；单个 physics step 的接触波动不重启
+    handoff。实际接触和 retention gate 继续直接读取 native state。
+
+闭手加入 URDF 速度内的手指 drive velocity feedforward；目标接管
+和 MPC/PPO 使用同一个实测工具相对的 acquisition controller。
+接触丢失时清除已获取 grasp 的缓存。均没有更改工具物理状态。
+
+这些是几何、控制或局部库复用的共用机制。IK 几何误差、planner
+success、partial rollout 都不是完整 pipeline success。
+
+## 物理实验
+
+- r171：H200 / interactive / 20 min，job 653975；三类型并行。
+- r172：H200 / interactive / 20 min，job 653985；修复后重跑 pour/brush。
+- r173：job 653997，细柄 proposal 改进，仍未形成物理有效 Anchor。
+- r174：job 654015，自由 bridge 可执行，但三类型首个 Anchor 仍失败。
+- r175：job 654078，完整手表面 IK / 实测工具坐标注册，首个 Anchor 仍失败。
+- r176：job 654092，手指速度前馈；实测区分侧推与未及时抬升。
+- r177：job 654113，brush/hit 暴露 trimesh 只读三角数组问题，已改为
+  writable copy；pour 物理抓取仍失败。
+- r178：job 655035，真实三角接触面 IK；brush/hit 对握更早出现，
+  但源抬升时仍不足以负载。三类型均未通过。
+- r179：job 655067，最近自由准备手型 + 正确静态自由入口；三类型
+  仍未通过，总用时 430.46 s；暴露规划终点抬高与接管目标跳动。
+- r180：job 655088，双边界完整表面覆盖 + 固定实测 grasp frame；
+  三类型均未通过，总用时 430.80 s；定位到名义准备姿态的完整
+  mesh 交叠，而非可以直接细化掉的粗球误报。
+
+以上作业均使用 H200 / interactive / 20 min；三个 source 在一份
+allocation 内并行运行。未更改 unrelated held job。
+
+截至 r189，新三类型没有完整成功轨迹，也没有已验证的新 Anchor。
+已有 put-in 248/243 的完整三解不能代替本轮跨动作类型的证据。
+保持 `success=false`；partial actual-state 视频不是成功结果。
+
+最终结果、实际视频与每个区间的多解指标在物理运行结束后追加。
+
+## 2026-10-09：初始化与工具几何修复
+
+### 已定位的原因
+
+- r181 pour 的 20 分钟消耗在 cuRobo 构造阶段。r182 的真实调用栈
+  落在 `_create_self_collision_thread_data`：完整 hand surface 细化后
+  上万球都位于一个虚拟 wrist link，自碰撞球对全部已忽略，代码仍
+  执行 Python 的平方数量球对循环。新增精确空集合返回；非空集合
+  继续调用原函数。环境、完整手和 carried-object 碰撞几何保留。
+- goal sphere cover 按零间距细化，boundary projection 却要求
+  100 µm，造成合法准备姿态反复投影。现在 cover 和投影使用同一个
+  100 µm 条件。r183 三个 source 都进入首个 Anchor；brush 的首次
+  起点拒绝后重新规划成功，尚不能将它解释成已查清的数值原因。
+- r183 的 hammer 只有拇指接触，未形成对握。对局部 command
+  的工具接触目标做几何检查：距实际 mesh 表面约 0.5 mm，但位于
+  全工具凸包内部 6.1–8.6 mm。锤头和柄的整体凸包填掉了抓握所需
+  空处。这个模型会阻止手指靠近真实柄表面，不能用更大的 PPO
+  网络解决。改用完整非凸工具 mesh 的局部 signed-distance field；
+  1 mm 网格在接触附近直接采样原 mesh 的距离，只用于 proposal。
+  最终有效性仍取决于 native PhysX padded/core rollout。
+- 重拟合曾把已经固定在 entry-tool frame 的 proposal，当作随源
+  物体运动的 human reference，混入未来抬升位移。新 proposal 保存
+  `raw_wrist_hand_q`；旧 proposal 先恢复正确工具坐标，再拟合。
+- 局部库的最后一个零接触状态不一定能成为新场景的自由规划入口。
+  现在首个 bridge 拒绝时按顺序尝试库内更早的真实零接触边界；
+  用尽后才回到 raw local retarget。库 proposal 已进入 Anchor 后，
+  保留它作为 Replay/MPC/PPO 初始化，不因失败直接丢弃。
+
+### 实验记录
+
+| Run | PBS job | 申请时间 | 结果 |
+|---|---|---:|---|
+| r181 | 655112 | 20 min | pour 构造阶段超时；brush/hit 首个 Anchor 失败 |
+| r182 | 655133 | 25 min | 856.99 s；定位空球对循环及 goal cover 不一致；三类均未完成 |
+| r183 | 655164 | 25 min | 399.85 s；三类均进入首个 Anchor，局部 Replay/MPC/PPO 均未通过 |
+| r184 | 655192 | 20 min | brush/hit 暴露缺少 `rtree`；pour 局部优化仍失败 |
+| r185 | 655214 | 20 min | 库内较早自由入口可达；pour/hit 局部交互失败，brush 遇 TorchScript CUDA kernel 错误 |
+| r186 | 655250 | 20 min | 444.99 s；brush 首个 bridge 遇非法 CUDA 内存访问，pour/hit 首个 Anchor 仍未通过 |
+| r187 | 655730 | 20 min | 196.06 s；新几何核对错误使用 `robot_spheres` 字段，三个 case 在初始 bridge 前停止 |
+| r188 | 655735 | 20 min | 441.84 s；核对方法作用域错误已修正；pour 首个 bridge 成功，局部 Anchor 优化失败 |
+| r189 | 655737 | 20 min | 419.82 s；三个 source 的首个 bridge 均实际通过；CUDA 地址修复验证成功，三个首个 Anchor 的 Replay/MPC/PPO 仍失败 |
+
+依赖新增 `.[retarget]`，避免新环境再次缺少 mesh proximity 所需的
+R-tree。没有修改 Oracle 区间、时长、接触验收或 CORE 误差阈值。
+本节代码修复均按几何、接触模式或实际失败驱动，没有动作名称 /
+sample ID 的控制分支。仍需新的物理成功结果才能宣布新类型跑通。
+
+### r186 使用的进一步修复
+
+1. **网格密度错误地决定了 IK loss 权重。** 原先约 15.4 万个手表面
+   采样逐个进入 loss，压过少数接触目标。现在每个 link 只计最坏
+   间距，仍检查全部表面。闭合 contact pads 按实际表面计 nominal
+   preload，不把三角面的外接球半径当作物理穿透；其他 link 和
+   自由准备姿态保留球覆盖。这个拟合模型不提供物理成功证明。
+2. **腕部搜索域被固定为 8 cm / 0.9 rad。** floating XHand 的合法
+   grasp orientation 不必贴合 scaled human wrist。现在按实际
+   URDF 手部尺寸确定位置搜索域，允许完整局部旋转搜索；原时间与
+   source-conditioned object 目标不变。
+3. **PPO 腕部残差在取得 grasp 后被覆盖。** 原来的 acquired-grasp
+   target 更新替换了 policy 的 wrist pose。现在在 nominal
+   object-conditioned command 上保留 PPO 腕部 residual；零 action
+   保留原始 nominal / feedforward。RELAXED 不调用此 policy。
+4. **禁用 TorchScript GPU fusion 没有解决 CUDA 错误。** r186 brush
+   再次发生非法内存访问，因此移除了这个推测性 workaround，继续
+   检查实际安装的 cuRobo 原生内核。
+
+本地复用真实前驱的 tool/table 几何，重拟合仅发生在 proposal，
+没有恢复或修改 simulator。hammer 的 RMS 接触目标误差从 r185
+几何重拟合的 52.09 mm 降为 4.00 mm，brush 为 3.97 mm；自由
+准备间距分别约 2 mm。以上均为 CAD 初始化结果，尚非 Anchor 成功。
+
+### r187：确定的原生 CUDA 地址溢出
+
+实际安装的 `kinematics_fused_kernel.cu` forward 把球的浮点地址
+`sphere_index * 4` 存在 `int16_t`。球序号到 8192 时地址变为
+32768，超出有符号 16 位范围。r186 brush 有 14004 个球，hit 有
+18647 个球；这些规模已经触发这个确定的越界缺陷。CUDA 错误可能
+异步出现在后续 TorchScript 运算，故后续报错位置不是根因证据。
+
+修复在共用 cuRobo 接口中完成：超过 8192 个球时，以宽索引把
+全部球分批交给原 forward 内核，再拼回完整结果；单批最多 8192
+球。没有减少碰撞几何，没有替换求解器或物理状态。原 backward
+已使用 32 位地址，仍对完整球集合求导。现有 wrist FK 检查同时
+核对每个球的实际中心和半径，防止只有 EEF 正确而碰撞几何损坏。
+
+CPU wrapper 检查覆盖 8192、8193、18647 个球和两个 batch，全部
+中心/半径误差为零；这仅证明分批索引逻辑，不能代替 GPU 或物理
+成功。新增几何核对的返回字段与方法作用域错误均已修正，并通过
+一次 CPU 接口调用检查。r188 pour candidate_03 原生 GPU 上 294
+个球的中心最大误差为 7.58e-8 m、半径为 8.91e-10 m，之后完成
+真实首段 bridge，但在 frame 38 的 interaction fidelity 失败。
+超过 8192 球的 GPU 验证已由 r189 完成：brush 14004 球中心最大
+误差 8.66e-8 m、半径 1.80e-9 m；hit 18647 球中心 8.46e-8 m、
+半径 1.46e-9 m。全部几何保留，两个 first bridge 均规划并实际
+执行成功，没有再次发生非法 CUDA 地址。此证据证明该接口修复，
+不能代替后续 Anchor 或完整任务成功。
+
+### 抓取前后统一保留 PPO 姿态残差
+
+代码检查发现 acquisition 的测量反馈重新差分腕部目标，仍会把
+PPO 的随机 pose residual 放入速度前馈；抓取接管又可能把已包含
+residual 的上一步 drive 当作 nominal。现在 acquisition/handoff
+显式接收上一条 nominal command，先生成测量条件下的 nominal
+控制，再叠加策略姿态残差。Replay 的默认接口和 RELAXED 不变。
+
+单次 CPU 检查确认零 residual 与原 Replay 完全相同，上一条
+策略 pose 的改变不会被差分为 nominal 前馈；r189 已执行该路径，
+但三类型仍无成功 grasp，不将接口修复当作任务成功。没有修改 reward、网络
+尺寸、Oracle、source clock 或物理接触阈值。
+
+r189 真实 hammer Replay 已在 frame 29、31、32 出现双侧接触，
+随后丢失，工具仍在桌面；brush 则没有稳定双侧接触。闭合 CAD
+诊断发现非拇指接触目标附近的实际手表面仍离工具 1–11 mm，
+此前整体 RMS 约 4 mm 并不能说明对握已形成。下一步据此修正
+local grasp proposal 的对握表面目标，再用原 padded/core gates 验证。
+
+![Whole-tool convex hull wrongly fills handle clearance](evidence/oracle_action_types_20261008/hammer_convex_hull_diagnosis.png)

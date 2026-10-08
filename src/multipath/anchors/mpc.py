@@ -77,6 +77,8 @@ class WindowEvaluation:
     """
     def __init__(self, scene, anchor, data, start, *, continue_tracking_failures=False):
         self.scene, self.anchor, self.data = scene, anchor, data
+        self.interaction_constraint=scene.manifest.get('interaction_constraints',{}).get(anchor.id,{})
+        self.core_contact_start=start.get('interaction_contacts',{}).get('tool_target_contact_steps',0)
         frame = start['time_s'] * scene.manifest['fps']
         self.held = None
         if ((anchor.entry_contact == 'grasped' and frame < anchor.core_end)
@@ -101,6 +103,7 @@ class WindowEvaluation:
             if r['position_m']>.05 or r['rotation_rad']>.35 or not r['contact_retained']:
                 reason='pre_context_grasp_retention'
         if frame == a.core_start:
+            self.core_contact_start=measured.get('interaction_contacts',{}).get('tool_target_contact_steps',0)
             # Canonical entry is conditioned on this Anchor's source boundary,
             # not inherited from the previous Anchor's exit. Padding states
             # provide physical context only; the boundary must actually arrive.
@@ -143,6 +146,9 @@ class WindowEvaluation:
                 if r['position_m'] > .05 or r['rotation_rad'] > .35 or not r['contact_retained']:
                     reason = 'core_grasp_retention'
         if frame == a.core_end:
+            contact_steps=measured.get('interaction_contacts',{}).get('tool_target_contact_steps',0)-self.core_contact_start
+            if self.interaction_constraint.get('tool_target_contact') and contact_steps<=0:
+                reason='core_tool_target_contact_missing'
             transition = getattr(self.scene, 'check_transition', None)
             handoff = (transition(command[:7], a.exit_contact, self.data['tool_pose'][index]) if transition else
                        check_transition(self.scene, command[:7], a.exit_contact, self.data['tool_pose'][index]))

@@ -156,7 +156,7 @@ def execute(scene,schedule,manifest,proposal_dir,report):
                 info['boundary_precheck']=check
                 if not check['feasible']:
                     raise RuntimeError(f'Canonical bridge boundaries require local resynthesis: {check["reasons"]}')
-            planner=FloatingPlanner(scene,carry,scene.out/f'planner_{window["start"]}')
+            planner=FloatingPlanner(scene,carry,scene.out/f'planner_{window["start"]}',goal_hand=goal.get('command_hand_q') if not carry else None)
             if prefix and not carry:
                 reference=np.asarray(goal['wrist_xyz_wxyz']).copy()
                 for height in np.linspace(0,float(np.linalg.norm(scene.meshes['tool'].extents)),9):
@@ -230,12 +230,14 @@ def execute(scene,schedule,manifest,proposal_dir,report):
                                              (terminal_frame-window['start'])*tpf,np.asarray(goal['wrist_twist']),
                                              goal_state=goal if later and not prefix else None)
             info.update(timing);info['success']=False
+            free_model=bool(bridge and bridge['planning'].get('free_motion_dynamics_feedforward'))
+            if free_model:info['free_motion_dynamics_feedforward']=True
             info['collision_model']={'current_hand':True,'carried_object':carry,'assembly_self_collision':False}
             np.savez_compressed(scene.out/f'relaxed_{window["start"]}_{window["end"]}.npz',commands=commands)
             from multipath.execution.wrench_handoff import segment_wrenches
             delta_baseline=np.load(baseline_command_path)['commands'] if timing.get('delta_dynamics_feedforward') else None
             wrenches=segment_wrenches(scene,scene.snapshot(),commands,transport=carry,
-                baseline_commands=delta_baseline) if cache and (carry or window['start']>0 or delta_baseline is not None) else np.zeros((len(commands),6))
+                baseline_commands=delta_baseline,free_motion=free_model) if cache and (carry or window['start']>0 or delta_baseline is not None or free_model) else np.zeros((len(commands),6))
             actual_wrist=[start['wrist_xyz_wxyz'][:3]]
             for j,command in enumerate(commands):
                 scene.wrench_bias=wrenches[j]

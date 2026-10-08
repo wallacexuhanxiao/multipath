@@ -91,6 +91,35 @@ def main():
         # actuator acceleration gate. This protects the already observed case
         # where a locally valid interaction cannot enter its fixed-time bridge.
         scene.bridge_exit_constraints=True
+        exit_path=args.entry_run/'cores'/anchor.id/'exit.json'
+        if anchor.exit_contact=='grasped' and exit_path.exists():
+            # A real grasp can still leave the object table-supported. Use
+            # that observed exit to propose clearance inside this same CORE;
+            # the proposal must pass fresh physical Replay and source fidelity.
+            from multipath.planning.bridge import carried_object_clearance
+            state=json.loads(exit_path.read_text());clearance=carried_object_clearance(scene,state)
+            if clearance['table']<0:
+                trace=json.loads((args.entry_run/'actual_trace.json').read_text())
+                states=[s for s in trace if anchor.core_start<=s['source_frame']<=anchor.core_end]
+                acquired=next((s['source_frame'] for i,s in enumerate(states)
+                    if all(v['contact']['mode']=='grasped' for v in states[i:])),None)
+                if acquired is not None and acquired<anchor.core_end:
+                    height=-clearance['table']+.002
+                    duration=(anchor.core_end-acquired)/schedule.fps
+                    planning=scene.cfg['planning']
+                    minimum=max(1.875*height/planning['velocity_limits'][2],
+                        np.sqrt(5.773503*height/planning['acceleration_limits'][2]))
+                    if duration>=minimum:
+                        frames=anchor.core_start+np.arange(1,len(controls)+1)/tpf
+                        phase=np.clip((frames-acquired)/(anchor.core_end-acquired),0,1)
+                        shift=height*(10*phase**3-15*phase**4+6*phase**5)
+                        controls[:,2]+=shift
+                        controls[:,21]+=np.diff(np.r_[0.,shift])/scene.dt
+                    report['carry_exit_geometry_feedback']=dict(measured_clearance_m=clearance,
+                        lift_proposal_m=height,physically_acquired_grasp_frame=acquired,
+                        available_duration_s=duration,minimum_nominal_duration_s=float(minimum),
+                        proposal_applied=duration>=minimum,
+                        proposal_only=True,source_time_stretch=False)
         if bridge_context is not None:
             scene.post_context_commands=bridge_context
             report['post_context_origin']='planned carry commands from observed failed bridge; fresh physical acceptance required'
@@ -133,8 +162,9 @@ def main():
                 if segment.get('delta_dynamics_feedforward'):
                     if not args.planned_bridges:raise ValueError('Diverse prefix requires its baseline cuRobo drives')
                     delta=np.load(args.planned_bridges/f'relaxed_{window["start"]}_{window["end"]}.npz')['commands'][:len(command)]
-                wrench=segment_wrenches(scene,scene.snapshot(),command,transport=carry,baseline_commands=delta) if (
-                    window['start']>0 or delta is not None) else np.zeros((len(command),6))
+                free_model=segment.get('planning',segment).get('free_motion_dynamics_feedforward',False)
+                wrench=segment_wrenches(scene,scene.snapshot(),command,transport=carry,baseline_commands=delta,free_motion=free_model) if (
+                    window['start']>0 or delta is not None or free_model) else np.zeros((len(command),6))
                 for k,c in enumerate(command):
                     source_frame=window['start']+(k+1)/tpf
                     scene.wrench_bias=wrench[k];scene.step_control(c,window['mode'],source_frame)

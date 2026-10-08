@@ -62,7 +62,7 @@ def local_correspondence(old_data,new_data,old_anchor,new_anchor,free_start_max=
     return mapping
 
 
-def acquisition_proposals(artifacts,proposals,manifest,schedule,local,dt,planning=None):
+def acquisition_proposals(artifacts,proposals,manifest,schedule,local,dt,planning=None,free_entry_rank=0):
     """Object-frame transfer, fixed new clock; never copy entry validity flags.
 
     The library contains local Anchor artifacts, not a full robot reference.
@@ -87,11 +87,22 @@ def acquisition_proposals(artifacts,proposals,manifest,schedule,local,dt,plannin
         if set(physical)!=set(range(old.core_start,old.core_end+1)):
             raise ValueError('Local initialization requires measured CORE states, not just drive targets')
         measured=[physical[f] for f in range(old.core_start,old.core_end+1)]
+        first_touch=next((i for i,s in enumerate(measured) if s['contact'].get('touching_links',0)>0),len(measured))
+        # An intermittent zero-force frame after first contact is still part
+        # of a moving acquisition, not a static preparation posture.
+        free_states=[i for i,s in enumerate(measured[:first_touch])
+            if s['contact'].get('touching_links',0)==0]
+        if not 0<=free_entry_rank<len(free_states):continue
+        free_pregrasp=sorted(free_states,reverse=True)[free_entry_rank]
         from multipath.planning.bridge import coordinate_velocity
-        grasped_ends=sorted({int(round(s['time_s']*old_manifest['fps']-old.core_start)) for s in measured
-            if s['contact']['mode']=='grasped' and (planning is None or np.all(
-                np.abs(coordinate_velocity(s['wrist_xyz_wxyz'],s['wrist_twist']))
-                <=np.asarray(planning['velocity_limits'])*1.0001))})
+        # A transient opposition contact can still be table-supported. It is
+        # not interchangeable with this artifact's validated holding exit.
+        # The observed transfer failure came from selecting such an early
+        # partial closure merely because it matched the new human pose.
+        s=measured[-1]
+        grasped_ends=([old.core_end-old.core_start] if s['contact']['mode']=='grasped' and (planning is None or np.all(
+            np.abs(coordinate_velocity(s['wrist_xyz_wxyz'],s['wrist_twist']))
+            <=np.asarray(planning['velocity_limits'])*1.0001)) else [])
         # An interaction-valid frame can still be too fast to enter a bridge.
         # Reusing that endpoint already caused a real fixed-time carry failure.
         # It is an initialization filter; fresh physical handoff is mandatory.
@@ -105,14 +116,22 @@ def acquisition_proposals(artifacts,proposals,manifest,schedule,local,dt,plannin
             # no opposition contact is not necessarily a statically reachable
             # pregrasp: fingers may already be moving around the bowl. Keep
             # this boundary fixed and align the interaction inside CORE.
-            correspondence=local_correspondence(data,local[anchor.id],old,anchor,0,grasped_ends)
-            from scipy.interpolate import PchipInterpolator
+            correspondence=local_correspondence(data,local[anchor.id],old,anchor,free_pregrasp,grasped_ends)
             source_sample=np.arange(ticks+1)/tpf
-            old_sample=PchipInterpolator(np.arange(len(correspondence)),correspondence)(source_sample)
+            # A correspondence plateau followed by a fast final jump postponed
+            # actual closure until the boundary. Uniform local phase is a
+            # command initializer; the new source object clock stays unchanged.
+            # Prepare an actually observed, contact-free hand posture in the
+            # preceding free bridge. Compressing the library's whole approach
+            # into a shorter interaction delayed opposition until the exit.
+            old_sample=free_pregrasp+source_sample/(anchor.core_end-anchor.core_start)*(old.core_end-old.core_start-free_pregrasp)
             phase=old_sample[1:]/(old.core_end-old.core_start)
             new_frame=anchor.core_start-anchor.synth_start+np.arange(1,ticks+1)/tpf
             old_frame=old.core_start-old.synth_start+old_sample[1:]
-            old_tool=sample_pose(data['tool_pose'],old_frame)
+            # The library's load response belongs to the physically carried
+            # object. GT tool drift is not part of the grasp transform.
+            measured_tool=np.asarray([pose_matrix(s['objects']['tool']['pose']) for s in measured])
+            old_tool=sample_pose(measured_tool,old_sample[1:])
             new_tool=sample_pose(local[anchor.id]['tool_pose'],new_frame)
             old_c=artifact['commands'];command_grid=np.arange(len(old_c))
             old_tick=phase*len(old_c)-1
@@ -130,7 +149,7 @@ def acquisition_proposals(artifacts,proposals,manifest,schedule,local,dt,plannin
             # Preserve optimized drive offsets and nominal feedforward. Do
             # not differentiate pose residuals into new velocity impulses.
             scale=np.diff(old_sample)/(old_fps*dt)
-            previous_old=sample_pose(data['tool_pose'],old_frame-np.diff(old_sample))
+            previous_old=sample_pose(measured_tool,old_sample[:-1])
             previous_new=sample_pose(local[anchor.id]['tool_pose'],new_frame-1/tpf)
             old_v=(old_tool[:,:3,3]-previous_old[:,:3,3])/dt
             new_v=(new_tool[:,:3,3]-previous_new[:,:3,3])/dt
@@ -141,25 +160,32 @@ def acquisition_proposals(artifacts,proposals,manifest,schedule,local,dt,plannin
             commands[:,19:22]=new_v+np.cross(new_w,new_offset)+np.einsum('nij,nj->ni',orientation,
                 scale[:,None]*commands[:,19:22]-old_v-np.cross(old_w,old_offset))
             commands[:,22:25]=new_w+np.einsum('nij,nj->ni',orientation,scale[:,None]*commands[:,22:25]-old_w)
-            entry_phase=float(correspondence[0]);entry_tick=entry_phase*old_tpf-1
+            entry_phase=float(free_pregrasp);entry_tick=entry_phase*old_tpf-1
             entry_drive=(np.r_[artifact['entry']['command_wrist'],artifact['entry']['command_hand_q'],artifact['entry']['command_twist']]
                 if entry_phase==0 else np.array([np.interp(entry_tick,command_grid,old_c[:,j]) for j in range(25)]))
-            old_boundary=sample_pose(data['tool_pose'],[old.core_start-old.synth_start+entry_phase])[0]
+            old_boundary=sample_pose(measured_tool,[entry_phase])[0]
             new_boundary=local[anchor.id]['tool_pose'][anchor.core_start-anchor.synth_start]
             boundary_transform=new_boundary@np.linalg.inv(old_boundary)
-            entry_pose=boundary_transform@pose_matrix(entry_drive[:7])
-            old_entry=artifact['entry']
+            old_entry=measured[free_pregrasp]
+            # Zero-contact drive error is transient tracking lag, not grasp
+            # preload. Holding that moving target as a static bridge endpoint
+            # drove the hand centimetres into the tool. Prepare the observed
+            # free geometry; learned contact drives begin inside CORE.
+            entry_pose=boundary_transform@pose_matrix(old_entry['wrist_xyz_wxyz'])
+            ready_hand=old_entry['hand_q']
             expected_pose=boundary_transform@pose_matrix(old_entry['wrist_xyz_wxyz'])
             entry=dict(wrist_xyz_wxyz=np.r_[entry_pose[:3,3],Rotation.from_matrix(entry_pose[:3,:3]).as_quat()[[3,0,1,2]]].tolist(),
-                wrist_twist=np.zeros(6).tolist(),hand_q=old_entry['hand_q'],hand_dq=np.zeros(12).tolist(),
-                command_hand_q=entry_drive[7:19].tolist())
+                wrist_twist=np.zeros(6).tolist(),hand_q=ready_hand,hand_dq=np.zeros(12).tolist(),
+                command_hand_q=ready_hand)
             result[anchor.id]=dict(entry=entry,commands=commands,
                 expected_wrist_state=expected_pose.tolist(),previous_drive_wrist=entry['wrist_xyz_wxyz'],
                 previous_drive_twist=entry['wrist_twist'],previous_drive_hand=entry['command_hand_q'],provenance=dict(
                 artifact=str(path.parent),source_provenance=report['source_provenance'],
-                method='source_object_frame_validated_local_drive_initialization',physical_acceptance=False,
+                method='measured_object_frame_validated_local_drive_initialization',physical_acceptance=False,
                 local_source_correspondence=correspondence.tolist(),oracle_schedule_changed=False,
-                endpoint_filter='native grasp and configured planning velocity budget' if planning else 'native grasp',
-                free_pregrasp_phase=entry_phase,free_pregrasp_physical_evidence=str(trace_path),
+                executed_initialization_phase='uniform_canonical_local_CORE',
+                endpoint_filter='physically validated canonical CORE exit and configured planning velocity budget',
+                free_pregrasp_phase=entry_phase,free_pregrasp_rank=free_entry_rank,
+                free_pregrasp_count=len(free_states),free_pregrasp_physical_evidence=str(trace_path),
                 new_source_budget_s=(anchor.core_end-anchor.core_start)/schedule.fps))
     return result

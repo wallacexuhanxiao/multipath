@@ -11,8 +11,22 @@ from multipath.planning.timing import fixed_budget_path,parameterize_path,bounda
 
 
 def pose_coordinates(pose,near=None):
-    pose=np.asarray(pose);angles=Rotation.from_quat(pose[[4,5,6,3]]).as_euler('ZYX')
-    if near is not None:angles+=2*np.pi*np.round((np.asarray(near)[3:]-angles)/(2*np.pi))
+    import warnings
+    pose=np.asarray(pose)
+    with warnings.catch_warnings():
+        warnings.filterwarnings('ignore',message='Gimbal lock detected.*',category=UserWarning)
+        angles=Rotation.from_quat(pose[[4,5,6,3]]).as_euler('ZYX')
+    if near is not None:
+        # A pitch crossing pi/2 also flips yaw and roll by pi. Wrapping
+        # individual angles by 2*pi misses that equivalent Euler branch and
+        # turns a small spatial rotation into an impossible timed bridge.
+        if abs(np.cos(angles[1]))<1e-7:
+            sign=np.sign(angles[1]);previous=np.asarray(near)[[3,5]];normal=np.array([1.,-sign])
+            target=angles[0]+2*np.pi*round((normal@previous-angles[0])/(2*np.pi))
+            angles[[0,2]]=previous+normal*(target-normal@previous)/2
+        alternatives=np.stack((angles,angles+np.array([np.pi,np.pi-2*angles[1],np.pi])))
+        alternatives+=2*np.pi*np.round((np.asarray(near)[None,3:]-alternatives)/(2*np.pi))
+        angles=alternatives[np.argmin(np.linalg.norm(alternatives-np.asarray(near)[None,3:],axis=1))]
     return np.r_[pose[:3],angles]
 
 
@@ -155,6 +169,10 @@ def boundary_collision_cover(vertices,faces,pose,boxes,clearance=None):
     center=rotation.apply(np.asarray([s['center'] for s in coarse]))+pose[:3]
     radius=np.asarray([s['radius'] for s in coarse])
     if clear_mask(center,radius).all():return coarse
+    if clearance is not None and np.any(np.asarray(clearance(vertices,np.zeros(len(vertices))))<0):
+        # Refinement cannot cover an already blocked surface point with a
+        # positive-radius sphere. Avoid exponential triangle subdivision.
+        raise RuntimeError('Boundary collision cover could not resolve a safe entry: surface lies in collision world')
     collisions=[name for name,box in boxes.items() if mesh_box_intersects(vertices,faces,box)]
     if collisions:raise RuntimeError(f'Actual mesh intersects a planning obstacle at entry: {collisions}')
     clear=clear_mask(center,radius)
@@ -167,6 +185,8 @@ def boundary_collision_cover(vertices,faces,pose,boxes,clearance=None):
     pending=triangles[needed]
     for _ in range(18):
         center=pending.mean(1);radius=np.linalg.norm(pending-center[:,None],axis=2).max(1)+1e-7
+        if clearance is not None and np.any(np.asarray(clearance(center,np.zeros(len(center))))<0):
+            raise RuntimeError('Boundary collision cover could not resolve a safe entry: surface lies in collision world')
         clear=clear_mask(center,radius)
         centers.append(center[clear]);radii.append(radius[clear])
         if clear.all():
@@ -216,7 +236,7 @@ def compact_collision_cover(spheres,pose,boxes,cell=.025,clearance=None):
     return [dict(center=c.tolist(),radius=float(s)) for c,s in zip(local,radii)]
 
 
-def robot_model(scene,carry,out):
+def robot_model(scene,carry,out,goal_hand=None):
     from pxr import Usd,UsdGeom
     out=Path(out);out.mkdir(parents=True,exist_ok=True)
     names=['tx','ty','tz','yaw','pitch','roll'];axes=['1 0 0','0 1 0','0 0 1','0 0 1','0 1 0','1 0 0']
@@ -240,6 +260,12 @@ def robot_model(scene,carry,out):
         world_points=points@trans[:3,:3].T+trans[:3,3]
         spheres+=cover_points(rot.inv().apply(world_points-pose[:3]),faces=faces)
     scene.measured_hand_collision_meshes=measured
+    sweep_count=1
+    if not carry and goal_hand is not None and not np.allclose(goal_hand,scene.state()['hand_q'],atol=1e-8,rtol=0):
+        from multipath.planning.hand_geometry import hand_sweep_spheres
+        meshes=[(prim,*scene.measured_hand_mesh_data[str(prim.GetPath())]) for prim,_,_ in measured]
+        spheres,sweep_count=hand_sweep_spheres(scene,goal_hand,meshes,cover_points)
+    scene.planned_hand_sweep_samples=sweep_count
     if carry:
         p,q=scene.objects['tool'].get_world_pose()
         proxy=carried_proxy(scene)
@@ -272,12 +298,15 @@ def robot_model(scene,carry,out):
 
 
 class FloatingPlanner:
-    def __init__(self,scene,carry,out):
+    def __init__(self,scene,carry,out,goal_hand=None):
+        from multipath.planning.curobo_compat import install_curobo_compatibility
+        install_curobo_compatibility()
         from curobo.types.base import TensorDeviceType
         from curobo.wrap.reacher.motion_gen import MotionGen,MotionGenConfig
         from curobo.geom.sdf.world import CollisionCheckerType
         self.scene=scene;self.tensor=TensorDeviceType(device='cuda:0');self.carry=carry;self.out=Path(out)
-        cfg,self.sphere_count=robot_model(scene,carry,out)
+        self.goal_hand=goal_hand;self.goal_cover_checked=False
+        cfg,self.sphere_count=robot_model(scene,carry,out,goal_hand)
         live={'cuboid':{'table':scene.table},'mesh':{}}
         for role in (['target'] if carry else ['tool','target']):
             p,q=scene.objects[role].get_world_pose();oid=scene.manifest['initial_objects'][role]['id']
@@ -307,10 +336,18 @@ class FloatingPlanner:
             geometry.update(spheres=refined,proxy='coarse surface cells with exact boundary triangle subdivision')
             (self.out/'collision_geometry.json').write_text(json.dumps(geometry,indent=2))
         def build_planner():
-            return MotionGen(MotionGenConfig.load_from_robot_config(cfg,live,tensor_args=self.tensor,interpolation_dt=scene.dt,
-                optimize_dt=False,trajopt_dt=1/scene.manifest['fps'],js_trajopt_dt=1/scene.manifest['fps'],
-                self_collision_check=False,self_collision_opt=False,
-                collision_checker_type=CollisionCheckerType.MESH if live.get('mesh') else CollisionCheckerType.PRIMITIVE,use_cuda_graph=False))
+            import faulthandler
+            # This constructor stalled for an entire allocation. Capture its
+            # actual stack and stop the native startup, not a physical rollout.
+            print('CUROBO_BUILD_BEGIN',len(cfg['kinematics']['collision_spheres']['wrist']),flush=True)
+            faulthandler.dump_traceback_later(90,exit=True)
+            try:
+                return MotionGen(MotionGenConfig.load_from_robot_config(cfg,live,tensor_args=self.tensor,interpolation_dt=scene.dt,
+                    optimize_dt=False,trajopt_dt=1/scene.manifest['fps'],js_trajopt_dt=1/scene.manifest['fps'],
+                    self_collision_check=False,self_collision_opt=False,
+                    collision_checker_type=CollisionCheckerType.MESH if live.get('mesh') else CollisionCheckerType.PRIMITIVE,use_cuda_graph=False))
+            finally:faulthandler.cancel_dump_traceback_later()
+        self.robot_config=cfg;self.build_planner=build_planner
         self.planner=build_planner()
         pose,_=scene.root_motion()
         centers=Rotation.from_quat(pose[[4,5,6,3]]).apply(np.array([s['center'] for s in self.nominal_spheres]))+pose[:3]
@@ -342,12 +379,28 @@ class FloatingPlanner:
             (self.out/'collision_geometry.json').write_text(json.dumps(geometry,indent=2))
             (self.out/'boundary_collision_cover.json').write_text(json.dumps(dict(conservative_surface_coverage=True,
                 sphere_count=len(refined),obstacles='actual cuboid and mesh world'),indent=2))
+        self.verify_fk()
+
+    def verify_fk(self):
+        import json
         # Catch a virtual-coordinate convention mismatch before physical use.
-        pose,_=scene.root_motion();q=pose_coordinates(pose)
+        pose,_=self.scene.root_motion();q=pose_coordinates(pose)
         fk=self.planner.kinematics.get_state(self.tensor.to_device(q.copy())[None])
         actual=np.r_[fk.ee_position.detach().cpu().numpy()[0],fk.ee_quaternion.detach().cpu().numpy()[0]]
         error=(Rotation.from_quat(actual[[4,5,6,3]])*Rotation.from_quat(pose[[4,5,6,3]]).inv()).magnitude()
         if np.linalg.norm(actual[:3]-pose[:3])>1e-5 or error>1e-4:raise RuntimeError('Virtual wrist FK convention mismatch')
+        # EEF-only validation missed sphere-address overflow: its pose stayed
+        # correct while dense collision geometry corrupted GPU memory.
+        actual_spheres=fk.get_link_spheres().detach().cpu().numpy()[0]
+        expected_centers=Rotation.from_quat(pose[[4,5,6,3]]).apply(np.asarray(
+            [s['center'] for s in self.nominal_spheres]))+pose[:3]
+        sphere_error=float(np.max(np.linalg.norm(actual_spheres[:,:3]-expected_centers,axis=1)))
+        radius_error=float(np.max(np.abs(actual_spheres[:,3]-np.asarray([s['radius'] for s in self.nominal_spheres]))))
+        (self.out/'sphere_fk_verification.json').write_text(json.dumps(dict(
+            sphere_count=self.sphere_count,max_position_error_m=sphere_error,max_radius_error_m=radius_error,
+            forward_sphere_chunk_size=8192,full_geometry_retained=True),indent=2))
+        if not np.isfinite([sphere_error,radius_error]).all() or sphere_error>1e-5 or radius_error>1e-6:
+            raise RuntimeError('Virtual wrist collision sphere FK mismatch')
 
     def js(self,q):
         from curobo.types.robot import JointState
@@ -364,11 +417,75 @@ class FloatingPlanner:
         each cell's radius; adding a second cell radius at the goal would
         displace an otherwise valid pregrasp by centimetres.
         """
+        if not self.goal_cover_checked:
+            self.refine_goal_cover(pose)
+            self.goal_cover_checked=True
         if not self.live.get('mesh'):
             return sphere_world_clearance(pose,self.nominal_spheres,self.live['cuboid'])[1]
         spheres=self.nominal_spheres;pose=np.asarray(pose)
         centers=Rotation.from_quat(pose[[4,5,6,3]]).apply(np.asarray([s['center'] for s in spheres]))+pose[:3]
         return self.world_clearance(centers,np.asarray([s['radius'] for s in spheres]),gradient=True)
+
+    def refine_goal_cover(self,goal):
+        """Resolve conservative sphere overlap at a proposed free boundary.
+
+        Refining only the current start left valid millimetre-clear pregrasps
+        displaced by centimetres at the goal. Cover the same full hand sweep
+        against both boundaries; neither geometry nor obstacles are removed.
+        """
+        if self.carry or self.goal_hand is None:return
+        from multipath.planning.hand_geometry import hand_sweep_meshes
+        start,_=self.scene.root_motion();start=np.asarray(start);goal=np.asarray(goal)
+        r0=Rotation.from_quat(start[[4,5,6,3]]);r1=Rotation.from_quat(goal[[4,5,6,3]])
+        centers=r1.apply(np.asarray([s['center'] for s in self.nominal_spheres]))+goal[:3]
+        radii=np.asarray([s['radius'] for s in self.nominal_spheres])
+        margin=1e-4
+        if np.min(self.world_clearance(centers,radii,per_sphere=True))>=margin:return
+        meshes=[(prim,*self.scene.measured_hand_mesh_data[str(prim.GetPath())])
+                for prim,_,_ in self.scene.measured_hand_collision_meshes]
+        geometry,count=hand_sweep_meshes(self.scene,self.goal_hand,meshes)
+        import json
+        def collision_diagnostic(index,boundary,obstacle):
+            (self.out/'goal_boundary_geometry.json').write_text(json.dumps(dict(
+                refined=False,reason='full hand mesh intersection',
+                hand_mesh=str(meshes[index%len(meshes)][0].GetPath()),
+                boundary=boundary,obstacle=obstacle,goal_pose=goal.tolist()),indent=2))
+        import fcl
+        obstacles=[]
+        for role in self.live.get('mesh',{}):
+            mesh=self.scene.meshes[role];model=fcl.BVHModel();model.beginModel(len(mesh.vertices),len(mesh.faces))
+            model.addSubModel(mesh.vertices,mesh.faces);model.endModel()
+            p,q=self.scene.objects[role].get_world_pose()
+            obstacles.append((role,fcl.CollisionObject(model,fcl.Transform(Rotation.from_quat(np.asarray(q)[[1,2,3,0]]).as_matrix(),p))))
+        # If an actual swept surface intersects at either boundary, retain
+        # normal boundary projection. Refinement cannot make it collision-free.
+        for i,(vertices,faces) in enumerate(geometry):
+            model=fcl.BVHModel();model.beginModel(len(vertices),len(faces));model.addSubModel(vertices,faces);model.endModel()
+            for boundary,pose,rotation in (('start',start,r0),('goal',goal,r1)):
+                world=rotation.apply(vertices)+pose[:3]
+                for role,box in self.live['cuboid'].items():
+                    if mesh_box_intersects(world,faces,box):
+                        collision_diagnostic(i,boundary,role);return
+                body=fcl.CollisionObject(model,fcl.Transform(rotation.as_matrix(),pose[:3]))
+                for role,obstacle in obstacles:
+                    if fcl.collide(body,obstacle,fcl.CollisionRequest(),fcl.CollisionResult()):
+                        collision_diagnostic(i,boundary,role);return
+        def clearance(world,radius):
+            at_goal=r1.apply(r0.inv().apply(world-start[:3]))+goal[:3]
+            return np.minimum(self.world_clearance(world,radius,per_sphere=True),
+                              self.world_clearance(at_goal,radius,per_sphere=True))-margin
+        refined=[]
+        for vertices,faces in geometry:
+            refined+=boundary_collision_cover(r0.apply(vertices)+start[:3],faces,start,self.live['cuboid'],clearance=clearance)
+        refined=compact_collision_cover(refined,start,self.live['cuboid'],clearance=clearance)
+        self.robot_config['kinematics']['collision_spheres']['wrist']=refined
+        self.nominal_spheres=refined;self.sphere_count=len(refined);self.planner=self.build_planner()
+        self.verify_fk()
+        import json
+        path=self.out/'collision_geometry.json';report=json.loads(path.read_text())
+        report.update(spheres=refined,proxy='full hand sweep refined against both free boundary meshes',
+                      free_goal_pose=goal.tolist(),hand_sweep_samples=count)
+        path.write_text(json.dumps(report,indent=2))
 
     def world_clearance(self,centers,radii,gradient=False,per_sphere=False):
         from curobo.geom.sdf.world import CollisionQueryBuffer
@@ -563,6 +680,7 @@ class FloatingPlanner:
             reference_tracking=False,source_time_stretch=False,arm_model_used=False,tracking_margin_m=scene.planning_tracking_margin_m,
             previous_command_tracking_margin_m=scene.previous_command_tracking_margin_m,
             hand_boundary_motion=bool(np.any(np.abs(hands-hands[0])>1e-8)),
-            planned_hand_geometry='entry_posture',
+            planned_hand_geometry='sampled_free_finger_sweep' if scene.planned_hand_sweep_samples>1 else 'entry_posture',
+            planned_hand_sweep_samples=scene.planned_hand_sweep_samples,
             hand_boundary_collision_validation='measured_geometry_each_physics_step')
         return commands,timing

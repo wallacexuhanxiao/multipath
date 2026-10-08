@@ -20,6 +20,7 @@ def main():
     p.add_argument('--triplet',required=True);p.add_argument('--sequence',required=True)
     p.add_argument('--sim-prefix',type=Path,help='JSON argv prefix, e.g. Singularity + Isaac Python; default current Python.')
     p.add_argument('--retarget-python',default=sys.executable)
+    p.add_argument('--prepared-proposals',type=Path,help='Optional cached local oracle proposals; no physical acceptance is reused.')
     p.add_argument('--seed-artifacts',type=Path,help='Optional local warm start of this source; not required.')
     p.add_argument('--initial-bridge-run',type=Path,help='Optional physically passed initial cuRobo segment of this source.')
     p.add_argument('--resume-diversity-bank',type=Path,help='Optional passed local bridge candidates; full rollouts remain mandatory.')
@@ -69,9 +70,29 @@ def main():
     seeds=out/'local_seeds';seeds.mkdir(exist_ok=True)
     if args.seed_artifacts:shutil.copytree(args.seed_artifacts,seeds,dirs_exist_ok=True)
     connected=[];initial_bridge=args.initial_bridge_run;boundary_feedback=None;geometry_feedback=None;candidate=None;carry_context={}
+    template_active=args.template_artifacts is not None
+    template_entry_rank=0
+    def raw_initialization(reason):
+        nonlocal template_active,initial_bridge,boundary_feedback,geometry_feedback
+        template_active=False;initial_bridge=None;boundary_feedback=None;geometry_feedback=None
+        report.setdefault('initialization_fallbacks',[]).append(dict(
+            reason=reason,method='raw_local_oracle_retarget',physical_acceptance=False))
+        save()
     try:
-        run('prepare','prepare_oracle_anchors.py',['--schedule',args.schedule,'--triplet',args.triplet,
-            '--sequence',args.sequence,'--mount-report',args.mount_report,'--output-dir',out/'proposals'])
+        if args.prepared_proposals:
+            import hashlib
+            cached=json.loads((args.prepared_proposals/'manifest.json').read_text());source=cached['provenance']
+            if (source['triplet']!=args.triplet or source['sequence']!=args.sequence or
+                    source['schedule_sha256']!=hashlib.sha256(args.schedule.read_bytes()).hexdigest() or
+                    source.get('full_robot_reference_used') or source.get('vlm_used')):
+                raise ValueError('Cached proposals do not match this raw source/oracle schedule')
+            shutil.copytree(args.prepared_proposals,out/'proposals',dirs_exist_ok=True)
+            report['steps'].append(dict(name='prepare',status='finished',success=True,elapsed_s=0.,
+                cached_local_proposals=str(args.prepared_proposals),physical_acceptance=False))
+            save()
+        else:
+            run('prepare','prepare_oracle_anchors.py',['--schedule',args.schedule,'--triplet',args.triplet,
+                '--sequence',args.sequence,'--mount-report',args.mount_report,'--object-cache',args.object_cache,'--output-dir',out/'proposals'])
         # Acquire canonical entries through the same actual cuRobo predecessor
         # used in the final schedule. Its last padding frames provide physical
         # synthesis context; a separate synth_start bridge can create a CORE
@@ -79,12 +100,18 @@ def main():
         for attempt in range(args.max_attempts):
             candidate=out/f'candidate_{attempt:02d}'
             params=[*common,'--seed-artifacts',seeds,'--output-dir',candidate]
-            if args.template_artifacts:params+=['--template-artifacts',args.template_artifacts,'--template-proposals',args.template_proposals]
+            if template_active:params+=['--template-artifacts',args.template_artifacts,'--template-proposals',args.template_proposals,
+                '--template-free-entry-rank',template_entry_rank]
             if initial_bridge:params+=['--initial-bridge-run',initial_bridge]
             if boundary_feedback:params+=['--boundary-feedback-run',boundary_feedback]
             if geometry_feedback:params+=['--exit-geometry-feedback-run',geometry_feedback]
-            value=run(f'candidate_{attempt:02d}','develop_connected_oracle.py',params,True,
-                candidate/'pipeline_result.json','task_success')
+            try:
+                value=run(f'candidate_{attempt:02d}','develop_connected_oracle.py',params,True,
+                    candidate/'pipeline_result.json','task_success')
+            except RuntimeError as error:
+                if template_active and 'physical result missing' in str(error):
+                    raw_initialization(str(error));continue
+                raise
             connected.append(candidate)
             if value.get('task_success'):break
             failed=next((s for s in value.get('segments',[]) if not s.get('success')),None)
@@ -99,10 +126,35 @@ def main():
             repair=dict(attempt=attempt,window=[failed['start'],failed['end']],
                 error=value.get('error') or failed.get('failure'),physical_run=str(candidate))
             report['repairs'].append(repair);save()
+            if template_active and failed['start']==0:
+                count=max((v.get('free_pregrasp_count',1) for v in value.get('interaction_initialization',{}).values()),default=1)
+                if template_entry_rank+1<count:
+                    template_entry_rank+=1;initial_bridge=None;boundary_feedback=None;geometry_feedback=None
+                    repair.update(method='next_physically_acquired_free_library_boundary',free_entry_rank=template_entry_rank)
+                else:
+                    raw_initialization(value.get('error') or str(failed.get('failure')))
+                    repair['method']='failed_optional_library_proposal_fallback_to_raw_local_retarget'
+                save();continue
             if failed.get('contact')=='grasped' and (candidate/f'relaxed_{failed["start"]}_{failed["end"]}.npz').exists():
                 carry_context[failed['start']]=candidate
             if failed['mode']=='ANCHOR':
                 anchor_id=failed['anchor'];local=out/f'local_{anchor_id}_{attempt:02d}'
+                details=json.loads((out/'proposals'/'manifest.json').read_text()).get('retarget_details',{}).get(anchor_id,{})
+                preceding=next((s for s in value['segments'] if s['end']==failed['start'] and s['mode']=='RELAXED'),None)
+                geometry_path=(candidate/f'planner_{preceding["start"]}'/'goal_boundary_geometry.json' if preceding else None)
+                # Registering a GT-tool-frame grasp into the actual resting
+                # tool frame can rotate a distal phalange below the table.
+                # Refit this observed geometry failure before physical search.
+                if (details.get('method')=='local_mesh_opposition_surface_IK' and
+                        'physical_geometry_entry' not in details and geometry_path and geometry_path.exists() and
+                        json.loads(geometry_path.read_text()).get('obstacle')=='table'):
+                    geometry=out/f'geometry_{anchor_id}_{attempt:02d}'
+                    run(f'geometry_{anchor_id}_{attempt:02d}','refit_free_anchor_geometry.py',
+                        ['--schedule',args.schedule,'--proposals',out/'proposals','--entry-run',candidate,
+                         '--anchor-id',anchor_id,'--xhand-urdf',args.xhand_urdf,'--object-cache',args.object_cache,
+                         '--output-dir',geometry],result=geometry/'geometry_result.json',key='proposal_refitted')
+                    repair['method']='local_grasp_geometry_refit_against_actual_tool_and_table'
+                    save();continue
                 local_value=run(f'local_{anchor_id}_{attempt:02d}','develop_reached_anchor.py',
                     [*common,'--anchor-id',anchor_id,'--entry-run',candidate,'--output-dir',local,
                      '--mpc-candidates',args.mpc_candidates,'--mpc-iters',args.mpc_iters,'--ppo-updates',args.ppo_updates],
@@ -132,6 +184,9 @@ def main():
                 repair.update(method='preceding_Anchor_resynthesis_with_actual_carry_context',artifact=str(local/'anchors'/anchor_id))
             elif failed.get('contact')=='free' and 'Actual mesh intersects a planning obstacle at entry' in value.get('error',''):
                 geometry_feedback=candidate;repair['method']='measured_free_exit_geometry_feedback'
+            elif failed.get('contact')=='free' and failed['start']==0 and any(text in value.get('error','') for text in
+                ['Actual RELAXED mesh collision','No collision-free trajectory in source time','Floating cuRobo failed:']):
+                boundary_feedback=candidate;repair['method']='free_Anchor_entry_resynthesis_from_actual_bridge_feedback'
             else:
                 raise RuntimeError(f'Unresolved physical failure at {repair["window"]}: {value.get("error")}')
             save()

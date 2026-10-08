@@ -24,7 +24,7 @@ for case in cases:
     run_name=name+'_'+case['sequence'];folder=root/'outputs'/run_name;folder.mkdir(exist_ok=True)
     env=dict(os.environ,MULTIPATH_RUN_NAME=run_name,MULTIPATH_SCHEDULE=case['schedule'],
              MULTIPATH_TRIPLET=case['triplet'],MULTIPATH_SEQUENCE=case['sequence'])
-    for field,variable in [('seed_artifacts','MULTIPATH_SEED_ARTIFACTS'),('initial_bridge_run','MULTIPATH_INITIAL_BRIDGE_RUN'),
+    for field,variable in [('prepared_proposals','MULTIPATH_PREPARED_PROPOSALS'),('seed_artifacts','MULTIPATH_SEED_ARTIFACTS'),('initial_bridge_run','MULTIPATH_INITIAL_BRIDGE_RUN'),
                            ('template_artifacts','MULTIPATH_TEMPLATE_ARTIFACTS'),('template_proposals','MULTIPATH_TEMPLATE_PROPOSALS'),
                            ('resume_diversity_bank','MULTIPATH_RESUME_DIVERSITY_BANK'),
                            ('solutions_per_interval','MULTIPATH_SOLUTIONS_PER_INTERVAL')]:

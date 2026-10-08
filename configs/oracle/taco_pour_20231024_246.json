@@ -1,0 +1,89 @@
+{
+  "source": "oracle",
+  "fps": 30.0,
+  "num_frames": 145,
+  "sequence": "20231024_246",
+  "triplet": "(pour in some, bowl, plate)",
+  "instruction": "grasp bowl, pour while holding it, return and release",
+  "segmentation_provenance": "Manual review of original RGB contact sheets and detailed boundary frames; static input, no automatic discovery or VLM.",
+  "task_contract": {
+    "kind": "anchor_sequence_and_final_object_pose",
+    "position_tolerance_m": 0.05,
+    "rotation_tolerance_rad": 0.35,
+    "stable_speed_m_s": 0.03
+  },
+  "windows": [
+    {
+      "start": 0,
+      "end": 30,
+      "mode": "RELAXED",
+      "contact": "free"
+    },
+    {
+      "start": 30,
+      "end": 50,
+      "mode": "ANCHOR",
+      "anchor": "anchor_0"
+    },
+    {
+      "start": 50,
+      "end": 62,
+      "mode": "RELAXED",
+      "contact": "grasped"
+    },
+    {
+      "start": 62,
+      "end": 110,
+      "mode": "ANCHOR",
+      "anchor": "anchor_1"
+    },
+    {
+      "start": 110,
+      "end": 122,
+      "mode": "RELAXED",
+      "contact": "grasped"
+    },
+    {
+      "start": 122,
+      "end": 133,
+      "mode": "ANCHOR",
+      "anchor": "anchor_2"
+    },
+    {
+      "start": 133,
+      "end": 145,
+      "mode": "RELAXED",
+      "contact": "free"
+    }
+  ],
+  "anchors": [
+    {
+      "id": "anchor_0",
+      "core_start": 30,
+      "core_end": 50,
+      "synth_start": 24,
+      "synth_end": 56,
+      "entry_contact": "free",
+      "exit_contact": "grasped"
+    },
+    {
+      "id": "anchor_1",
+      "core_start": 62,
+      "core_end": 110,
+      "synth_start": 56,
+      "synth_end": 116,
+      "entry_contact": "grasped",
+      "exit_contact": "grasped"
+    },
+    {
+      "id": "anchor_2",
+      "core_start": 122,
+      "core_end": 133,
+      "synth_start": 116,
+      "synth_end": 139,
+      "entry_contact": "grasped",
+      "exit_contact": "free"
+    }
+  ],
+  "semantic_scope": "Native grasp, bowl tilt and return; no liquid simulator or liquid-transfer claim."
+}

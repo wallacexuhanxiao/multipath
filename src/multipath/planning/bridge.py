@@ -41,16 +41,19 @@ def carried_object_clearance(scene,state):
     A hand/tool contact while the table supports the bowl is not a transportable
     bridge boundary. This cheap exit check avoids accepting that local optimum.
     """
-    spheres=carried_proxy(scene);tool=np.asarray(state['objects']['tool']['pose'])
+    tool=np.asarray(state['objects']['tool']['pose'])
     rotation=Rotation.from_quat(tool[[4,5,6,3]])
-    centers=rotation.apply(np.array([x['center'] for x in spheres]))+tool[:3]
-    radii=np.array([x['radius'] for x in spheres]);boxes={'table':scene.table}
+    # Coarse covering spheres extend beyond the bowl's real surface. Their
+    # table overlap is a planning diagnostic, not physical penetration.
+    vertices=rotation.apply(scene.meshes['tool'].vertices)+tool[:3];boxes={'table':scene.table}
     result={}
     for role,box in boxes.items():
-        pose=np.asarray(box['pose']);local=Rotation.from_quat(pose[[4,5,6,3]]).inv().apply(centers-pose[:3])
+        pose=np.asarray(box['pose']);local=Rotation.from_quat(pose[[4,5,6,3]]).inv().apply(vertices-pose[:3])
         offset=np.abs(local)-np.asarray(box['dims'])/2
-        distance=np.linalg.norm(np.maximum(offset,0),axis=1)+np.minimum(np.max(offset,axis=1),0)-radii
-        result[role]=float(np.min(distance))
+        distance=np.linalg.norm(np.maximum(offset,0),axis=1)+np.minimum(np.max(offset,axis=1),0)
+        from multipath.planning.floating import mesh_box_intersects
+        collision=mesh_box_intersects(vertices,scene.meshes['tool'].faces,box)
+        result[role]=float(min(np.min(distance),-1e-7) if collision else np.min(distance))
     # A target's bounding box can fill a tray/bowl cavity or empty corners.
     # That rejected a carried exit with 4.2 cm actual mesh separation.
     import fcl

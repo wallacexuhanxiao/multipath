@@ -1,0 +1,40 @@
+{
+  "success": false,
+  "elapsed_s": 430.4568340340629,
+  "pbs_job_id": "655067.hopper-m-02",
+  "sources": [
+    {
+      "sequence": "20231024_246",
+      "run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_action_types_r179_20231024_246",
+      "returncode": 1,
+      "success": false,
+      "v0_success": false,
+      "solutions_per_interval": 3,
+      "complete_rollout_count": 0,
+      "diversity_run": null,
+      "error": "Local anchor_0 failed: Reached-entry local interaction failed"
+    },
+    {
+      "sequence": "20231103_057",
+      "run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_action_types_r179_20231103_057",
+      "returncode": 1,
+      "success": false,
+      "v0_success": false,
+      "solutions_per_interval": 3,
+      "complete_rollout_count": 0,
+      "diversity_run": null,
+      "error": "Local anchor_0 failed: Reached-entry local interaction failed"
+    },
+    {
+      "sequence": "20231102_003",
+      "run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_action_types_r179_20231102_003",
+      "returncode": 1,
+      "success": false,
+      "v0_success": false,
+      "solutions_per_interval": 3,
+      "complete_rollout_count": 0,
+      "diversity_run": null,
+      "error": "Local anchor_0 failed: Reached-entry local interaction failed"
+    }
+  ]
+}

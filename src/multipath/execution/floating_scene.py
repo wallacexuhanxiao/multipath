@@ -61,6 +61,11 @@ class FloatingScene:
         links=[str(p.GetPath()) for p in self.world.stage.Traverse() if str(p.GetPath()).startswith(self.root+'/') and p.HasAPI(UsdPhysics.RigidBodyAPI)]
         self.contacts=self.world.scene.add(RigidPrim(prim_paths_expr=links,name='hand_tool_contacts',track_contact_forces=True,
             contact_filter_prim_paths_expr=[['/World/tool'] for _ in links],max_contact_count=1024))
+        self.tool_target_contacts=None
+        if manifest.get('interaction_constraints'):
+            self.tool_target_contacts=self.world.scene.add(RigidPrim(prim_paths_expr=['/World/tool'],name='tool_target_contacts',
+                track_contact_forces=True,contact_filter_prim_paths_expr=[['/World/target']],max_contact_count=1024))
+        self.tool_target_contact_steps=0;self.tool_target_impulse=0.
         self.world.reset();self.wrist.initialize()
         names=list(self.robot.dof_names);self.fingers=np.array([names.index(n) for n in RIGHT_XHAND_FINGER_JOINT_NAMES])
         view=self.robot._articulation_view
@@ -115,7 +120,11 @@ class FloatingScene:
         forces[0,0]=force;torques[0,0]=torque
         self.av.apply_forces_and_torques_at_position(forces,torques,None,np.array([0],dtype=np.uint32),True)
         q=np.asarray(self.robot.get_joint_positions()).copy();q[self.fingers]=hand
-        self.robot.apply_action(self.Action(joint_positions=q,joint_velocities=np.zeros_like(q)))
+        target_velocity=np.zeros_like(q)
+        self.hand_command_velocity=(np.clip((hand-self.hand_command)/self.dt,-self.hand_velocity,self.hand_velocity)
+            if cfg.get('hand_velocity_feedforward',False) else np.zeros_like(hand))
+        target_velocity[self.fingers]=self.hand_command_velocity
+        self.robot.apply_action(self.Action(joint_positions=q,joint_velocities=target_velocity))
         self.hand_command=np.array(hand).copy();self.command_pose=np.array(pose).copy();self.command_twist=np.array(twist).copy();self.last_wrench=np.r_[force,torque]
 
     def state(self):
@@ -130,9 +139,12 @@ class FloatingScene:
         return {'embodiment':self.embodiment,'wrist_xyz_wxyz':pose.tolist(),'wrist_twist':twist.tolist(),'hand_q':q.tolist(),'hand_dq':dq.tolist(),
             'objects':objects,'hand_object_transform':(np.linalg.inv(pose_matrix(pose))@pose_matrix(objects['tool']['pose'])).tolist(),
             'contact':hand_tool_contact(self.contacts.prim_paths,self.contacts.get_contact_force_matrix(dt=self.dt)),
+            'interaction_contacts':{'tool_target_contact_steps':self.tool_target_contact_steps,
+                                    'tool_target_impulse_n_s':self.tool_target_impulse},
             'scene_id':self.scene_id,'time_s':self.ticks*self.dt,'physically_acquired_state':True,'state_origin':'continuous_PhysX_rollout',
             'controller_wrench_bias':getattr(self,'wrench_bias',np.zeros(6)).tolist(),
             'hand_self_gravity_torque':self.self_gravity_torque.tolist(),
+            'command_hand_dq':self.hand_command_velocity.tolist(),
             'command_wrist':self.command_pose.tolist(),'command_twist':self.command_twist.tolist(),'command_hand_q':self.hand_command.tolist()}
 
     def capture(self,mode,frame):
@@ -144,6 +156,11 @@ class FloatingScene:
         if not np.isclose(frame,(self.ticks+1)*self.dt*self.manifest['fps'],rtol=0,atol=1e-8):
             raise ValueError('Command source frame differs from actual physics clock')
         self._drive(command[:7],command[7:19],command[19:25]);self.world.step(render=False);self.ticks+=1
+        if self.tool_target_contacts is not None:
+            force=float(np.linalg.norm(self.tool_target_contacts.get_contact_force_matrix(dt=self.dt)))
+            if not np.isfinite(force):raise RuntimeError('Non-finite tool-target contact force')
+            self.tool_target_contact_steps+=int(force>.01)
+            self.tool_target_impulse+=force*self.dt
         if self.ticks%self.tpf==0:self.capture(mode,frame)
 
     def snapshot(self):
@@ -172,13 +189,19 @@ class FloatingScene:
         self.transport_load=False
         drive=q.copy()
         if preserve:drive[self.fingers]=state.get('command_hand_q',state['hand_q'])
-        self.robot.apply_action(self.Action(joint_positions=drive,joint_velocities=np.zeros_like(dq) if preserve else dq))
+        target_velocity=np.zeros_like(dq) if preserve else dq.copy()
+        if preserve:target_velocity[self.fingers]=state.get('command_hand_dq',np.zeros(12))
+        self.robot.apply_action(self.Action(joint_positions=drive,joint_velocities=target_velocity))
         for role,obj in self.objects.items():
             s=state['objects'][role];obj.set_world_pose(position=np.asarray(s['pose'][:3]),orientation=np.asarray(s['pose'][3:]));obj.set_linear_velocity(np.asarray(s['velocity'][:3]));obj.set_angular_velocity(np.asarray(s['velocity'][3:]))
         self.ticks=round(state['time_s']/self.dt);self.lineage=state['entry_provenance'];self.restore_count+=1
         self.command_pose=np.asarray(state.get('command_wrist',pose) if preserve else pose).copy()
         self.command_twist=np.asarray(state.get('command_twist',twist) if preserve else twist).copy()
         self.hand_command=drive[self.fingers].copy()
+        self.hand_command_velocity=np.asarray(state.get('command_hand_dq',np.zeros(12))).copy()
+        interaction=state.get('interaction_contacts',{})
+        self.tool_target_contact_steps=interaction.get('tool_target_contact_steps',0)
+        self.tool_target_impulse=interaction.get('tool_target_impulse_n_s',0.)
         self.restored_tick=self.ticks
         self.restored_state=dict(state,command_wrist=self.command_pose.tolist(),command_twist=self.command_twist.tolist(),
                                  command_hand_q=self.hand_command.tolist())
@@ -207,6 +230,7 @@ class FloatingScene:
         self.robot.set_linear_velocity(np.zeros(3));self.robot.set_angular_velocity(np.zeros(3))
         q=np.zeros(self.robot.num_dof);q[self.fingers]=self.initial_drive_hand
         self.robot.set_joint_positions(q);self.robot.set_joint_velocities(np.zeros_like(q))
+        self.hand_command=self.initial_drive_hand.copy();self.hand_command_velocity=np.zeros(12)
         for role,obj in self.objects.items():
             initial=self.manifest['initial_objects'][role]['pose']
             obj.set_world_pose(position=np.asarray(initial[:3]),orientation=np.asarray(initial[3:]))
@@ -215,6 +239,7 @@ class FloatingScene:
         for _ in range(120):
             self._drive(pose,self.initial_drive_hand,np.zeros(6));self.world.step(render=False)
         self.ticks=0;self.restored_tick=None;self.restore_count+=1;self.lineage={'initial_scene':self.scene_id}
+        self.tool_target_contact_steps=0;self.tool_target_impulse=0.
         self.begin_recording(out,mesh);self.capture('INITIAL',0)
 
     def save(self):

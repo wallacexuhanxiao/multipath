@@ -1,0 +1,33 @@
+{
+  "success": true,
+  "kind": "CPU wrapper indexing check; native CUDA and physical validation pending",
+  "cases": [
+    {
+      "sphere_count": 8192,
+      "batch_size": 2,
+      "native_chunk_sizes": [
+        8192
+      ],
+      "max_error": 0.0
+    },
+    {
+      "sphere_count": 8193,
+      "batch_size": 2,
+      "native_chunk_sizes": [
+        8192,
+        1
+      ],
+      "max_error": 0.0
+    },
+    {
+      "sphere_count": 18647,
+      "batch_size": 2,
+      "native_chunk_sizes": [
+        8192,
+        8192,
+        2263
+      ],
+      "max_error": 0.0
+    }
+  ]
+}
