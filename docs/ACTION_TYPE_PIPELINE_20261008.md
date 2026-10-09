@@ -476,9 +476,23 @@ local 数据；首步符合已有 drive velocity，实际 state 没有修改。
 这些检查不能提供 physical acceptance；下一步仍是 fresh
 padded/core 和完整连续 rollout。
 
-r201 / job 656589 已提交，interactive H200，20 min。最小 CPU
+r201 / job 656589 已完成，interactive H200，申请 20 min，实际
+563.78 s。三类首个 Anchor 均失败，完整 rollout 数为 0。最小 CPU
 optimizer probe 实际执行了两组更新，确认 actor 改变、输出有限、
 64×64 模型保留，noise multiplier 随 checkpoint 保存；没有
 把 optimizer check 计为物理成功。
+
+r201 的 refinement PPO 每类完成 60 更新、253 episode。
+确定性零 residual → 最佳 PPO 的首次失败帧分别是 pour 36→38、
+brush 30→32、hit 34→34。brush 在 frame 32 到达 CORE 终点但
+出口 handoff 失败；9 帧双侧接触只带来约 1.9 mm 工具升高。
+pour/hit 最佳回放没有双侧接触，仍因实际 object tracking 失败。
+重新执行 predecessor 的 whole-local PPO 也没有通过。
+详见 `PPO_APPENDIX_ALIGNMENT_20261009.md` 与 r201 机器可读证据。
+
+按用户提供的 C.1 截图，local solver 不再允许“后一个 chunk
+失败但提交前一个物理有效 prefix”：必须整段 lookahead 可行才
+提交一个 chunk。r201 最长尝试不足 20 帧，这项后续修正不会
+改写实验结论。未延长源时钟，未修改物体状态、物理参数或阈值。
 
 ![Whole-tool convex hull wrongly fills handle clearance](evidence/oracle_action_types_20261008/hammer_convex_hull_diagnosis.png)

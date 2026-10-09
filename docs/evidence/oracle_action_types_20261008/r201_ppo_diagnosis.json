@@ -1,0 +1,272 @@
+{
+  "pbs_job_id": "656589.hopper-m-02",
+  "elapsed_s": 563.7836945198942,
+  "complete_rollout_count": 0,
+  "validation": "actual PhysX; no new source has a physically valid first Anchor",
+  "sources": {
+    "pour": {
+      "refinement/ppo": {
+        "iterations": 60,
+        "episodes": 253,
+        "elapsed_s": 45.25448086601682,
+        "status": "budget_exhausted",
+        "parameters": 24293,
+        "reference_origin": "local_human_retarget_with_fixed_geometry_correction",
+        "objective": "Appendix C.3+C.7+C.8",
+        "early_termination": "C.4 weighted error > C; no rollout past tracking failure",
+        "evaluation_reward": "C.9 object tracking only",
+        "lifting_reward_enabled": true,
+        "max_attempted_source_steps": 19,
+        "training_successes": 0,
+        "zero_policy": {
+          "success": false,
+          "failure": {
+            "source_frame": 36.0,
+            "reason": "core_object_fidelity"
+          },
+          "source_steps": 6,
+          "evaluation_return": 2.9137706944477895,
+          "opposition_contact_frames": 0,
+          "tool_height_change_m": 0.013996869325637817,
+          "wrist_position_tracking_error_m": 0.02233043672839328,
+          "wrist_rotation_tracking_error_rad": 0.07412593971487376,
+          "trace_path": "/Users/apple/Desktop/semantic verifier/multipath/outputs/oracle_action_types_20261008/r201_diagnosis/pour/refinement/ppo/chunk_0000_attempt_00/zero_policy/actual_trace.json"
+        },
+        "best_evaluation": {
+          "success": false,
+          "failure": {
+            "source_frame": 38.0,
+            "reason": "core_object_fidelity"
+          },
+          "source_steps": 8,
+          "evaluation_return": 4.628140717395711,
+          "opposition_contact_frames": 0,
+          "tool_height_change_m": 0.012431532144546509,
+          "wrist_position_tracking_error_m": 0.021348293339348196,
+          "wrist_rotation_tracking_error_rad": 0.0966239969828235,
+          "trace_path": "/Users/apple/Desktop/semantic verifier/multipath/outputs/oracle_action_types_20261008/r201_diagnosis/pour/refinement/ppo/chunk_0000_attempt_00/best_evaluation/actual_trace.json"
+        }
+      },
+      "whole_local_ppo": {
+        "iterations": 31,
+        "episodes": 129,
+        "elapsed_s": 240.4427853601519,
+        "status": "budget_exhausted",
+        "parameters": 24293,
+        "reference_origin": "local_human_retarget_with_fixed_geometry_correction",
+        "objective": "Appendix C.3+C.7+C.8",
+        "early_termination": "C.4 weighted error > C; no rollout past tracking failure",
+        "evaluation_reward": "C.9 object tracking only",
+        "lifting_reward_enabled": true,
+        "max_attempted_source_steps": 7,
+        "training_successes": 0,
+        "zero_policy": {
+          "success": false,
+          "failure": {
+            "source_frame": 36.0,
+            "reason": "core_object_fidelity"
+          },
+          "source_steps": 6,
+          "evaluation_return": 2.889321114143069,
+          "opposition_contact_frames": 0,
+          "tool_height_change_m": 0.014060437679290771,
+          "wrist_position_tracking_error_m": 0.02220406844145118,
+          "wrist_rotation_tracking_error_rad": 0.07183813052541416,
+          "trace_path": "/Users/apple/Desktop/semantic verifier/multipath/outputs/oracle_action_types_20261008/r201_diagnosis/pour/whole_local_ppo/chunk_0000_attempt_00/zero_policy/actual_trace.json"
+        },
+        "best_evaluation": {
+          "success": false,
+          "failure": {
+            "source_frame": 36.0,
+            "reason": "core_object_fidelity"
+          },
+          "source_steps": 6,
+          "evaluation_return": 3.767352502622338,
+          "opposition_contact_frames": 0,
+          "tool_height_change_m": 0.012167513370513916,
+          "wrist_position_tracking_error_m": 0.03026111612475817,
+          "wrist_rotation_tracking_error_rad": 0.11213115243079494,
+          "trace_path": "/Users/apple/Desktop/semantic verifier/multipath/outputs/oracle_action_types_20261008/r201_diagnosis/pour/whole_local_ppo/chunk_0000_attempt_00/best_evaluation/actual_trace.json"
+        }
+      }
+    },
+    "brush": {
+      "refinement/ppo": {
+        "iterations": 60,
+        "episodes": 253,
+        "elapsed_s": 72.6405814748723,
+        "status": "budget_exhausted",
+        "parameters": 24293,
+        "reference_origin": "local_human_retarget_with_fixed_geometry_correction",
+        "objective": "Appendix C.3+C.7+C.8",
+        "early_termination": "C.4 weighted error > C; no rollout past tracking failure",
+        "evaluation_reward": "C.9 object tracking only",
+        "lifting_reward_enabled": true,
+        "max_attempted_source_steps": 12,
+        "training_successes": 0,
+        "zero_policy": {
+          "success": false,
+          "failure": {
+            "source_frame": 30.0,
+            "reason": "core_object_fidelity"
+          },
+          "source_steps": 10,
+          "evaluation_return": 5.7239493432076625,
+          "opposition_contact_frames": 3,
+          "tool_height_change_m": 0.001009613275527954,
+          "wrist_position_tracking_error_m": 0.012972328376532408,
+          "wrist_rotation_tracking_error_rad": 0.10048416193412907,
+          "trace_path": "/Users/apple/Desktop/semantic verifier/multipath/outputs/oracle_action_types_20261008/r201_diagnosis/brush/refinement/ppo/chunk_0000_attempt_00/zero_policy/actual_trace.json"
+        },
+        "best_evaluation": {
+          "success": false,
+          "failure": {
+            "source_frame": 32.0,
+            "reason": "core_exit_handoff"
+          },
+          "source_steps": 12,
+          "evaluation_return": 6.420062432679877,
+          "opposition_contact_frames": 9,
+          "tool_height_change_m": 0.001859426498413086,
+          "wrist_position_tracking_error_m": 0.01793186934955489,
+          "wrist_rotation_tracking_error_rad": 0.20056179762351045,
+          "trace_path": "/Users/apple/Desktop/semantic verifier/multipath/outputs/oracle_action_types_20261008/r201_diagnosis/brush/refinement/ppo/chunk_0000_attempt_00/best_evaluation/actual_trace.json"
+        }
+      },
+      "whole_local_ppo": {
+        "iterations": 37,
+        "episodes": 157,
+        "elapsed_s": 240.07495846692473,
+        "status": "budget_exhausted",
+        "parameters": 24293,
+        "reference_origin": "local_human_retarget_with_fixed_geometry_correction",
+        "objective": "Appendix C.3+C.7+C.8",
+        "early_termination": "C.4 weighted error > C; no rollout past tracking failure",
+        "evaluation_reward": "C.9 object tracking only",
+        "lifting_reward_enabled": true,
+        "max_attempted_source_steps": 12,
+        "training_successes": 0,
+        "zero_policy": {
+          "success": false,
+          "failure": {
+            "source_frame": 30.0,
+            "reason": "core_object_fidelity"
+          },
+          "source_steps": 10,
+          "evaluation_return": 5.648807046326186,
+          "opposition_contact_frames": 2,
+          "tool_height_change_m": 0.0009801387786865234,
+          "wrist_position_tracking_error_m": 0.013121085059033834,
+          "wrist_rotation_tracking_error_rad": 0.09960117727605813,
+          "trace_path": "/Users/apple/Desktop/semantic verifier/multipath/outputs/oracle_action_types_20261008/r201_diagnosis/brush/whole_local_ppo/chunk_0000_attempt_00/zero_policy/actual_trace.json"
+        },
+        "best_evaluation": {
+          "success": false,
+          "failure": {
+            "source_frame": 30.0,
+            "reason": "core_object_fidelity"
+          },
+          "source_steps": 10,
+          "evaluation_return": 5.910905815451793,
+          "opposition_contact_frames": 4,
+          "tool_height_change_m": 0.00218316912651062,
+          "wrist_position_tracking_error_m": 0.013350355110357849,
+          "wrist_rotation_tracking_error_rad": 0.10329841448407699,
+          "trace_path": "/Users/apple/Desktop/semantic verifier/multipath/outputs/oracle_action_types_20261008/r201_diagnosis/brush/whole_local_ppo/chunk_0000_attempt_00/best_evaluation/actual_trace.json"
+        }
+      }
+    },
+    "hit": {
+      "refinement/ppo": {
+        "iterations": 60,
+        "episodes": 253,
+        "elapsed_s": 70.11277201795019,
+        "status": "budget_exhausted",
+        "parameters": 24293,
+        "reference_origin": "local_human_retarget_with_fixed_geometry_correction",
+        "objective": "Appendix C.3+C.7+C.8",
+        "early_termination": "C.4 weighted error > C; no rollout past tracking failure",
+        "evaluation_reward": "C.9 object tracking only",
+        "lifting_reward_enabled": true,
+        "max_attempted_source_steps": 11,
+        "training_successes": 0,
+        "zero_policy": {
+          "success": false,
+          "failure": {
+            "source_frame": 34.0,
+            "reason": "core_object_fidelity"
+          },
+          "source_steps": 10,
+          "evaluation_return": 3.8078806687533846,
+          "opposition_contact_frames": 0,
+          "tool_height_change_m": 0.0003548860549926758,
+          "wrist_position_tracking_error_m": 0.01471692419181262,
+          "wrist_rotation_tracking_error_rad": 0.08154801751946954,
+          "trace_path": "/Users/apple/Desktop/semantic verifier/multipath/outputs/oracle_action_types_20261008/r201_diagnosis/hit/refinement/ppo/chunk_0000_attempt_00/zero_policy/actual_trace.json"
+        },
+        "best_evaluation": {
+          "success": false,
+          "failure": {
+            "source_frame": 34.0,
+            "reason": "core_object_fidelity"
+          },
+          "source_steps": 10,
+          "evaluation_return": 3.806123572536972,
+          "opposition_contact_frames": 0,
+          "tool_height_change_m": 8.884072303771973e-05,
+          "wrist_position_tracking_error_m": 0.01445492137378503,
+          "wrist_rotation_tracking_error_rad": 0.07922870241833886,
+          "trace_path": "/Users/apple/Desktop/semantic verifier/multipath/outputs/oracle_action_types_20261008/r201_diagnosis/hit/refinement/ppo/chunk_0000_attempt_00/best_evaluation/actual_trace.json"
+        }
+      },
+      "whole_local_ppo": {
+        "iterations": 31,
+        "episodes": 130,
+        "elapsed_s": 240.68246907694265,
+        "status": "budget_exhausted",
+        "parameters": 24293,
+        "reference_origin": "local_human_retarget_with_fixed_geometry_correction",
+        "objective": "Appendix C.3+C.7+C.8",
+        "early_termination": "C.4 weighted error > C; no rollout past tracking failure",
+        "evaluation_reward": "C.9 object tracking only",
+        "lifting_reward_enabled": true,
+        "max_attempted_source_steps": 11,
+        "training_successes": 0,
+        "zero_policy": {
+          "success": false,
+          "failure": {
+            "source_frame": 35.0,
+            "reason": "core_object_fidelity"
+          },
+          "source_steps": 11,
+          "evaluation_return": 3.5632554134295584,
+          "opposition_contact_frames": 0,
+          "tool_height_change_m": -5.811452865600586e-06,
+          "wrist_position_tracking_error_m": 0.015831501336016133,
+          "wrist_rotation_tracking_error_rad": 0.0771289628718486,
+          "trace_path": "/Users/apple/Desktop/semantic verifier/multipath/outputs/oracle_action_types_20261008/r201_diagnosis/hit/whole_local_ppo/chunk_0000_attempt_00/zero_policy/actual_trace.json"
+        },
+        "best_evaluation": {
+          "success": false,
+          "failure": {
+            "source_frame": 34.0,
+            "reason": "core_object_fidelity"
+          },
+          "source_steps": 10,
+          "evaluation_return": 3.809513048803348,
+          "opposition_contact_frames": 0,
+          "tool_height_change_m": 0.00044715404510498047,
+          "wrist_position_tracking_error_m": 0.014554754766536995,
+          "wrist_rotation_tracking_error_rad": 0.08044307004564825,
+          "trace_path": "/Users/apple/Desktop/semantic verifier/multipath/outputs/oracle_action_types_20261008/r201_diagnosis/hit/whole_local_ppo/chunk_0000_attempt_00/best_evaluation/actual_trace.json"
+        }
+      }
+    }
+  },
+  "c1_followup": {
+    "default_commit_requires_full_prediction": true,
+    "reason": "Appendix C.1 requires both chunks feasible before committing one",
+    "effect_on_r201": "none; all attempts stopped before the first 20-source-frame prefix",
+    "new_physical_result": false
+  }
+}

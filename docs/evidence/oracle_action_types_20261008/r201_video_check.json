@@ -1,0 +1,10 @@
+{
+  "video": "/Users/apple/Desktop/semantic verifier/multipath/outputs/oracle_action_types_20261008/r201_diagnosis/brush/fresh_local/floating_xhand_actual.mp4",
+  "frames": 12,
+  "fps": 30.0,
+  "duration_s": 0.4,
+  "readable_first_and_last": true,
+  "actual_state": true,
+  "full_task_success": false,
+  "validation_scope": "failed partial local Anchor replay; not a full end-to-end trajectory"
+}

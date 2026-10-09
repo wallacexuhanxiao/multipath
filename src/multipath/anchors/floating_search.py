@@ -204,7 +204,10 @@ def refine(scene,anchor,data,baseline,start,out,candidates=64,iterations=3,use_p
         env=FloatingResidualEnv(*args,controller_handoff=True)
         env.metadata.update(mpc_proposal=dict(prior_origin),initialization_is_acceptance=False)
         return env
-    ppo=LocalPPOSolver(scene,anchor,data,out/'ppo',ppo_config or PPOConfig(),env_factory=ppo_env,allow_physical_prefix=True) if use_ppo else None
+    # Appendix C.1 requires the whole two-chunk prediction to be feasible
+    # before committing its first chunk. A valid prefix of a failed prediction
+    # remains diagnostic evidence and cannot advance the local solver state.
+    ppo=LocalPPOSolver(scene,anchor,data,out/'ppo',ppo_config or PPOConfig(),env_factory=ppo_env) if use_ppo else None
     def evaluate(control,boundary,begin,label,folder,object_relative=False,prefix_ticks=None,acquisition_reference=None):
         check=validate_commands(scene,control,boundary)
         if not check['feasible']:return -np.inf,False,{'precheck':check},None

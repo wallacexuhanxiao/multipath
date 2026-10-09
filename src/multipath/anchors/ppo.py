@@ -196,6 +196,7 @@ class LocalPPOSolver:
         obs=env.reset();learner=SmallResidualPPO(len(obs),env.action_dim,seed=cfg.seed)
         report=dict(env.metadata,config=asdict(cfg),network_hidden=[64,64],
             parameters=learner.parameter_count,status='training',iterations=0,episodes=0,history=[],success=False,
+            commit_requires_full_prediction=not self.allow_physical_prefix,
             residual_noise_schedule={'kind':'linear_multiplier_of_learned_Gaussian_std','initial':1.,
                 'final':cfg.exploration_final_scale,'shared_across_sources':True,
                 'numeric_provenance':'engineering choice; Appendix specifies shared schedule, not its values'})
