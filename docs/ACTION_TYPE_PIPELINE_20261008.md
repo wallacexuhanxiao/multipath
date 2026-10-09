@@ -476,4 +476,9 @@ local 数据；首步符合已有 drive velocity，实际 state 没有修改。
 这些检查不能提供 physical acceptance；下一步仍是 fresh
 padded/core 和完整连续 rollout。
 
+r201 / job 656589 已提交，interactive H200，20 min。最小 CPU
+optimizer probe 实际执行了两组更新，确认 actor 改变、输出有限、
+64×64 模型保留，noise multiplier 随 checkpoint 保存；没有
+把 optimizer check 计为物理成功。
+
 ![Whole-tool convex hull wrongly fills handle clearance](evidence/oracle_action_types_20261008/hammer_convex_hull_diagnosis.png)

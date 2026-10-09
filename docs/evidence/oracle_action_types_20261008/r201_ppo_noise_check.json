@@ -1,0 +1,8 @@
+{
+  "optimizer_updated": true,
+  "small_network_preserved": true,
+  "noise_scale_ratio": 0.25,
+  "noise_scale_saved_in_checkpoint": true,
+  "finite_metrics": true,
+  "physical_acceptance": false
+}
