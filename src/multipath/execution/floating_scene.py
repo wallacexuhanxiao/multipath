@@ -69,7 +69,8 @@ class FloatingScene:
         self.world.reset();self.wrist.initialize()
         names=list(self.robot.dof_names);self.fingers=np.array([names.index(n) for n in RIGHT_XHAND_FINGER_JOINT_NAMES])
         view=self.robot._articulation_view
-        view.set_gains(kps=np.full((1,12),5.),kds=np.full((1,12),.5),joint_indices=self.fingers)
+        self.hand_drive_stiffness=np.full(12,5.)
+        view.set_gains(kps=self.hand_drive_stiffness[None],kds=np.full((1,12),.5),joint_indices=self.fingers)
         view.set_max_efforts(np.full((1,12),3.),joint_indices=self.fingers)
         self.hand_limits=np.asarray(view.get_dof_limits()).reshape(-1,2)[self.fingers]
         from multipath.anchors.synthesis import hand_limits_from_urdf

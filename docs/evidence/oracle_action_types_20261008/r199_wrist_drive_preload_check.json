@@ -1,0 +1,36 @@
+{
+  "source": "r198 brush physical contact_preload candidate 4 frame 25",
+  "old_target_position_shift_m": 0.011218293926832778,
+  "preserved_drive_target_error_m": 1.3597399555105182e-16,
+  "native_hand_object_transform_unchanged": true,
+  "actual_transform_role": "retention and physical artifacts",
+  "drive_transform_role": "local interaction command target",
+  "physical_acceptance": false,
+  "force_decay_observation": [
+    {
+      "frame": 25.0,
+      "drive_minus_actual_z_m": -0.011072385731430545,
+      "thumb_force_n": 4.4049787521362305
+    },
+    {
+      "frame": 26.0,
+      "drive_minus_actual_z_m": -0.010860367499916534,
+      "thumb_force_n": 6.4826979637146
+    },
+    {
+      "frame": 27.0,
+      "drive_minus_actual_z_m": -0.006815948578502151,
+      "thumb_force_n": 2.624077320098877
+    },
+    {
+      "frame": 28.0,
+      "drive_minus_actual_z_m": -0.0019516496082248036,
+      "thumb_force_n": 0.3825806677341461
+    },
+    {
+      "frame": 29.0,
+      "drive_minus_actual_z_m": 0.002103196018921283,
+      "thumb_force_n": 0.8209399580955505
+    }
+  ]
+}

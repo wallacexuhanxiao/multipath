@@ -335,7 +335,10 @@ def surface_grasp_prior(anchor,frames,reference,human,objects,mesh,urdf,*,fps,ta
     opened=prep.x[6:]
     result[:,7:]=opened+phase[:,None]*(closed_q-opened)
     result[:,7:]=np.clip(result[:,7:],limits[:,0],limits[:,1])
+    from multipath.anchors.pinch import contact_linearization
+    pinch=contact_linearization(urdf,tool_distance,closed,closed_q,fingers[opposition_finger])
     return result,dict(method='local_mesh_opposition_surface_IK',physical_acceptance=False,
+        pinch_proposal=pinch,
         geometry_aspect_ratio=float(values[0]/values[1]),source_frame=int(frames[index]),
         contact_target_object_xyz=targets.tolist(),contact_rms_m=float(np.sqrt(np.mean(
             (fit_diagnostics[:15].reshape(5,3)/np.array([2,1,1,.5,.5])[:,None])**2))*.004),

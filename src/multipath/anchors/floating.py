@@ -71,7 +71,7 @@ def rebase_grasp_commands(commands,previous_entry,reached_entry,dt):
     if not reached_entry.get('physically_acquired_state'):
         raise ValueError('Core adaptation requires an actual physical entry')
     c=np.asarray(commands).copy()
-    transform=np.asarray(previous_entry['hand_object_transform'])@np.linalg.inv(reached_entry['hand_object_transform'])
+    transform=grasp_drive_transform(previous_entry)@np.linalg.inv(grasp_drive_transform(reached_entry))
     old=c[:,:7].copy()
     matrices=np.asarray([pose_matrix(p)@transform for p in old])
     poses=np.c_[matrices[:,:3,3],Rotation.from_matrix(matrices[:,:3,:3]).as_quat()[:,[3,0,1,2]]]
@@ -124,7 +124,7 @@ def local_controls(scene,anchor,data,start):
         # Condition local wrist targets on the source object interaction and
         # the actual hand-object transform. Entry blending below ends inside
         # padding; it must not postpone the canonical source boundary into CORE.
-        held=np.asarray(start['hand_object_transform'])
+        held=grasp_drive_transform(start)
         objects=np.asarray(data['tool_pose']);objects=np.concatenate((objects,objects[-1:]))
         wrists=objects@np.linalg.inv(held)
         ref=ref.copy();ref[:,:3]=wrists[:,:3,3]
@@ -172,6 +172,17 @@ def hand_command_boundary(start):
     if 'command_hand_q' in start:
         return np.asarray(start['command_hand_q'])
     return np.asarray(start['hand_q'])
+
+
+def grasp_drive_transform(state,wrist_command=None):
+    """Tool-relative wrist drive, retaining the physically applied preload.
+
+    This is a command-space target. Actual hand/tool transforms remain the
+    measured states used for retention, artifacts and bridge planning.
+    """
+    from multipath.execution.mounted_scene import pose_matrix
+    command=state.get('command_wrist',state['wrist_xyz_wxyz']) if wrist_command is None else wrist_command
+    return np.linalg.inv(pose_matrix(command))@pose_matrix(state['objects']['tool']['pose'])
 
 
 def grasp_command_bounds(scene,start,anchor=None):
@@ -379,7 +390,7 @@ def rollout(scene,anchor,data,commands,start,out,mode='LOCAL_PADDED',core_only=F
 
 
 def object_relative_command(scene,anchor,data,frame,baseline,held_transform,handoff=None):
-    """Local Anchor proposal preserving a *measured* grasp transform.
+    """Local object-conditioned drive; actual grasp is validated separately.
 
     Reference object poses condition only interaction Anchors. No object state
     is assigned. RELAXED planning never calls this helper.
@@ -458,7 +469,7 @@ def source_grasp_core_controls(scene,anchor,data,start):
             and anchor.entry_contact==anchor.exit_contact=='grasped'):
         raise ValueError('Carry core synthesis requires a physically reached persistent grasp')
     tpf=physics_ticks_per_frame(scene.manifest['fps'],scene.dt)
-    held=np.asarray(start['hand_object_transform'])
+    held=grasp_drive_transform(start)
     baseline=np.r_[start['command_wrist'],hand_command_boundary(start),start['command_twist']]
     handoff=object_relative_handoff(scene,anchor,data,anchor.core_start,held)
     commands=np.asarray([object_relative_command(scene,anchor,data,anchor.core_start+(k+1)/tpf,
@@ -471,6 +482,7 @@ class AcquiredGraspProposal:
     def __init__(self,scene,anchor,data):
         self.scene,self.anchor,self.data=scene,anchor,data
         self.contact_run=0;self.contact_loss_run=0;self.held=None;self.handoff=None;self.acquired_frame=None
+        self.drive_held=None
         self.preload_bounds=None
         from multipath.execution.mounted_scene import pose_matrix
         self.entry_tool=pose_matrix(scene.state()['objects']['tool']['pose'])
@@ -521,13 +533,15 @@ class AcquiredGraspProposal:
             # Discard the proposal only after actual hand/tool separation;
             # native contact and final retention acceptance stay unchanged.
             if error['position_m']>.05 or error['rotation_rad']>.35:
-                self.held=None;self.handoff=None;self.preload_bounds=None
+                self.held=None;self.drive_held=None;self.handoff=None;self.preload_bounds=None
         self.contact_run=self.contact_run+1 if measured['contact']['mode']=='grasped' else 0
         if self.held is None and self.contact_run>=tpf:
             self.held=np.asarray(measured['hand_object_transform'])
+            previous=self.scene.command_pose if previous_command is None else previous_command[:7]
+            self.drive_held=grasp_drive_transform(measured,previous)
             self.preload_bounds=grasp_command_bounds(self.scene,measured,self.anchor)
             self.acquired_frame=measured['time_s']*self.scene.manifest['fps']
-            self.handoff=object_relative_handoff(self.scene,self.anchor,self.data,self.acquired_frame,self.held,previous_command)
+            self.handoff=object_relative_handoff(self.scene,self.anchor,self.data,self.acquired_frame,self.drive_held,previous_command)
         if self.held is None:return self.acquisition_command(frame,baseline,measured,previous_command)
         if (self.anchor.entry_contact=='free' and measured['contact']['mode']=='grasped'
                 and self.scene.ticks%tpf==0):
@@ -537,7 +551,7 @@ class AcquiredGraspProposal:
             # Finger closure still runs, and physics verifies its retention.
             low,high=grasp_command_bounds(self.scene,measured,self.anchor)
             self.preload_bounds=(np.maximum(self.preload_bounds[0],low),np.minimum(self.preload_bounds[1],high))
-        command=object_relative_command(self.scene,self.anchor,self.data,frame,baseline,self.held,self.handoff)
+        command=object_relative_command(self.scene,self.anchor,self.data,frame,baseline,self.drive_held,self.handoff)
         low,high=self.preload_bounds;step=self.scene.hand_velocity*self.scene.dt
         command[7:19]=np.clip(command[7:19],np.maximum(low,self.scene.hand_command-step),
                               np.minimum(high,self.scene.hand_command+step))
@@ -619,7 +633,7 @@ def source_retarget_core_controls(scene,anchor,data,start):
         Slerp(index,Rotation.from_quat(ref[:,[4,5,6,3]]))(sample).as_quat()[:,[3,0,1,2]]]
     hand=np.stack([np.interp(sample,index,ref[:,j]) for j in range(7,19)],axis=1)
     if anchor.entry_contact=='grasped':
-        target=data['tool_pose'][anchor.core_start-anchor.synth_start]@np.linalg.inv(start['hand_object_transform'])
+        target=data['tool_pose'][anchor.core_start-anchor.synth_start]@np.linalg.inv(grasp_drive_transform(start))
         offset=np.linalg.inv(pose_matrix(pose[0]))@target
         matrices=np.asarray([pose_matrix(p)@offset for p in pose])
         pose=np.c_[matrices[:,:3,3],Rotation.from_matrix(matrices[:,:3,:3]).as_quat()[:,[3,0,1,2]]]

@@ -8,7 +8,7 @@ from pathlib import Path
 import numpy as np
 from scipy.spatial.transform import Rotation
 from multipath.anchors.mpc import WindowEvaluation,mppi_mean,RefinementRequired
-from multipath.anchors.floating import controls_from_poses,validate_commands,object_relative_command,object_relative_handoff,hand_command_boundary,project_hand_commands,grasp_command_bounds,stopping_context,acquisition_preload,AcquiredGraspProposal
+from multipath.anchors.floating import controls_from_poses,validate_commands,object_relative_command,object_relative_handoff,hand_command_boundary,project_hand_commands,grasp_command_bounds,stopping_context,acquisition_preload,AcquiredGraspProposal,grasp_drive_transform
 from multipath.anchors.ppo import MountedResidualEnv,LocalPPOSolver,PPOConfig
 from multipath.planning.timing import physics_ticks_per_frame
 from multipath.validation.physics import object_tracking_parameters
@@ -192,7 +192,7 @@ def refine(scene,anchor,data,baseline,start,out,candidates=64,iterations=3,use_p
         nominal_previous=np.r_[scene.command_pose,scene.hand_command,scene.command_twist]
         executed_control=np.array(control).copy();held=None;acquired_frame=None;handoff=None;contact_run=0;executed=0;preload_bounds=None
         if object_relative and boundary['contact']['mode']=='grasped':
-            held=np.asarray(boundary['hand_object_transform']);preload_bounds=grasp_command_bounds(scene,boundary,anchor)
+            held=grasp_drive_transform(boundary);preload_bounds=grasp_command_bounds(scene,boundary,anchor)
         acquisition=(AcquiredGraspProposal(scene,anchor,data)
             if anchor.entry_contact=='free' and anchor.exit_contact=='grasped' else None)
         try:
@@ -329,10 +329,30 @@ def refine(scene,anchor,data,baseline,start,out,candidates=64,iterations=3,use_p
                     for candidate in range(1,min(candidates,3)):
                         samples[candidate]=mean
                         samples[candidate,:,6:]+=candidate*scale[6:]*np.asarray(RIGHT_XHAND_CLOSING_DIRECTION)
+                    pinch=scene.manifest.get('retarget_details',{}).get(anchor.id,{}).get('pinch_proposal')
+                    if pinch is not None:
+                        gradient=np.asarray(pinch['gap_gradient_m_per_rad'])
+                        if gradient.shape!=(2,12) or not np.isfinite(gradient).all():
+                            raise ValueError('Invalid geometric pinch proposal')
+                        # Local surface Jacobians convert a proposed contact
+                        # load into existing joint-position drive offsets.
+                        # These use two existing slots, not object forces or
+                        # a contact acceptance rule. All limits and fresh
+                        # padded/core replay requirements remain unchanged.
+                        load=scene.physical_properties['tool_mass_kg']*(9.81+scene.cfg['planning']['acceleration_limits'][2])
+                        offset=-gradient.sum(0)*load/scene.hand_drive_stiffness
+                        for candidate,factor in [(3,.5),(4,1.)]:
+                            if candidate>=candidates:break
+                            samples[candidate]=mean
+                            samples[candidate,:,6:]+=factor*offset
                 returns=np.full(candidates,-np.inf)
                 for i,residual in enumerate(samples):
                     control=replay.copy() if not np.any(residual) else apply_residual(scene,replay,state,residual,tpf,envelope,anchor)
-                    returns[i],ok,info,prefix=evaluate(control,state,begin,'LOCAL_MPPI',out/'candidate',prefix_ticks=commit,acquisition_reference=replay)
+                    contact_proposal=(iteration==0 and i in (3,4) and anchor.entry_contact=='free'
+                        and anchor.exit_contact=='grasped' and scene.manifest.get('retarget_details',{}).get(anchor.id,{}).get('pinch_proposal') is not None)
+                    folder=out/f'contact_preload_{begin}_{i}' if contact_proposal else out/'candidate'
+                    returns[i],ok,info,prefix=evaluate(control,state,begin,'LOCAL_MPPI',folder,prefix_ticks=commit,acquisition_reference=replay)
+                    if contact_proposal:info['initialization']='surface_Jacobian_finger_drive_preload'
                     history.append(dict(begin_tick=begin,iteration=iteration,candidate=i,success=ok,**info))
                     if ok and returns[i]>best_score:
                         best,best_score=control.copy(),returns[i];best_state=retain_prefix(prefix,best,begin)

@@ -108,7 +108,7 @@ success、partial rollout 都不是完整 pipeline success。
 以上作业均使用 H200 / interactive / 20 min；三个 source 在一份
 allocation 内并行运行。未更改 unrelated held job。
 
-截至 r194，新三类型没有完整成功轨迹，也没有已验证的新 Anchor。
+截至 r199，新三类型没有完整成功轨迹，也没有已验证的新 Anchor。
 已有 put-in 248/243 的完整三解不能代替本轮跨动作类型的证据。
 保持 `success=false`；partial actual-state 视频不是成功结果。
 
@@ -370,5 +370,48 @@ proposal 和未适应 nominal baseline 在局部区间差异可达 123 mm；
 模式保留 nominal，在 export 模式保留已执行 prefix。CPU 检查
 保护这一个已发生的语义错误，不新增物理验收层；仍需 fresh
 padded/core 和 full continuous execution 才能称为成功。
+
+### r196 / r197 实测结果
+
+r196 / job 655934 用时 423.06 s；r197 / job 655949 用时
+435.84 s。三类初始 bridge 可执行，但 Anchor 0 都没有通过。
+重力力矩对照没有建立成功，因此默认控制配置仍保持原值。
+PPO seed 的表示修复消除了重复叠加 acquisition 的代码错误，
+不能据此宣称抓握已解决。
+
+### r198：根据接触面 Jacobian 初始化驱动预载
+
+固定方向的关节闭合不一定朝向工具：pour 的拟合中，另一根
+手指沿正关节方向会增加间隙。现在由完整手指皮肤、工具 SDF
+及 URDF 求两侧间隙对关节的 Jacobian，再按实测工具质量和
+已有驱动 stiffness 生成两个 MPC 初始化候选。没有改变增益、
+物理材料、候选总数或 acceptance；它只提供关节位置目标。
+
+r198 / job 655968 的 pour / hit 因上传未完成而在物理执行前
+退出；补齐输入后 job 655972 重跑这两类，不能把前一次输入
+错误计为 interaction failure。合并 brush 原运行及重跑结果，
+三类仍没有有效 Anchor 0。brush 预载候选出现 4–6 N 的短暂
+拇指接触，但工具最大抬升约 1.8 mm，随后失接触，不是负载
+抓握成功。pour 的 COM 上升也不能代替 grasp/retention 证据。
+
+### r199：区分实测 grasp transform 与产生负载的驱动 transform
+
+r198 brush frame 25 的腕部 drive 和实际腕姿相差 11.218 mm。
+原 acquisition 接管把实际 hand/tool transform 直接当作 drive
+transform，逐渐撤销原来的位置偏置；接触力随后下降。这是
+target/state 语义问题，尚不能证明它解释了全部抓握失败。
+
+现在实际 hand/tool transform 仍用于物理 artifact、retention 和
+bridge geometry；源条件下的腕部目标使用取得接触时的实际
+drive/tool transform。Replay、MPC、PPO 和后续 grasped Anchor
+共用这一区分，没有动作类型或 source ID 分支。CPU 检查在
+上述真实状态上确认：旧接管会移动 drive 11.218 mm，新接管
+重现原 drive 的误差小于 1e-15 m，实际状态字段没有更改。
+这只是命令语义证据；r199 / job 656070 使用默认控制参数、
+同样三类 proposals、20 PPO updates 验证物理效果。
+
+r199 用时 412.24 s，三类 Anchor 0 仍失败。brush 的预载候选 4
+在 CORE 出口仍有 opposition，但工具只升高约 3.7 mm，仍不能
+作为 load-bearing artifact。不能将驱动语义修复视作 task success。
 
 ![Whole-tool convex hull wrongly fills handle clearance](evidence/oracle_action_types_20261008/hammer_convex_hull_diagnosis.png)

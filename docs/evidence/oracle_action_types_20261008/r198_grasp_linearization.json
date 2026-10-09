@@ -1,0 +1,149 @@
+{
+  "pour": {
+    "anchors": {
+      "anchor_0": {
+        "contact_fingers": [
+          "thumb",
+          "mid"
+        ],
+        "surface_gap_m": [
+          -0.0008527761674486101,
+          -0.0013226669980213046
+        ],
+        "gap_gradient_m_per_rad": [
+          [
+            -0.046840752474963665,
+            -0.05684827920049429,
+            -0.011036987416446209,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.02424407284706831,
+            0.010165676940232515,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        ],
+        "physical_acceptance": false,
+        "role": "local finger-drive initialization; native physics required"
+      }
+    },
+    "physical_acceptance": false,
+    "command_trajectories_modified": false,
+    "simulator_states_modified": false
+  },
+  "brush": {
+    "anchors": {
+      "anchor_0": {
+        "contact_fingers": [
+          "thumb",
+          "mid"
+        ],
+        "surface_gap_m": [
+          -0.0005359584465622902,
+          -0.0005571471410803497
+        ],
+        "gap_gradient_m_per_rad": [
+          [
+            -0.016748381312936544,
+            -0.08606223855167627,
+            -0.0368738838005811,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -0.06127412780188024,
+            -0.02622741158120334,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        ],
+        "physical_acceptance": false,
+        "role": "local finger-drive initialization; native physics required"
+      }
+    },
+    "physical_acceptance": false,
+    "command_trajectories_modified": false,
+    "simulator_states_modified": false
+  },
+  "hit": {
+    "anchors": {
+      "anchor_0": {
+        "contact_fingers": [
+          "thumb",
+          "index"
+        ],
+        "surface_gap_m": [
+          -0.000538528838660568,
+          -0.0005231417017057538
+        ],
+        "gap_gradient_m_per_rad": [
+          [
+            -0.05720765329897404,
+            -0.08677378355059773,
+            -0.03396952524781227,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.030576047720387578,
+            -0.06578606553375721,
+            -0.021936779376119375,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        ],
+        "physical_acceptance": false,
+        "role": "local finger-drive initialization; native physics required"
+      }
+    },
+    "physical_acceptance": false,
+    "command_trajectories_modified": false,
+    "simulator_states_modified": false
+  }
+}
