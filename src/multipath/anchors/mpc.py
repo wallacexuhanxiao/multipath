@@ -87,9 +87,17 @@ class WindowEvaluation:
         self.total_return = 0.
         self.evaluation_return = 0.
         self.last_reward = 0.
+        self.last_reward_terms = {}
         self.failure = None
         self.continue_tracking_failures = continue_tracking_failures
         self.tracking_failures = []
+        self.initial_tool_height=float(start['objects']['tool']['pose'][2])
+        core=np.asarray(data['tool_pose'])[anchor.core_start-anchor.synth_start:
+                                          anchor.core_end-anchor.synth_start+1,2,3]
+        # This chooses C.8's applicability inside the existing Oracle Anchor;
+        # it does not discover or change an interaction interval.
+        self.lifting=bool(self.interaction_constraint.get('lifting',
+            anchor.exit_contact=='grasped' and len(core)>1 and np.max(core)>core[0]))
 
     def observe(self, frame, command, measured=None):
         a = self.anchor
@@ -121,13 +129,6 @@ class WindowEvaluation:
                 self.scene.last_bridge_entry_precheck=check
                 if not check['feasible']:
                     if reason is None:reason='core_entry_bridge_boundary'
-                    limit=np.asarray(self.scene.cfg['planning']['velocity_limits'])
-                    violation=max(check['minimum_duration_velocity_only_s']/budget,
-                                  check['minimum_duration_velocity_change_only_s']/budget,
-                                  max(np.abs(check['initial_coordinate_velocity'])/limit),
-                                  max(np.abs(check['terminal_coordinate_velocity'])/limit),
-                                  check['hand_q_max_difference_rad']/.10)-1
-                    reward-=2*max(0.,violation)
             self.held = np.asarray(measured['hand_object_transform']) if a.entry_contact == 'grasped' else None
         if a.core_start < frame <= a.core_end:
             error = core_pose_errors(measured, self.data['tool_pose'][index])
@@ -161,20 +162,17 @@ class WindowEvaluation:
                 self.scene.last_bridge_exit_velocity_ratio=ratio
                 if ratio>1.0001:
                     if reason is None:reason='core_exit_bridge_velocity'
-                    reward-=2*(ratio-1)
                 if a.exit_contact=='grasped':
                     clearance=carried_object_clearance(self.scene,measured)
                     self.scene.last_bridge_exit_clearance=clearance
                     if min(clearance.values())<0:
                         if reason is None:reason='core_exit_carried_object_collision'
-                        reward-=2*max(0.,-min(clearance.values()))/.025
                 else:
                     from multipath.planning.bridge import hand_table_clearance
                     clearance=hand_table_clearance(self.scene)
                     self.scene.last_bridge_exit_hand_clearance=clearance
                     if not clearance['collision_free']:
                         if reason is None:reason='core_exit_hand_table_collision'
-                        reward-=2*max(0.,-clearance['clearance_m'])/.025
             self.held = np.asarray(measured['hand_object_transform']) if a.exit_contact == 'grasped' else None
         if frame > a.core_end and self.held is not None:
             r = retention_errors(measured, self.held)
@@ -188,18 +186,20 @@ class WindowEvaluation:
             from multipath.execution.mounted_scene import pose_matrix
             error=core_pose_errors(measured,pose_matrix(self.scene.manifest['final_objects']['tool']))
             speed=float(np.linalg.norm(measured['objects']['tool']['velocity'][:3]))
-            task_reward=1.-float(np.hypot(error['position_m']/contract['position_tolerance_m'],
-                                        error['rotation_rad']/contract['rotation_tolerance_rad']))
-            reward+=task_reward;tracking_reward+=task_reward
             if (error['position_m']>=contract['position_tolerance_m'] or
                 error['rotation_rad']>=contract['rotation_tolerance_rad'] or
                 speed>=contract['stable_speed_m_s'] or measured['contact']['mode']!='free'):
                 reason='terminal_task_state'
-        # Padding has no human-trajectory fidelity objective, but preserving a
-        # required physical grasp still needs a learning signal. Zero returns
-        # for all early retention failures made the local PPO fallback blind.
+        # TACO optimization uses C.3+C.7+C.8 only. Physical boundary/task
+        # checks above remain gates, never extra reward or evaluation terms.
         if a.core_start<frame<=a.core_end or self.held is not None:
-            reward+=2.*measured['contact'].get('opposition_contact',False)
+            from multipath.validation.physics import object_optimization_reward
+            self.last_reward_terms=object_optimization_reward(tracking_reward,measured['contact'],
+                measured['objects']['tool']['pose'][2]-self.initial_tool_height,
+                lifting=self.lifting and a.core_start<frame<=a.core_end)
+            reward=self.last_reward_terms['total']
+        else:
+            self.last_reward_terms={'object_tracking':float(tracking_reward),'contact':0.,'lifting':0.,'total':float(reward)}
         self.last_reward = float(reward)
         # Include the failed boundary's measured score: otherwise every
         # pre-context candidate missing the boundary receives the same zero.

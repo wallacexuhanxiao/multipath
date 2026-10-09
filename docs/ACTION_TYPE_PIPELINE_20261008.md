@@ -414,4 +414,34 @@ r199 用时 412.24 s，三类 Anchor 0 仍失败。brush 的预载候选 4
 在 CORE 出口仍有 opposition，但工具只升高约 3.7 mm，仍不能
 作为 load-bearing artifact。不能将驱动语义修复视作 task success。
 
+### r200：按 EgoEngine Appendix 统一优化 reward 和终止语义
+
+逐项核对用户提供的 Appendix C.1–C.3 与本地 `egoengine.pdf`
+第 20–23 页，发现三处偏离：缺少 C.8 lifting term；floating
+MPC/PPO 允许继续越过 tracking failure；reward 中混入了额外的
+bridge/terminal penalties。现在 Replay/MPC/PPO 共用 C.3 的
+weighted tracking score，并按 C.4 在 weighted error > C 时终止。
+不再把独立 position/rotation 上限的矩形区域当成 C.4 的边界。
+
+训练 reward 为 C.3+C.7+C.8；C.7 仅给实际 thumb AND non-thumb
+接触 bonus，C.8 使用实际工具相对物理 episode 起点的高度变化。
+lifting 仅用于现有 Oracle Anchor 内有向上源运动且出口需持物的
+交互，也可由已有 interaction constraint 显式指定；不发现新窗口。
+TACO human-mimic/smoothness 为 0，无 domain randomization。
+boundary、collision、retention 和 task 检查继续作为真实物理 gates，
+不再额外塑造 reward；evaluation_return 只累计 C.9 object tracking。
+
+所有类型共享 C=1、5 cm / 30° 的轴截距、contact=2 和
+lifting=10/m。这些数值是公开标记的工程选择；论文没有给出
+TACO 的精确 tracking weights / contact / lifting coefficients，
+不能宣称为 paper-exact。没有按 pour/brush/hit 名称调整参数。
+64×64 小 PPO、固定源时钟、local-only synthesis 保留。
+Appendix D 的 HPT/flow-matching 属于下游模仿学习，不是这里的
+residual PPO 结构。
+
+`r200_appendix_reward_check.json` 检查共同 C.4 边界，以及在 r199
+真实 brush 状态上 C.3 与 C.7/C.8 的分离；它不是物理成功证据。
+下一轮使用同样三个输入、共享 60-update / 240 s solver 上限，
+通过实际 PhysX 重新检查 Anchor 和完整 pipeline。
+
 ![Whole-tool convex hull wrongly fills handle clearance](evidence/oracle_action_types_20261008/hammer_convex_hull_diagnosis.png)

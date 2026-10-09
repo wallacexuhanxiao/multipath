@@ -1,0 +1,42 @@
+{
+  "source": "EgoEngine Appendix C.3/C.4/C.7/C.8/C.9; actual r199 brush state used for reward separation",
+  "syntax_files": [
+    "src/multipath/validation/physics.py",
+    "src/multipath/anchors/mpc.py",
+    "src/multipath/anchors/ppo.py",
+    "src/multipath/anchors/floating_search.py"
+  ],
+  "combined_error_case": {
+    "weighted_error": 1.131370849898476,
+    "reward": -0.13137084989847603,
+    "feasible": false
+  },
+  "boundary_case": {
+    "weighted_error": 1.0,
+    "reward": 0.0,
+    "feasible": true
+  },
+  "optimization_terms_example": {
+    "object_tracking": 0.8,
+    "contact": 2.0,
+    "lifting": 0.3,
+    "total": 3.0999999999999996
+  },
+  "shared_parameters": {
+    "contact_bonus": 2.0,
+    "lifting_scale_per_m": 10.0,
+    "human_mimic_scale": 0.0,
+    "action_smoothness_scale": 0.0,
+    "domain_randomization": false,
+    "parameter_provenance": "shared engineering coefficients; paper does not give numeric TACO values"
+  },
+  "actual_state_reward_terms": {
+    "object_tracking": 0.7339037689249741,
+    "contact": 2.0,
+    "lifting": -2.384185791015625e-05,
+    "total": 2.733879927067064
+  },
+  "actual_state_evaluation_return": 0.7339037689249741,
+  "training_and_evaluation_separate": true,
+  "physical_acceptance": false
+}

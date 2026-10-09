@@ -11,7 +11,7 @@ from multipath.anchors.mpc import WindowEvaluation,mppi_mean,RefinementRequired
 from multipath.anchors.floating import controls_from_poses,validate_commands,object_relative_command,object_relative_handoff,hand_command_boundary,project_hand_commands,grasp_command_bounds,stopping_context,acquisition_preload,AcquiredGraspProposal,grasp_drive_transform
 from multipath.anchors.ppo import MountedResidualEnv,LocalPPOSolver,PPOConfig
 from multipath.planning.timing import physics_ticks_per_frame
-from multipath.validation.physics import object_tracking_parameters
+from multipath.validation.physics import object_tracking_parameters,object_optimization_parameters
 
 
 def apply_residual(scene,baseline,start,residual,tpf,envelope,anchor=None):
@@ -56,7 +56,10 @@ class FloatingResidualEnv(MountedResidualEnv):
             'source_frames':self.horizon,'source_fps':self.fps,'physics_dt':scene.dt,'entry_origin':start.get('entry_origin'),
             'entry_provenance':start.get('entry_provenance'),'source_provenance':scene.manifest['provenance'],
             'action':'wrist_xyz_rotvec_and_12_fingers','action_scales':self.action_scales.tolist(),'residual_center':'local_floating_replay',
-            'training_scene':'floating_PhysX','residual_velocity_feedforward':'nominal_replay_unchanged','objective':'Appendix weighted object tracking + thumb AND finger contact',
+            'training_scene':'floating_PhysX','residual_velocity_feedforward':'nominal_replay_unchanged','objective':'Appendix C.3+C.7+C.8',
+            'early_termination':'C.4 weighted error > C; no rollout past tracking failure',
+            'evaluation_reward':'C.9 object tracking only',
+            'optimization_parameters':object_optimization_parameters(),
             'residual_after_grasp':'wrist pose residual retained over acquired-grasp nominal command',
             'acquisition_residual_velocity':'nominal drive history; pose residuals are not differentiated',
             'tracking_parameters':object_tracking_parameters(),
@@ -87,7 +90,9 @@ class FloatingResidualEnv(MountedResidualEnv):
         self.acquisition=(AcquiredGraspProposal(self.scene,self.anchor,self.data)
             if self.anchor.entry_contact=='free' and self.anchor.exit_contact=='grasped' else None)
         self.acquisition_nominal_command=np.r_[self.scene.command_pose,self.scene.hand_command,self.scene.command_twist]
-        self.objective=WindowEvaluation(self.scene,self.anchor,self.data,self.start,continue_tracking_failures=True);self.failure=None
+        self.objective=WindowEvaluation(self.scene,self.anchor,self.data,self.start);self.failure=None
+        self.metadata['lifting_reward_enabled']=self.objective.lifting
+        self.metadata['lifting_initial_height_m']=self.objective.initial_tool_height
         self.last_observation=self.observation(self.start)
         return self.last_observation
 
@@ -167,7 +172,8 @@ class FloatingResidualEnv(MountedResidualEnv):
         tracking_failure=next(iter(self.objective.tracking_failures),None)
         return obs,float(self.objective.last_reward),done,{'success':bool(done and self.failure is None and tracking_failure is None and len(self.commands)==len(self.baseline)),
             'failure':self.failure or tracking_failure,'tracking_failure_count':len(self.objective.tracking_failures),
-            'source_steps':self.k,'evaluation_return':self.objective.evaluation_return}
+            'source_steps':self.k,'evaluation_return':self.objective.evaluation_return,
+            'reward_terms':dict(self.objective.last_reward_terms)}
 
 
 def refine(scene,anchor,data,baseline,start,out,candidates=64,iterations=3,use_ppo=True,ppo_config=None):
@@ -185,7 +191,7 @@ def refine(scene,anchor,data,baseline,start,out,candidates=64,iterations=3,use_p
     def evaluate(control,boundary,begin,label,folder,object_relative=False,prefix_ticks=None,acquisition_reference=None):
         check=validate_commands(scene,control,boundary)
         if not check['feasible']:return -np.inf,False,{'precheck':check},None
-        scene.begin_trial(folder,boundary,mesh=object_relative);objective=WindowEvaluation(scene,anchor,data,boundary,continue_tracking_failures=True)
+        scene.begin_trial(folder,boundary,mesh=object_relative);objective=WindowEvaluation(scene,anchor,data,boundary)
         prefix=None
         proposal_control=np.array(control).copy()
         nominal_control=(proposal_control if acquisition_reference is None else np.asarray(acquisition_reference))

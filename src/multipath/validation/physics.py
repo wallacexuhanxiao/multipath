@@ -10,7 +10,32 @@ def object_tracking_parameters():
             'lambda_R':1/OBJECT_ROTATION_TOLERANCE_RAD**2,
             'position_tolerance_m':OBJECT_POSITION_TOLERANCE_M,
             'rotation_tolerance_rad':OBJECT_ROTATION_TOLERANCE_RAD,
-            'acceptance':'independent_position_and_rotation_limits'}
+            'acceptance':'Appendix_C.4_weighted_error_le_C',
+            'parameter_provenance':'shared project tolerances; numeric TACO weights not specified in the paper'}
+
+
+def object_optimization_parameters():
+    """Shared TACO C.7/C.8 coefficients, not action-specific tuning.
+
+    The paper specifies these terms, but not their numeric TACO coefficients.
+    Retain the existing contact bonus. A half-tracking-gradient lifting scale
+    encourages lifting without outweighing position tracking past the target.
+    """
+    return {'contact_bonus':2.,'lifting_scale_per_m':.5/OBJECT_POSITION_TOLERANCE_M,
+            'human_mimic_scale':0.,'action_smoothness_scale':0.,
+            'domain_randomization':False,
+            'parameter_provenance':'shared engineering coefficients; paper does not give numeric TACO values'}
+
+
+def object_optimization_reward(tracking_reward,contact,lift_m=0.,*,lifting=False):
+    """Appendix C.3+C.7+C.8; evaluation keeps C.3 alone."""
+    p=object_optimization_parameters()
+    opposition=bool(contact.get('thumb_contact',False) and contact.get('other_finger_contact',False))
+    contact_reward=p['contact_bonus']*opposition
+    lifting_reward=p['lifting_scale_per_m']*float(lift_m) if lifting else 0.
+    return {'object_tracking':float(tracking_reward),'contact':float(contact_reward),
+            'lifting':float(lifting_reward),
+            'total':float(tracking_reward+contact_reward+lifting_reward)}
 
 
 def retention_errors(state, held_transform):
@@ -35,18 +60,14 @@ def core_pose_errors(state, expected):
 
 
 def object_tracking_score(errors):
-    """Weighted object reward and the project's explicit pose tolerances.
+    """Appendix C.3/C.4 with one weighted reward/termination boundary.
 
-    Project axial tolerances are 5 cm / 30 degrees, shared by Replay, MPC,
-    PPO and core handoff. These are project choices, not paper values.
-    Reward retains the Appendix-style weighted norm. Acceptance checks each
-    requested tolerance directly, so position error cannot shrink the allowed
-    rotation below 30 degrees (or vice versa).
+    Shared intercepts remain the project's 5 cm / 30 degrees, not paper
+    numerical values. Combined translation and rotation error uses C.4.
     """
     distance=float(np.hypot(errors['position_m']/OBJECT_POSITION_TOLERANCE_M,
                             errors['rotation_rad']/OBJECT_ROTATION_TOLERANCE_RAD))
-    feasible=(errors['position_m']<=OBJECT_POSITION_TOLERANCE_M and
-              errors['rotation_rad']<=OBJECT_ROTATION_TOLERANCE_RAD)
+    feasible=distance<=1.
     return {'weighted_error':distance, 'reward':1.-distance, 'feasible':bool(feasible)}
 
 

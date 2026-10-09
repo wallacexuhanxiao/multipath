@@ -16,7 +16,7 @@ from multipath.anchors.control_check import control_feasibility
 from multipath.anchors.mpc import WindowEvaluation, fitted_cartesian_prior
 from multipath.anchors.synthesis import hand_limits_from_urdf
 from multipath.anchors.residual_control import project_arm_command
-from multipath.validation.physics import object_tracking_parameters
+from multipath.validation.physics import object_tracking_parameters,object_optimization_parameters
 
 
 @dataclass(frozen=True)
@@ -56,7 +56,9 @@ class MountedResidualEnv:
             'source_provenance':scene.manifest['provenance'],'action':'wrist_xyz_rotvec_and_12_fingers',
             'action_scales':self.action_scales.tolist(),'residual_center':'fitted_local_replay',
             'dynamics_projection':'command_space_only','training_scene':'mounted_PhysX',
-            'objective':'Appendix C.3/C.4 weighted tracking + C.7 thumb AND finger',
+            'objective':'Appendix C.3+C.7+C.8',
+            'optimization_parameters':object_optimization_parameters(),
+            'early_termination':'C.4 weighted error > C',
             'terminal_reward':'same_tracking_formula_no_added_failure_penalty',
             'evaluation_reward':'object_tracking_only_C.9',
             'tracking_parameters':object_tracking_parameters(),
@@ -88,6 +90,8 @@ class MountedResidualEnv:
         self.previous_delta=np.zeros(19)
         self.ik_seed=np.asarray(self.start['arm_q']).copy()
         self.objective=WindowEvaluation(self.scene,self.anchor,self.data,self.start)
+        self.metadata['lifting_reward_enabled']=self.objective.lifting
+        self.metadata['lifting_initial_height_m']=self.objective.initial_tool_height
         self.failure=None
         return self.observation(self.start)
 
@@ -154,7 +158,8 @@ class MountedResidualEnv:
         observation=self.observation(self.scene.snapshot()) if self.failure is None else np.zeros_like(self.observation(self.start))
         success=bool(done and self.failure is None and len(self.commands)==len(self.baseline))
         return observation,float(reward),done,{'success':success,'failure':self.failure,'source_steps':self.k,
-            'evaluation_return':self.objective.evaluation_return}
+            'evaluation_return':self.objective.evaluation_return,
+            'reward_terms':dict(self.objective.last_reward_terms)}
 
     def command_precheck(self):
         return control_feasibility(np.asarray(self.commands),np.asarray(self.start['arm_q']),np.asarray(self.start['arm_dq']),
