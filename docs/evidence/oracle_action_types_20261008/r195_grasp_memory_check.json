@@ -1,0 +1,17 @@
+{
+  "source": "r194 actual PhysX failed replay",
+  "temporary_contact_loss": {
+    "source_frame": 32.0,
+    "native_contact": "free",
+    "relative_error": {
+      "position_m": 0.0073069100456397695,
+      "rotation_rad": 0.09802289868246465,
+      "contact_retained": false
+    },
+    "acquired_proposal_retained": true
+  },
+  "previous_target_drop_m": -0.018532894374641395,
+  "separated_grasp_proposal_cleared": true,
+  "contact_acceptance_modified": false,
+  "physical_acceptance": false
+}

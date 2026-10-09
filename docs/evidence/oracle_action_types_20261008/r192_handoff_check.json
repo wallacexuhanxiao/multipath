@@ -1,0 +1,34 @@
+{
+  "source": "r191 actual hit frame30, PhysX predecessor",
+  "velocity_only_duration_s": 0.09197613353960288,
+  "new_duration_s": 0.27125800786646337,
+  "first_command_twist_difference": 3.411507187855989e-14,
+  "remaining_core_budget_s": 0.4,
+  "extra_source_time_s": 0,
+  "physical_acceptance": false,
+  "handoff": {
+    "frame": 30.0,
+    "duration_s": 0.27125800786646337,
+    "duration_sizing": "nominal_velocity_and_acceleration_offset",
+    "position_offset": [
+      -0.01918951197165608,
+      0.002021879055752629,
+      -0.06131742235973525
+    ],
+    "rotation_offset": [
+      -0.0687905177133803,
+      -0.16223163426666545,
+      0.026146465445631928
+    ],
+    "position_tangent": [
+      0.03032774147767745,
+      -0.12812812097484916,
+      -0.15496255797699177
+    ],
+    "rotation_tangent": [
+      -0.05507861640516543,
+      -0.3600739604511934,
+      0.44578283548605785
+    ]
+  }
+}

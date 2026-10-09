@@ -174,7 +174,24 @@ def main():
                         scene.context_entry=scene.snapshot()
             scene.save();return scene.snapshot()
         entry=reach(anchor.core_start,out/'replay_entry_acquisition')
-        result,_,_=rollout(scene,local,cropped,controls,entry,out/'replay',continue_from_current=True,controller_handoff=True)
+        acquisition_reference=None
+        acquisition_synthesis=anchor.entry_contact=='free' and anchor.exit_contact=='grasped'
+        if acquisition_synthesis:
+            from multipath.anchors.floating import source_retarget_core_controls,stopping_context
+            # Failed runtime commands contain an executed feedback prefix and
+            # an untouched future. Rebuild a local nominal proposal instead
+            # of optimizing that hybrid as if it were one executable Replay.
+            core=source_retarget_core_controls(scene,anchor,data,entry)
+            post=(np.asarray(bridge_context).copy() if bridge_context is not None else
+                  stopping_context(core[-1],(anchor.synth_end-anchor.core_end)*tpf,scene.dt))
+            controls=project_hand_commands(scene,np.concatenate((core,post)),entry,local)
+            acquisition_reference=controls.copy()
+            report['acquisition_nominal_origin']='local_source_retarget_registered_to_actual_core_entry'
+            report['failed_runtime_commands_used_as_reference']=False
+        result,_,_=rollout(scene,local,cropped,controls,entry,out/'replay',continue_from_current=True,
+                           controller_handoff=True,synthesize_acquisition=acquisition_synthesis)
+        if result['success'] and acquisition_synthesis:
+            controls=np.load(out/'replay'/'executed_commands.npz')['commands']
         report['replay']=result
         if not result['success']:
             try:
@@ -200,7 +217,7 @@ def main():
                 return value['success']
             def reached_env(*values):
                 return FloatingResidualEnv(*values,entry_acquirer=lambda:reach(anchor.core_start,out/'ppo_entry_acquisition'),
-                    controller_handoff=True)
+                    controller_handoff=True,acquisition_reference=acquisition_reference)
             solver=LocalPPOSolver(scene,local,cropped,out/'whole_local_ppo',PPOConfig(iterations=args.ppo_updates,max_seconds=240.),
                 env_factory=reached_env,accept_controls=accept_full)
             candidate=solver(controls,entry,0)

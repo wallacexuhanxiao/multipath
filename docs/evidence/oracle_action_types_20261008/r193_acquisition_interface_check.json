@@ -1,0 +1,23 @@
+{
+  "checks": [
+    {
+      "actual_source_frame": 29,
+      "actual_contact_mode": "free",
+      "zero_residual_matches_replay": true,
+      "pose_residual_retained": true,
+      "feedforward_unchanged": true,
+      "nominal_history_excludes_residual": true
+    },
+    {
+      "actual_source_frame": 30,
+      "actual_contact_mode": "grasped",
+      "zero_residual_matches_replay": true,
+      "pose_residual_retained": true,
+      "feedforward_unchanged": true,
+      "nominal_history_excludes_residual": true
+    }
+  ],
+  "ppo_nominal_reference_separate_from_failed_seed": true,
+  "physical_acceptance": false,
+  "scope": "CPU execution-interface regression using actually acquired states; full physics still required"
+}

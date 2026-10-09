@@ -82,6 +82,8 @@ class FloatingScene:
         q=np.zeros(self.robot.num_dof);q[self.fingers]=self.hand_command
         self.robot.set_joint_positions(q);self.robot.set_joint_velocities(np.zeros_like(q))
         self.av=view._physics_view
+        self.physical_properties={'hand_mass_kg':float(np.asarray(self.av.get_masses()).sum()),
+                                  'tool_mass_kg':float(self.objects['tool'].get_mass())}
         self.ticks=0;self.records=[];self.record_mesh=False;self.restore_count=0
         self.scene_id=hashlib.sha256(json.dumps({'objects':initial,'embodiment':self.embodiment,'controller':self.cfg,
             'hand_weight_compensation':('measured_force_and_moment' if self.cfg['controller'].get('hand_gravity_moment_compensation',False)
@@ -139,6 +141,7 @@ class FloatingScene:
         return {'embodiment':self.embodiment,'wrist_xyz_wxyz':pose.tolist(),'wrist_twist':twist.tolist(),'hand_q':q.tolist(),'hand_dq':dq.tolist(),
             'objects':objects,'hand_object_transform':(np.linalg.inv(pose_matrix(pose))@pose_matrix(objects['tool']['pose'])).tolist(),
             'contact':hand_tool_contact(self.contacts.prim_paths,self.contacts.get_contact_force_matrix(dt=self.dt)),
+            'physical_properties':dict(self.physical_properties),
             'interaction_contacts':{'tool_target_contact_steps':self.tool_target_contact_steps,
                                     'tool_target_impulse_n_s':self.tool_target_impulse},
             'scene_id':self.scene_id,'time_s':self.ticks*self.dt,'physically_acquired_state':True,'state_origin':'continuous_PhysX_rollout',

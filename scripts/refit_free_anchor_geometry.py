@@ -39,7 +39,9 @@ def main():
         reference[:,3:7]=Rotation.from_matrix(matrices[:,:3,:3]).as_quat()[:,[3,0,1,2]]
     data['wrist_hand_q'],detail=surface_grasp_prior(a,data['source_frames'],reference,data['human_joints'],
         data['tool_pose'],mesh,args.xhand_urdf,fps=schedule.fps,table_z=physical['table_z'],
-        physical_entry_tool=pose_matrix(state['objects']['tool']['pose']),geometry_cache=args.proposals/'geometry_cache')
+        physical_entry_tool=pose_matrix(state['objects']['tool']['pose']),geometry_cache=args.proposals/'geometry_cache',
+        initial_grasp=(data['wrist_hand_q'][a.core_end-1-a.synth_start] if
+            manifest.get('retarget_details',{}).get(a.id,{}).get('method')=='local_mesh_opposition_surface_IK' else None))
     if detail is None:raise ValueError('This local proposal has no surface-grasp geometry refit')
     detail['physical_geometry_entry']=dict(entry_origin=state['entry_origin'],
         entry_provenance=state['entry_provenance'],tool_pose=state['objects']['tool']['pose'],

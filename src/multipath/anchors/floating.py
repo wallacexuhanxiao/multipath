@@ -278,7 +278,7 @@ def validate_commands(scene,commands,start):
     return {'feasible':bool(in_bounds and ratio<=1.0001),'hand_velocity_ratio':ratio,'hand_joint_bounds':in_bounds}
 
 
-def rollout(scene,anchor,data,commands,start,out,mode='LOCAL_PADDED',core_only=False,mesh=True,collect_tracking_failures=False,continue_from_current=False,controller_handoff=False):
+def rollout(scene,anchor,data,commands,start,out,mode='LOCAL_PADDED',core_only=False,mesh=True,collect_tracking_failures=False,continue_from_current=False,controller_handoff=False,synthesize_acquisition=False):
     tpf=physics_ticks_per_frame(scene.manifest['fps'],scene.dt)
     start_frame=anchor.core_start if core_only else anchor.synth_start
     end_frame=anchor.core_end if core_only else anchor.synth_end
@@ -293,6 +293,9 @@ def rollout(scene,anchor,data,commands,start,out,mode='LOCAL_PADDED',core_only=F
             raise ValueError('Continuous local rollout entry differs from current measured state')
         scene.begin_recording(out,mesh=mesh)
     else:scene.begin_trial(out,start,mesh=mesh)
+    commands=np.asarray(commands).copy()
+    acquisition=(AcquiredGraspProposal(scene,anchor,data) if synthesize_acquisition and
+                 anchor.entry_contact=='free' and anchor.exit_contact=='grasped' else None)
     objective=WindowEvaluation(scene,anchor,data,start);entry=None;exit_state=None;failure=None
     resets=scene.restore_count;failures=[];executed=0
     if controller_handoff:
@@ -311,6 +314,11 @@ def rollout(scene,anchor,data,commands,start,out,mode='LOCAL_PADDED',core_only=F
     try:
         for k,c in enumerate(commands):
             if failure is not None and not collect_tracking_failures:break
+            frame=start_frame+(k+1)/tpf
+            if acquisition is not None and frame<=anchor.core_end:
+                c=acquisition.command(frame,c);commands[k]=c
+                if frame==anchor.core_end:
+                    commands[k+1:]=project_hand_commands(scene,commands,start,anchor)[k+1:]
             if controller_handoff:
                 if getattr(scene,'post_context_commands',None) is not None and start_frame+(k/tpf)>=anchor.core_end:
                     if start_frame+(k/tpf)==anchor.core_end:
@@ -319,7 +327,7 @@ def rollout(scene,anchor,data,commands,start,out,mode='LOCAL_PADDED',core_only=F
                         post_begin=k
                     scene.wrench_bias=post_wrenches[k-post_begin]
                 else:scene.wrench_bias=drive_bias*drive_profile[k]
-            frame=start_frame+(k+1)/tpf;scene.step_control(c,mode,frame);executed=k+1
+            scene.step_control(c,mode,frame);executed=k+1
             if (k+1)%tpf:continue
             if frame==anchor.core_start:entry=scene.snapshot()
             if frame==anchor.core_end:exit_state=scene.snapshot()
@@ -332,7 +340,12 @@ def rollout(scene,anchor,data,commands,start,out,mode='LOCAL_PADDED',core_only=F
     except (RuntimeError,ValueError) as error:
         current={'reason':str(error),'source_frame':scene.ticks*scene.dt*scene.manifest['fps']};failures.append(current)
         if failure is None:failure=current
-    finally:scene.save()
+    finally:
+        scene.save()
+        if acquisition is not None:
+            # Only actually executed drives are evidence. An incomplete
+            # trial's untouched future proposal must not be used as Replay.
+            np.savez_compressed(Path(out)/'executed_commands.npz',commands=commands[:executed])
     result={'success':failure is None and executed==len(commands) and entry is not None and exit_state is not None,
         'failure':failure,'failures':failures,'rollout_complete':executed==len(commands),
         'padded_rollout_complete':executed==len(commands) and not core_only,
@@ -343,6 +356,9 @@ def rollout(scene,anchor,data,commands,start,out,mode='LOCAL_PADDED',core_only=F
         'tracking_parameters':object_tracking_parameters(),
         'embodiment':scene.embodiment,'command_format':'wrist_xyz_wxyz_hand12_twist6','actual_end_frame':scene.ticks*scene.dt*scene.manifest['fps']}
     if controller_handoff:result['controller_handoff']=dict(initial_wrench_bias=drive_bias.tolist(),extra_time_s=0.,profile='measured_mass_inertia_gain_response')
+    if acquisition is not None:
+        result['synthesis_controller']='measured_tool_acquisition_then_source_object_motion'
+        result['executed_commands_path']=str(Path(out)/'executed_commands.npz')
     if entry is not None:
         from multipath.validation.physics import core_pose_errors,object_tracking_score
         errors=core_pose_errors(entry,data['tool_pose'][anchor.core_start-anchor.synth_start])
@@ -398,7 +414,8 @@ def object_relative_handoff(scene,anchor,data,frame,held_transform,previous_comm
     """Match the current drive target before changing the Anchor proposal.
 
     Fade the target offset during existing source time, sized by the shared
-    wrist velocity budget. This does not wait, reset, or relax acceptance.
+    wrist velocity and acceleration budgets. This is nominal time fitting;
+    native contact/retention still decides whether the handoff works.
     """
     previous=(np.r_[scene.command_pose,scene.hand_command,scene.command_twist]
               if previous_command is None else np.asarray(previous_command))
@@ -406,8 +423,15 @@ def object_relative_handoff(scene,anchor,data,frame,held_transform,previous_comm
     offset=previous[:3]-raw[:3]
     rotation=(Rotation.from_quat(previous[[4,5,6,3]])*Rotation.from_quat(raw[[4,5,6,3]]).inv()).as_rotvec()
     velocity=np.asarray(scene.cfg['planning']['velocity_limits'])
+    acceleration=np.asarray(scene.cfg['planning']['acceleration_limits'])
+    # Velocity-only fitting caught up several centimetres in one source
+    # frame after opposition appeared, then physically pulled the hand off
+    # the resting tool. Size the same Hermite offset by its acceleration too.
+    # This changes commands, never measured state or the source deadline.
     duration=max(1/scene.manifest['fps'],float(np.max(1.5*np.abs(offset)/velocity[:3])),
-                 float(1.5*np.linalg.norm(rotation)/np.min(velocity[3:])))
+                 float(1.5*np.linalg.norm(rotation)/np.min(velocity[3:])),
+                 float(np.max(np.sqrt(6*np.abs(offset)/acceleration[:3]))),
+                 float(np.sqrt(6*np.linalg.norm(rotation)/np.min(acceleration[3:]))))
     deadline=anchor.core_end if frame<anchor.core_end else anchor.synth_end
     if duration>(deadline-frame)/scene.manifest['fps']:
         raise RuntimeError('Measured-grasp target handoff exceeds remaining source budget')
@@ -416,7 +440,8 @@ def object_relative_handoff(scene,anchor,data,frame,held_transform,previous_comm
     position_tangent=(previous[:3]+scene.dt*previous[19:22]-next_raw[:3]-weight*offset)/tangent
     base=Rotation.from_rotvec(weight*rotation)*Rotation.from_quat(next_raw[[4,5,6,3]])
     desired=Rotation.from_rotvec(scene.dt*previous[22:25])*Rotation.from_quat(previous[[4,5,6,3]])
-    return {'frame':float(frame),'duration_s':duration,'position_offset':offset.tolist(),'rotation_offset':rotation.tolist(),
+    return {'frame':float(frame),'duration_s':duration,'duration_sizing':'nominal_velocity_and_acceleration_offset',
+            'position_offset':offset.tolist(),'rotation_offset':rotation.tolist(),
             'position_tangent':position_tangent.tolist(),'rotation_tangent':((desired*base.inv()).as_rotvec()/tangent).tolist()}
 
 
@@ -488,7 +513,15 @@ class AcquiredGraspProposal:
         # handoff. This is controller memory only: physical contact/retention
         # checks still use the native measured state, with unchanged gates.
         if self.anchor.entry_contact=='free' and self.contact_loss_run>=tpf and self.held is not None:
-            self.held=None;self.handoff=None;self.preload_bounds=None
+            from multipath.validation.physics import retention_errors
+            error=retention_errors(measured,self.held)
+            # Opposition is an observation, not a controller reset trigger.
+            # A brief loss while the fingers redistribute contact must not
+            # return a lifting hand to the stationary acquisition target.
+            # Discard the proposal only after actual hand/tool separation;
+            # native contact and final retention acceptance stay unchanged.
+            if error['position_m']>.05 or error['rotation_rad']>.35:
+                self.held=None;self.handoff=None;self.preload_bounds=None
         self.contact_run=self.contact_run+1 if measured['contact']['mode']=='grasped' else 0
         if self.held is None and self.contact_run>=tpf:
             self.held=np.asarray(measured['hand_object_transform'])
@@ -509,6 +542,21 @@ class AcquiredGraspProposal:
         command[7:19]=np.clip(command[7:19],np.maximum(low,self.scene.hand_command-step),
                               np.minimum(high,self.scene.hand_command+step))
         return command
+
+    def command_with_residual(self,frame,nominal,desired,previous_command):
+        """Execute the same acquisition for Replay, MPPI and residual PPO.
+
+        Nominal drive history supplies feedforward. Pose residuals act after
+        measured grasp adaptation, so they are neither erased nor converted
+        into random velocity impulses.
+        """
+        base=np.asarray(nominal).copy();base[7:19]=desired[7:19]
+        command=self.command(frame,base,previous_command=previous_command)
+        next_nominal=command.copy()
+        command[:3]+=desired[:3]-base[:3]
+        delta=Rotation.from_quat(desired[[4,5,6,3]])*Rotation.from_quat(base[[4,5,6,3]]).inv()
+        command[3:7]=(delta*Rotation.from_quat(command[[4,5,6,3]])).as_quat()[[3,0,1,2]]
+        return command,next_nominal
 
 
 def join_core_controls(scene,anchor,commands,start):

@@ -1,0 +1,356 @@
+{
+  "pour": {
+    "method": "local_mesh_opposition_surface_IK",
+    "physical_acceptance": false,
+    "geometry_aspect_ratio": 1.0270845264620614,
+    "source_frame": 49,
+    "contact_target_object_xyz": [
+      [
+        -0.022211541633729494,
+        -0.0591997881609608,
+        0.004710063908370431
+      ],
+      [
+        0.007007116605827368,
+        -0.05494173538887043,
+        -0.007673875010520161
+      ],
+      [
+        -0.01622875172968323,
+        -0.042217135520655896,
+        -0.016042067229578114
+      ],
+      [
+        -0.05021298997196004,
+        -0.03528242260869953,
+        -0.0002933689895197414
+      ],
+      [
+        -0.04503786782316585,
+        -0.0482547125358869,
+        0.009573927563949168
+      ]
+    ],
+    "contact_rms_m": 0.004230703070852444,
+    "contact_target_geometry": "source-local opposing nonconvex mesh surfaces",
+    "nominal_opposition_surface_clearance_m": [
+      -0.001377534819766879,
+      -0.0011587319895625114
+    ],
+    "nominal_opposition_normal_dot": -0.7340668497059786,
+    "nominal_opposition_normals_object_frame": [
+      [
+        -0.10358229574513184,
+        0.01082696609561892,
+        0.994561956246735
+      ],
+      [
+        -0.48330666885271284,
+        -0.38920088738200265,
+        -0.7841794010961751
+      ]
+    ],
+    "opposition_finger": "mid",
+    "geometry_fit_seed": "source_retarget",
+    "collision_model": "nonconvex tool SDF; all real finger contact surfaces, conservative other-link spheres; proposal only",
+    "geometry_objective": "worst clearance per link, independent of surface sample count",
+    "local_table_geometry": "exact convex triangle vertices; no sphere-radius inflation",
+    "wrist_translation_search_bound_m": 0.19058116750565063,
+    "pregrasp_translation_search_bound_m": 0.19058116750565063,
+    "tool_distance_grid_pitch_m": 0.001,
+    "hand_surface_cover_spheres": 154332,
+    "tool_distance_outside_grid": "monotone boundary distance extension; original mesh face normals",
+    "pre_acquisition_tool_motion": "stationary_entry",
+    "free_pregrasp_geometric_seed_recovery": true,
+    "free_pregrasp_surface_clearance_m": 0.0019794042081398094,
+    "planned_closure_s": 0.3333333333333333,
+    "pregrasp_max_joint_travel_rad": 0.15082363557850642,
+    "wrist_local_correction": [
+      [
+        0.9394051157183856,
+        0.15982295026781018,
+        0.30327331446294864,
+        0.03921336104651379
+      ],
+      [
+        -0.1298699529446587,
+        0.9846484779080807,
+        -0.11662389704558826,
+        -0.014247356216024791
+      ],
+      [
+        -0.31725678473537594,
+        0.07017096455387925,
+        0.9457400039391279,
+        -0.008649562263158883
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "physical_geometry_entry": {
+      "entry_origin": "predecessor_rollout",
+      "entry_provenance": {
+        "trace": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_action_types_r189_20231024_246/candidate_01/actual_trace.json",
+        "source_frame": 30.0,
+        "predecessor": {
+          "initial_scene": "143c2637910521913e93ea035793c0431156f06e9910129fd7b4674fe5c36761"
+        }
+      },
+      "tool_pose": [
+        0.5960085391998291,
+        -0.17258088290691376,
+        0.37540310621261597,
+        0.9810404181480408,
+        -1.816079020500183e-08,
+        -3.7628342397511005e-07,
+        -0.1938033103942871
+      ],
+      "table_z": 0.3454514896221997,
+      "source_frame": 30
+    },
+    "proposal_refitted": true,
+    "oracle_schedule_changed": false,
+    "source_time_stretch": false,
+    "simulator_state_assigned": false
+  },
+  "brush": {
+    "method": "local_mesh_opposition_surface_IK",
+    "physical_acceptance": false,
+    "geometry_aspect_ratio": 2.143184406920833,
+    "source_frame": 31,
+    "contact_target_object_xyz": [
+      [
+        -0.019886678388069724,
+        0.025516831872404167,
+        0.007363363145369865
+      ],
+      [
+        -0.023500520312752973,
+        -0.025117438190566152,
+        -0.010394913872015901
+      ],
+      [
+        -0.03314557620508749,
+        -0.0251932696403276,
+        -0.01022932253655907
+      ],
+      [
+        -0.047405211158978056,
+        -0.025060999940306444,
+        -0.010612532320774281
+      ],
+      [
+        -0.05929384649340252,
+        -0.02517856639257579,
+        -0.010109992700593954
+      ]
+    ],
+    "contact_rms_m": 0.0035512015659998446,
+    "contact_target_geometry": "source-local opposing handle cross sections",
+    "nominal_opposition_surface_clearance_m": [
+      -0.0005202871398068964,
+      -0.000524367846082896
+    ],
+    "nominal_opposition_normal_dot": -0.9936938328378949,
+    "nominal_opposition_normals_object_frame": [
+      [
+        0.0010765648502562661,
+        0.9964582231148855,
+        -0.08408240359818563
+      ],
+      [
+        -0.0008347006567209845,
+        -0.9996025739929523,
+        -0.028177958433466745
+      ]
+    ],
+    "opposition_finger": "mid",
+    "geometry_fit_seed": "source_retarget",
+    "collision_model": "nonconvex tool SDF; all real finger contact surfaces, conservative other-link spheres; proposal only",
+    "geometry_objective": "worst clearance per link, independent of surface sample count",
+    "local_table_geometry": "exact convex triangle vertices; no sphere-radius inflation",
+    "wrist_translation_search_bound_m": 0.18267066244405428,
+    "pregrasp_translation_search_bound_m": 0.18267066244405428,
+    "tool_distance_grid_pitch_m": 0.001,
+    "hand_surface_cover_spheres": 154332,
+    "tool_distance_outside_grid": "monotone boundary distance extension; original mesh face normals",
+    "pre_acquisition_tool_motion": "stationary_entry",
+    "free_pregrasp_geometric_seed_recovery": false,
+    "free_pregrasp_surface_clearance_m": 0.0019993545327688504,
+    "planned_closure_s": 0.2,
+    "pregrasp_max_joint_travel_rad": 0.09029672661709243,
+    "wrist_local_correction": [
+      [
+        0.8556045396509944,
+        -0.00322808134490038,
+        0.517619941492108,
+        0.07393946579659248
+      ],
+      [
+        0.07262850833964433,
+        0.9908370764505272,
+        -0.11387265028250526,
+        -0.03436111101055335
+      ],
+      [
+        -0.5125095458871272,
+        0.13502393719069225,
+        0.847999148805129,
+        0.0004530576494353178
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "physical_geometry_entry": {
+      "entry_origin": "predecessor_rollout",
+      "entry_provenance": {
+        "trace": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_action_types_r189_20231103_057/candidate_00/actual_trace.json",
+        "source_frame": 20.0,
+        "predecessor": {
+          "initial_scene": "4f316695e4a1d7dcabdc7170faf7e9dcd19fdb959108cdd38dd59cd6a38accf1"
+        }
+      },
+      "tool_pose": [
+        0.5475242137908936,
+        -0.22143517434597015,
+        0.38231199979782104,
+        0.9958305358886719,
+        0.011448324657976627,
+        -0.000470268219942227,
+        0.09050145000219345
+      ],
+      "table_z": 0.3679362083537403,
+      "source_frame": 20
+    },
+    "proposal_refitted": true,
+    "oracle_schedule_changed": false,
+    "source_time_stretch": false,
+    "simulator_state_assigned": false
+  },
+  "hit": {
+    "method": "local_mesh_opposition_surface_IK",
+    "physical_acceptance": false,
+    "geometry_aspect_ratio": 4.273723227445312,
+    "source_frame": 41,
+    "contact_target_object_xyz": [
+      [
+        -0.07812769622123836,
+        0.014285121411283434,
+        0.004936562839962147
+      ],
+      [
+        -0.05327731991447851,
+        -0.01577977370546244,
+        -0.006807616726136624
+      ],
+      [
+        -0.10726449005401151,
+        -0.0163044840260579,
+        -0.006494900102820286
+      ],
+      [
+        -0.12919087029719753,
+        -0.017086920899703206,
+        -0.006328402297703813
+      ],
+      [
+        -0.13498456119245372,
+        -0.017294388559605904,
+        -0.006682222664061865
+      ]
+    ],
+    "contact_rms_m": 0.003770472393901437,
+    "contact_target_geometry": "source-local opposing handle cross sections",
+    "nominal_opposition_surface_clearance_m": [
+      -0.0005324150552041829,
+      -0.0005056998925283551
+    ],
+    "nominal_opposition_normal_dot": -0.9985230237479685,
+    "nominal_opposition_normals_object_frame": [
+      [
+        -0.00920212673057926,
+        0.966140820891584,
+        0.2578511878401388
+      ],
+      [
+        -0.02048812274537983,
+        -0.9767125474004039,
+        -0.21357161931535668
+      ]
+    ],
+    "opposition_finger": "index",
+    "geometry_fit_seed": "previous_local_grasp_proposal",
+    "collision_model": "nonconvex tool SDF; all real finger contact surfaces, conservative other-link spheres; proposal only",
+    "geometry_objective": "worst clearance per link, independent of surface sample count",
+    "local_table_geometry": "exact convex triangle vertices; no sphere-radius inflation",
+    "wrist_translation_search_bound_m": 0.1807880709675178,
+    "pregrasp_translation_search_bound_m": 0.1807880709675178,
+    "tool_distance_grid_pitch_m": 0.001,
+    "hand_surface_cover_spheres": 154332,
+    "tool_distance_outside_grid": "monotone boundary distance extension; original mesh face normals",
+    "pre_acquisition_tool_motion": "stationary_entry",
+    "free_pregrasp_geometric_seed_recovery": false,
+    "free_pregrasp_surface_clearance_m": 0.0019960977029251843,
+    "planned_closure_s": 0.3,
+    "pregrasp_max_joint_travel_rad": 0.09193219069855396,
+    "wrist_local_correction": [
+      [
+        0.8092783537505748,
+        -0.5842857830287367,
+        0.060652133270395876,
+        0.05959371542174688
+      ],
+      [
+        0.4710474208855985,
+        0.7071697775028487,
+        0.5272809636586417,
+        0.020833280875947567
+      ],
+      [
+        -0.350974140026811,
+        -0.3981470758238658,
+        0.8475234900008183,
+        0.04558094261110704
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "physical_geometry_entry": {
+      "entry_origin": "predecessor_rollout",
+      "entry_provenance": {
+        "trace": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_action_types_r189_20231102_003/candidate_00/actual_trace.json",
+        "source_frame": 24.0,
+        "predecessor": {
+          "initial_scene": "0a22c9f061c04d69b2ba1c695b53a521b1b351e572e8a1858cb5d9faddcbd7ec"
+        }
+      },
+      "tool_pose": [
+        0.5611220598220825,
+        -0.15347257256507874,
+        0.3604380488395691,
+        0.9995318055152893,
+        -1.2883467206847854e-05,
+        1.1004829502780922e-05,
+        -0.03059636615216732
+      ],
+      "table_z": 0.34440661575232145,
+      "source_frame": 24
+    },
+    "proposal_refitted": true,
+    "oracle_schedule_changed": false,
+    "source_time_stretch": false,
+    "simulator_state_assigned": false
+  }
+}

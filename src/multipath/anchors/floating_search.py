@@ -37,10 +37,14 @@ def apply_residual(scene,baseline,start,residual,tpf,envelope,anchor=None):
 
 
 class FloatingResidualEnv(MountedResidualEnv):
-    def __init__(self,scene,anchor,data,baseline,start,begin,out,*,entry_acquirer=None,controller_handoff=False):
+    def __init__(self,scene,anchor,data,baseline,start,begin,out,*,entry_acquirer=None,controller_handoff=False,acquisition_reference=None):
         self.scene,self.anchor,self.data=scene,anchor,data
         self.entry_acquirer=entry_acquirer;self.controller_handoff=controller_handoff
         self.baseline,self.start,self.begin=project_hand_commands(scene,baseline,start,anchor),start,begin
+        self.acquisition_reference=(self.baseline.copy() if acquisition_reference is None else
+            project_hand_commands(scene,acquisition_reference,start,anchor))
+        if self.acquisition_reference.shape!=self.baseline.shape:
+            raise ValueError('Acquisition nominal reference must match the local source interval')
         self.out=Path(out);self.out.mkdir(parents=True,exist_ok=True)
         self.fps=scene.manifest['fps'];self.tpf=physics_ticks_per_frame(self.fps,scene.dt);self.horizon=len(baseline)//self.tpf
         if self.horizon<1 or len(baseline)%self.tpf or not validate_commands(scene,self.baseline,start)['feasible']:
@@ -79,6 +83,7 @@ class FloatingResidualEnv(MountedResidualEnv):
             self.metadata['entry_acquisition']='physical_predecessor_execution_each_episode'
         self.k=0;self.commands=[];self.previous_action=np.zeros(18);self.residuals=[];self.physical_prefix=None
         self.contact_run=0;self.preload_bounds=None
+        self.acquisition_post_commands=None
         self.acquisition=(AcquiredGraspProposal(self.scene,self.anchor,self.data)
             if self.anchor.entry_contact=='free' and self.anchor.exit_contact=='grasped' else None)
         self.acquisition_nominal_command=np.r_[self.scene.command_pose,self.scene.hand_command,self.scene.command_twist]
@@ -118,16 +123,20 @@ class FloatingResidualEnv(MountedResidualEnv):
             for tick in range(self.k*self.tpf,end):
                 c=candidate[tick];frame=self.anchor.synth_start+(self.begin+tick+1)/self.tpf
                 if self.acquisition is not None and frame<=self.anchor.core_end:
-                    desired=c;nominal=self.baseline[tick].copy();nominal[7:19]=desired[7:19]
-                    c=self.acquisition.command(frame,nominal,previous_command=self.acquisition_nominal_command)
-                    self.acquisition_nominal_command=c.copy()
-                    # Execute pose residuals after the nominal acquisition
-                    # controller, before and after grasp. Its feedforward and
-                    # handoff follow nominal drive history rather than finite
-                    # differences of random policy targets. Zero stays Replay.
-                    c[:3]+=desired[:3]-nominal[:3]
-                    residual_rotation=Rotation.from_quat(desired[[4,5,6,3]])*Rotation.from_quat(nominal[[4,5,6,3]]).inv()
-                    c[3:7]=(residual_rotation*Rotation.from_quat(c[[4,5,6,3]])).as_quat()[[3,0,1,2]]
+                    c,self.acquisition_nominal_command=self.acquisition.command_with_residual(
+                        frame,self.acquisition_reference[tick],c,self.acquisition_nominal_command)
+                elif self.acquisition is not None and getattr(self.scene,'freeze_carry_core',False):
+                    core_tick=round((self.anchor.core_end-self.anchor.synth_start)*self.tpf)-self.begin
+                    if core_tick>0:
+                        if self.acquisition_post_commands is None:
+                            complete=self.continuation_proposal()
+                            complete[:len(self.commands)]=self.commands
+                            complete=project_hand_commands(self.scene,complete,self.start,self.anchor)
+                            self.acquisition_post_commands=complete[core_tick:]
+                        # Stop the actually acquired core drive. Returning to
+                        # a stationary pregrasp's nominal post-padding undid
+                        # the very lift the policy was learning.
+                        c=self.acquisition_post_commands[tick-core_tick].copy()
                 c,self.preload_bounds=acquisition_preload(self.scene,self.anchor,c,self.preload_bounds)
                 if self.controller_handoff:
                     if getattr(self.scene,'post_context_commands',None) is not None and frame>self.anchor.core_end:
@@ -161,26 +170,30 @@ def refine(scene,anchor,data,baseline,start,out,candidates=64,iterations=3,use_p
         raise ValueError('MPC baseline/entry does not match the padded source interval')
     prior_origin={}
     def ppo_env(*args):
-        env=FloatingResidualEnv(*args,controller_handoff=True)
+        env=FloatingResidualEnv(*args,controller_handoff=True,acquisition_reference=replay)
         env.metadata.update(residual_center='best_physically_evaluated_local_command_proposal',
                             initialization_proposal=dict(prior_origin),initialization_is_acceptance=False)
         return env
     ppo=LocalPPOSolver(scene,anchor,data,out/'ppo',ppo_config or PPOConfig(),env_factory=ppo_env,allow_physical_prefix=True) if use_ppo else None
-    def evaluate(control,boundary,begin,label,folder,object_relative=False,prefix_ticks=None):
+    def evaluate(control,boundary,begin,label,folder,object_relative=False,prefix_ticks=None,acquisition_reference=None):
         check=validate_commands(scene,control,boundary)
         if not check['feasible']:return -np.inf,False,{'precheck':check},None
         scene.begin_trial(folder,boundary,mesh=object_relative);objective=WindowEvaluation(scene,anchor,data,boundary,continue_tracking_failures=True)
         prefix=None
+        proposal_control=np.array(control).copy()
+        nominal_control=(proposal_control if acquisition_reference is None else np.asarray(acquisition_reference))
+        nominal_previous=np.r_[scene.command_pose,scene.hand_command,scene.command_twist]
         executed_control=np.array(control).copy();held=None;acquired_frame=None;handoff=None;contact_run=0;executed=0;preload_bounds=None
         if object_relative and boundary['contact']['mode']=='grasped':
             held=np.asarray(boundary['hand_object_transform']);preload_bounds=grasp_command_bounds(scene,boundary,anchor)
         acquisition=(AcquiredGraspProposal(scene,anchor,data)
-            if object_relative and anchor.entry_contact=='free' and anchor.exit_contact=='grasped' else None)
+            if anchor.entry_contact=='free' and anchor.exit_contact=='grasped' else None)
         try:
             for j,c in enumerate(control):
                 frame=anchor.synth_start+(begin+j+1)/tpf
                 if acquisition is not None and frame<=anchor.core_end:
-                    c=acquisition.command(frame,c);held=acquisition.held
+                    c,nominal_previous=acquisition.command_with_residual(frame,nominal_control[j],c,nominal_previous)
+                    held=acquisition.held
                     acquired_frame=acquisition.acquired_frame;preload_bounds=acquisition.preload_bounds
                     handoff=acquisition.handoff;contact_run=acquisition.contact_run;executed_control[j]=c
                     if frame==anchor.core_end and getattr(scene,'freeze_carry_core',False):
@@ -236,7 +249,14 @@ def refine(scene,anchor,data,baseline,start,out,candidates=64,iterations=3,use_p
                     prefix={'state':scene.snapshot(),'trace':list(scene.records)}
         except (RuntimeError,ValueError) as error:objective.failure={'reason':str(error)};objective.total_return=-np.inf
         scene.save()
-        if object_relative:
+        if acquisition is not None:
+            valid_prediction=(objective.failure is None and not objective.tracking_failures and executed==len(control))
+            # A failed prediction is a nominal optimization seed, not a
+            # hybrid of measured prefix and untouched stationary future.
+            control[:]=executed_control if valid_prediction else proposal_control
+            np.savez_compressed(Path(folder)/'executed_commands.npz',commands=executed_control[:executed])
+            np.savez_compressed(Path(folder)/'proposal_commands.npz',commands=proposal_control)
+        elif object_relative:
             # Complete the command proposal after an unsuccessful prediction.
             # These future commands are initialization, never physical evidence.
             if handoff is not None:
@@ -255,7 +275,8 @@ def refine(scene,anchor,data,baseline,start,out,candidates=64,iterations=3,use_p
         tracking_failure=next(iter(objective.tracking_failures),None)
         return objective.total_return,objective.failure is None and tracking_failure is None and executed==len(control),{'failure':objective.failure or tracking_failure,'score':objective.total_return,
             'tracking_failure_count':len(objective.tracking_failures),
-            'proposal':'measured_grasp_object_relative' if object_relative else 'pose_residual',
+            'proposal':('acquisition_with_pose_finger_residual' if acquisition is not None else
+                        'measured_grasp_object_relative' if object_relative else 'pose_residual'),
             'grasp_acquired_frame':acquired_frame,'target_handoff':handoff,'physics_steps_executed':executed,
             'prediction_complete':executed==len(control)},prefix
     def retain_prefix(prefix,commands,begin):
@@ -277,7 +298,7 @@ def refine(scene,anchor,data,baseline,start,out,candidates=64,iterations=3,use_p
         seed=replay.copy();seed_score=score;prior_origin.clear();prior_origin.update(proposal='local_replay',score=float(score),failure=info.get('failure'))
         mean=np.zeros((len(replay)//tpf,18));scale=np.r_[np.full(3,.02),np.full(3,.2),np.full(12,.25)]
         phase=np.clip((begin+np.arange(len(replay)+1))/max(1,(anchor.core_start-anchor.synth_start)*tpf),0,1);envelope=phase**2*(3-2*phase)
-        if not valid and anchor.exit_contact=='grasped':
+        if not valid and anchor.exit_contact=='grasped' and anchor.entry_contact!='free':
             # First test the existing observed grasp-transform constraint as a
             # physical MPC proposal; the failed Replay contributes no state.
             proposal=replay.copy()
@@ -292,10 +313,19 @@ def refine(scene,anchor,data,baseline,start,out,candidates=64,iterations=3,use_p
         if not valid and best is None:
             for iteration in range(iterations):
                 samples=rng.normal(size=(candidates,*mean.shape))*scale*(.5**iteration)+mean;samples[0]=mean
+                if anchor.entry_contact=='free' and anchor.exit_contact=='grasped' and iteration==0:
+                    from multipath.xhand import RIGHT_XHAND_CLOSING_DIRECTION
+                    # Independent per-frame finger noise repeatedly opened a
+                    # transient grasp. Use two existing candidate slots for
+                    # persistent closing offsets, sized by the same MPPI
+                    # sigma. These are proposals, not controller state locks.
+                    for candidate in range(1,min(candidates,3)):
+                        samples[candidate]=mean
+                        samples[candidate,:,6:]+=candidate*scale[6:]*np.asarray(RIGHT_XHAND_CLOSING_DIRECTION)
                 returns=np.full(candidates,-np.inf)
                 for i,residual in enumerate(samples):
                     control=replay.copy() if not np.any(residual) else apply_residual(scene,replay,state,residual,tpf,envelope,anchor)
-                    returns[i],ok,info,prefix=evaluate(control,state,begin,'LOCAL_MPPI',out/'candidate',prefix_ticks=commit)
+                    returns[i],ok,info,prefix=evaluate(control,state,begin,'LOCAL_MPPI',out/'candidate',prefix_ticks=commit,acquisition_reference=replay)
                     history.append(dict(begin_tick=begin,iteration=iteration,candidate=i,success=ok,**info))
                     if ok and returns[i]>best_score:
                         best,best_score=control.copy(),returns[i];best_state=retain_prefix(prefix,best,begin)

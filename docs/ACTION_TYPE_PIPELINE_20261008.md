@@ -108,7 +108,7 @@ success、partial rollout 都不是完整 pipeline success。
 以上作业均使用 H200 / interactive / 20 min；三个 source 在一份
 allocation 内并行运行。未更改 unrelated held job。
 
-截至 r189，新三类型没有完整成功轨迹，也没有已验证的新 Anchor。
+截至 r194，新三类型没有完整成功轨迹，也没有已验证的新 Anchor。
 已有 put-in 248/243 的完整三解不能代替本轮跨动作类型的证据。
 保持 `success=false`；partial actual-state 视频不是成功结果。
 
@@ -229,5 +229,113 @@ r189 真实 hammer Replay 已在 frame 29、31、32 出现双侧接触，
 诊断发现非拇指接触目标附近的实际手表面仍离工具 1–11 mm，
 此前整体 RMS 约 4 mm 并不能说明对握已形成。下一步据此修正
 local grasp proposal 的对握表面目标，再用原 padded/core gates 验证。
+
+### r190：让几何 proposal 与物理对握目标一致
+
+- IK 原先把近端指节归为不能接触工具的几何，只要求远端指节到达
+  目标；native PhysX 的 grasp 判断却允许真实近端/远端接触。
+  现在每个手指使用其真实接触表面，排除 tracking tip 标记。
+- 先拟合源条件下的无碰撞分支，再补齐 thumb + 一个可达手指的
+  表面法向间距；不再把五个 fingertip 的平均距离当作对握目标。
+  手指选择基于当前几何，未使用动作名或 sequence ID。
+- compact/hollow geometry 使用源局部区域附近的相反法向表面；
+  elongated geometry 保留 handle section proposal。两者共用同一
+  IK、真实接触判定和 source clock。
+- local table 距离按三角顶点的精确平面极值计算。准备姿态的搜索
+  范围同样由 URDF 手部尺寸决定；覆盖全部表面的最坏 link 间距
+  同时用于 grasp/pregrasp loss，避免网格密度决定权重。
+- 相对墙面会让 local translation 梯度抵消。求解落入有交叠的
+  preparation basin 时，从几何自由的退让 seed 重拟合；这里
+  只生成手部命令，没有移动对象或修改 simulator 状态。
+
+三个模型 preparation 间距约 1.97–2.00 mm，仅为 proposal。
+新一轮 r190 / job 655755 使用 H200 / interactive / 20 min，
+复用 CPU local proposals，重新获取真实入口并做 padded/core/
+full rollout；每个 RELAXED 仍默认三解。作业用时 388.79 s；三类
+first bridge 均物理通过，但三类 Anchor 0 仍失败，无完整新类型视频。
+brush 的 fresh local 到达 frame 32，失败为 `core_exit_handoff`；
+实测工具 z 仍约 0.3823 m、保持桌面支撑，双侧接触在 26–28 / 30
+出现，31–32 丢失。因此这里不是 handoff 检查误报，也不能把到达
+CORE 出口视为抓取成功。pour / hit 分别在 37 / 38 帧 fidelity 失败。
+
+### r191：按整根接触指节拟合对握
+
+r190 的进一步代码归因：surface normal 项仍只检查每根手指上
+“最靠近人手 target 的点”，而 native PhysX 接受整根真实指节的
+接触。现在 source target 保留为软几何初始化；thumb / opposing
+finger 的法向项使用其全部接触皮肤采样的最小间距，排除 tip 标记。
+先取得 source-conditioned 分支，再固定一个可达对握手指优化，
+避免改变手指选择导致分支跳变。没有动作名或 sample ID 控制分支。
+
+三个 CPU proposals 的自由准备间距约 1.98–2.00 mm；brush / hit
+两侧 nominal preload 约 0.51–0.53 mm。以上是命令拟合结果，
+不证明抓取。原 Oracle、控制参数、source clock、padded/core 与
+连续物理验收保持原值；修复交给同一三类型完整 pipeline 验证。
+
+r191 / job 655757 用时 410.78 s，三类仍未取得有效 Anchor 0。
+r192 / job 655765 用时 419.37 s；抓取后的目标接管增加 nominal
+acceleration 的时间拟合，仍在原 CORE 截止时间内，不延长源时钟。
+hit 的接管目标 z 速度由约 0.99 m/s 降到 0.15–0.22 m/s，双侧
+接触由 30–31 延续到 30–32，但工具仍在桌上，因此仍不是成功。
+实际 PhysX 质量为 hand 1.12238 kg、eraser / hammer 0.15 kg、
+bowl 0.25 kg。`r192_handoff_check.json` 仅证明离散首步前馈连续，
+不能证明物理可行。已导出 r191 hit 的实际状态诊断视频，1.167 s，
+35 frames / 30 fps；它是失败片段，不能当作完整任务或多解结果。
+
+### r193：修正 local synthesis 的命令语义
+
+发现的共用 flow 错误：多数 MPPI 候选绕过 acquisition controller，
+只扰动静止 retarget；此外失败 runtime 的 command 文件混合了已
+执行 feedback 前缀和未执行 nominal 后缀。PPO 的 post-context
+还可能回到静止 pregrasp，撤销它刚学到的 lift。
+
+修复后 local Replay 从实际 CORE entry 重建源条件下的局部 nominal
+proposal；Replay、每个 MPPI 候选、PPO 均执行同一 acquisition /
+source-object controller。优化 pose residual 放在 grasp adaptation
+之后，前馈仍使用 nominal 历史。失败候选保留 nominal proposal
+作为学习初始化，实际执行命令另存；成功才把完整实测执行的命令
+送入 fresh padded / exported-core Replay。PPO padding 从实际 CORE
+末条 drive 平滑停止，不回到原静止 proposal。
+
+CPU 检查覆盖 r191 真正取得的 free / grasped 两种状态：零 residual
+等于 Replay，pose residual 没被覆盖，未进入 nominal 前馈；
+PPO nominal reference 和 failed candidate seed 显式分开。它是
+执行接口检查，不是物理成功。r193 / job 655774 已使用同样三类
+source 与 r191 proposals 重新验证；用时 401.72 s，三个初始 bridge
+成功，但 fresh local 分别在 pour 39、brush 30、hit 35 帧失败。
+
+### r194：相向接触面和持续闭合 proposal
+
+局部几何拟合加入真实 tool SDF 的表面法线，用整根 thumb 和另一
+手指的实际皮肤寻找相向接触；工具 SDF 在网格外延伸距离，避免
+远离工具的手指得到被截断的假小间距。可以使用之前的 local
+grasp proposal 作暖启动，但只按当前目标选用，不继承物理验证。
+三个最终 CAD proposals 的 thumb / opposing normal dot 分别为
+-0.734、-0.994、-0.999；几何拟合本身仍不是抓取成功。
+
+原有 16 个 MPC 候选中加入两条持续闭合初始化，其余随机候选和
+softmax update 保留。PPO 仍是 64×64 小网络，本次统一设置最多
+80 updates，每个 solver 保留 240 s 预算。r194 / job 655866
+用时 619.64 s，三类仍没有有效 Anchor；实际 fresh local 分别在
+44 / 30 / 36 帧 fidelity 失败。不能把几何相向或短暂接触描述为
+已经负载、完整交互或多解成功。
+
+### r195：接触波动不能撤销正在执行的抬升
+
+r194 hit 实际 Replay 在 frame 29–31 有双侧接触，32 帧暂时丢失。
+32 帧相对已获取 grasp transform 的变化仅为 7.31 mm / 0.098 rad，
+但原 controller 在丢失持续一帧后清空 grasp proposal，改回桌上
+静止 acquisition target。33 帧腕部驱动目标下降 18.53 mm，随后
+重新对握需要重新追赶源目标，触发剩余时间不足。这是实际记录
+显示的控制逻辑问题，而不是通过放宽 fidelity 来解决的失败。
+
+现在只在实际 hand/tool transform 超出已有 retention 空间范围
+时清除 acquired proposal；临时接触重分配期间继续执行原来的
+source-conditioned 抬升目标。native contact 仍直接来自 PhysX，
+最终 grasp、CORE fidelity、fresh padded/core 与连续 rollout gates
+保持不变，没有增加时间、设置对象状态或按动作类型分支。
+小型 CPU 检查复用了上述真实失接触状态，确认 proposal 不会被
+撤销，同时真正分离的状态仍清除 proposal。该检查本身不提供
+物理成功证据；修复将交给同样三类输入的完整 pipeline 验证。
 
 ![Whole-tool convex hull wrongly fills handle clearance](evidence/oracle_action_types_20261008/hammer_convex_hull_diagnosis.png)

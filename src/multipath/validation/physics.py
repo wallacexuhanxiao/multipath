@@ -68,5 +68,5 @@ def hand_tool_contact(paths, forces, threshold=.01):
             'thumb_contact':bool(thumb),'other_finger_contact':bool(other),
             'opposition_contact':bool(thumb and other),
             'touching_links':int(touching.sum()),'link_paths':list(paths),
-            'force_norms_n':magnitudes.tolist(),
+            'force_norms_n':magnitudes.tolist(),'force_vectors_n':forces.tolist(),
             'evidence':'PhysX thumb AND non-thumb finger/tool contact; retention checked separately'}

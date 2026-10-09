@@ -1,0 +1,32 @@
+{
+  "r190": {
+    "pbs_job_id": "655755.hopper-m-02",
+    "resources_used_mem_kb": 14007956,
+    "resources_used_vmem_kb": 1013665964,
+    "walltime_s": 391,
+    "allocation_ncpus": 12,
+    "allocation_mem_gb": 225
+  },
+  "r189": {
+    "pbs_job_id": "655737.hopper-m-02",
+    "resources_used_mem_kb": 6964112,
+    "resources_used_vmem_kb": 1024159584,
+    "walltime_s": 422,
+    "allocation_ncpus": 12,
+    "allocation_mem_gb": 225
+  },
+  "future_batch_request": {
+    "ncpus": 12,
+    "mem_gb": 120,
+    "walltime_s": 1200,
+    "basis": "The smaller 6CPU/64GB request was still scheduled as 12CPU/225GB. Restored the established request; three physical processes continue sharing one H200 interactive allocation."
+  },
+  "observed_r192_allocation": {
+    "pbs_job_id": "655765.hopper-m-02",
+    "requested_ncpus": 6,
+    "requested_mem_gb": 64,
+    "allocated_ncpus": 12,
+    "allocated_mem_gb": 225,
+    "observation": "Verified submitted script requests 6 CPUs and 64 GB; server reports 12 CPUs and 225 GB. Reducing script values did not reduce the scheduled allocation."
+  }
+}
