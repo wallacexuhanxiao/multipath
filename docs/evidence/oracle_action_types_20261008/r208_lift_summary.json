@@ -1,0 +1,35 @@
+{
+  "run": "r208",
+  "sequence": "20231103_057",
+  "action": "brush",
+  "local_padded_success": true,
+  "exported_core_success": true,
+  "entry_physically_reachable": true,
+  "core_interval": [
+    20,
+    32
+  ],
+  "synthesis_interval": [
+    14,
+    38
+  ],
+  "core_duration_s": 0.4,
+  "tool_lift_m": 0.018869340419769287,
+  "core_exit_carried_object_clearance_m": {
+    "table": 0.015111181619507825,
+    "target": 0.009027054546214082
+  },
+  "core_exit_contact": "grasped",
+  "handoff_verified": true,
+  "source_report": "/Users/apple/Desktop/semantic verifier/multipath/outputs/oracle_action_types_20261008/r208_brush/anchors/anchor_0/report.json",
+  "state_resets_within_core_replay": 0,
+  "full_pipeline_success": false,
+  "last_observed_full_failure": "No collision-free trajectory in source time",
+  "failing_bridge_interval": [
+    32,
+    39
+  ],
+  "failing_bridge_budget_s": 0.23333333333333334,
+  "source_budget_planner_fix_physically_verified": false,
+  "remote_final_status_unavailable": "NUS VPN route absent and Hopper DNS lookup failed"
+}

@@ -122,7 +122,10 @@ def main():
                 failed=dict(next(w for w in reversed(schedule.windows) if w['mode']=='ANCHOR'))
                 failed['failure']=dict(reason='final_task_state',task=value['task'])
             if failed is None:raise RuntimeError(value.get('error','No repairable segment'))
-            if value['segments'][0].get('success') and initial_bridge is None:initial_bridge=candidate
+            # A supplied cache may have been rejected after a physics/config
+            # change. Reuse the newly executed bridge on the next repair;
+            # repeatedly retaining the rejected cache replans the same prefix.
+            if value['segments'][0].get('success'):initial_bridge=candidate
             repair=dict(attempt=attempt,window=[failed['start'],failed['end']],
                 error=value.get('error') or failed.get('failure'),physical_run=str(candidate))
             report['repairs'].append(repair);save()

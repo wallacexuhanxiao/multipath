@@ -1,0 +1,47 @@
+[
+  {
+    "type": "pour",
+    "reference_origin": "local_robot_grasp_retarget_transported_by_source_tool",
+    "after_closure_relative_position_drift_m": 2.524324967847132e-09,
+    "after_closure_relative_rotation_drift_rad": 2.9171333707339794e-15,
+    "core_exit_wrist_target_xyz": [
+      0.48716542009346264,
+      -0.1839986361218763,
+      0.5298216226734029
+    ],
+    "source_tool_lift_m": 0.04288756847381592,
+    "first_step_velocity_error": 5.427877292867104e-15,
+    "actual_state_unchanged": true,
+    "physical_acceptance": false
+  },
+  {
+    "type": "brush",
+    "reference_origin": "local_robot_grasp_retarget_transported_by_source_tool",
+    "after_closure_relative_position_drift_m": 3.241675058954914e-09,
+    "after_closure_relative_rotation_drift_rad": 1.4403668731748454e-15,
+    "core_exit_wrist_target_xyz": [
+      0.3357976979917705,
+      -0.1539712313486523,
+      0.4959751405983027
+    ],
+    "source_tool_lift_m": 0.0315740704536438,
+    "first_step_velocity_error": 1.707905620693001e-14,
+    "actual_state_unchanged": true,
+    "physical_acceptance": false
+  },
+  {
+    "type": "hit",
+    "reference_origin": "local_robot_grasp_retarget_transported_by_source_tool",
+    "after_closure_relative_position_drift_m": 4.455672605479541e-09,
+    "after_closure_relative_rotation_drift_rad": 5.633202290630904e-15,
+    "core_exit_wrist_target_xyz": [
+      0.245429393684038,
+      -0.10120507082540317,
+      0.48857086601797783
+    ],
+    "source_tool_lift_m": 0.07826918363571167,
+    "first_step_velocity_error": 1.9036648995044033e-14,
+    "actual_state_unchanged": true,
+    "physical_acceptance": false
+  }
+]

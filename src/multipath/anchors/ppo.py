@@ -202,7 +202,11 @@ class LocalPPOSolver:
                 'numeric_provenance':'engineering choice; Appendix specifies shared schedule, not its values'})
         self.reports.append(report)
         (folder/'entry.json').write_text(json.dumps(start,indent=2))
-        np.savez_compressed(folder/'baseline.npz',commands=baseline)
+        # The floating environment may compile an object-conditioned local
+        # retarget. Record the actual zero-residual center, not its input seed.
+        np.savez_compressed(folder/'baseline.npz',commands=env.baseline)
+        if not np.array_equal(env.baseline,baseline):
+            np.savez_compressed(folder/'proposal_baseline.npz',commands=baseline)
         started=time.monotonic();best_return=-np.inf
 
         def write():

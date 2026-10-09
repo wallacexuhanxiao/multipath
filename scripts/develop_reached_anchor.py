@@ -258,6 +258,7 @@ def main():
             report['core_exit_hand_clearance']=scene.last_bridge_exit_hand_clearance
         if not validation['success']:raise RuntimeError('Fresh physically reached CORE failed')
         valid=dict(padded_result,success=True,padded_rollout_complete=True,core_replay_success=True,
+            core_rollout_complete=validation['core_rollout_complete'],
             state_resets_within_padded_rollout=0,state_resets_within_core_replay=0,handoff_verified=True,
             controller_handoff='measured_mass_inertia_gain_response',
             validation_scope='continuous padded replay from physical predecessor plus fresh physical-prefix core replay')

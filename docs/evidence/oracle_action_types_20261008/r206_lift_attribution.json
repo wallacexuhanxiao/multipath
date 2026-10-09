@@ -1,0 +1,1082 @@
+{
+  "materials": [
+    {
+      "collider": "/World/defaultGroundPlane/GroundPlane/CollisionPlane",
+      "material": "/World/Physics_Materials/physics_material",
+      "static_friction": 0.5,
+      "dynamic_friction": 0.5
+    },
+    {
+      "collider": "/World/Table",
+      "material": "/World/Physics_Materials/physics_material_1",
+      "static_friction": 0.20000000298023224,
+      "dynamic_friction": 1.0
+    },
+    {
+      "collider": "/World/target/geometry/mesh",
+      "material": null
+    },
+    {
+      "collider": "/World/tool/geometry/mesh",
+      "material": "/World/MultipathHandToolMaterial",
+      "static_friction": 1.0,
+      "dynamic_friction": 1.0
+    },
+    {
+      "collider": "/colliders/right_hand_link/right_hand_link/node_STL_BINARY_",
+      "material": "/World/MultipathHandToolMaterial",
+      "static_friction": 1.0,
+      "dynamic_friction": 1.0
+    },
+    {
+      "collider": "/colliders/right_hand_ee_link/right_hand_ee_link/node_STL_BINARY_",
+      "material": "/World/MultipathHandToolMaterial",
+      "static_friction": 1.0,
+      "dynamic_friction": 1.0
+    },
+    {
+      "collider": "/colliders/right_hand_index_bend_link/right_hand_index_bend_link/node_STL_BINARY_",
+      "material": "/World/MultipathHandToolMaterial",
+      "static_friction": 1.0,
+      "dynamic_friction": 1.0
+    },
+    {
+      "collider": "/colliders/right_hand_index_rota_link1/right_hand_index_rota_link1/node_STL_BINARY_",
+      "material": "/World/MultipathHandToolMaterial",
+      "static_friction": 1.0,
+      "dynamic_friction": 1.0
+    },
+    {
+      "collider": "/colliders/right_hand_index_rota_link2/right_hand_index_rota_link2/node_STL_BINARY_",
+      "material": "/World/MultipathHandToolMaterial",
+      "static_friction": 1.0,
+      "dynamic_friction": 1.0
+    },
+    {
+      "collider": "/colliders/right_hand_index_rota_tip/right_hand_index_rota_tip/node_STL_BINARY_",
+      "material": "/World/MultipathHandToolMaterial",
+      "static_friction": 1.0,
+      "dynamic_friction": 1.0
+    },
+    {
+      "collider": "/colliders/right_hand_mid_link1/right_hand_mid_link1/node_STL_BINARY_",
+      "material": "/World/MultipathHandToolMaterial",
+      "static_friction": 1.0,
+      "dynamic_friction": 1.0
+    },
+    {
+      "collider": "/colliders/right_hand_mid_link2/right_hand_mid_link2/node_STL_BINARY_",
+      "material": "/World/MultipathHandToolMaterial",
+      "static_friction": 1.0,
+      "dynamic_friction": 1.0
+    },
+    {
+      "collider": "/colliders/right_hand_mid_tip/right_hand_mid_tip/node_STL_BINARY_",
+      "material": "/World/MultipathHandToolMaterial",
+      "static_friction": 1.0,
+      "dynamic_friction": 1.0
+    },
+    {
+      "collider": "/colliders/right_hand_pinky_link1/right_hand_pinky_link1/node_STL_BINARY_",
+      "material": "/World/MultipathHandToolMaterial",
+      "static_friction": 1.0,
+      "dynamic_friction": 1.0
+    },
+    {
+      "collider": "/colliders/right_hand_pinky_link2/right_hand_pinky_link2/node_STL_BINARY_",
+      "material": "/World/MultipathHandToolMaterial",
+      "static_friction": 1.0,
+      "dynamic_friction": 1.0
+    },
+    {
+      "collider": "/colliders/right_hand_pinky_tip/right_hand_pinky_tip/node_STL_BINARY_",
+      "material": "/World/MultipathHandToolMaterial",
+      "static_friction": 1.0,
+      "dynamic_friction": 1.0
+    },
+    {
+      "collider": "/colliders/right_hand_ring_link1/right_hand_ring_link1/node_STL_BINARY_",
+      "material": "/World/MultipathHandToolMaterial",
+      "static_friction": 1.0,
+      "dynamic_friction": 1.0
+    },
+    {
+      "collider": "/colliders/right_hand_ring_link2/right_hand_ring_link2/node_STL_BINARY_",
+      "material": "/World/MultipathHandToolMaterial",
+      "static_friction": 1.0,
+      "dynamic_friction": 1.0
+    },
+    {
+      "collider": "/colliders/right_hand_ring_tip/right_hand_ring_tip/node_STL_BINARY_",
+      "material": "/World/MultipathHandToolMaterial",
+      "static_friction": 1.0,
+      "dynamic_friction": 1.0
+    },
+    {
+      "collider": "/colliders/right_hand_thumb_bend_link/right_hand_thumb_bend_link/node_STL_BINARY_",
+      "material": "/World/MultipathHandToolMaterial",
+      "static_friction": 1.0,
+      "dynamic_friction": 1.0
+    },
+    {
+      "collider": "/colliders/right_hand_thumb_rota_link1/right_hand_thumb_rota_link1/node_STL_BINARY_",
+      "material": "/World/MultipathHandToolMaterial",
+      "static_friction": 1.0,
+      "dynamic_friction": 1.0
+    },
+    {
+      "collider": "/colliders/right_hand_thumb_rota_link2/right_hand_thumb_rota_link2/node_STL_BINARY_",
+      "material": "/World/MultipathHandToolMaterial",
+      "static_friction": 1.0,
+      "dynamic_friction": 1.0
+    },
+    {
+      "collider": "/colliders/right_hand_thumb_rota_tip/right_hand_thumb_rota_tip/node_STL_BINARY_",
+      "material": "/World/MultipathHandToolMaterial",
+      "static_friction": 1.0,
+      "dynamic_friction": 1.0
+    }
+  ],
+  "branches": [
+    {
+      "branch": "observed_motion",
+      "start_frame": 26,
+      "end_frame": 32,
+      "source_time_budget_s": 0.2,
+      "reached_start_contact": {
+        "mode": "grasped",
+        "thumb_contact": true,
+        "other_finger_contact": true,
+        "opposition_contact": true,
+        "touching_links": 5,
+        "link_paths": [
+          "/xhand_right/right_hand_link",
+          "/xhand_right/right_hand_ee_link",
+          "/xhand_right/right_hand_index_bend_link",
+          "/xhand_right/right_hand_index_rota_link1",
+          "/xhand_right/right_hand_index_rota_link2",
+          "/xhand_right/right_hand_index_rota_tip",
+          "/xhand_right/right_hand_mid_link1",
+          "/xhand_right/right_hand_mid_link2",
+          "/xhand_right/right_hand_mid_tip",
+          "/xhand_right/right_hand_pinky_link1",
+          "/xhand_right/right_hand_pinky_link2",
+          "/xhand_right/right_hand_pinky_tip",
+          "/xhand_right/right_hand_ring_link1",
+          "/xhand_right/right_hand_ring_link2",
+          "/xhand_right/right_hand_ring_tip",
+          "/xhand_right/right_hand_thumb_bend_link",
+          "/xhand_right/right_hand_thumb_rota_link1",
+          "/xhand_right/right_hand_thumb_rota_link2",
+          "/xhand_right/right_hand_thumb_rota_tip"
+        ],
+        "force_norms_n": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          1.5383421182632446,
+          0.0,
+          0.0,
+          0.0,
+          1.6684925556182861,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.6084997057914734,
+          1.0101984739303589,
+          0.0,
+          0.0,
+          5.285816669464111,
+          0.0
+        ],
+        "force_vectors_n": [
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.20127204060554504,
+            -1.1430171728134155,
+            1.0097018480300903
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.27136555314064026,
+            -1.5828797817230225,
+            0.4524596631526947
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            -0.03646939620375633,
+            -0.49784937500953674,
+            0.3479768931865692
+          ],
+          [
+            0.17408645153045654,
+            -0.994027853012085,
+            -0.04586372897028923
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            -0.8359760046005249,
+            4.928811550140381,
+            1.7169215679168701
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ]
+        ],
+        "evidence": "PhysX thumb AND non-thumb finger/tool contact; retention checked separately"
+      },
+      "source_lift_command_m": 0.0308038592338562,
+      "actual_tool_lift_m": -0.00016883015632629395,
+      "actual_wrist_lift_m": 0.01452016830444336,
+      "end_contact": {
+        "mode": "free",
+        "thumb_contact": false,
+        "other_finger_contact": false,
+        "opposition_contact": false,
+        "touching_links": 0,
+        "link_paths": [
+          "/xhand_right/right_hand_link",
+          "/xhand_right/right_hand_ee_link",
+          "/xhand_right/right_hand_index_bend_link",
+          "/xhand_right/right_hand_index_rota_link1",
+          "/xhand_right/right_hand_index_rota_link2",
+          "/xhand_right/right_hand_index_rota_tip",
+          "/xhand_right/right_hand_mid_link1",
+          "/xhand_right/right_hand_mid_link2",
+          "/xhand_right/right_hand_mid_tip",
+          "/xhand_right/right_hand_pinky_link1",
+          "/xhand_right/right_hand_pinky_link2",
+          "/xhand_right/right_hand_pinky_tip",
+          "/xhand_right/right_hand_ring_link1",
+          "/xhand_right/right_hand_ring_link2",
+          "/xhand_right/right_hand_ring_tip",
+          "/xhand_right/right_hand_thumb_bend_link",
+          "/xhand_right/right_hand_thumb_rota_link1",
+          "/xhand_right/right_hand_thumb_rota_link2",
+          "/xhand_right/right_hand_thumb_rota_tip"
+        ],
+        "force_norms_n": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "force_vectors_n": [
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ]
+        ],
+        "evidence": "PhysX thumb AND non-thumb finger/tool contact; retention checked separately"
+      },
+      "forces": [
+        {
+          "source_frame": 27.0,
+          "normal_force_on_hand_n": [
+            0.18364715576171875,
+            -1.0773745775222778,
+            0.39325761795043945
+          ],
+          "friction_force_on_hand_n": [
+            1.252685669111088,
+            0.3126158357481472,
+            0.32882033273926936
+          ],
+          "hand_gravity_compensation_moment_n_m": [
+            -0.09152834134462037,
+            -0.2929573845039215,
+            0.0
+          ],
+          "friction_anchor_count": 16,
+          "total_hand_force_on_tool_n": [
+            -1.4363328248728067,
+            0.7647587417741306,
+            -0.7220779506897088
+          ]
+        },
+        {
+          "source_frame": 28.0,
+          "normal_force_on_hand_n": [
+            0.12466421723365784,
+            -0.7869583964347839,
+            0.2918209433555603
+          ],
+          "friction_force_on_hand_n": [
+            0.8415353745222092,
+            0.04879279714077711,
+            -0.21251130849123
+          ],
+          "hand_gravity_compensation_moment_n_m": [
+            -0.07820861340727514,
+            -0.2989272332061394,
+            0.0
+          ],
+          "friction_anchor_count": 16,
+          "total_hand_force_on_tool_n": [
+            -0.966199591755867,
+            0.7381655992940068,
+            -0.07930963486433029
+          ]
+        },
+        {
+          "source_frame": 29.0,
+          "normal_force_on_hand_n": [
+            0.10352016240358353,
+            -0.8807273507118225,
+            0.4112546443939209
+          ],
+          "friction_force_on_hand_n": [
+            0.9111646413803101,
+            -0.05581535026431084,
+            -0.3488885164260864
+          ],
+          "hand_gravity_compensation_moment_n_m": [
+            -0.05696679954614151,
+            -0.3065952314714405,
+            0.0
+          ],
+          "friction_anchor_count": 12,
+          "total_hand_force_on_tool_n": [
+            -1.0146848037838936,
+            0.9365427009761333,
+            -0.06236612796783447
+          ]
+        },
+        {
+          "source_frame": 30.0,
+          "normal_force_on_hand_n": [
+            0.04772984981536865,
+            -1.3320598602294922,
+            0.6181290745735168
+          ],
+          "friction_force_on_hand_n": [
+            1.4477194547653198,
+            0.14602121710777283,
+            0.20288585126399994
+          ],
+          "hand_gravity_compensation_moment_n_m": [
+            -0.03047367294123009,
+            -0.31194029319736666,
+            0.0
+          ],
+          "friction_anchor_count": 6,
+          "total_hand_force_on_tool_n": [
+            -1.4954493045806885,
+            1.1860386431217194,
+            -0.8210149258375168
+          ]
+        },
+        {
+          "source_frame": 31.0,
+          "normal_force_on_hand_n": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "friction_force_on_hand_n": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "hand_gravity_compensation_moment_n_m": [
+            -0.0033744543732378545,
+            -0.3137286835820631,
+            0.0
+          ],
+          "friction_anchor_count": 6,
+          "total_hand_force_on_tool_n": [
+            -0.0,
+            -0.0,
+            -0.0
+          ]
+        },
+        {
+          "source_frame": 32.0,
+          "normal_force_on_hand_n": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "friction_force_on_hand_n": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "hand_gravity_compensation_moment_n_m": [
+            0.022954677559473804,
+            -0.31154959362298557,
+            0.0
+          ],
+          "friction_anchor_count": 0,
+          "total_hand_force_on_tool_n": [
+            -0.0,
+            -0.0,
+            -0.0
+          ]
+        }
+      ],
+      "tool_weight_n": 1.4715000584721567,
+      "physical_acceptance": false,
+      "state_assignment_between_segments": false
+    },
+    {
+      "branch": "vertical_same_grip",
+      "start_frame": 26,
+      "end_frame": 32,
+      "source_time_budget_s": 0.2,
+      "reached_start_contact": {
+        "mode": "grasped",
+        "thumb_contact": true,
+        "other_finger_contact": true,
+        "opposition_contact": true,
+        "touching_links": 5,
+        "link_paths": [
+          "/xhand_right/right_hand_link",
+          "/xhand_right/right_hand_ee_link",
+          "/xhand_right/right_hand_index_bend_link",
+          "/xhand_right/right_hand_index_rota_link1",
+          "/xhand_right/right_hand_index_rota_link2",
+          "/xhand_right/right_hand_index_rota_tip",
+          "/xhand_right/right_hand_mid_link1",
+          "/xhand_right/right_hand_mid_link2",
+          "/xhand_right/right_hand_mid_tip",
+          "/xhand_right/right_hand_pinky_link1",
+          "/xhand_right/right_hand_pinky_link2",
+          "/xhand_right/right_hand_pinky_tip",
+          "/xhand_right/right_hand_ring_link1",
+          "/xhand_right/right_hand_ring_link2",
+          "/xhand_right/right_hand_ring_tip",
+          "/xhand_right/right_hand_thumb_bend_link",
+          "/xhand_right/right_hand_thumb_rota_link1",
+          "/xhand_right/right_hand_thumb_rota_link2",
+          "/xhand_right/right_hand_thumb_rota_tip"
+        ],
+        "force_norms_n": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          1.5383421182632446,
+          0.0,
+          0.0,
+          0.0,
+          1.6684925556182861,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.6084997057914734,
+          1.0101984739303589,
+          0.0,
+          0.0,
+          5.285816669464111,
+          0.0
+        ],
+        "force_vectors_n": [
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.20127204060554504,
+            -1.1430171728134155,
+            1.0097018480300903
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.27136555314064026,
+            -1.5828797817230225,
+            0.4524596631526947
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            -0.03646939620375633,
+            -0.49784937500953674,
+            0.3479768931865692
+          ],
+          [
+            0.17408645153045654,
+            -0.994027853012085,
+            -0.04586372897028923
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            -0.8359760046005249,
+            4.928811550140381,
+            1.7169215679168701
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ]
+        ],
+        "evidence": "PhysX thumb AND non-thumb finger/tool contact; retention checked separately"
+      },
+      "source_lift_command_m": 0.0308038592338562,
+      "actual_tool_lift_m": 0.0019159317016601562,
+      "actual_wrist_lift_m": 0.02148205041885376,
+      "end_contact": {
+        "mode": "free",
+        "thumb_contact": false,
+        "other_finger_contact": false,
+        "opposition_contact": false,
+        "touching_links": 0,
+        "link_paths": [
+          "/xhand_right/right_hand_link",
+          "/xhand_right/right_hand_ee_link",
+          "/xhand_right/right_hand_index_bend_link",
+          "/xhand_right/right_hand_index_rota_link1",
+          "/xhand_right/right_hand_index_rota_link2",
+          "/xhand_right/right_hand_index_rota_tip",
+          "/xhand_right/right_hand_mid_link1",
+          "/xhand_right/right_hand_mid_link2",
+          "/xhand_right/right_hand_mid_tip",
+          "/xhand_right/right_hand_pinky_link1",
+          "/xhand_right/right_hand_pinky_link2",
+          "/xhand_right/right_hand_pinky_tip",
+          "/xhand_right/right_hand_ring_link1",
+          "/xhand_right/right_hand_ring_link2",
+          "/xhand_right/right_hand_ring_tip",
+          "/xhand_right/right_hand_thumb_bend_link",
+          "/xhand_right/right_hand_thumb_rota_link1",
+          "/xhand_right/right_hand_thumb_rota_link2",
+          "/xhand_right/right_hand_thumb_rota_tip"
+        ],
+        "force_norms_n": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "force_vectors_n": [
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ]
+        ],
+        "evidence": "PhysX thumb AND non-thumb finger/tool contact; retention checked separately"
+      },
+      "forces": [
+        {
+          "source_frame": 27.0,
+          "normal_force_on_hand_n": [
+            -0.1788637340068817,
+            0.533309817314148,
+            0.927876353263855
+          ],
+          "friction_force_on_hand_n": [
+            2.1333785355091095,
+            0.7121859826147556,
+            0.41203800216317177
+          ],
+          "hand_gravity_compensation_moment_n_m": [
+            -0.09469278701573315,
+            -0.29144018959011364,
+            0.0
+          ],
+          "friction_anchor_count": 16,
+          "total_hand_force_on_tool_n": [
+            -1.9545148015022278,
+            -1.2454957999289036,
+            -1.3399143554270267
+          ]
+        },
+        {
+          "source_frame": 28.0,
+          "normal_force_on_hand_n": [
+            -0.11484828591346741,
+            0.6945987939834595,
+            0.7075583934783936
+          ],
+          "friction_force_on_hand_n": [
+            1.965902647934854,
+            0.3608075854135677,
+            -0.07729170814855024
+          ],
+          "hand_gravity_compensation_moment_n_m": [
+            -0.0930501612566459,
+            -0.28938389407389625,
+            0.0
+          ],
+          "friction_anchor_count": 16,
+          "total_hand_force_on_tool_n": [
+            -1.8510543620213866,
+            -1.0554063793970272,
+            -0.6302666853298433
+          ]
+        },
+        {
+          "source_frame": 29.0,
+          "normal_force_on_hand_n": [
+            -0.10178223997354507,
+            0.5871496796607971,
+            -0.050842225551605225
+          ],
+          "friction_force_on_hand_n": [
+            0.5850172704667784,
+            0.10729646980325924,
+            0.06797619032204238
+          ],
+          "hand_gravity_compensation_moment_n_m": [
+            -0.09344211967417956,
+            -0.2825179804473537,
+            0.0
+          ],
+          "friction_anchor_count": 16,
+          "total_hand_force_on_tool_n": [
+            -0.48323503049323335,
+            -0.6944461494640564,
+            -0.01713396477043716
+          ]
+        },
+        {
+          "source_frame": 30.0,
+          "normal_force_on_hand_n": [
+            -0.13110725581645966,
+            0.7478949427604675,
+            -0.05428285524249077
+          ],
+          "friction_force_on_hand_n": [
+            0.6673463167007867,
+            0.09094152902252972,
+            -0.35595677280798554
+          ],
+          "hand_gravity_compensation_moment_n_m": [
+            -0.09553617052901907,
+            -0.27446235574099875,
+            0.0
+          ],
+          "friction_anchor_count": 16,
+          "total_hand_force_on_tool_n": [
+            -0.536239060884327,
+            -0.8388364717829973,
+            0.4102396280504763
+          ]
+        },
+        {
+          "source_frame": 31.0,
+          "normal_force_on_hand_n": [
+            -0.08660764992237091,
+            0.4941699802875519,
+            -0.018551232293248177
+          ],
+          "friction_force_on_hand_n": [
+            0.2656700313091278,
+            0.030610553920269012,
+            -0.4248896837234497
+          ],
+          "hand_gravity_compensation_moment_n_m": [
+            -0.0987135057660979,
+            -0.2696837624195875,
+            0.0
+          ],
+          "friction_anchor_count": 9,
+          "total_hand_force_on_tool_n": [
+            -0.1790623813867569,
+            -0.5247805342078209,
+            0.4434409160166979
+          ]
+        },
+        {
+          "source_frame": 32.0,
+          "normal_force_on_hand_n": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "friction_force_on_hand_n": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "hand_gravity_compensation_moment_n_m": [
+            -0.10195465386522472,
+            -0.26878444216336184,
+            0.0
+          ],
+          "friction_anchor_count": 4,
+          "total_hand_force_on_tool_n": [
+            -0.0,
+            -0.0,
+            -0.0
+          ]
+        }
+      ],
+      "tool_weight_n": 1.4715000584721567,
+      "physical_acceptance": false,
+      "state_assignment_between_segments": false
+    }
+  ],
+  "source_provenance": {
+    "triplet": "(brush, eraser, plate)",
+    "sequence": "20231103_057",
+    "input": "raw TACO MANO and object poses",
+    "source_video": "/scratch/e0985859/egoengine_baseline/data/taco_v1/Egocentric_RGB_Videos/(brush, eraser, plate)/20231103_057/color.mp4",
+    "schedule_sha256": "e375d7aa3e305b3201bd54342cb46b39cf920a899b52d11449a8a7066496abd4",
+    "full_robot_reference_used": false,
+    "vlm_used": false,
+    "transform_world_to_robot": [
+      [
+        -0.3564076659688237,
+        0.9343305848933204,
+        0.0,
+        0.5962575927013769
+      ],
+      [
+        -0.9343305539536939,
+        -0.3564076541666626,
+        -0.0,
+        -0.02380021369492084
+      ],
+      [
+        0.0,
+        0.0,
+        1.0,
+        -0.1766161823272705
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ]
+  },
+  "validation_scope": "diagnostic only; no task acceptance"
+}

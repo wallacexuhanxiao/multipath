@@ -335,17 +335,26 @@ class FloatingPlanner:
             geometry=json.loads((self.out/'collision_geometry.json').read_text())
             geometry.update(spheres=refined,proxy='coarse surface cells with exact boundary triangle subdivision')
             (self.out/'collision_geometry.json').write_text(json.dumps(geometry,indent=2))
-        def build_planner():
+        def build_planner(source_ticks=None):
             import faulthandler
             # This constructor stalled for an entire allocation. Capture its
             # actual stack and stop the native startup, not a physical rollout.
             print('CUROBO_BUILD_BEGIN',len(cfg['kinematics']['collision_spheres']['wrist']),flush=True)
             faulthandler.dump_traceback_later(90,exit=True)
             try:
+                # Moving carry boundaries cannot be optimized on a one-second
+                # clock and then compressed into a short source interval: that
+                # scales the physical entry velocity. Optimize in the interval's
+                # actual budget. The established free-motion backend is retained.
+                steps=32
+                opt_dt=(1/scene.manifest['fps'] if source_ticks is None
+                        else source_ticks*scene.dt/(steps-1))
+                options={} if source_ticks is None else dict(trajopt_tsteps=steps,
+                    minimum_trajectory_dt=min(scene.dt,opt_dt))
                 return MotionGen(MotionGenConfig.load_from_robot_config(cfg,live,tensor_args=self.tensor,interpolation_dt=scene.dt,
-                    optimize_dt=False,trajopt_dt=1/scene.manifest['fps'],js_trajopt_dt=1/scene.manifest['fps'],
+                    optimize_dt=False,trajopt_dt=opt_dt,js_trajopt_dt=opt_dt,
                     self_collision_check=False,self_collision_opt=False,
-                    collision_checker_type=CollisionCheckerType.MESH if live.get('mesh') else CollisionCheckerType.PRIMITIVE,use_cuda_graph=False))
+                    collision_checker_type=CollisionCheckerType.MESH if live.get('mesh') else CollisionCheckerType.PRIMITIVE,use_cuda_graph=False,**options))
             finally:faulthandler.cancel_dump_traceback_later()
         self.robot_config=cfg;self.build_planner=build_planner
         self.planner=build_planner()
@@ -614,6 +623,10 @@ class FloatingPlanner:
             terminal[:3]+=eps*target_twist[:3]
             terminal[3:]=(Rotation.from_rotvec(eps*target_twist[3:])*Rotation.from_quat(terminal[[4,5,6,3]])).as_quat()[[3,0,1,2]]
             dq1=(pose_coordinates(terminal,q1)-q1)/eps
+        if self.carry and getattr(self,'source_time_trajopt_ticks',None)!=ticks:
+            self.planner=self.build_planner(source_ticks=ticks)
+            self.source_time_trajopt_ticks=ticks
+            self.verify_fk()
         begin=self.js(q0);begin.velocity=self.tensor.to_device(dq0.copy())[None]
         end=self.js(q1)
         if dq1 is not None:end.velocity=self.tensor.to_device(dq1.copy())[None]
@@ -677,6 +690,7 @@ class FloatingPlanner:
         commands=controls_from_poses(poses,hands,dt)
         timing.update(planner='cuRobo_virtual_6DOF',hand_collision_spheres=self.sphere_count,carried_object_collision=self.carry,
             geometry_solver=geometry_solver,curobo_optimize_dt=False,
+            curobo_optimization_budget_s=(ticks*dt if self.carry else 31/scene.manifest['fps']),
             reference_tracking=False,source_time_stretch=False,arm_model_used=False,tracking_margin_m=scene.planning_tracking_margin_m,
             previous_command_tracking_margin_m=scene.previous_command_tracking_margin_m,
             hand_boundary_motion=bool(np.any(np.abs(hands-hands[0])>1e-8)),

@@ -40,6 +40,7 @@ class FloatingScene:
         self.world=World(stage_units_in_meters=1.,physics_dt=self.dt,rendering_dt=1/30)
         self.world.scene.add_default_ground_plane()
         self.world.scene.add(FixedCuboid(prim_path='/World/Table',name='table',position=np.array(self.table['pose'][:3]),scale=np.array(self.table['dims'])))
+        existing_colliders={str(p.GetPath()) for p in self.world.stage.Traverse() if p.HasAPI(UsdPhysics.CollisionAPI)}
         cfg=_urdf.ImportConfig();cfg.set_fix_base(False);cfg.set_merge_fixed_joints(False);cfg.set_self_collision(False)
         importer=_urdf.acquire_urdf_interface();urdf=Path(args.xhand_urdf).resolve()
         previous=Path.cwd()
@@ -48,6 +49,10 @@ class FloatingScene:
             parsed=importer.parse_urdf(str(urdf.parent),urdf.name,cfg)
             self.root=str(importer.import_robot(str(urdf.parent),urdf.name,parsed,cfg,''))
         finally:os.chdir(previous)
+        # URDF collider geometry may live in a shared /colliders library,
+        # outside the articulation root. Track what this import created.
+        hand_colliders={str(p.GetPath()) for p in self.world.stage.Traverse()
+                        if p.HasAPI(UsdPhysics.CollisionAPI)}-existing_colliders
         self.robot=self.world.scene.add(Robot(prim_path=self.root,name='xhand',position=np.asarray(initial_wrist[:3]),orientation=np.asarray(initial_wrist[3:])))
         self.wrist=SingleRigidPrim(prim_path=self.root+'/right_hand_link',name='wrist')
         for prim in self.world.stage.Traverse():
@@ -58,6 +63,22 @@ class FloatingScene:
             path='/World/'+role;oid=obj['id']
             add_reference_to_stage(str(args.object_cache/oid/(oid+'.usd')),path)
             self.objects[role]=self.world.scene.add(SingleRigidPrim(prim_path=path,name=role,position=np.array(obj['pose'][:3]),orientation=np.array(obj['pose'][3:])))
+        physics=self.cfg.get('physics')
+        if physics is not None:
+            from pxr import UsdShade
+            material=UsdShade.Material.Define(self.world.stage,'/World/MultipathHandToolMaterial')
+            api=UsdPhysics.MaterialAPI.Apply(material.GetPrim())
+            api.CreateStaticFrictionAttr(float(physics['hand_tool_static_friction']))
+            api.CreateDynamicFrictionAttr(float(physics['hand_tool_dynamic_friction']))
+            self.hand_tool_material_colliders=[]
+            for prim in self.world.stage.Traverse():
+                path=str(prim.GetPath())
+                if not prim.HasAPI(UsdPhysics.CollisionAPI) or not (path in hand_colliders or path.startswith('/World/tool/')):continue
+                binding=UsdShade.MaterialBindingAPI(prim)
+                authored,_=binding.ComputeBoundMaterial(materialPurpose='physics')
+                if authored and authored.GetPrim().HasAPI(UsdPhysics.MaterialAPI):continue
+                UsdShade.MaterialBindingAPI.Apply(prim).Bind(material,materialPurpose='physics')
+                self.hand_tool_material_colliders.append(path)
         links=[str(p.GetPath()) for p in self.world.stage.Traverse() if str(p.GetPath()).startswith(self.root+'/') and p.HasAPI(UsdPhysics.RigidBodyAPI)]
         self.contacts=self.world.scene.add(RigidPrim(prim_paths_expr=links,name='hand_tool_contacts',track_contact_forces=True,
             contact_filter_prim_paths_expr=[['/World/tool'] for _ in links],max_contact_count=1024))
@@ -69,9 +90,12 @@ class FloatingScene:
         self.world.reset();self.wrist.initialize()
         names=list(self.robot.dof_names);self.fingers=np.array([names.index(n) for n in RIGHT_XHAND_FINGER_JOINT_NAMES])
         view=self.robot._articulation_view
-        self.hand_drive_stiffness=np.full(12,5.)
-        view.set_gains(kps=self.hand_drive_stiffness[None],kds=np.full((1,12),.5),joint_indices=self.fingers)
-        view.set_max_efforts(np.full((1,12),3.),joint_indices=self.fingers)
+        controller=self.cfg['controller']
+        self.hand_drive_stiffness=np.broadcast_to(np.asarray(controller.get('hand_stiffness',5.),dtype=float),(12,)).copy()
+        self.hand_drive_damping=np.broadcast_to(np.asarray(controller.get('hand_damping',.5),dtype=float),(12,)).copy()
+        self.hand_effort_limits=np.broadcast_to(np.asarray(controller.get('hand_max_effort',3.),dtype=float),(12,)).copy()
+        view.set_gains(kps=self.hand_drive_stiffness[None],kds=self.hand_drive_damping[None],joint_indices=self.fingers)
+        view.set_max_efforts(self.hand_effort_limits[None],joint_indices=self.fingers)
         self.hand_limits=np.asarray(view.get_dof_limits()).reshape(-1,2)[self.fingers]
         from multipath.anchors.synthesis import hand_limits_from_urdf
         self.hand_velocity=hand_limits_from_urdf(self)
@@ -227,8 +251,8 @@ class FloatingScene:
         """
         self.world.reset();self.wrist.initialize()
         view=self.robot._articulation_view;self.av=view._physics_view
-        view.set_gains(kps=np.full((1,12),5.),kds=np.full((1,12),.5),joint_indices=self.fingers)
-        view.set_max_efforts(np.full((1,12),3.),joint_indices=self.fingers)
+        view.set_gains(kps=self.hand_drive_stiffness[None],kds=self.hand_drive_damping[None],joint_indices=self.fingers)
+        view.set_max_efforts(self.hand_effort_limits[None],joint_indices=self.fingers)
         pose=self.initial_drive_pose
         self.robot.set_world_pose(position=pose[:3],orientation=pose[3:])
         self.robot.set_linear_velocity(np.zeros(3));self.robot.set_angular_velocity(np.zeros(3))

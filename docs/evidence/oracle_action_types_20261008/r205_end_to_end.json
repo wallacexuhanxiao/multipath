@@ -1,0 +1,57 @@
+{
+  "status": "failed",
+  "success": false,
+  "triplet": "(brush, eraser, plate)",
+  "sequence": "20231103_057",
+  "source": "oracle",
+  "vlm_used": false,
+  "source_duration_s": 3.6666666666666665,
+  "full_robot_reference_required": false,
+  "seed_artifacts": null,
+  "interaction_template": null,
+  "initial_bridge_cache": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_action_types_r195_20231103_057/candidate_00",
+  "template_source_data": null,
+  "solutions_per_interval": 3,
+  "steps": [
+    {
+      "name": "prepare",
+      "status": "finished",
+      "success": true,
+      "elapsed_s": 0.0,
+      "cached_local_proposals": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/local_proposals_r198/brush",
+      "physical_acceptance": false
+    },
+    {
+      "name": "candidate_00",
+      "log": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_lift_repair_r205_20231103_057/candidate_00.log",
+      "status": "finished",
+      "result_path": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_lift_repair_r205_20231103_057/candidate_00/pipeline_result.json",
+      "returncode": 0,
+      "elapsed_s": 190.15094323386438,
+      "success": false
+    },
+    {
+      "name": "local_anchor_0_00",
+      "log": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_lift_repair_r205_20231103_057/local_anchor_0_00.log",
+      "status": "finished",
+      "result_path": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_lift_repair_r205_20231103_057/local_anchor_0_00/development_result.json",
+      "returncode": 0,
+      "elapsed_s": 349.85829410282895,
+      "success": false
+    }
+  ],
+  "repairs": [
+    {
+      "attempt": 0,
+      "window": [
+        20,
+        32
+      ],
+      "error": "RuntimeError: {'source_frame': 30.0, 'reason': 'core_object_fidelity'}",
+      "physical_run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_lift_repair_r205_20231103_057/candidate_00"
+    }
+  ],
+  "started_at": "2026-10-09T18:40:56+0800",
+  "elapsed_s": 540.1176782869734,
+  "error": "Local anchor_0 failed: Reached-entry local interaction failed"
+}

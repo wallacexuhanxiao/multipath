@@ -39,31 +39,43 @@ def apply_residual(scene,baseline,start,residual,tpf,envelope,anchor=None):
 def ppo_retarget_commands(scene,anchor,data,baseline,start,begin):
     """Fixed local retarget reference for a_ref + delta PPO.
 
-    Acquisition's geometric fit supplies a constant wrist morphology correction
-    and finger posture. Retain the original local human wrist motion instead
-    of replacing it with a stationary contact-waiting feedback controller.
-    Registration changes only commands, never actual hand/object states.
+    A fitted robot grasp changes wrist/finger geometry. Transport that local
+    preparation/closure by the source tool motion, instead of applying a
+    constant correction to the human wrist as its grasp frame keeps changing.
+    This is a fixed command reference, not online contact feedback. Registration
+    changes only commands, never actual hand/object states.
     """
-    if (anchor.entry_contact,anchor.exit_contact)!=('free','grasped') or 'raw_wrist_hand_q' not in data:
+    details=scene.manifest.get('retarget_details',{}).get(anchor.id,{})
+    if ((anchor.entry_contact,anchor.exit_contact)!=('free','grasped')
+            or details.get('method')!='local_mesh_opposition_surface_IK'):
         return project_hand_commands(scene,baseline,start,anchor),'fixed_local_command_proposal'
     from multipath.execution.mounted_scene import pose_matrix
     from scipy.spatial.transform import Slerp
     tpf=physics_ticks_per_frame(scene.manifest['fps'],scene.dt)
-    raw=np.asarray(data['raw_wrist_hand_q']);hand=np.asarray(data['wrist_hand_q'])[:,7:19]
+    raw=np.asarray(data['wrist_hand_q']);hand=raw[:,7:19]
     raw=np.vstack((raw,raw[-1]));hand=np.vstack((hand,hand[-1]));index=np.arange(len(raw))
     sample=np.clip((begin+np.arange(len(baseline)+1))/tpf,0,len(raw)-1)
     rotation=Slerp(index,Rotation.from_quat(raw[:,[4,5,6,3]]))(sample)
     xyz=np.stack([np.interp(sample,index,raw[:,j]) for j in range(3)],axis=1)
     matrices=np.asarray([pose_matrix(np.r_[p,q]) for p,q in zip(xyz,rotation.as_quat()[:,[3,0,1,2]])])
-    details=scene.manifest.get('retarget_details',{}).get(anchor.id,{})
-    matrices=matrices@np.asarray(details.get('wrist_local_correction',np.eye(4)))
+    # The geometry fit is expressed around the resting source-entry tool.
+    # Move its complete robot grasp with the demonstrated tool pose. Human
+    # wrist changes during finger wrapping must not slide the robot pads off
+    # that grasp or cancel the object's lift.
+    tools=np.asarray(data['tool_pose']);tools=np.concatenate((tools,tools[-1:]))
+    tool_xyz=np.stack([np.interp(sample,index,tools[:,j,3]) for j in range(3)],axis=1)
+    tool_rotation=Slerp(index,Rotation.from_matrix(tools[:,:3,:3]))(sample)
+    tool_matrices=np.repeat(np.eye(4)[None],len(sample),axis=0)
+    tool_matrices[:,:3,3]=tool_xyz;tool_matrices[:,:3,:3]=tool_rotation.as_matrix()
+    core_index=anchor.core_start-anchor.synth_start
+    matrices=tool_matrices@np.linalg.inv(data['tool_pose'][core_index])@matrices
     source_index=min(round(begin/tpf),len(data['tool_pose'])-1)
     calibration=pose_matrix(start['objects']['tool']['pose'])@np.linalg.inv(data['tool_pose'][source_index])
     matrices=calibration@matrices
     pose=np.c_[matrices[:,:3,3],Rotation.from_matrix(matrices[:,:3,:3]).as_quat()[:,[3,0,1,2]]]
     fingers=np.stack([np.interp(sample,index,hand[:,j]) for j in range(12)],axis=1)
     commands=join_core_controls(scene,anchor,controls_from_poses(pose,fingers,scene.dt),start)
-    return commands,'local_human_retarget_with_fixed_geometry_correction'
+    return commands,'local_robot_grasp_retarget_transported_by_source_tool'
 
 
 class FloatingResidualEnv(MountedResidualEnv):

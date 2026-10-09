@@ -1,0 +1,56 @@
+[
+  {
+    "run": "r203",
+    "branch": "observed_motion",
+    "wrist_lift_mm": 10.435253381729126,
+    "tool_lift_mm": 1.7478466033935547,
+    "end_contact": "grasped",
+    "weight_n": 1.4715000584721567,
+    "mean_upward_support_n": 1.0656342941025894
+  },
+  {
+    "run": "r203",
+    "branch": "vertical_same_grip",
+    "wrist_lift_mm": 20.27764916419983,
+    "tool_lift_mm": 4.099816083908081,
+    "end_contact": "grasped",
+    "weight_n": 1.4715000584721567,
+    "mean_upward_support_n": 0.6830745535116876
+  },
+  {
+    "run": "r204",
+    "branch": "observed_motion",
+    "wrist_lift_mm": 8.530646562576294,
+    "tool_lift_mm": 0.1297295093536377,
+    "end_contact": "grasped",
+    "weight_n": 1.4715000584721567,
+    "mean_upward_support_n": 0.545295050132457
+  },
+  {
+    "run": "r204",
+    "branch": "vertical_same_grip",
+    "wrist_lift_mm": 17.460614442825317,
+    "tool_lift_mm": 0.6706416606903076,
+    "end_contact": "grasped",
+    "weight_n": 1.4715000584721567,
+    "mean_upward_support_n": -0.29139989738663036
+  },
+  {
+    "run": "r206",
+    "branch": "observed_motion",
+    "wrist_lift_mm": 14.52016830444336,
+    "tool_lift_mm": -0.16883015632629395,
+    "end_contact": "free",
+    "weight_n": 1.4715000584721567,
+    "mean_upward_support_n": -0.28079477322656504
+  },
+  {
+    "run": "r206",
+    "branch": "vertical_same_grip",
+    "wrist_lift_mm": 21.48205041885376,
+    "tool_lift_mm": 1.9159317016601562,
+    "end_contact": "free",
+    "weight_n": 1.4715000584721567,
+    "mean_upward_support_n": -0.18893907691002218
+  }
+]

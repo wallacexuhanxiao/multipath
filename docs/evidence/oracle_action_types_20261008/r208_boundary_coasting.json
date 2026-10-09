@@ -1,0 +1,28 @@
+{
+  "scope": "diagnostic; exact URDF mesh at physically acquired A0 exit, constant-twist extrapolation is not a physical rollout",
+  "rows": [
+    {
+      "elapsed_s": 0.0,
+      "minimum_hand_clearance_m": 0.019723722415718792,
+      "limiting_link": "right_hand_pinky_link2"
+    },
+    {
+      "elapsed_s": 0.008333333333333333,
+      "minimum_hand_clearance_m": 0.02128654550576531,
+      "limiting_link": "right_hand_pinky_link2"
+    },
+    {
+      "elapsed_s": 0.016666666666666666,
+      "minimum_hand_clearance_m": 0.022842271413907045,
+      "limiting_link": "right_hand_pinky_link2"
+    }
+  ],
+  "actual_twist": [
+    -0.42986856073941937,
+    0.2169424603384325,
+    0.2180110386456283,
+    -0.4745122194290161,
+    0.6912971138954163,
+    2.068964719772339
+  ]
+}
