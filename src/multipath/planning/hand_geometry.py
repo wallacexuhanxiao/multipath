@@ -33,13 +33,14 @@ def link_poses(model,values):
 
 
 def hand_sweep_meshes(scene,goal,meshes):
-    from multipath.xhand import RIGHT_XHAND_FINGER_JOINT_NAMES
+    from multipath.xhand import finger_joint_names
     from multipath.execution.mounted_scene import pose_matrix
     from pxr import UsdGeom
     start=scene.state();q0=np.asarray(start['hand_q']);goal=np.asarray(goal)
     count=max(2,int(np.ceil(np.max(np.abs(goal-q0))/np.deg2rad(10)))+1)
     model=joint_model(scene.args.xhand_urdf)
-    fk0=link_poses(model,dict(zip(RIGHT_XHAND_FINGER_JOINT_NAMES,q0)))
+    names=finger_joint_names(getattr(scene,'side','right'))
+    fk0=link_poses(model,dict(zip(names,q0)))
     inverse=np.linalg.inv(pose_matrix(start['wrist_xyz_wxyz']));cache=UsdGeom.XformCache();local=[]
     for prim,points,faces in meshes:
         link=str(prim.GetPath())[len(scene.root)+1:].split('/')[0]
@@ -48,7 +49,7 @@ def hand_sweep_meshes(scene,goal,meshes):
         local.append((link,points@transform[:3,:3].T+transform[:3,3],faces))
     result=[]
     for t in np.linspace(0,1,count):
-        fk=link_poses(model,dict(zip(RIGHT_XHAND_FINGER_JOINT_NAMES,q0+t*(goal-q0))))
+        fk=link_poses(model,dict(zip(names,q0+t*(goal-q0))))
         for link,points,faces in local:
             transform=fk[link]
             result.append((points@transform[:3,:3].T+transform[:3,3],faces))

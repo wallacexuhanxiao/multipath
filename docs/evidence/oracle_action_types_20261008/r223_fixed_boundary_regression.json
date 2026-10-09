@@ -1,0 +1,27 @@
+{
+  "success": true,
+  "case": "nonpenetrating fixed boundaries below optional interior margin; boundary clearances from r222",
+  "physical_acceptance": false,
+  "clearance_m": [
+    5.165021866559982e-05,
+    2.836110070347786e-05,
+    0.0002,
+    0.00028717657551169395,
+    2.0124949514865875e-05
+  ],
+  "result": {
+    "budget_s": 0.03333333333333333,
+    "curobo_duration_s": 0.03333333333333333,
+    "time_scale": 1.0,
+    "command_velocity_ratio": 0.0,
+    "command_acceleration_ratio": 0.0,
+    "parameterization": "collision_constrained_source_time_fit",
+    "collision_fit_iterations": 0,
+    "minimum_planning_clearance_m": 2.0124949514865875e-05,
+    "fixed_boundary_clearance_requirement_m": 0.0,
+    "interior_clearance_requirement_m": 0.0001,
+    "boundary_velocities_preserved": true,
+    "physical_entry_velocity_preserved": true,
+    "canonical_boundary_jointly_fitted": false
+  }
+}

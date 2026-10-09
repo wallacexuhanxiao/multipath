@@ -93,7 +93,7 @@ def main():
                     else args.entry_run/'anchors'/w['anchor']/'executed_core.npz')
                 commands=np.load(path)['commands'];s=next(s for s in prior['segments'] if s['start']==w['start'])
                 old=np.load(args.baseline_run/f'relaxed_{w["start"]}_{w["end"]}.npz')['commands'] if s.get('delta_dynamics_feedforward') else None
-                wrench=segment_wrenches(scene,scene.snapshot(),commands,transport=w.get('contact')=='grasped',
+                wrench=segment_wrenches(scene,scene.snapshot(),commands,transport=w.get('contact')=='grasped' or s.get('carried_dynamics_feedforward',False),
                     baseline_commands=old) if w['start']>0 or old is not None else np.zeros((len(commands),6))
                 for j,c in enumerate(commands):
                     scene.wrench_bias=wrench[j];frame=w['start']+(j+1)/scene.tpf;scene.step_control(c,w['mode'],frame)
@@ -104,7 +104,7 @@ def main():
             entry=scene.snapshot();objective=WindowEvaluation(scene,anchor,local,entry)
             if not validate_commands(scene,candidate,entry)['feasible']:raise RuntimeError('Candidate finger limits')
             if not objective.observe(anchor.core_start,candidate[0]):raise RuntimeError(str(objective.failure))
-            wrench=segment_wrenches(scene,entry,candidate)
+            wrench=segment_wrenches(scene,entry,candidate,transport=anchor.entry_contact==anchor.exit_contact=='grasped')
             for j,c in enumerate(candidate):
                 scene.wrench_bias=wrench[j];frame=anchor.core_start+(j+1)/scene.tpf;scene.step_control(c,'ANCHOR',frame)
                 if (j+1)%scene.tpf==0 and not objective.observe(frame,c):raise RuntimeError(str(objective.failure))

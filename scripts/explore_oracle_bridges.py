@@ -126,6 +126,10 @@ def main():
                 elif w['mode']=='ANCHOR':commands=canonical[w['anchor']]['commands']
                 else:commands=bridges[w['start']]['commands']
                 carry=w.get('contact')=='grasped'
+                if w['mode']=='ANCHOR':
+                    handoff=canonical[w['anchor']]['report']['validation'].get('controller_handoff')
+                    carry=bool((segment or {}).get('carried_dynamics_feedforward',False) if prefix_report else
+                        isinstance(handoff,dict) and handoff.get('carried_dynamics_feedforward'))
                 delta=bridges[w['start']]['commands'] if (w['mode']=='RELAXED' and segment and segment.get('delta_dynamics_feedforward')) else None
                 free_model=(segment or {}).get('free_motion_dynamics_feedforward',False) if prefix_report else (
                     w['mode']=='RELAXED' and bridges[w['start']].get('planning',{}).get('free_motion_dynamics_feedforward',False))
@@ -343,7 +347,9 @@ def main():
                             core=artifact['commands']
                             if anchor.entry_contact=='grasped':
                                 core=rebase_grasp_commands(core,artifact['entry'],exit_state,scene.dt)
-                            wrenches=segment_wrenches(scene,exit_state,core)
+                            handoff=artifact['report']['validation'].get('controller_handoff')
+                            wrenches=segment_wrenches(scene,exit_state,core,transport=bool(
+                                isinstance(handoff,dict) and handoff.get('carried_dynamics_feedforward')))
                             if not objective.observe(anchor.core_start,core[0]):raise RuntimeError(str(objective.failure))
                             for j,command in enumerate(core):
                                 scene.wrench_bias=wrenches[j]

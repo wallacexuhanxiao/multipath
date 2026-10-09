@@ -1,0 +1,78 @@
+{
+  "boundary_fit": {
+    "measured_tool_position_offset_m": [
+      0.0,
+      2.7755575615628914e-17,
+      5.551115123125783e-17
+    ],
+    "measured_tool_rotation_offset_rad": 5.006713685883697e-17,
+    "predicted_tool_position_error_m": 0.002655689724227118,
+    "predicted_tool_rotation_error_rad": 0.0346139822525461,
+    "canonical_boundary_velocity_selected": true,
+    "nominal_planning_limits_unchanged": true,
+    "feedback_model": "world_wrist_tracking_and_measured_hand_object_transform",
+    "source_condition_unchanged": true,
+    "physics_acceptance": false
+  },
+  "time_fit": {
+    "budget_s": 0.23333333333333334,
+    "curobo_duration_s": 0.23333333333333334,
+    "time_scale": 1.0,
+    "command_velocity_ratio": 0.9999999999999964,
+    "command_acceleration_ratio": 1.000000938346517,
+    "parameterization": "endpoint_constrained_geometric_fit",
+    "geometry_max_adjustment": 0.030807291666666736,
+    "boundary_velocities_preserved": true
+  },
+  "boundary_precheck": {
+    "feasible": true,
+    "reasons": [],
+    "budget_s": 0.23333333333333334,
+    "minimum_duration_velocity_only_s": 0.1939789465429048,
+    "minimum_duration_velocity_change_only_s": 0.21374999944145934,
+    "coordinate_displacement": [
+      0.024384835826915918,
+      0.1106368706851446,
+      -0.00017297883611450127,
+      0.5819368396287143,
+      0.016481248952197936,
+      -0.12372593985779234
+    ],
+    "initial_coordinate_velocity": [
+      -0.4298685607417862,
+      0.2169424603376546,
+      0.21801103864405033,
+      1.9566021738581794,
+      0.8052515160006378,
+      0.2593238974002432
+    ],
+    "terminal_coordinate_velocity": [
+      0.6388814364655104,
+      0.21679024077361772,
+      0.0002324596848346516,
+      1.6275417659139533,
+      -0.00185038264710613,
+      -0.0009070713735681578
+    ],
+    "hand_q_max_difference_rad": 0.0,
+    "reachable_displacement_lower": [
+      0.013440607772075425,
+      -0.017453405934034,
+      -0.04022243861117754,
+      0.21578813884135584,
+      -0.09957964319540807,
+      -0.1728893676784053
+    ],
+    "reachable_displacement_upper": [
+      0.035329063230126884,
+      0.11865770285999756,
+      0.09114592155458405,
+      0.6009226457363978,
+      0.28703990764456544,
+      0.2331866270846295
+    ],
+    "limits_provenance": "configured nominal planning budget; not hardware ratings"
+  },
+  "source_time_s": 0.23333333333333334,
+  "physical_validation": false
+}

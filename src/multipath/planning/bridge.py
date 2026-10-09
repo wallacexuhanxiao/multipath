@@ -240,8 +240,11 @@ def feedback_boundary_target(start,goal,planned_pose,actual_state,source_target,
     measured_held=np.asarray(actual_state['hand_object_transform'])
     q0=pose_coordinates(start['wrist_xyz_wxyz']);seed=pose_coordinates(goal['wrist_xyz_wxyz'],q0)
     v0=coordinate_velocity(start['wrist_xyz_wxyz'],start['wrist_twist'],q0)
-    vmax=np.asarray(planning['velocity_limits']);amax=np.asarray(planning['acceleration_limits'])
-    v1_seed=coordinate_velocity(goal['wrist_xyz_wxyz'],goal['wrist_twist'],seed)
+    # Leave room for spatial-twist/Euler conversion and the subsequent
+    # discrete fit. An optimum exactly on the envelope failed that fit.
+    vmax=np.asarray(planning['velocity_limits'])*.98;amax=np.asarray(planning['acceleration_limits'])*.95
+    v1_seed=coordinate_velocity(goal['wrist_xyz_wxyz'],
+        goal.get('interaction_entry_twist_prior',goal['wrist_twist']),seed)
     def tool(x):return pose_matrix(coordinates_pose(x))@held
     def predicted_tool(x):
         # Grasp deflection belongs to the hand frame. A single left/world
@@ -251,14 +254,17 @@ def feedback_boundary_target(start,goal,planned_pose,actual_state,source_target,
     def constraints(x):
         q,v1=x[:6],x[6:]
         low,high=discrete_displacement_bounds(v0,v1,budget,dt,vmax,amax);m=tool(q)
-        return np.r_[q-q0-low,q0+high-q,
-            (.98*OBJECT_POSITION_TOLERANCE_M)**2-np.sum((m[:3,3]-source_target[:3,3])**2),
-            (.98*OBJECT_ROTATION_TOLERANCE_RAD)**2-Rotation.from_matrix(source_target[:3,:3].T@m[:3,:3]).magnitude()**2]
+        position=np.sum((m[:3,3]-source_target[:3,3])**2)/OBJECT_POSITION_TOLERANCE_M**2
+        rotation=Rotation.from_matrix(source_target[:3,:3].T@m[:3,:3]).magnitude()**2/OBJECT_ROTATION_TOLERANCE_RAD**2
+        return np.r_[q-q0-low,q0+high-q,.98**2-position-rotation]
     def objective(x):
         predicted=predicted_tool(x[:6])
         position=np.sum((predicted[:3,3]-source_target[:3,3])**2)/OBJECT_POSITION_TOLERANCE_M**2
         rotation=Rotation.from_matrix(source_target[:3,:3].T@predicted[:3,:3]).magnitude()**2/OBJECT_ROTATION_TOLERANCE_RAD**2
-        return position+rotation+.01*np.sum((x[:6]-seed)**2)+.01*np.sum((x[6:]/vmax)**2)
+        # A fast boundary may satisfy the pose but make the next interaction
+        # impossible to take over. Its local motion is a velocity preference,
+        # not a mandatory human velocity or relaxed trajectory tracking gate.
+        return position+rotation+.01*np.sum((x[:6]-seed)**2)+np.sum(((x[6:]-v1_seed)/vmax)**2)
     # The oracle fixes interaction pose/contact/time, not the human velocity.
     # Keeping its velocity fixed exhausted the reachable rotation envelope and
     # repeated the same failed boundary. Choose a canonical velocity together

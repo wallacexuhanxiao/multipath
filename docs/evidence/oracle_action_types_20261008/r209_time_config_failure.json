@@ -1,0 +1,12 @@
+{
+  "status": "failed",
+  "success": false,
+  "error": "Unresolved physical failure at [32, 39]: ValueError: minimum_trajectory_dt cannot be lower than interpolation_dt",
+  "elapsed_s": 66.42013136483729,
+  "triplet": "(brush, eraser, plate)",
+  "sequence": "20231103_057",
+  "pbs_job_id": "656812.hopper-m-02",
+  "configuration_failure": true,
+  "physical_interaction_failure": false,
+  "repair": "source-time knot count=min(32, physics_ticks+1); trajectory dt >= physics interpolation dt"
+}

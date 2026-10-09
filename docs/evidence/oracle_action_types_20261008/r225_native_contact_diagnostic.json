@@ -1,0 +1,38 @@
+{
+  "diagnostic": "convex hull vertices queried against actual target triangle mesh; unsigned sample distance is not a complete collision proof",
+  "rows": [
+    {
+      "frame": 32.0,
+      "actual_minimum_sampled_unsigned_triangle_distance_m": 0.010673543546265152,
+      "actual_nearest_tool_vertex_world_xyz": [
+        0.5199829075691977,
+        -0.11855860471226756,
+        0.3941443418373026
+      ],
+      "planned_minimum_sampled_unsigned_triangle_distance_m": 0.010673543546265152,
+      "planned_nearest_tool_vertex_world_xyz": [
+        0.5199829075691977,
+        -0.11855860471226756,
+        0.3941443418373026
+      ],
+      "native_contact_steps": 0
+    },
+    {
+      "frame": 33.0,
+      "actual_minimum_sampled_unsigned_triangle_distance_m": 0.0004118460726360963,
+      "actual_nearest_tool_vertex_world_xyz": [
+        0.49998286739757813,
+        -0.09814151863573868,
+        0.39274701066780154
+      ],
+      "planned_minimum_sampled_unsigned_triangle_distance_m": 0.002421579421289877,
+      "planned_nearest_tool_vertex_world_xyz": [
+        0.4968903505993949,
+        -0.09860426927385316,
+        0.3931804621936524
+      ],
+      "native_contact_steps": 1
+    }
+  ],
+  "task_success": false
+}

@@ -1,0 +1,66 @@
+{
+  "proposal": {
+    "measured_tool_position_offset_m": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "measured_tool_rotation_offset_rad": 6.059128614320848e-17,
+    "predicted_tool_position_error_m": 0.010854306139932603,
+    "predicted_tool_rotation_error_rad": 0.18201858242911068,
+    "canonical_boundary_velocity_selected": true,
+    "nominal_planning_limits_unchanged": true,
+    "feedback_model": "world_wrist_tracking_and_measured_hand_object_transform",
+    "source_condition_unchanged": true,
+    "physics_acceptance": false
+  },
+  "necessary_time_check": {
+    "feasible": true,
+    "reasons": [],
+    "budget_s": 0.23333333333333334,
+    "minimum_duration_velocity_only_s": 0.1449434206325492,
+    "minimum_duration_velocity_change_only_s": 0.18286250741406104,
+    "coordinate_displacement": [
+      0.01714839605874241,
+      0.13407396211202893,
+      0.010835670980149925,
+      0.4348302618976476,
+      0.052437576099878314,
+      -0.06437040013294149
+    ],
+    "initial_coordinate_velocity": [
+      -0.45267800763415517,
+      0.2094722887813205,
+      0.21195612857627386,
+      1.888102811964387,
+      0.9551725854928249,
+      0.40321913608032384
+    ],
+    "terminal_coordinate_velocity": [
+      0.4616345294361501,
+      0.4515845343174007,
+      0.04210374967561492,
+      0.5593654466062858,
+      0.10466609345893828,
+      0.5843302143260232
+    ],
+    "hand_q_max_difference_rad": 0.0,
+    "reachable_displacement_lower": [
+      -0.025212257239792563,
+      0.011998657444554747,
+      -0.036972744895257884,
+      0.110797013268225,
+      -0.06846279923909783,
+      -0.08840588874153751
+    ],
+    "reachable_displacement_upper": [
+      0.027302112326924706,
+      0.14224793461181356,
+      0.09625338315403194,
+      0.46027891373159874,
+      0.3157584909945093,
+      0.3188340705030185
+    ],
+    "limits_provenance": "configured nominal planning budget; not hardware ratings"
+  }
+}

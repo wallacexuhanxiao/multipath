@@ -7,7 +7,7 @@ from pathlib import Path
 import numpy as np
 from scipy.spatial.transform import Rotation
 from scipy.interpolate import CubicHermiteSpline
-from multipath.planning.timing import fixed_budget_path,parameterize_path,boundary_fitted_path
+from multipath.planning.timing import fixed_budget_path,parameterize_path,boundary_fitted_path,collision_fitted_path
 
 
 def pose_coordinates(pose,near=None):
@@ -346,11 +346,13 @@ class FloatingPlanner:
                 # clock and then compressed into a short source interval: that
                 # scales the physical entry velocity. Optimize in the interval's
                 # actual budget. The established free-motion backend is retained.
-                steps=32
+                # cuRobo requires trajectory dt >= interpolation dt. Short
+                # intervals therefore use fewer knots, without adding time.
+                steps=32 if source_ticks is None else min(32,source_ticks+1)
                 opt_dt=(1/scene.manifest['fps'] if source_ticks is None
                         else source_ticks*scene.dt/(steps-1))
                 options={} if source_ticks is None else dict(trajopt_tsteps=steps,
-                    minimum_trajectory_dt=min(scene.dt,opt_dt))
+                    minimum_trajectory_dt=scene.dt)
                 return MotionGen(MotionGenConfig.load_from_robot_config(cfg,live,tensor_args=self.tensor,interpolation_dt=scene.dt,
                     optimize_dt=False,trajopt_dt=opt_dt,js_trajopt_dt=opt_dt,
                     self_collision_check=False,self_collision_opt=False,
@@ -442,7 +444,12 @@ class FloatingPlanner:
         displaced by centimetres at the goal. Cover the same full hand sweep
         against both boundaries; neither geometry nor obstacles are removed.
         """
-        if self.carry or self.goal_hand is None:return
+        if self.carry:
+            start,_=self.scene.root_motion()
+            path=np.stack((pose_coordinates(start),pose_coordinates(goal,pose_coordinates(start))))
+            if not self.valid(path[-1]):self.refine_path_cover(path,[1])
+            return
+        if self.goal_hand is None:return
         from multipath.planning.hand_geometry import hand_sweep_meshes
         start,_=self.scene.root_motion();start=np.asarray(start);goal=np.asarray(goal)
         r0=Rotation.from_quat(start[[4,5,6,3]]);r1=Rotation.from_quat(goal[[4,5,6,3]])
@@ -511,7 +518,8 @@ class FloatingPlanner:
                 p,q=self.scene.objects[role].get_world_pose()
                 checker.update_mesh_pose(w_obj_pose=Pose.from_list(np.r_[p,q].tolist(),self.tensor),name=role)
         buffer=CollisionQueryBuffer.initialize_from_shape(query.shape,self.tensor,checker.collision_types)
-        distance=checker.get_sphere_distance(query,buffer,self.tensor.to_device([1.]),self.tensor.to_device([0.]),compute_esdf=True)
+        distance=checker.get_sphere_distance(query,buffer,self.tensor.to_device([1.]),self.tensor.to_device([0.]),
+            compute_esdf=True,return_loss=gradient)
         distance=distance+self.tensor.to_device(np.asarray(radii).copy())[None,None]
         if per_sphere:return -distance.detach().cpu().numpy().reshape(-1)
         penetration=distance.max();direction=np.zeros(3)
@@ -520,6 +528,91 @@ class FloatingPlanner:
             norm=np.linalg.norm(direction)
             if norm>1e-12:direction/=norm
         return float(-penetration.detach().cpu()),direction,'world'
+
+    def refine_path_cover(self,path,invalid):
+        """Refine conservative spheres when exact carried meshes clear a fit.
+
+        Refine against the fit's mesh-safe configurations. Real colliding
+        samples remain rejected until the time fitter finds a safe path.
+        Every surface is retained; no simulator state is assigned.
+        """
+        if not self.carry:return False
+        import json
+        print('PATH_COVER_REFINE_BEGIN',len(path),len(invalid),flush=True)
+        poses=np.asarray([coordinates_pose(q) for q in path]);blocked=[]
+        for tick in invalid:
+            collision=self.measured_mesh_collisions(poses[tick])
+            if collision:
+                blocked.append(dict(tick=tick,collisions=collision))
+        safe=[k for k in range(len(path)) if k not in {v['tick'] for v in blocked}]
+        if not safe:return False
+        poses=poses[safe]
+        from pxr import UsdGeom
+        start,_=self.scene.root_motion();start=np.asarray(start)
+        r0=Rotation.from_quat(start[[4,5,6,3]])
+        rotations=Rotation.from_quat(poses[:,[4,5,6,3]]).as_matrix()
+        def clearance(world,radius):
+            local=r0.inv().apply(np.asarray(world)-start[:3])
+            centers=np.einsum('nij,pj->npi',rotations,local)+poses[:,None,:3]
+            distances=self.world_clearance(centers.reshape(-1,3),
+                np.tile(radius,len(poses)),per_sphere=True)
+            return distances.reshape(len(poses),len(local)).min(0)
+        cache=UsdGeom.XformCache();refined=[]
+        for prim,_,_ in self.scene.measured_hand_collision_meshes:
+            vertices,faces=self.scene.measured_hand_mesh_data[str(prim.GetPath())]
+            matrix=np.asarray(cache.GetLocalToWorldTransform(prim)).T
+            refined+=boundary_collision_cover(vertices@matrix[:3,:3].T+matrix[:3,3],
+                faces,start,self.live['cuboid'],clearance=clearance)
+        p,q=self.scene.objects['tool'].get_world_pose();mesh=self.scene.meshes['tool']
+        refined+=boundary_collision_cover(Rotation.from_quat(np.asarray(q)[[1,2,3,0]]).apply(mesh.vertices)+p,
+            mesh.faces,start,self.live['cuboid'],clearance=clearance)
+        refined=compact_collision_cover(refined,start,self.live['cuboid'],clearance=clearance)
+        self.robot_config['kinematics']['collision_spheres']['wrist']=refined
+        self.nominal_spheres=refined;self.sphere_count=len(refined)
+        self.planner=self.build_planner(source_ticks=getattr(self,'source_time_trajopt_ticks',None))
+        self.verify_fk();self.path_cover_refined=True
+        print('PATH_COVER_REFINE_END',self.sphere_count,flush=True)
+        geometry=json.loads((self.out/'collision_geometry.json').read_text())
+        geometry.update(spheres=refined,proxy='full surfaces refined over fixed-time fitted path')
+        (self.out/'collision_geometry.json').write_text(json.dumps(geometry,indent=2))
+        (self.out/'fitted_path_geometry.json').write_text(json.dumps(dict(
+            refined=True,physics_samples=len(path),safe_samples_used=len(safe),sphere_count=len(refined),
+            colliding_fit_samples=blocked,conservative_surface_coverage=True,
+            source_time_stretch=False,simulator_state_assignment=False),indent=2))
+        return True
+
+    def path_clearance_gradient(self,path):
+        """cuRobo distance gradient in all six virtual wrist coordinates."""
+        from curobo.geom.sdf.world import CollisionQueryBuffer
+        from curobo.types.math import Pose
+        poses=np.asarray([coordinates_pose(q) for q in path])
+        local=np.asarray([s['center'] for s in self.nominal_spheres])
+        rotations=Rotation.from_quat(poses[:,[4,5,6,3]]).as_matrix()
+        centers=np.einsum('nij,pj->npi',rotations,local)+poses[:,None,:3]
+        radii=np.asarray([s['radius'] for s in self.nominal_spheres])
+        points=np.concatenate((centers,np.zeros((*centers.shape[:2],1))),axis=2)
+        query=self.tensor.to_device(points)[None].requires_grad_(True)
+        checker=self.planner.world_coll_checker
+        for role in self.live.get('mesh',{}):
+            p,q=self.scene.objects[role].get_world_pose()
+            checker.update_mesh_pose(w_obj_pose=Pose.from_list(np.r_[p,q].tolist(),self.tensor),name=role)
+        buffer=CollisionQueryBuffer.initialize_from_shape(query.shape,self.tensor,checker.collision_types)
+        distance=checker.get_sphere_distance(query,buffer,self.tensor.to_device([1.]),
+            self.tensor.to_device([0.]),compute_esdf=True,return_loss=True)
+        clearance=-(distance+self.tensor.to_device(radii.copy())[None,None]).max(dim=-1).values
+        clearance.sum().backward()
+        point_gradient=query.grad[0,:,:,:3].detach().cpu().numpy()
+        gradient=np.empty_like(path,dtype=float);gradient[:,:3]=point_gradient.sum(axis=1)
+        # Chain the active surface normal through the same ZYX FK used by
+        # cuRobo. Changing position alone cannot avoid a rotating carried tool.
+        epsilon=1e-5
+        for j in range(3,6):
+            angles=np.asarray(path[:,3:]).copy();angles[:,j-3]+=epsilon
+            forward=np.einsum('nij,pj->npi',Rotation.from_euler('ZYX',angles).as_matrix(),local)
+            angles[:,j-3]-=2*epsilon
+            backward=np.einsum('nij,pj->npi',Rotation.from_euler('ZYX',angles).as_matrix(),local)
+            gradient[:,j]=np.sum(point_gradient*(forward-backward)/(2*epsilon),axis=(1,2))
+        return clearance.detach().cpu().numpy().reshape(-1),gradient
 
     def measured_clearance(self):
         # Tracking margin is for commanded paths. Do not count it a second time
@@ -559,16 +652,22 @@ class FloatingPlanner:
             boxes[role]={'dims':(bounds[1]-bounds[0]).tolist(),'pose':np.r_[p+current.apply(bounds.mean(0)),q].tolist()}
         return boxes
 
-    def measured_mesh_collisions(self):
+    def measured_mesh_collisions(self,planned_pose=None):
         from pxr import UsdGeom
         cache=UsdGeom.XformCache();meshes=[]
+        delta=np.eye(4)
+        if planned_pose is not None:
+            from multipath.execution.mounted_scene import pose_matrix
+            actual,_=self.scene.root_motion()
+            delta=pose_matrix(planned_pose)@np.linalg.inv(pose_matrix(actual))
         for prim,_,_ in self.scene.measured_hand_collision_meshes:
             vertices,faces=self.scene.measured_hand_mesh_data[str(prim.GetPath())]
-            matrix=np.asarray(cache.GetLocalToWorldTransform(prim)).T
+            matrix=delta@np.asarray(cache.GetLocalToWorldTransform(prim)).T
             meshes.append((str(prim.GetPath()),vertices@matrix[:3,:3].T+matrix[:3,3],faces,False))
         if self.carry:
             p,q=self.scene.objects['tool'].get_world_pose();mesh=self.scene.meshes['tool']
             vertices=Rotation.from_quat(np.asarray(q)[[1,2,3,0]]).apply(mesh.vertices)+p
+            vertices=vertices@delta[:3,:3].T+delta[:3,3]
             meshes.append(('tool',vertices,mesh.faces,mesh.is_watertight))
         collisions=[dict(mesh=name,obstacle=role) for name,vertices,faces,closed in meshes
                 for role,box in self.current_boxes().items() if mesh_box_intersects(vertices,faces,box,closed)]
@@ -592,11 +691,13 @@ class FloatingPlanner:
                 obstacle=fcl.CollisionObject(self.fcl_objects[role],fcl.Transform(Rotation.from_quat(np.asarray(q)[[1,2,3,0]]).as_matrix(),p))
                 bodies=[]
                 for prim,scale,_ in self.scene.measured_hand_collision_meshes:
-                    matrix=np.asarray(cache.GetLocalToWorldTransform(prim)).T
+                    matrix=delta@np.asarray(cache.GetLocalToWorldTransform(prim)).T
                     bodies.append((str(prim.GetPath()),fcl.CollisionObject(self.fcl_meshes[str(prim.GetPath())],fcl.Transform(matrix[:3,:3]/scale,matrix[:3,3]))))
                 if self.carry:
                     p,q=self.scene.objects['tool'].get_world_pose()
-                    bodies.append(('tool',fcl.CollisionObject(self.fcl_objects['tool'],fcl.Transform(Rotation.from_quat(np.asarray(q)[[1,2,3,0]]).as_matrix(),p))))
+                    rotation=delta[:3,:3]@Rotation.from_quat(np.asarray(q)[[1,2,3,0]]).as_matrix()
+                    position=delta[:3,:3]@p+delta[:3,3]
+                    bodies.append(('tool',fcl.CollisionObject(self.fcl_objects['tool'],fcl.Transform(rotation,position))))
                 for name,body in bodies:
                     if fcl.collide(body,obstacle,fcl.CollisionRequest(),fcl.CollisionResult()):
                         collisions.append(dict(mesh=name,obstacle=role,geometry='triangle_mesh'))
@@ -668,13 +769,38 @@ class FloatingPlanner:
         # also a rejected fit, not a reason to skip the remaining fixed-time
         # parameterizations of the same cuRobo geometric proposal.
         rejected=[]
+        path_cover_attempted=False
         for name,fit in [('fixed_budget',lambda:fixed_budget_path(raw,float(result.interpolation_dt),ticks,dt,np.array(limits['velocity_limits']),np.array(limits['acceleration_limits']),initial_velocity=dq0,final_velocity=dq1)),
                          ('path_parameterization',lambda:parameterize_path(raw,ticks,dt,np.array(limits['velocity_limits']),np.array(limits['acceleration_limits']),initial_velocity=dq0,final_velocity=dq1)),
                          ('boundary_fit',lambda:boundary_fitted_path(raw,ticks,dt,np.array(limits['velocity_limits']),np.array(limits['acceleration_limits']),initial_velocity=dq0,final_velocity=dq1))]:
             try:
                 path,timing=fit()
-                for k,q in enumerate(path):
-                    if not self.valid(q):raise RuntimeError(f'collision at fitted tick {k}')
+                invalid=[k for k,q in enumerate(path) if not self.valid(q)]
+                if invalid and self.carry and not path_cover_attempted:
+                    path_cover_attempted=True
+                    if self.refine_path_cover(path,invalid):
+                        invalid=[k for k,q in enumerate(path) if not self.valid(q)]
+                if invalid and self.carry and name=='boundary_fit':
+                    clearance,gradient=self.path_clearance_gradient(path)
+                    np.savez_compressed(self.out/'collision_time_fit_input.npz',path=path,
+                        clearance=clearance,gradient=gradient,initial_velocity=dq0,final_velocity=dq1,dt=dt,
+                        velocity_limits=np.array(limits['velocity_limits']),acceleration_limits=np.array(limits['acceleration_limits']))
+                    fit_args=(path,dt,np.array(limits['velocity_limits']),np.array(limits['acceleration_limits']),
+                              dq0,dq1,self.path_clearance_gradient)
+                    try:path,timing=collision_fitted_path(*fit_args)
+                    except RuntimeError:
+                        if goal_state is None or not goal_state.get('unvalidated_oracle_boundary'):raise
+                        from multipath.execution.mounted_scene import pose_matrix
+                        from multipath.validation.physics import OBJECT_POSITION_TOLERANCE_M,OBJECT_ROTATION_TOLERANCE_RAD
+                        source=np.asarray(goal_state['source_tool_boundary']);held=np.asarray(start['hand_object_transform'])
+                        def condition(q):
+                            tool=pose_matrix(coordinates_pose(q))@held
+                            position=np.sum((tool[:3,3]-source[:3,3])**2)/OBJECT_POSITION_TOLERANCE_M**2
+                            rotation=Rotation.from_matrix(source[:3,:3].T@tool[:3,:3]).magnitude()**2/OBJECT_ROTATION_TOLERANCE_RAD**2
+                            return .98**2-position-rotation
+                        path,timing=collision_fitted_path(*fit_args,boundary_condition=condition)
+                    invalid=[k for k,q in enumerate(path) if not self.valid(q)]
+                if invalid:raise RuntimeError(f'collision at fitted tick {invalid[0]}')
                 break
             except RuntimeError as error:rejected.append(f'{name}: {error}')
         else:
@@ -688,9 +814,14 @@ class FloatingPlanner:
         # measured contact-deflected hand posture with zero closing error.
         hands=relaxed_hand_path(scene,start,goal_state,ticks)
         commands=controls_from_poses(poses,hands,dt)
+        if timing.get('canonical_boundary_jointly_fitted'):
+            # Update only an unvalidated command proposal. The executor still
+            # verifies the measured tool against the same source condition.
+            goal_state.update(wrist_xyz_wxyz=poses[-1].tolist(),wrist_twist=commands[-1,19:25].tolist())
         timing.update(planner='cuRobo_virtual_6DOF',hand_collision_spheres=self.sphere_count,carried_object_collision=self.carry,
             geometry_solver=geometry_solver,curobo_optimize_dt=False,
             curobo_optimization_budget_s=(ticks*dt if self.carry else 31/scene.manifest['fps']),
+            collision_cover_refined_over_fitted_path=getattr(self,'path_cover_refined',False),
             reference_tracking=False,source_time_stretch=False,arm_model_used=False,tracking_margin_m=scene.planning_tracking_margin_m,
             previous_command_tracking_margin_m=scene.previous_command_tracking_margin_m,
             hand_boundary_motion=bool(np.any(np.abs(hands-hands[0])>1e-8)),

@@ -239,10 +239,14 @@ def execute(scene,schedule,manifest,proposal_dir,report):
             wrenches=segment_wrenches(scene,scene.snapshot(),commands,transport=carry,
                 baseline_commands=delta_baseline,free_motion=free_model) if cache and (carry or window['start']>0 or delta_baseline is not None or free_model) else np.zeros((len(commands),6))
             actual_wrist=[start['wrist_xyz_wxyz'][:3]]
+            contact_steps_at_entry=scene.tool_target_contact_steps
             for j,command in enumerate(commands):
                 scene.wrench_bias=wrenches[j]
                 scene.step_control(command,'RELAXED',window['start']+(j+1)/tpf)
                 if exclusion:actual_wrist.append(scene.state()['wrist_xyz_wxyz'][:3])
+                if carry:
+                    from multipath.validation.physics import check_relaxed_tool_target_contact
+                    check_relaxed_tool_target_contact(scene,contact_steps_at_entry)
                 if cache:
                     if carry:check_retention(scene.state(),held)
                     clearance=planner.measured_clearance()
@@ -307,7 +311,10 @@ def execute(scene,schedule,manifest,proposal_dir,report):
             objective=WindowEvaluation(scene,anchor,data,start)
             if not objective.observe(anchor.core_start,commands[0]):raise RuntimeError(str(objective.failure))
             from multipath.execution.wrench_handoff import segment_wrenches
-            wrenches=segment_wrenches(scene,scene.snapshot(),commands) if artifact['report']['validation'].get('controller_handoff') else np.zeros((len(commands),6))
+            handoff=artifact['report']['validation'].get('controller_handoff')
+            stable_carry=bool(isinstance(handoff,dict) and handoff.get('carried_dynamics_feedforward'))
+            info['carried_dynamics_feedforward']=stable_carry
+            wrenches=segment_wrenches(scene,scene.snapshot(),commands,transport=stable_carry) if handoff else np.zeros((len(commands),6))
             for j,command in enumerate(commands):
                 scene.wrench_bias=wrenches[j]
                 frame=anchor.core_start+(j+1)/tpf;scene.step_control(command,'ANCHOR',frame)

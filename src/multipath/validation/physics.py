@@ -52,6 +52,17 @@ def check_retention(state,held_transform):
     return errors
 
 
+def check_relaxed_tool_target_contact(scene,contact_steps_at_entry):
+    """Native contact must not silently push the obstacle during transport.
+
+    Triangle overlap alone missed PhysX convex-shape contact while a carry
+    pushed a plate 14 cm. Use the existing measured contact counter (force
+    above 0.01 N), with the same physics clock. Interactions belong to Anchors.
+    """
+    if scene.tool_target_contact_steps>contact_steps_at_entry:
+        raise RuntimeError('Actual RELAXED native tool-target contact')
+
+
 def core_pose_errors(state, expected):
     from multipath.execution.mounted_scene import pose_matrix
     actual=pose_matrix(state['objects']['tool']['pose'])

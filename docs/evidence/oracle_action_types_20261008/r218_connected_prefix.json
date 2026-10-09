@@ -1,0 +1,37 @@
+{
+  "run": "r218",
+  "status": "A0_and_first_carry_bridge_physically_passed; A1_failed",
+  "source_duration_s": 3.6666666666666665,
+  "actual_duration_before_failure_s": 1.4333333333333333,
+  "source_time_stretch": false,
+  "state_resets_between_segments": 0,
+  "bridge": {
+    "source_interval": [
+      32,
+      39
+    ],
+    "source_budget_s": 0.23333333333333334,
+    "actual_end_s": 1.3,
+    "transition_object_error": {
+      "position_m": 0.019576996641758417,
+      "rotation_rad": 0.2887048555675669
+    },
+    "transition_wrist_error": {
+      "position_m": 0.02144355016860165,
+      "rotation_rad": 0.24640137055874572
+    },
+    "success": true,
+    "hand_boundary_motion": false,
+    "geometry_solver": "curobo_graph_then_fixed_source_time_fit",
+    "command_velocity_ratio": 0.9999999999999964,
+    "command_acceleration_ratio": 1.0000203402405283,
+    "retained_contact_at_recorded_frames": true,
+    "max_recorded_relative_rotation_rad": 0.18071985815119596
+  },
+  "A0_command_delta": {
+    "max_wrist_xyz_m": 0.0010161976516246951,
+    "max_hand_rad": 0.026664957404136658
+  },
+  "A1_failure": "RuntimeError: {'source_frame': 43.0, 'reason': 'core_object_fidelity'}",
+  "full_pipeline_success": false
+}

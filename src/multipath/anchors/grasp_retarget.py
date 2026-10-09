@@ -12,7 +12,7 @@ from scipy.ndimage import distance_transform_edt,map_coordinates
 from pathlib import Path
 from multipath.execution.mounted_scene import pose_matrix
 from multipath.planning.hand_geometry import joint_model,link_poses
-from multipath.xhand import RIGHT_XHAND_FINGER_JOINT_NAMES,RIGHT_XHAND_CLOSING_DIRECTION
+from multipath.xhand import finger_joint_names,RIGHT_XHAND_CLOSING_DIRECTION
 
 
 def tool_surface_distance(mesh,cache=None):
@@ -64,8 +64,9 @@ def tool_surface_distance(mesh,cache=None):
     return distance
 
 
-def surface_grasp_prior(anchor,frames,reference,human,objects,mesh,urdf,*,fps,table_z=None,physical_entry_tool=None,geometry_cache=None,initial_grasp=None):
+def surface_grasp_prior(anchor,frames,reference,human,objects,mesh,urdf,*,fps,table_z=None,physical_entry_tool=None,geometry_cache=None,initial_grasp=None,side='right'):
     if (anchor.entry_contact,anchor.exit_contact)!=('free','grasped'):return reference,None
+    names=finger_joint_names(side)
     import trimesh
     _,values,axes=np.linalg.svd(mesh.vertices-mesh.vertices.mean(0),full_matrices=False)
     index=anchor.core_end-1-anchor.synth_start
@@ -107,7 +108,7 @@ def surface_grasp_prior(anchor,frames,reference,human,objects,mesh,urdf,*,fps,ta
     geometry_entry=(entry_tool if physical_entry_tool is None else np.asarray(physical_entry_tool))
     nodes={n.get('name'):n for n in ET.parse(urdf).getroot().findall('joint')}
     limits=np.asarray([[float(nodes[n].find('limit').get(k)) for k in ['lower','upper']]
-        for n in RIGHT_XHAND_FINGER_JOINT_NAMES])
+        for n in names])
     fingers=['thumb','index','mid','ring','pinky']
     # The tiny tip links are tracking markers, not the robot's contact pads.
     # Fitting them alone placed whole distal phalanges inside the tool.
@@ -191,7 +192,7 @@ def surface_grasp_prior(anchor,frames,reference,human,objects,mesh,urdf,*,fps,ta
             p.append(min(candidates,key=lambda point:np.linalg.norm(point-target)))
         return np.asarray(p)
     def residual(x,opposition_finger=None):
-        fk=link_poses(model,dict(zip(RIGHT_XHAND_FINGER_JOINT_NAMES,x[6:])))
+        fk=link_poses(model,dict(zip(names,x[6:])))
         world={name:points@(pose(x)@fk[name])[:3,:3].T+(pose(x)@fk[name])[:3,3]
                for name,points in surfaces.items()}
         p=contact_points(x,fk)
@@ -224,7 +225,7 @@ def surface_grasp_prior(anchor,frames,reference,human,objects,mesh,urdf,*,fps,ta
         return np.r_[((p-targets)*np.array([2,1,1,.5,.5])[:,None]/.004).ravel(),opposition,collision,table,
                      x[:3]/.08,x[3:6]/.9,(x[6:]-q0)/.8]
     initial=np.r_[np.zeros(6),np.clip(q0,limits[:,0]+1e-8,limits[:,1]-1e-8)]
-    initial_fk=link_poses(model,dict(zip(RIGHT_XHAND_FINGER_JOINT_NAMES,q0)))
+    initial_fk=link_poses(model,dict(zip(names,q0)))
     reach=max(np.linalg.norm(p@initial_fk[n][:3,:3].T+initial_fk[n][:3,3],axis=1).max()
               for n,p in surfaces.items())
     bounds=(np.r_[np.full(3,-reach),np.full(3,-np.pi),limits[:,0]],
@@ -233,7 +234,7 @@ def surface_grasp_prior(anchor,frames,reference,human,objects,mesh,urdf,*,fps,ta
     # First obtain a source-conditioned, collision-aware branch; then close
     # its nearest opposing surface gap. A changing min over fingers jumped
     # between unrelated contacts and produced an observed blocked free entry.
-    fk=link_poses(model,dict(zip(RIGHT_XHAND_FINGER_JOINT_NAMES,fit.x[6:])))
+    fk=link_poses(model,dict(zip(names,fit.x[6:])))
     points=np.concatenate([points@(pose(fit.x)@fk[name])[:3,:3].T+(pose(fit.x)@fk[name])[:3,3]
                            for name,points in surfaces.items()])
     outside=tool_distance(points)-np.where(contact_mask,0.,radii)
@@ -250,7 +251,7 @@ def surface_grasp_prior(anchor,frames,reference,human,objects,mesh,urdf,*,fps,ta
         wrist=np.linalg.inv(entry_tool)@pose_matrix(previous[:7])
         prior_x=np.r_[wrist[:3,3]-raw[:3,3],Rotation.from_matrix(wrist[:3,:3]@raw[:3,:3].T).as_rotvec(),previous[7:]]
         prior_x=np.clip(prior_x,bounds[0]+1e-8,bounds[1]-1e-8)
-        fk=link_poses(model,dict(zip(RIGHT_XHAND_FINGER_JOINT_NAMES,prior_x[6:])))
+        fk=link_poses(model,dict(zip(names,prior_x[6:])))
         points=np.concatenate([points@(pose(prior_x)@fk[name])[:3,:3].T+(pose(prior_x)@fk[name])[:3,3]
                                for name,points in surfaces.items()])
         outside=tool_distance(points)-np.where(contact_mask,0.,radii)
@@ -265,7 +266,7 @@ def surface_grasp_prior(anchor,frames,reference,human,objects,mesh,urdf,*,fps,ta
             else:fit.x=prior_x
             opposition_finger=prior_finger;seed_origin='previous_local_grasp_proposal'
     fit_diagnostics=residual(fit.x,opposition_finger)
-    fk=link_poses(model,dict(zip(RIGHT_XHAND_FINGER_JOINT_NAMES,fit.x[6:])))
+    fk=link_poses(model,dict(zip(names,fit.x[6:])))
     points=np.concatenate([points@(pose(fit.x)@fk[name])[:3,:3].T+(pose(fit.x)@fk[name])[:3,3]
                            for name,points in surfaces.items()])
     outside=tool_distance(points)-np.where(contact_mask,0.,radii)
@@ -283,7 +284,7 @@ def surface_grasp_prior(anchor,frames,reference,human,objects,mesh,urdf,*,fps,ta
     # envelope for this unchanged CORE budget. The free bridge prepares it.
     fps=float(fps)
     closure_s=(anchor.core_end-anchor.core_start)/(2*fps)
-    velocity=np.asarray([float(nodes[n].find('limit').get('velocity')) for n in RIGHT_XHAND_FINGER_JOINT_NAMES])
+    velocity=np.asarray([float(nodes[n].find('limit').get('velocity')) for n in names])
     travel=.98*velocity*closure_s/1.5
     closed=pose(fit.x);closed_q=fit.x[6:]
     def pre_pose(x):
@@ -291,13 +292,13 @@ def surface_grasp_prior(anchor,frames,reference,human,objects,mesh,urdf,*,fps,ta
         matrix[:3,:3]=Rotation.from_rotvec(x[3:6]).as_matrix()@closed[:3,:3]
         return matrix
     def pre_points(x):
-        fk=link_poses(model,dict(zip(RIGHT_XHAND_FINGER_JOINT_NAMES,x[6:])))
+        fk=link_poses(model,dict(zip(names,x[6:])))
         return np.concatenate([p@(pre_pose(x)@fk[n])[:3,:3].T+(pre_pose(x)@fk[n])[:3,3]
                                for n,p in surfaces.items()])
     def pre_residual(x):
         points=pre_points(x)
         distance=tool_distance(points)-radii
-        fk=link_poses(model,dict(zip(RIGHT_XHAND_FINGER_JOINT_NAMES,x[6:])))
+        fk=link_poses(model,dict(zip(names,x[6:])))
         table=table_penalties(pre_pose(x),fk)/.0005
         return np.r_[x[:3]/.02,x[3:6]/.15,(x[6:]-closed_q)/travel,
                      link_penalties(np.maximum(.002-distance,0))/.0005,table]
@@ -316,12 +317,12 @@ def surface_grasp_prior(anchor,frames,reference,human,objects,mesh,urdf,*,fps,ta
         for fraction in [.05,.1,.25,.5,1.]:
             seed=prep.x.copy();seed[:3]=np.clip(seed[:3]+fraction*reach*up,-reach,reach)
             clearance=float(np.min(tool_distance(pre_points(seed))-radii))
-            fk=link_poses(model,dict(zip(RIGHT_XHAND_FINGER_JOINT_NAMES,seed[6:])))
+            fk=link_poses(model,dict(zip(names,seed[6:])))
             if clearance<.002 or np.any(table_penalties(pre_pose(seed),fk)>0):continue
             candidate=least_squares(pre_residual,seed,bounds=(np.r_[np.full(3,-reach),np.full(3,-np.pi),low],
                 np.r_[np.full(3,reach),np.full(3,np.pi),high]),max_nfev=100)
             refined=float(np.min(tool_distance(pre_points(candidate.x))-radii))
-            fk=link_poses(model,dict(zip(RIGHT_XHAND_FINGER_JOINT_NAMES,candidate.x[6:])))
+            fk=link_poses(model,dict(zip(names,candidate.x[6:])))
             if refined>=0 and not np.any(table_penalties(pre_pose(candidate.x),fk)>1e-6):
                 prep=candidate;pregrasp_clearance=refined
             else:
@@ -336,7 +337,7 @@ def surface_grasp_prior(anchor,frames,reference,human,objects,mesh,urdf,*,fps,ta
     result[:,7:]=opened+phase[:,None]*(closed_q-opened)
     result[:,7:]=np.clip(result[:,7:],limits[:,0],limits[:,1])
     from multipath.anchors.pinch import contact_linearization
-    pinch=contact_linearization(urdf,tool_distance,closed,closed_q,fingers[opposition_finger])
+    pinch=contact_linearization(urdf,tool_distance,closed,closed_q,fingers[opposition_finger],side=side)
     return result,dict(method='local_mesh_opposition_surface_IK',physical_acceptance=False,
         pinch_proposal=pinch,
         geometry_aspect_ratio=float(values[0]/values[1]),source_frame=int(frames[index]),

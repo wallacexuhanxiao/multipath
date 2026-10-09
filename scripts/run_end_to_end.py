@@ -23,6 +23,7 @@ def main():
     p.add_argument('--prepared-proposals',type=Path,help='Optional cached local oracle proposals; no physical acceptance is reused.')
     p.add_argument('--seed-artifacts',type=Path,help='Optional local warm start of this source; not required.')
     p.add_argument('--initial-bridge-run',type=Path,help='Optional physically passed initial cuRobo segment of this source.')
+    p.add_argument('--boundary-feedback-run',type=Path,help='Previously executed bridge feedback; commands must be planned and reexecuted.')
     p.add_argument('--resume-diversity-bank',type=Path,help='Optional passed local bridge candidates; full rollouts remain mandatory.')
     p.add_argument('--template-artifacts',type=Path,help='Optional validated local interaction library; new-source initialization only.')
     p.add_argument('--template-proposals',type=Path,help='Local source data associated with the interaction library.')
@@ -69,7 +70,7 @@ def main():
         '--xhand-urdf',args.xhand_urdf,'--object-cache',args.object_cache]
     seeds=out/'local_seeds';seeds.mkdir(exist_ok=True)
     if args.seed_artifacts:shutil.copytree(args.seed_artifacts,seeds,dirs_exist_ok=True)
-    connected=[];initial_bridge=args.initial_bridge_run;boundary_feedback=None;geometry_feedback=None;candidate=None;carry_context={}
+    connected=[];initial_bridge=args.initial_bridge_run;boundary_feedback=args.boundary_feedback_run;geometry_feedback=None;candidate=None;carry_context={}
     template_active=args.template_artifacts is not None
     template_entry_rank=0
     def raw_initialization(reason):
@@ -177,14 +178,36 @@ def main():
                 if preceding['mode']!='ANCHOR':raise RuntimeError('Carry failure has no preceding interaction Anchor')
                 anchor_id=preceding['anchor'];local=out/f'local_{anchor_id}_{attempt:02d}'
                 context=carry_context.get(failed['start']);context_args=['--bridge-context-run',context] if context else []
+                valid_seed=seeds/anchor_id/'report.json'
+                if (context is None and 'No collision-free trajectory in source time' in value.get('error','')
+                        and valid_seed.exists() and json.loads(valid_seed.read_text()).get('local_rollout_success')):
+                    # Without an outgoing command/context, this call would
+                    # repeat identical local synthesis, as observed in r208.
+                    raise RuntimeError('Carry planning failed before command export; preserve the valid local Anchor and repair the saved planner failure')
                 local_value=run(f'local_{anchor_id}_{attempt:02d}','develop_reached_anchor.py',
                     [*common,'--anchor-id',anchor_id,'--entry-run',candidate,*context_args,
                      '--output-dir',local,'--mpc-candidates',args.mpc_candidates,'--mpc-iters',args.mpc_iters,
                      '--ppo-updates',args.ppo_updates],True,local/'development_result.json','core_success')
                 if not local_value.get('core_success'):raise RuntimeError(f'Carry-conditioned {anchor_id} failed: {local_value.get("error")}')
+                import numpy as np
+                previous=seeds/anchor_id
+                fresh=local/'anchors'/anchor_id
+                unchanged=False
+                if (previous/'commands.npz').exists():
+                    old=np.load(previous/'commands.npz')['commands'];new=np.load(fresh/'commands.npz')['commands']
+                    old_exit=json.loads((previous/'exit.json').read_text());new_exit=json.loads((fresh/'exit.json').read_text())
+                    unchanged=(old.shape==new.shape and np.allclose(old,new,atol=1e-8,rtol=0)
+                        and all(np.allclose(old_exit[k],new_exit[k],atol=1e-8,rtol=0)
+                                for k in ['wrist_xyz_wxyz','wrist_twist','hand_q','hand_dq','hand_object_transform',
+                                          'command_wrist','command_twist','command_hand_q','controller_wrench_bias'])
+                        and all(np.allclose(old_exit['objects'][role][key],new_exit['objects'][role][key],atol=1e-8,rtol=0)
+                                for role in old_exit['objects'] for key in ['pose','velocity']))
                 shutil.copytree(local/'anchors'/anchor_id,seeds/anchor_id,dirs_exist_ok=True)
                 boundary_feedback=None
                 repair.update(method='preceding_Anchor_resynthesis_with_actual_carry_context',artifact=str(local/'anchors'/anchor_id))
+                if unchanged:
+                    repair['unchanged_core_and_actual_exit']=True;save()
+                    raise RuntimeError('Carry-conditioned synthesis returned the same core and physical exit; repair the boundary/controller instead of repeating it')
             elif failed.get('contact')=='free' and 'Actual mesh intersects a planning obstacle at entry' in value.get('error',''):
                 geometry_feedback=candidate;repair['method']='measured_free_exit_geometry_feedback'
             elif failed.get('contact')=='free' and failed['start']==0 and any(text in value.get('error','') for text in

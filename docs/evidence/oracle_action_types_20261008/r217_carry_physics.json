@@ -1,0 +1,125 @@
+{
+  "run": "r217",
+  "source_interval": [
+    32,
+    39
+  ],
+  "source_budget_s": 0.23333333333333334,
+  "planning": {
+    "budget_s": 0.23333333333333334,
+    "curobo_duration_s": 0.23333333333333334,
+    "time_scale": 1.0,
+    "command_velocity_ratio": 0.9999999999999964,
+    "command_acceleration_ratio": 1.000000000000476,
+    "parameterization": "collision_constrained_source_time_fit",
+    "collision_fit_iterations": 1,
+    "minimum_planning_clearance_m": 0.0007877778261899948,
+    "boundary_velocities_preserved": false,
+    "physical_entry_velocity_preserved": true,
+    "canonical_boundary_jointly_fitted": true,
+    "previous_fit_rejections": [
+      "fixed_budget: Fixed source budget violates dynamics: velocity=1.705, acceleration=27.907",
+      "path_parameterization: Boundary velocity is incompatible with the geometric path"
+    ],
+    "planner": "cuRobo_virtual_6DOF",
+    "hand_collision_spheres": 2618,
+    "carried_object_collision": true,
+    "geometry_solver": "curobo_graph_then_fixed_source_time_fit",
+    "curobo_optimize_dt": false,
+    "curobo_optimization_budget_s": 0.23333333333333334,
+    "collision_cover_refined_over_fitted_path": true,
+    "reference_tracking": false,
+    "source_time_stretch": false,
+    "arm_model_used": false,
+    "tracking_margin_m": 0.0,
+    "previous_command_tracking_margin_m": 0.03131708090920303,
+    "hand_boundary_motion": false,
+    "planned_hand_geometry": "entry_posture",
+    "planned_hand_sweep_samples": 1,
+    "hand_boundary_collision_validation": "measured_geometry_each_physics_step"
+  },
+  "actual_failed_at_frame": 35.75,
+  "physical_failure": "RuntimeError: Persistent grasp constraint failed: {'position_m': 0.012086013950697683, 'rotation_rad': 0.35705750560246, 'contact_retained': True}",
+  "rows": [
+    {
+      "frame": 32.0,
+      "relative_rotation_rad": 5.721958498152797e-17,
+      "relative_translation_m": 9.540979117872439e-18,
+      "contact_retained": true,
+      "recorded_wrench": [
+        6.414497926852809,
+        3.853278193494388,
+        12.42272045314844,
+        0.1998539858888316,
+        -0.3903110197287278,
+        0.21831555274212405
+      ],
+      "alignment_with_nominal_pinch_axis": 0.0,
+      "contact_force_norms_n": [
+        26.924331665039062,
+        26.160411834716797
+      ]
+    },
+    {
+      "frame": 33.0,
+      "relative_rotation_rad": 0.06008844045810256,
+      "relative_translation_m": 0.0020549003040405155,
+      "contact_retained": true,
+      "recorded_wrench": [
+        9.23813849333477,
+        5.110933606268784,
+        21.514677270568924,
+        0.3943198563293079,
+        -1.0466610066147646,
+        0.5033690725937409
+      ],
+      "alignment_with_nominal_pinch_axis": 0.8614638065193836,
+      "contact_force_norms_n": [
+        23.143903732299805,
+        23.04074478149414
+      ]
+    },
+    {
+      "frame": 34.0,
+      "relative_rotation_rad": 0.19159395094191506,
+      "relative_translation_m": 0.006517867110478811,
+      "contact_retained": true,
+      "recorded_wrench": [
+        3.987677144989365,
+        7.087974964906694,
+        8.976235789184301,
+        0.4568788293190809,
+        -0.5730787179403565,
+        0.5500776517365398
+      ],
+      "alignment_with_nominal_pinch_axis": 0.8884245633462816,
+      "contact_force_norms_n": [
+        25.688987731933594,
+        22.252887725830078
+      ]
+    },
+    {
+      "frame": 35.0,
+      "relative_rotation_rad": 0.29521131810899937,
+      "relative_translation_m": 0.009918074943188335,
+      "contact_retained": true,
+      "recorded_wrench": [
+        4.574212817967027,
+        8.355143777338816,
+        8.46853450802752,
+        0.5744032239293734,
+        -0.5294775474422916,
+        0.6300946882029027
+      ],
+      "alignment_with_nominal_pinch_axis": 0.8893974596096413,
+      "contact_force_norms_n": [
+        26.501440048217773,
+        22.579076766967773
+      ]
+    }
+  ],
+  "axis_provenance": "nominal retarget contact targets; not measured contact positions",
+  "interpretation": "Observed relative rotation is largely along the nominal two-point pinch axis while dual contact remains. This suggests rotational grasp compliance; it is not a measured force-closure proof.",
+  "full_pipeline_success": false,
+  "state_resets_between_segments": 0
+}

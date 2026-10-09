@@ -17,7 +17,7 @@ def main():
     if report.get('source')=='oracle':
         # N+1 measured boundaries describe N source-frame time intervals.
         video_frames=min(video_frames,max(1,int(np.ceil(report['actual_duration_s']*fps-1e-8))))
-    endpoint_samples=report.get('embodiment')=='floating_xhand' and trace and trace[0]['mode']=='INITIAL'
+    endpoint_samples=report.get('embodiment','').startswith('floating_xhand') and trace and trace[0]['mode']=='INITIAL'
     source_aligned=bool(endpoint_samples and report.get('full_pipeline_success')
         and report.get('state_resets_between_segments')==0 and trace[0]['source_frame']==0)
     if endpoint_samples:
@@ -49,7 +49,8 @@ def main():
         path=cache/f'{i}.obj';mesh.export(path)
         assets.append(f'<mesh name="m{i}" file="{path}"/>')
         color='.82 .84 .86 1'
-        if name.startswith('/xhand_right'):color='.78 .32 .22 1'
+        if '/right_hand_' in name:color='.78 .32 .22 1'
+        if '/left_hand_' in name:color='.20 .68 .45 1'
         if name.startswith('/World/tool'):color='.90 .65 .20 1'
         if name.startswith('/World/target'):color='.22 .48 .78 1'
         bodies.append(f'<body name="b{i}" mocap="true"><geom type="mesh" mesh="m{i}" rgba="{color}" contype="0" conaffinity="0"/></body>')
@@ -65,7 +66,7 @@ def main():
     renderer=mujoco.Renderer(model,height=720,width=960)
     cam=mujoco.MjvCamera();cam.lookat[:]=[.4,-.03,.4];cam.distance=1.65;cam.azimuth=135;cam.elevation=-25
     positions=np.stack(positions,axis=1);rotations=np.stack(rotations,axis=1)
-    floating=report.get('embodiment')=='floating_xhand'
+    floating=report.get('embodiment','').startswith('floating_xhand')
     video=out/('floating_xhand_actual.mp4' if floating else 'mounted_xhand_bc_curobo_actual.mp4')
     writer=cv2.VideoWriter(str(video),cv2.VideoWriter_fourcc(*'mp4v'),fps/args.stride,(960,720))
     if not writer.isOpened():raise RuntimeError('VideoWriter failed')

@@ -249,15 +249,12 @@ def project_hand_commands(scene,commands,start,anchor=None):
             if bridge_context is None:
                 post=stopping_context(controls[core_tick-1],post_ticks,scene.dt)
             else:
-                # A known carry failure supplies a planned bridge as local
-                # synthesis context. It is an initialization, never a passed
-                # RELAXED artifact. Join its drive to this candidate's core
-                # exit and retain the candidate's actual holding posture.
+                # Replay the observed carry load as context. Rejoining its
+                # wrist to the old CORE drive altered the failed bridge and
+                # falsely made an unchanged grasp pass local validation.
+                # These commands remain a proposal, never a RELAXED artifact.
                 last=controls[core_tick-1]
-                boundary=dict(start,time_s=anchor.core_end/scene.manifest['fps'],
-                    command_wrist=last[:7],command_twist=last[19:25],command_hand_q=last[7:19])
                 post=np.asarray(bridge_context).copy();post[:,7:19]=last[7:19]
-                post=join_core_controls(scene,anchor,post,boundary)
             controls[core_tick:]=post[:len(controls)-core_tick]
     low,high=grasp_command_bounds(scene,start,anchor)
     # A transport-compatible padding may stabilize an existing grasp, but must
@@ -308,14 +305,12 @@ def rollout(scene,anchor,data,commands,start,out,mode='LOCAL_PADDED',core_only=F
     acquisition=(AcquiredGraspProposal(scene,anchor,data) if synthesize_acquisition and
                  anchor.entry_contact=='free' and anchor.exit_contact=='grasped' else None)
     objective=WindowEvaluation(scene,anchor,data,start);entry=None;exit_state=None;failure=None
-    resets=scene.restore_count;failures=[];executed=0
+    resets=scene.restore_count;failures=[];executed=0;post_contact_steps=None
     if controller_handoff:
-        from multipath.execution.wrench_handoff import takeover_bias,bandwidth_handoff_profile
-        from multipath.execution.transport_dynamics import TransportDynamics
-        drive_bias=takeover_bias(start,commands[0],scene.cfg['controller'])
-        model=TransportDynamics(scene,start['contact']['mode']=='grasped')
-        rotation=Rotation.from_quat(np.asarray(start['wrist_xyz_wxyz'])[[4,5,6,3]]).as_matrix()
-        drive_profile=bandwidth_handoff_profile(len(commands),scene.dt,model.mass,rotation@model.inertia@rotation.T,scene.cfg['controller'])
+        from multipath.execution.wrench_handoff import segment_wrenches
+        stable_carry=anchor.entry_contact==anchor.exit_contact=='grasped'
+        handoff_wrenches=segment_wrenches(scene,start,commands,transport=stable_carry)
+        drive_bias=handoff_wrenches[0].copy()
     if start_frame==anchor.core_start:
         entry=scene.snapshot()
         # A restored development snapshot carries contact evidence from its
@@ -337,8 +332,16 @@ def rollout(scene,anchor,data,commands,start,out,mode='LOCAL_PADDED',core_only=F
                         post_wrenches=segment_wrenches(scene,scene.snapshot(),commands[k:],transport=True)
                         post_begin=k
                     scene.wrench_bias=post_wrenches[k-post_begin]
-                else:scene.wrench_bias=drive_bias*drive_profile[k]
+                else:scene.wrench_bias=handoff_wrenches[k]
+            bridge_context=(getattr(scene,'post_context_commands',None) is not None
+                            and frame>anchor.core_end and objective.held is not None)
+            if bridge_context and post_contact_steps is None:post_contact_steps=scene.tool_target_contact_steps
             scene.step_control(c,mode,frame);executed=k+1
+            if (getattr(scene,'post_context_commands',None) is not None
+                    and frame>anchor.core_end and objective.held is not None):
+                from multipath.validation.physics import check_retention,check_relaxed_tool_target_contact
+                check_retention(scene.state(),objective.held)
+                check_relaxed_tool_target_contact(scene,post_contact_steps)
             if (k+1)%tpf:continue
             if frame==anchor.core_start:entry=scene.snapshot()
             if frame==anchor.core_end:exit_state=scene.snapshot()
@@ -366,7 +369,8 @@ def rollout(scene,anchor,data,commands,start,out,mode='LOCAL_PADDED',core_only=F
         'state_resets_within_rollout':scene.restore_count-resets,'source_fps':scene.manifest['fps'],'control_dt':scene.dt,
         'tracking_parameters':object_tracking_parameters(),
         'embodiment':scene.embodiment,'command_format':'wrist_xyz_wxyz_hand12_twist6','actual_end_frame':scene.ticks*scene.dt*scene.manifest['fps']}
-    if controller_handoff:result['controller_handoff']=dict(initial_wrench_bias=drive_bias.tolist(),extra_time_s=0.,profile='measured_mass_inertia_gain_response')
+    if controller_handoff:result['controller_handoff']=dict(initial_wrench_bias=drive_bias.tolist(),extra_time_s=0.,
+        profile='measured_mass_inertia_gain_response',carried_dynamics_feedforward=stable_carry)
     if acquisition is not None:
         result['synthesis_controller']='measured_tool_acquisition_then_source_object_motion'
         result['executed_commands_path']=str(Path(out)/'executed_commands.npz')
@@ -457,24 +461,46 @@ def object_relative_handoff(scene,anchor,data,frame,held_transform,previous_comm
 
 
 def source_grasp_core_controls(scene,anchor,data,start):
-    """Resynthesize carry Replay from source interaction and reached drive.
+    """Fit local object-conditioned Replay from the actually reached q/dq.
 
-    An old grasp's optimized wrist targets include its tracking offsets and
-    cannot be transplanted as a canonical trajectory. This local proposal
-    keeps the reached holding drive, conditions wrist motion on source object
-    poses through the measured grasp, and joins the previous position/velocity
-    targets inside the existing core time. It still requires physical Replay.
+    A single Hermite offset duration shared by translation and rotation kept
+    translation momentum alive until the slower rotation handoff completed.
+    Fit each coordinate to the local source under the existing nominal budgets
+    instead. Controller takeover retains the previous wrench/preload; neither
+    measured state nor the source clock is changed. Physics decides acceptance.
     """
     if not (start.get('physically_acquired_state') and start['contact']['mode']=='grasped'
             and anchor.entry_contact==anchor.exit_contact=='grasped'):
         raise ValueError('Carry core synthesis requires a physically reached persistent grasp')
+    from multipath.planning.floating import pose_coordinates,coordinates_pose
+    from multipath.planning.bridge import coordinate_velocity
+    from multipath.planning.timing import boundary_fitted_path
     tpf=physics_ticks_per_frame(scene.manifest['fps'],scene.dt)
-    held=grasp_drive_transform(start)
-    baseline=np.r_[start['command_wrist'],hand_command_boundary(start),start['command_twist']]
-    handoff=object_relative_handoff(scene,anchor,data,anchor.core_start,held)
-    commands=np.asarray([object_relative_command(scene,anchor,data,anchor.core_start+(k+1)/tpf,
-        baseline,held,handoff) for k in range((anchor.core_end-anchor.core_start)*tpf)])
-    return project_hand_commands(scene,commands,start,anchor),handoff
+    ticks=(anchor.core_end-anchor.core_start)*tpf
+    held=np.asarray(start['hand_object_transform'])
+    baseline=np.r_[start['wrist_xyz_wxyz'],hand_command_boundary(start),start['wrist_twist']]
+    poses=[np.asarray(start['wrist_xyz_wxyz'])]
+    poses.extend(object_relative_command(scene,anchor,data,anchor.core_start+k/tpf,
+        baseline,held)[:7] for k in range(1,ticks+1))
+    near=pose_coordinates(poses[0]);raw=[]
+    for pose in poses:
+        near=pose_coordinates(pose,near);raw.append(near.copy())
+    raw=np.asarray(raw);limits=scene.cfg['planning']
+    velocity=np.asarray(limits['velocity_limits']);acceleration=np.asarray(limits['acceleration_limits'])
+    first=coordinate_velocity(poses[0],start['wrist_twist'],raw[0])
+    # Source motion initializes the canonical exit velocity, but is not a
+    # physical boundary invariant. Limit the proposal to the shared budgets.
+    last=np.clip((raw[-1]-raw[-2])/scene.dt,-velocity,velocity)
+    path,fit=boundary_fitted_path(raw,ticks,scene.dt,velocity,acceleration,first,last)
+    fit.pop('curobo_duration_s',None)
+    fitted_poses=np.asarray([coordinates_pose(q) for q in path])
+    hands=np.repeat(hand_command_boundary(start)[None],ticks+1,axis=0)
+    commands=controls_from_poses(fitted_poses,hands,scene.dt)
+    fit.update(frame=anchor.core_start,initial_boundary='actual_measured_wrist_pose_and_twist',
+        source_conditioning='local_tool_pose_with_measured_hand_object_transform',
+        command_target_continuity='existing_wrench_takeover',curobo_used=False,
+        local_fit_duration_s=ticks*scene.dt,physical_validation_required=True)
+    return project_hand_commands(scene,commands,start,anchor),fit
 
 
 class AcquiredGraspProposal:

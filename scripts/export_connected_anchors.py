@@ -43,13 +43,15 @@ def main():
         core=root/'cores'/a.id
         entry=json.loads((core/'entry.json').read_text());exit_state=json.loads((core/'exit.json').read_text())
         commands=np.load(core/'commands.npz')['commands']
+        segment=next(s for s in report['segments'] if s.get('anchor')==a.id)
         validation=dict(success=True,padded_rollout_complete=True,core_replay_success=True,
             state_resets_within_padded_rollout=0,state_resets_within_core_replay=0,handoff_verified=True,
             source_fps=schedule.fps,control_dt=1/120,
             validation_scope='continuous physical synthesis context and executed exported core',
             padding_execution='actual adjacent cuRobo intervals; core proposal used local retarget/context',
             physical_trace=str(root/'actual_trace.json'),context_samples=len(context),
-            controller_handoff='measured_mass_inertia_gain_response',core_command_only=True)
+            controller_handoff=dict(method='measured_mass_inertia_gain_response',
+                carried_dynamics_feedforward=segment.get('carried_dynamics_feedforward',False)),core_command_only=True)
         interaction=schedule.metadata.get('interaction_constraints',{}).get(a.id,{})
         if interaction.get('tool_target_contact'):
             count=exit_state.get('interaction_contacts',{}).get('tool_target_contact_steps',0)-entry.get('interaction_contacts',{}).get('tool_target_contact_steps',0)

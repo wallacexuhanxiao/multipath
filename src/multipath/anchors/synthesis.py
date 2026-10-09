@@ -62,9 +62,9 @@ def fit_hand_startup(desired,start_q,start_dq,dt,limits,velocity_limits,*,startu
 
 def hand_limits_from_urdf(scene):
     import xml.etree.ElementTree as ET
-    from multipath.xhand import RIGHT_XHAND_FINGER_JOINT_NAMES
+    from multipath.xhand import finger_joint_names
     joints={j.get('name'):j.find('limit') for j in ET.parse(scene.args.xhand_urdf).getroot().findall('joint')}
-    return np.array([float(joints[name].get('velocity')) for name in RIGHT_XHAND_FINGER_JOINT_NAMES])
+    return np.array([float(joints[name].get('velocity')) for name in finger_joint_names(getattr(scene,'side','right'))])
 
 
 def local_wrist_targets(anchor,proposal,held_transform=None,entry_offset=None,*,padded=False):

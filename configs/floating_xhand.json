@@ -1,6 +1,8 @@
 {
   "embodiment": "floating_xhand",
   "physics": {
+    "fixed_environment_roles": ["target"],
+    "environment_support_provenance": "Single controllable right hand: fixture supports the uncontrolled target in place of the omitted supporting hand. Fixed at task initialization; never reference-driven during rollout.",
     "hand_tool_static_friction": 1.0,
     "hand_tool_dynamic_friction": 1.0,
     "provenance": "EgoEngine reproduction build_scene/build_scene_batched friction=1.0; explicit hand/tool collision material, preserve authored materials and table settings"

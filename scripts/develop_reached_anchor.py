@@ -52,6 +52,7 @@ def main():
                else args.entry_run/'cores'/anchor.id/'commands.npz')
     core=np.load(core_path)['commands']
     bridge_context=None
+    validated_core_reference=False
     if args.bridge_context_run:
         context_report=json.loads((args.bridge_context_run/'pipeline_result.json').read_text())
         if context_report['source_provenance']!=manifest['provenance']:
@@ -63,6 +64,8 @@ def main():
         needed=(anchor.synth_end-anchor.core_end)*tpf
         if len(bridge_context)<needed:raise ValueError('Planned bridge does not cover this local padding')
         bridge_context=bridge_context[:needed];post=bridge_context.copy()
+        validated_core_reference=any(s.get('mode')=='ANCHOR' and s.get('anchor')==anchor.id
+            and s.get('success') for s in predecessor['segments'])
     elif args.context_controls:
         context=np.load(args.context_controls)['commands']
         post=context[(anchor.core_end-anchor.synth_start)*tpf:]
@@ -87,6 +90,8 @@ def main():
             scene.terminal_task_contract=schedule.metadata['task_contract']
             report['terminal_task_contract']=scene.terminal_task_contract
         scene.freeze_carry_core=anchor.exit_contact=='grasped'
+        scene.validated_core_reference=validated_core_reference
+        report['preserved_physically_executed_core_reference']=validated_core_reference
         # Actual outgoing speed is a planning boundary requirement, not an
         # actuator acceleration gate. This protects the already observed case
         # where a locally valid interaction cannot enter its fixed-time bridge.
@@ -158,6 +163,7 @@ def main():
                 command=predecessor_commands(window)[:(min(window['end'],frame)-window['start'])*tpf]
                 carry=window.get('contact')=='grasped'
                 segment=next(s for s in predecessor['segments'] if s['start']==window['start'])
+                carry=carry or segment.get('carried_dynamics_feedforward',False)
                 delta=None
                 if segment.get('delta_dynamics_feedforward'):
                     if not args.planned_bridges:raise ValueError('Diverse prefix requires its baseline cuRobo drives')
@@ -174,7 +180,8 @@ def main():
                         scene.context_entry=scene.snapshot()
             scene.save();return scene.snapshot()
         entry=reach(anchor.core_start,out/'replay_entry_acquisition')
-        acquisition_synthesis=anchor.entry_contact=='free' and anchor.exit_contact=='grasped'
+        acquisition_synthesis=(anchor.entry_contact=='free' and anchor.exit_contact=='grasped'
+                               and not validated_core_reference)
         if acquisition_synthesis:
             from multipath.anchors.floating import source_retarget_core_controls,stopping_context
             # Failed runtime commands contain an executed feedback prefix and

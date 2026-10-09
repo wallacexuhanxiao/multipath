@@ -46,7 +46,7 @@ def main():
             source_retarget_core_controls,quiet_release_exit,validate_commands,AcquiredGraspProposal,project_hand_commands,acquisition_preload,
             free_grasp_registration,register_grasp_controls)
         from multipath.anchors.mpc import WindowEvaluation
-        from multipath.validation.physics import check_retention,core_pose_errors,object_tracking_score
+        from multipath.validation.physics import check_retention,check_relaxed_tool_target_contact,core_pose_errors,object_tracking_score
         from multipath.validation.task import evaluate_task
         first=min(schedule.anchors.values(),key=lambda a:a.core_start)
         local={a.id:dict(np.load(args.proposals/manifest['anchors'][a.id],allow_pickle=False)) for a in schedule.anchors.values()}
@@ -145,7 +145,22 @@ def main():
                         # postpones their preparation until after CORE begins.
                         hand=np.clip(d['wrist_hand_q'][index,7:],scene.hand_limits[:,0],scene.hand_limits[:,1])
                         goal.update(hand_q=hand.tolist(),hand_dq=np.zeros_like(hand).tolist(),command_hand_q=hand.tolist())
-                    goal=project_boundary_target(start,goal,budget,scene.cfg['planning'],dt=scene.dt)
+                    if carry:
+                        from multipath.planning.bridge import feedback_boundary_target
+                        # Oracle pose/contact/time are fixed. Human wrist
+                        # velocity is not a required robot entry velocity.
+                        # Identity tracking calibration uses only the real
+                        # predecessor, never a fabricated future state.
+                        goal['interaction_entry_twist_prior']=twist.tolist()
+                        goal,boundary_fit=feedback_boundary_target(start,goal,start['wrist_xyz_wxyz'],
+                            start,source_target,budget,scene.dt,scene.cfg['planning'])
+                        goal['state_origin']='unvalidated_source_conditioned_reachable_boundary_proposal'
+                        info['canonical_boundary_fit']=dict(boundary_fit,
+                            human_velocity_required=False,physical_acceptance=False)
+                        if not (args.seed_artifacts/a.id/'entry.json').exists():
+                            goal.update(unvalidated_oracle_boundary=True,source_tool_boundary=source_target.tolist())
+                    else:
+                        goal=project_boundary_target(start,goal,budget,scene.cfg['planning'],dt=scene.dt)
                 else:
                     # No next interaction imposes a return-to-initial condition.
                     # Stop the released hand inside the remaining source time.
@@ -227,11 +242,17 @@ def main():
                 if not cached_initial and not carry:timing['free_motion_dynamics_feedforward']=True
                 free_model=timing.get('free_motion_dynamics_feedforward',False)
                 info['planning']=timing
+                if timing.get('canonical_boundary_jointly_fitted'):
+                    info['boundary_precheck']=bridge_precheck(start,goal,budget,scene.cfg['planning'])
+                    if not info['boundary_precheck']['feasible']:raise RuntimeError('Jointly fitted canonical boundary violates source-time dynamics')
                 wrenches=segment_wrenches(scene,start,commands,transport=carry,free_motion=free_model) if carry or w['start']>0 or free_model else np.zeros((len(commands),6))
                 np.savez_compressed(out/f'relaxed_{w["start"]}_{w["end"]}.npz',commands=commands)
+                contact_steps_at_entry=scene.tool_target_contact_steps
                 for k,c in enumerate(commands):
                     scene.wrench_bias=wrenches[k];scene.step_control(c,'RELAXED',w['start']+(k+1)*scene.dt*schedule.fps)
-                    if carry:check_retention(scene.state(),held)
+                    if carry:
+                        check_retention(scene.state(),held)
+                        check_relaxed_tool_target_contact(scene,contact_steps_at_entry)
                     clearance=planner.measured_clearance()
                     if min(clearance.values())<0:
                         collisions=planner.measured_mesh_collisions()
@@ -244,6 +265,7 @@ def main():
                 if not transition['success']:raise RuntimeError('Actual oracle boundary failed')
             else:
                 a=schedule.anchors[w['anchor']];d=local[a.id];reused=False
+                stable_carry=a.entry_contact==a.exit_contact=='grasped'
                 template_used=False
                 folder=out/'cores'/a.id;folder.mkdir(parents=True,exist_ok=True)
                 (folder/'entry.json').write_text(json.dumps(start,indent=2))
@@ -253,6 +275,8 @@ def main():
                     from multipath.anchors.compatibility import boundary_errors,compatible
                     from multipath.anchors.floating import rebase_grasp_commands
                     seed=load_validated_anchor(args.seed_artifacts,a,provenance=manifest['provenance'],fps=schedule.fps,dt=scene.dt)
+                    handoff=seed['report']['validation'].get('controller_handoff')
+                    stable_carry=bool(isinstance(handoff,dict) and handoff.get('carried_dynamics_feedforward'))
                     reused=compatible(boundary_errors(start,seed['entry'])) and all(np.allclose(start[k],seed['entry'][k],rtol=0,atol=1e-8) for k in ['command_wrist','command_twist','command_hand_q'])
                     drive_matches=all(np.allclose(start[k],seed['entry'][k],rtol=0,atol=1e-6)
                         for k in ['command_wrist','command_twist','command_hand_q'])
@@ -303,7 +327,8 @@ def main():
                 if not check['feasible']:raise RuntimeError('Local core command rejected')
                 objective=WindowEvaluation(scene,a,d,start)
                 if not objective.observe(a.core_start,commands[0]):raise RuntimeError(str(objective.failure))
-                wrenches=segment_wrenches(scene,start,commands)
+                info['carried_dynamics_feedforward']=stable_carry
+                wrenches=segment_wrenches(scene,start,commands,transport=stable_carry)
                 acquisition=AcquiredGraspProposal(scene,a,d) if not reused and a.entry_contact=='free' and a.exit_contact=='grasped' else None
                 preload=None
                 for k,c in enumerate(commands):

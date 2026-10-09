@@ -5,7 +5,7 @@
 #PBS -j oe
 #PBS -k oed
 #PBS -l walltime=00:20:00
-#PBS -l select=1:ncpus=12:mem=120gb:ngpus=1:gpu_model=H200
+#PBS -l select=1:ncpus=4:mem=75gb:ngpus=1:gpu_model=H200
 set -euo pipefail
 ROOT=/scratch/e0985859/multipath_v0_fc2da7b
 RUNTIME=/scratch/e0985859/egoengine_baseline
@@ -25,6 +25,7 @@ for case in cases:
     env=dict(os.environ,MULTIPATH_RUN_NAME=run_name,MULTIPATH_SCHEDULE=case['schedule'],
              MULTIPATH_TRIPLET=case['triplet'],MULTIPATH_SEQUENCE=case['sequence'])
     for field,variable in [('prepared_proposals','MULTIPATH_PREPARED_PROPOSALS'),('seed_artifacts','MULTIPATH_SEED_ARTIFACTS'),('initial_bridge_run','MULTIPATH_INITIAL_BRIDGE_RUN'),
+                           ('boundary_feedback_run','MULTIPATH_BOUNDARY_FEEDBACK_RUN'),
                            ('template_artifacts','MULTIPATH_TEMPLATE_ARTIFACTS'),('template_proposals','MULTIPATH_TEMPLATE_PROPOSALS'),
                            ('resume_diversity_bank','MULTIPATH_RESUME_DIVERSITY_BANK'),
                            ('solutions_per_interval','MULTIPATH_SOLUTIONS_PER_INTERVAL')]:

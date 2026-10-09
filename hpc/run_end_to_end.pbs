@@ -5,7 +5,7 @@
 #PBS -j oe
 #PBS -k oed
 #PBS -l walltime=00:20:00
-#PBS -l select=1:ncpus=12:mem=120gb:ngpus=1:gpu_model=H200
+#PBS -l select=1:ncpus=4:mem=75gb:ngpus=1:gpu_model=H200
 set -euo pipefail
 ROOT=/scratch/e0985859/multipath_v0_fc2da7b
 RUNTIME=/scratch/e0985859/egoengine_baseline
@@ -43,6 +43,7 @@ EXTRA=()
 [[ -z "${MULTIPATH_PREPARED_PROPOSALS:-}" ]] || EXTRA+=(--prepared-proposals "$MULTIPATH_PREPARED_PROPOSALS")
 [[ -z "${MULTIPATH_SEED_ARTIFACTS:-}" ]] || EXTRA+=(--seed-artifacts "$MULTIPATH_SEED_ARTIFACTS")
 [[ -z "${MULTIPATH_INITIAL_BRIDGE_RUN:-}" ]] || EXTRA+=(--initial-bridge-run "$MULTIPATH_INITIAL_BRIDGE_RUN")
+[[ -z "${MULTIPATH_BOUNDARY_FEEDBACK_RUN:-}" ]] || EXTRA+=(--boundary-feedback-run "$MULTIPATH_BOUNDARY_FEEDBACK_RUN")
 [[ -z "${MULTIPATH_RESUME_DIVERSITY_BANK:-}" ]] || EXTRA+=(--resume-diversity-bank "$MULTIPATH_RESUME_DIVERSITY_BANK")
 [[ -z "${MULTIPATH_TEMPLATE_ARTIFACTS:-}" ]] || EXTRA+=(--template-artifacts "$MULTIPATH_TEMPLATE_ARTIFACTS" --template-proposals "$MULTIPATH_TEMPLATE_PROPOSALS")
 "$RUNTIME/envs/retarget/bin/python" -u scripts/run_end_to_end.py \

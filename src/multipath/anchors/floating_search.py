@@ -46,6 +46,11 @@ def ppo_retarget_commands(scene,anchor,data,baseline,start,begin):
     changes only commands, never actual hand/object states.
     """
     details=scene.manifest.get('retarget_details',{}).get(anchor.id,{})
+    if getattr(scene,'validated_core_reference',False):
+        # The predecessor really executed this local retarget core. Carry
+        # repair must refine that successful reference under outgoing load,
+        # rather than replacing it with the earlier failed raw acquisition.
+        return project_hand_commands(scene,baseline,start,anchor),'physically_executed_local_retarget_core'
     if ((anchor.entry_contact,anchor.exit_contact)!=('free','grasped')
             or details.get('method')!='local_mesh_opposition_surface_IK'):
         return project_hand_commands(scene,baseline,start,anchor),'fixed_local_command_proposal'
@@ -126,6 +131,7 @@ class FloatingResidualEnv(MountedResidualEnv):
         self.k=0;self.commands=[];self.previous_action=np.zeros(18);self.residuals=[];self.physical_prefix=None
         self.contact_run=0;self.preload_bounds=None
         self.post_commands=None
+        self.post_contact_steps=None
         self.objective=WindowEvaluation(self.scene,self.anchor,self.data,self.start);self.failure=None
         self.metadata['lifting_reward_enabled']=self.objective.lifting
         self.metadata['lifting_initial_height_m']=self.objective.initial_tool_height
@@ -167,7 +173,8 @@ class FloatingResidualEnv(MountedResidualEnv):
             if self.controller_handoff and self.k==0:
                 from multipath.execution.wrench_handoff import segment_wrenches
                 handoff_commands=self.baseline.copy();handoff_commands[:end]=candidate
-                self.wrenches=segment_wrenches(self.scene,self.start,handoff_commands)
+                self.wrenches=segment_wrenches(self.scene,self.start,handoff_commands,
+                    transport=self.anchor.entry_contact==self.anchor.exit_contact=='grasped')
             for tick in range(self.k*self.tpf,end):
                 c=candidate[tick];frame=self.anchor.synth_start+(self.begin+tick+1)/self.tpf
                 if (self.anchor.exit_contact=='grasped' and frame>self.anchor.core_end
@@ -176,7 +183,12 @@ class FloatingResidualEnv(MountedResidualEnv):
                     if core_tick>0:
                         if self.post_commands is None:
                             last=np.r_[self.scene.command_pose,self.scene.hand_command,self.scene.command_twist]
-                            self.post_commands=stopping_context(last,len(self.baseline)-core_tick,self.scene.dt)
+                            context=getattr(self.scene,'post_context_commands',None)
+                            if context is None:
+                                self.post_commands=stopping_context(last,len(self.baseline)-core_tick,self.scene.dt)
+                            else:
+                                boundary=self.scene.snapshot()
+                                self.post_commands=project_hand_commands(self.scene,np.asarray(context).copy(),boundary,self.anchor)
                         c=self.post_commands[tick-core_tick].copy()
                 c,self.preload_bounds=acquisition_preload(self.scene,self.anchor,c,self.preload_bounds)
                 if self.controller_handoff:
@@ -189,7 +201,15 @@ class FloatingResidualEnv(MountedResidualEnv):
                             self.post_begin=tick
                         self.scene.wrench_bias=self.post_wrenches[tick-self.post_begin]
                     else:self.scene.wrench_bias=self.wrenches[tick]
+                bridge_context=(getattr(self.scene,'post_context_commands',None) is not None
+                                and frame>self.anchor.core_end and self.objective.held is not None)
+                if bridge_context and self.post_contact_steps is None:self.post_contact_steps=self.scene.tool_target_contact_steps
                 self.scene.step_control(c,'LOCAL_PPO',frame);self.commands.append(c)
+                if (getattr(self.scene,'post_context_commands',None) is not None
+                        and frame>self.anchor.core_end and self.objective.held is not None):
+                    from multipath.validation.physics import check_retention,check_relaxed_tool_target_contact
+                    check_retention(self.scene.state(),self.objective.held)
+                    check_relaxed_tool_target_contact(self.scene,self.post_contact_steps)
             self.objective.observe(frame,c);self.failure=self.objective.failure
         except (RuntimeError,ValueError) as error:self.failure={'source_frame':self.scene.ticks*self.scene.dt*self.fps,'reason':str(error)}
         self.k+=1;self.previous_action=action
@@ -228,11 +248,12 @@ def refine(scene,anchor,data,baseline,start,out,candidates=64,iterations=3,use_p
         proposal_control=np.array(control).copy()
         nominal_control=(proposal_control if acquisition_reference is None else np.asarray(acquisition_reference))
         nominal_previous=np.r_[scene.command_pose,scene.hand_command,scene.command_twist]
-        executed_control=np.array(control).copy();held=None;acquired_frame=None;handoff=None;contact_run=0;executed=0;preload_bounds=None
+        executed_control=np.array(control).copy();held=None;acquired_frame=None;handoff=None;contact_run=0;executed=0;preload_bounds=None;post_contact_steps=None
         if object_relative and boundary['contact']['mode']=='grasped':
             held=grasp_drive_transform(boundary);preload_bounds=grasp_command_bounds(scene,boundary,anchor)
         acquisition=(AcquiredGraspProposal(scene,anchor,data)
-            if anchor.entry_contact=='free' and anchor.exit_contact=='grasped' else None)
+            if anchor.entry_contact=='free' and anchor.exit_contact=='grasped'
+            and not getattr(scene,'validated_core_reference',False) else None)
         try:
             for j,c in enumerate(control):
                 frame=anchor.synth_start+(begin+j+1)/tpf
@@ -280,7 +301,8 @@ def refine(scene,anchor,data,baseline,start,out,candidates=64,iterations=3,use_p
                 if j==0:
                     from multipath.execution.wrench_handoff import segment_wrenches
                     handoff_controls=np.asarray(control).copy();handoff_controls[0]=c
-                    wrenches=segment_wrenches(scene,boundary,handoff_controls)
+                    wrenches=segment_wrenches(scene,boundary,handoff_controls,
+                        transport=anchor.entry_contact==anchor.exit_contact=='grasped')
                 if getattr(scene,'post_context_commands',None) is not None and frame>anchor.core_end:
                     if frame-scene.dt*scene.manifest['fps']==anchor.core_end:
                         post_wrenches=segment_wrenches(scene,scene.snapshot(),control[j:],transport=True);post_begin=j
@@ -288,7 +310,15 @@ def refine(scene,anchor,data,baseline,start,out,candidates=64,iterations=3,use_p
                 else:scene.wrench_bias=wrenches[j]
                 c,preload_bounds=acquisition_preload(scene,anchor,c,preload_bounds)
                 control[j]=c;executed_control[j]=c
+                bridge_context=(getattr(scene,'post_context_commands',None) is not None
+                                and frame>anchor.core_end and objective.held is not None)
+                if bridge_context and post_contact_steps is None:post_contact_steps=scene.tool_target_contact_steps
                 scene.step_control(c,label,frame);executed=j+1
+                if (getattr(scene,'post_context_commands',None) is not None
+                        and frame>anchor.core_end and objective.held is not None):
+                    from multipath.validation.physics import check_retention,check_relaxed_tool_target_contact
+                    check_retention(scene.state(),objective.held)
+                    check_relaxed_tool_target_contact(scene,post_contact_steps)
                 if (j+1)%tpf==0 and not objective.observe(frame,c):break
                 if j+1==prefix_ticks and not objective.tracking_failures:
                     prefix={'state':scene.snapshot(),'trace':list(scene.records)}

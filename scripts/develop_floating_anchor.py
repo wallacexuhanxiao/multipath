@@ -239,7 +239,7 @@ def main():
         # core validation must not depend on restoring a mid-interaction cache.
         acquired=reach_synthesis(out/'core_entry_acquisition')
         from multipath.execution.wrench_handoff import segment_wrenches
-        wrenches=segment_wrenches(scene,acquired,controls)
+        wrenches=segment_wrenches(scene,acquired,controls,transport=anchor.entry_contact==anchor.exit_contact=='grasped')
         for i,command in enumerate(controls[:(anchor.core_start-anchor.synth_start)*tpf]):
             scene.wrench_bias=wrenches[i]
             scene.step_control(command,'SYNTHESIS_CONTEXT',anchor.synth_start+(i+1)/tpf)

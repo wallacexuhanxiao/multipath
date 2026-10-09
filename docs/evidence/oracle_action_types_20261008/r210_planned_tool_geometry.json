@@ -1,0 +1,147 @@
+[
+  {
+    "tick": 0,
+    "actual_tool_geometry_collision": false,
+    "tool_target_distance_m": 0.009027054474646273
+  },
+  {
+    "tick": 1,
+    "actual_tool_geometry_collision": false,
+    "tool_target_distance_m": 0.0079016620804636
+  },
+  {
+    "tick": 2,
+    "actual_tool_geometry_collision": false,
+    "tool_target_distance_m": 0.005245997680243705
+  },
+  {
+    "tick": 3,
+    "actual_tool_geometry_collision": false,
+    "tool_target_distance_m": 0.002868708401554567
+  },
+  {
+    "tick": 4,
+    "actual_tool_geometry_collision": false,
+    "tool_target_distance_m": 0.0011251068453040731
+  },
+  {
+    "tick": 5,
+    "actual_tool_geometry_collision": false,
+    "tool_target_distance_m": 0.0014805398025222237
+  },
+  {
+    "tick": 6,
+    "actual_tool_geometry_collision": false,
+    "tool_target_distance_m": 0.0035085809329075536
+  },
+  {
+    "tick": 7,
+    "actual_tool_geometry_collision": false,
+    "tool_target_distance_m": 0.005610023105757839
+  },
+  {
+    "tick": 8,
+    "actual_tool_geometry_collision": false,
+    "tool_target_distance_m": 0.00788182710194753
+  },
+  {
+    "tick": 9,
+    "actual_tool_geometry_collision": false,
+    "tool_target_distance_m": 0.010017455897087255
+  },
+  {
+    "tick": 10,
+    "actual_tool_geometry_collision": false,
+    "tool_target_distance_m": 0.012192025296249182
+  },
+  {
+    "tick": 11,
+    "actual_tool_geometry_collision": false,
+    "tool_target_distance_m": 0.014349236819202464
+  },
+  {
+    "tick": 12,
+    "actual_tool_geometry_collision": false,
+    "tool_target_distance_m": 0.01581318437746818
+  },
+  {
+    "tick": 13,
+    "actual_tool_geometry_collision": false,
+    "tool_target_distance_m": 0.016740525886396018
+  },
+  {
+    "tick": 14,
+    "actual_tool_geometry_collision": false,
+    "tool_target_distance_m": 0.0172548823309705
+  },
+  {
+    "tick": 15,
+    "actual_tool_geometry_collision": false,
+    "tool_target_distance_m": 0.01714448776558397
+  },
+  {
+    "tick": 16,
+    "actual_tool_geometry_collision": false,
+    "tool_target_distance_m": 0.01661099418167994
+  },
+  {
+    "tick": 17,
+    "actual_tool_geometry_collision": false,
+    "tool_target_distance_m": 0.015538338022361962
+  },
+  {
+    "tick": 18,
+    "actual_tool_geometry_collision": false,
+    "tool_target_distance_m": 0.014545913388244475
+  },
+  {
+    "tick": 19,
+    "actual_tool_geometry_collision": false,
+    "tool_target_distance_m": 0.013818090318877234
+  },
+  {
+    "tick": 20,
+    "actual_tool_geometry_collision": false,
+    "tool_target_distance_m": 0.01329521974426291
+  },
+  {
+    "tick": 21,
+    "actual_tool_geometry_collision": false,
+    "tool_target_distance_m": 0.013016076812062509
+  },
+  {
+    "tick": 22,
+    "actual_tool_geometry_collision": false,
+    "tool_target_distance_m": 0.012984277739391105
+  },
+  {
+    "tick": 23,
+    "actual_tool_geometry_collision": false,
+    "tool_target_distance_m": 0.012645556345989966
+  },
+  {
+    "tick": 24,
+    "actual_tool_geometry_collision": false,
+    "tool_target_distance_m": 0.011903249296282887
+  },
+  {
+    "tick": 25,
+    "actual_tool_geometry_collision": false,
+    "tool_target_distance_m": 0.011095838951701258
+  },
+  {
+    "tick": 26,
+    "actual_tool_geometry_collision": false,
+    "tool_target_distance_m": 0.010472169006254608
+  },
+  {
+    "tick": 27,
+    "actual_tool_geometry_collision": false,
+    "tool_target_distance_m": 0.01003903323133861
+  },
+  {
+    "tick": 28,
+    "actual_tool_geometry_collision": false,
+    "tool_target_distance_m": 0.009834704575311524
+  }
+]

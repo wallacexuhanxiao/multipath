@@ -17,7 +17,7 @@ class FloatingScene:
     dt = 1/120
     embodiment = 'floating_xhand'
 
-    def __init__(self, args, manifest, out, initial_wrist, initial_hand=None):
+    def __init__(self, args, manifest, out, initial_wrist, initial_hand=None,*,supporting_initial=None):
         import os, tempfile, omni, trimesh
         from isaacsim.asset.importer.urdf import _urdf
         from isaacsim.core.api import World
@@ -26,7 +26,7 @@ class FloatingScene:
         from isaacsim.core.prims import SingleRigidPrim, RigidPrim
         from isaacsim.core.utils.stage import add_reference_to_stage
         from isaacsim.core.utils.types import ArticulationAction
-        from pxr import UsdPhysics
+        from pxr import Usd,UsdGeom,UsdPhysics
         self.args,self.manifest,self.out=args,manifest,Path(out)
         from multipath.planning.timing import physics_ticks_per_frame
         self.tpf=physics_ticks_per_frame(manifest['fps'],self.dt)
@@ -58,11 +58,25 @@ class FloatingScene:
         for prim in self.world.stage.Traverse():
             if str(prim.GetPath()).startswith(self.root) and prim.IsA(UsdPhysics.RevoluteJoint):
                 UsdPhysics.DriveAPI.Apply(prim,'angular').CreateTypeAttr('force')
+        self.fixed_environment_roles=set(self.cfg.get('physics',{}).get('fixed_environment_roles',[]))
+        if self.fixed_environment_roles-set(initial) or 'tool' in self.fixed_environment_roles:
+            raise ValueError('Fixed environment roles must name uncontrolled scene objects')
         self.objects={}
         for role,obj in initial.items():
             path='/World/'+role;oid=obj['id']
             add_reference_to_stage(str(args.object_cache/oid/(oid+'.usd')),path)
             self.objects[role]=self.world.scene.add(SingleRigidPrim(prim_path=path,name=role,position=np.array(obj['pose'][:3]),orientation=np.array(obj['pose'][3:])))
+            if role in self.fixed_environment_roles:
+                # An omitted supporting hand is an explicit scene fixture,
+                # not a reference animation. The manipulated tool stays free.
+                root=self.world.stage.GetPrimAtPath(path)
+                UsdPhysics.RigidBodyAPI.Apply(root).CreateKinematicEnabledAttr(True)
+                for prim in Usd.PrimRange(root):
+                    if prim.IsA(UsdGeom.Mesh) and prim.HasAPI(UsdPhysics.CollisionAPI):
+                        # Fixed/kinematic bodies permit triangle collision.
+                        # Match the actual support surface to the planner mesh;
+                        # dynamic convex decomposition can fill plate cavities.
+                        UsdPhysics.MeshCollisionAPI.Apply(prim).CreateApproximationAttr('none')
         physics=self.cfg.get('physics')
         if physics is not None:
             from pxr import UsdShade
@@ -83,11 +97,22 @@ class FloatingScene:
         self.contacts=self.world.scene.add(RigidPrim(prim_paths_expr=links,name='hand_tool_contacts',track_contact_forces=True,
             contact_filter_prim_paths_expr=[['/World/tool'] for _ in links],max_contact_count=1024))
         self.tool_target_contacts=None
-        if manifest.get('interaction_constraints'):
+        if 'target' in self.objects:
             self.tool_target_contacts=self.world.scene.add(RigidPrim(prim_paths_expr=['/World/tool'],name='tool_target_contacts',
                 track_contact_forces=True,contact_filter_prim_paths_expr=[['/World/target']],max_contact_count=1024))
         self.tool_target_contact_steps=0;self.tool_target_impulse=0.
+        # Import both articulations before the first PhysX reset. Adding a
+        # robot after views are live invalidates their native handles.
+        self.supporting_hands={}
+        for side,definition in (supporting_initial or {}).items():
+            if side!='left' or definition['object_role'] in self.fixed_environment_roles:
+                raise ValueError('A supporting XHand requires a dynamic assigned object')
+            from multipath.execution.supporting_hand import SupportingHand
+            self.supporting_hands[side]=SupportingHand(self,side,definition['urdf'],definition['pose'],
+                                                     definition['hand'],definition['object_role'])
+        if self.supporting_hands:self.embodiment='floating_xhand_bimanual'
         self.world.reset();self.wrist.initialize()
+        for support in self.supporting_hands.values():support.initialize()
         names=list(self.robot.dof_names);self.fingers=np.array([names.index(n) for n in RIGHT_XHAND_FINGER_JOINT_NAMES])
         view=self.robot._articulation_view
         controller=self.cfg['controller']
@@ -108,11 +133,22 @@ class FloatingScene:
         self.robot.set_joint_positions(q);self.robot.set_joint_velocities(np.zeros_like(q))
         self.av=view._physics_view
         self.physical_properties={'hand_mass_kg':float(np.asarray(self.av.get_masses()).sum()),
-                                  'tool_mass_kg':float(self.objects['tool'].get_mass())}
+                                  'tool_mass_kg':float(self.objects['tool'].get_mass()),
+                                  'fixed_environment_roles':sorted(self.fixed_environment_roles),
+                                  'environment_collision_geometry':'triangle_mesh_for_fixed_roles'}
+        if self.supporting_hands:
+            self.physical_properties.update(controllable_hands=['right',*self.supporting_hands],target_fixture=False,
+                supporting_hand_mass_kg={side:float(np.asarray(hand.av.get_masses()).sum())
+                                        for side,hand in self.supporting_hands.items()})
         self.ticks=0;self.records=[];self.record_mesh=False;self.restore_count=0
-        self.scene_id=hashlib.sha256(json.dumps({'objects':initial,'embodiment':self.embodiment,'controller':self.cfg,
+        scene_definition={'objects':initial,'embodiment':self.embodiment,'controller':self.cfg,
             'hand_weight_compensation':('measured_force_and_moment' if self.cfg['controller'].get('hand_gravity_moment_compensation',False)
-                else 'measured_force')},sort_keys=True).encode()).hexdigest()
+                else 'measured_force')}
+        if self.supporting_hands:
+            scene_definition['supporting_hands']={side:dict(object_role=hand.object_role,
+                urdf_sha256=hashlib.sha256(hand.args.xhand_urdf.read_bytes()).hexdigest())
+                for side,hand in self.supporting_hands.items()}
+        self.scene_id=hashlib.sha256(json.dumps(scene_definition,sort_keys=True).encode()).hexdigest()
         self.last_wrench=np.zeros(6);self.command_pose=np.asarray(initial_wrist).copy();self.command_twist=np.zeros(6)
         self.initial_drive_pose=np.asarray(initial_wrist).copy();self.initial_drive_hand=self.hand_command.copy()
         # Use exactly the same physical initialization as local episodes.
@@ -153,6 +189,10 @@ class FloatingScene:
         target_velocity[self.fingers]=self.hand_command_velocity
         self.robot.apply_action(self.Action(joint_positions=q,joint_velocities=target_velocity))
         self.hand_command=np.array(hand).copy();self.command_pose=np.array(pose).copy();self.command_twist=np.array(twist).copy();self.last_wrench=np.r_[force,torque]
+        for support in getattr(self,'supporting_hands',{}).values():
+            command=support.pending_command
+            if command is None:command=np.r_[support.command_pose,support.hand_command,np.zeros(6)]
+            support._drive(command[:7],command[7:19],command[19:25])
 
     def state(self):
         from multipath.validation.physics import hand_tool_contact
@@ -163,7 +203,7 @@ class FloatingScene:
             p,r=obj.get_world_pose();objects[role]={'pose':np.r_[p,r].tolist(),'velocity':np.r_[obj.get_linear_velocity(),obj.get_angular_velocity()].tolist()}
         values=np.r_[pose,twist,q,dq,*[np.r_[v['pose'],v['velocity']] for v in objects.values()]]
         if not np.isfinite(values).all():raise RuntimeError('Non-finite floating PhysX state')
-        return {'embodiment':self.embodiment,'wrist_xyz_wxyz':pose.tolist(),'wrist_twist':twist.tolist(),'hand_q':q.tolist(),'hand_dq':dq.tolist(),
+        state={'embodiment':self.embodiment,'wrist_xyz_wxyz':pose.tolist(),'wrist_twist':twist.tolist(),'hand_q':q.tolist(),'hand_dq':dq.tolist(),
             'objects':objects,'hand_object_transform':(np.linalg.inv(pose_matrix(pose))@pose_matrix(objects['tool']['pose'])).tolist(),
             'contact':hand_tool_contact(self.contacts.prim_paths,self.contacts.get_contact_force_matrix(dt=self.dt)),
             'physical_properties':dict(self.physical_properties),
@@ -174,16 +214,25 @@ class FloatingScene:
             'hand_self_gravity_torque':self.self_gravity_torque.tolist(),
             'command_hand_dq':self.hand_command_velocity.tolist(),
             'command_wrist':self.command_pose.tolist(),'command_twist':self.command_twist.tolist(),'command_hand_q':self.hand_command.tolist()}
+        if getattr(self,'supporting_hands',None):
+            keys=('wrist_xyz_wxyz','wrist_twist','hand_q','hand_dq','contact','hand_object_transform',
+                  'command_wrist','command_twist','command_hand_q','command_hand_dq','controller_wrench_bias')
+            state['hands']={'right':dict({key:state[key] for key in keys},object_role='tool')}
+            state['hands'].update({side:hand.state() for side,hand in self.supporting_hands.items()})
+        return state
 
     def capture(self,mode,frame):
         self.records.append(dict(self.state(),mode=mode,source_frame=frame,command_wrist=self.command_pose.tolist(),
             command_twist=self.command_twist.tolist(),command_hand_q=self.hand_command.tolist(),applied_wrench=self.last_wrench.tolist()))
         if self.record_mesh:self.recorder.capture()
 
-    def step_control(self,command,mode,frame):
+    def step_control(self,command,mode,frame,*,supporting_commands=None):
         if not np.isclose(frame,(self.ticks+1)*self.dt*self.manifest['fps'],rtol=0,atol=1e-8):
             raise ValueError('Command source frame differs from actual physics clock')
+        for side,value in (supporting_commands or {}).items():
+            self.supporting_hands[side].pending_command=np.asarray(value)
         self._drive(command[:7],command[7:19],command[19:25]);self.world.step(render=False);self.ticks+=1
+        for support in getattr(self,'supporting_hands',{}).values():support.pending_command=None
         if self.tool_target_contacts is not None:
             force=float(np.linalg.norm(self.tool_target_contacts.get_contact_force_matrix(dt=self.dt)))
             if not np.isfinite(force):raise RuntimeError('Non-finite tool-target contact force')
@@ -222,6 +271,8 @@ class FloatingScene:
         self.robot.apply_action(self.Action(joint_positions=drive,joint_velocities=target_velocity))
         for role,obj in self.objects.items():
             s=state['objects'][role];obj.set_world_pose(position=np.asarray(s['pose'][:3]),orientation=np.asarray(s['pose'][3:]));obj.set_linear_velocity(np.asarray(s['velocity'][:3]));obj.set_angular_velocity(np.asarray(s['velocity'][3:]))
+        for side,support in getattr(self,'supporting_hands',{}).items():
+            support.restore_development(state['hands'][side])
         self.ticks=round(state['time_s']/self.dt);self.lineage=state['entry_provenance'];self.restore_count+=1
         self.command_pose=np.asarray(state.get('command_wrist',pose) if preserve else pose).copy()
         self.command_twist=np.asarray(state.get('command_twist',twist) if preserve else twist).copy()
@@ -250,6 +301,7 @@ class FloatingScene:
         still initializes once and never calls this method between segments.
         """
         self.world.reset();self.wrist.initialize()
+        for support in getattr(self,'supporting_hands',{}).values():support.initialize()
         view=self.robot._articulation_view;self.av=view._physics_view
         view.set_gains(kps=self.hand_drive_stiffness[None],kds=self.hand_drive_damping[None],joint_indices=self.fingers)
         view.set_max_efforts(self.hand_effort_limits[None],joint_indices=self.fingers)

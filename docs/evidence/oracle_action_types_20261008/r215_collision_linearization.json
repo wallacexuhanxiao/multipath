@@ -1,0 +1,33 @@
+{
+  "run": "r215",
+  "source_interval": [
+    32,
+    39
+  ],
+  "source_budget_s": 0.23333333333333334,
+  "actual_physics_acceptance": false,
+  "query": "cuRobo full surface sphere coverage, no simulator state assignment",
+  "minimum_initial_clearance_m": -0.00752843264490366,
+  "max_translation_gradient_norm": 1.0000001644856478,
+  "lp_attribution": {
+    "dynamics_only": {
+      "feasible": true,
+      "status": 0
+    },
+    "colliding_linearization": {
+      "feasible": false,
+      "status": 2
+    },
+    "all_linearization": {
+      "feasible": false,
+      "status": 2
+    }
+  },
+  "minimum_first_linearization_slack_sum_m": 0.006002173278392467,
+  "remaining_slack_ticks": [
+    4,
+    5,
+    6
+  ],
+  "conclusion": "Nominal boundary dynamics feasible; one hard local collision linearization is infeasible. Nonlinear fitting must requery the physical collision field; no optimizer slack can be accepted as a final trajectory."
+}

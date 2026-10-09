@@ -4,10 +4,10 @@ import xml.etree.ElementTree as ET
 import numpy as np
 from scipy.spatial.transform import Rotation
 from multipath.planning.hand_geometry import joint_model,link_poses
-from multipath.xhand import RIGHT_XHAND_FINGER_JOINT_NAMES
+from multipath.xhand import finger_joint_names
 
 
-def contact_linearization(urdf,distance,wrist_in_object,hand_q,opposing_finger):
+def contact_linearization(urdf,distance,wrist_in_object,hand_q,opposing_finger,*,side='right'):
     """Linearize two real finger skins at a local grasp command.
 
     Positive flexion can move a fitted contact surface away from an object.
@@ -28,7 +28,7 @@ def contact_linearization(urdf,distance,wrist_in_object,hand_q,opposing_finger):
         surfaces[name]=points
     model=joint_model(urdf);wrist_in_object=np.asarray(wrist_in_object);hand_q=np.asarray(hand_q)
     def gaps(q):
-        fk=link_poses(model,dict(zip(RIGHT_XHAND_FINGER_JOINT_NAMES,q)));values=[]
+        fk=link_poses(model,dict(zip(finger_joint_names(side),q)));values=[]
         for finger in fingers:
             points=[]
             for name,skin in surfaces.items():
