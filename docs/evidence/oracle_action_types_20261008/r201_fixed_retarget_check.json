@@ -1,0 +1,35 @@
+[
+  {
+    "type": "pour",
+    "origin": "local_human_retarget_with_fixed_geometry_correction",
+    "local_data_frames": 32,
+    "reference_wrist_displacement_m": 0.053142964013973004,
+    "old_stationary_proposal_core_displacement_m": 0.04237694665533164,
+    "first_step_matches_reached_drive_velocity": true,
+    "actual_state_unchanged": true,
+    "zero_policy_target_is_reference": true,
+    "physical_acceptance": false
+  },
+  {
+    "type": "brush",
+    "origin": "local_human_retarget_with_fixed_geometry_correction",
+    "local_data_frames": 24,
+    "reference_wrist_displacement_m": 0.1213162204319928,
+    "old_stationary_proposal_core_displacement_m": 0.0009970378495181113,
+    "first_step_matches_reached_drive_velocity": true,
+    "actual_state_unchanged": true,
+    "zero_policy_target_is_reference": true,
+    "physical_acceptance": false
+  },
+  {
+    "type": "hit",
+    "origin": "local_human_retarget_with_fixed_geometry_correction",
+    "local_data_frames": 30,
+    "reference_wrist_displacement_m": 0.15768291392842118,
+    "old_stationary_proposal_core_displacement_m": 0.00556148325998311,
+    "first_step_matches_reached_drive_velocity": true,
+    "actual_state_unchanged": true,
+    "zero_policy_target_is_reference": true,
+    "physical_acceptance": false
+  }
+]

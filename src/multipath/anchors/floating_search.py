@@ -8,7 +8,7 @@ from pathlib import Path
 import numpy as np
 from scipy.spatial.transform import Rotation
 from multipath.anchors.mpc import WindowEvaluation,mppi_mean,RefinementRequired
-from multipath.anchors.floating import controls_from_poses,validate_commands,object_relative_command,object_relative_handoff,hand_command_boundary,project_hand_commands,grasp_command_bounds,stopping_context,acquisition_preload,AcquiredGraspProposal,grasp_drive_transform
+from multipath.anchors.floating import controls_from_poses,validate_commands,object_relative_command,object_relative_handoff,hand_command_boundary,project_hand_commands,grasp_command_bounds,stopping_context,acquisition_preload,AcquiredGraspProposal,grasp_drive_transform,join_core_controls
 from multipath.anchors.ppo import MountedResidualEnv,LocalPPOSolver,PPOConfig
 from multipath.planning.timing import physics_ticks_per_frame
 from multipath.validation.physics import object_tracking_parameters,object_optimization_parameters
@@ -36,15 +36,42 @@ def apply_residual(scene,baseline,start,residual,tpf,envelope,anchor=None):
     return project_hand_commands(scene,controls,start,anchor)
 
 
+def ppo_retarget_commands(scene,anchor,data,baseline,start,begin):
+    """Fixed local retarget reference for a_ref + delta PPO.
+
+    Acquisition's geometric fit supplies a constant wrist morphology correction
+    and finger posture. Retain the original local human wrist motion instead
+    of replacing it with a stationary contact-waiting feedback controller.
+    Registration changes only commands, never actual hand/object states.
+    """
+    if (anchor.entry_contact,anchor.exit_contact)!=('free','grasped') or 'raw_wrist_hand_q' not in data:
+        return project_hand_commands(scene,baseline,start,anchor),'fixed_local_command_proposal'
+    from multipath.execution.mounted_scene import pose_matrix
+    from scipy.spatial.transform import Slerp
+    tpf=physics_ticks_per_frame(scene.manifest['fps'],scene.dt)
+    raw=np.asarray(data['raw_wrist_hand_q']);hand=np.asarray(data['wrist_hand_q'])[:,7:19]
+    raw=np.vstack((raw,raw[-1]));hand=np.vstack((hand,hand[-1]));index=np.arange(len(raw))
+    sample=np.clip((begin+np.arange(len(baseline)+1))/tpf,0,len(raw)-1)
+    rotation=Slerp(index,Rotation.from_quat(raw[:,[4,5,6,3]]))(sample)
+    xyz=np.stack([np.interp(sample,index,raw[:,j]) for j in range(3)],axis=1)
+    matrices=np.asarray([pose_matrix(np.r_[p,q]) for p,q in zip(xyz,rotation.as_quat()[:,[3,0,1,2]])])
+    details=scene.manifest.get('retarget_details',{}).get(anchor.id,{})
+    matrices=matrices@np.asarray(details.get('wrist_local_correction',np.eye(4)))
+    source_index=min(round(begin/tpf),len(data['tool_pose'])-1)
+    calibration=pose_matrix(start['objects']['tool']['pose'])@np.linalg.inv(data['tool_pose'][source_index])
+    matrices=calibration@matrices
+    pose=np.c_[matrices[:,:3,3],Rotation.from_matrix(matrices[:,:3,:3]).as_quat()[:,[3,0,1,2]]]
+    fingers=np.stack([np.interp(sample,index,hand[:,j]) for j in range(12)],axis=1)
+    commands=join_core_controls(scene,anchor,controls_from_poses(pose,fingers,scene.dt),start)
+    return commands,'local_human_retarget_with_fixed_geometry_correction'
+
+
 class FloatingResidualEnv(MountedResidualEnv):
-    def __init__(self,scene,anchor,data,baseline,start,begin,out,*,entry_acquirer=None,controller_handoff=False,acquisition_reference=None):
+    def __init__(self,scene,anchor,data,baseline,start,begin,out,*,entry_acquirer=None,controller_handoff=False):
         self.scene,self.anchor,self.data=scene,anchor,data
         self.entry_acquirer=entry_acquirer;self.controller_handoff=controller_handoff
-        self.baseline,self.start,self.begin=project_hand_commands(scene,baseline,start,anchor),start,begin
-        self.acquisition_reference=(self.baseline.copy() if acquisition_reference is None else
-            project_hand_commands(scene,acquisition_reference,start,anchor))
-        if self.acquisition_reference.shape!=self.baseline.shape:
-            raise ValueError('Acquisition nominal reference must match the local source interval')
+        self.baseline,reference_origin=ppo_retarget_commands(scene,anchor,data,baseline,start,begin)
+        self.start,self.begin=start,begin
         self.out=Path(out);self.out.mkdir(parents=True,exist_ok=True)
         self.fps=scene.manifest['fps'];self.tpf=physics_ticks_per_frame(self.fps,scene.dt);self.horizon=len(baseline)//self.tpf
         if self.horizon<1 or len(baseline)%self.tpf or not validate_commands(scene,self.baseline,start)['feasible']:
@@ -55,13 +82,13 @@ class FloatingResidualEnv(MountedResidualEnv):
         self.metadata={'anchor':anchor.id,'begin_tick':begin,'source_start_frame':anchor.synth_start+begin/self.tpf,
             'source_frames':self.horizon,'source_fps':self.fps,'physics_dt':scene.dt,'entry_origin':start.get('entry_origin'),
             'entry_provenance':start.get('entry_provenance'),'source_provenance':scene.manifest['provenance'],
-            'action':'wrist_xyz_rotvec_and_12_fingers','action_scales':self.action_scales.tolist(),'residual_center':'local_floating_replay',
+            'action':'wrist_xyz_rotvec_and_12_fingers','action_scales':self.action_scales.tolist(),
+            'residual_center':'fixed_local_retarget_command','reference_origin':reference_origin,
             'training_scene':'floating_PhysX','residual_velocity_feedforward':'nominal_replay_unchanged','objective':'Appendix C.3+C.7+C.8',
             'early_termination':'C.4 weighted error > C; no rollout past tracking failure',
             'evaluation_reward':'C.9 object tracking only',
             'optimization_parameters':object_optimization_parameters(),
-            'residual_after_grasp':'wrist pose residual retained over acquired-grasp nominal command',
-            'acquisition_residual_velocity':'nominal drive history; pose residuals are not differentiated',
+            'residual_definition':'a_ref + delta; no contact-conditioned wrist target rewrite',
             'tracking_parameters':object_tracking_parameters(),
             'finger_projection':'URDF_limits_slew_and_native_contact_preload',
             'clock_stretched':False,'state_resets_within_episode':0,'domain_randomization':False,'arm_ik_used':False}
@@ -86,10 +113,7 @@ class FloatingResidualEnv(MountedResidualEnv):
             self.metadata['entry_acquisition']='physical_predecessor_execution_each_episode'
         self.k=0;self.commands=[];self.previous_action=np.zeros(18);self.residuals=[];self.physical_prefix=None
         self.contact_run=0;self.preload_bounds=None
-        self.acquisition_post_commands=None
-        self.acquisition=(AcquiredGraspProposal(self.scene,self.anchor,self.data)
-            if self.anchor.entry_contact=='free' and self.anchor.exit_contact=='grasped' else None)
-        self.acquisition_nominal_command=np.r_[self.scene.command_pose,self.scene.hand_command,self.scene.command_twist]
+        self.post_commands=None
         self.objective=WindowEvaluation(self.scene,self.anchor,self.data,self.start);self.failure=None
         self.metadata['lifting_reward_enabled']=self.objective.lifting
         self.metadata['lifting_initial_height_m']=self.objective.initial_tool_height
@@ -134,28 +158,22 @@ class FloatingResidualEnv(MountedResidualEnv):
                 self.wrenches=segment_wrenches(self.scene,self.start,handoff_commands)
             for tick in range(self.k*self.tpf,end):
                 c=candidate[tick];frame=self.anchor.synth_start+(self.begin+tick+1)/self.tpf
-                if self.acquisition is not None and frame<=self.anchor.core_end:
-                    c,self.acquisition_nominal_command=self.acquisition.command_with_residual(
-                        frame,self.acquisition_reference[tick],c,self.acquisition_nominal_command)
-                elif self.acquisition is not None and getattr(self.scene,'freeze_carry_core',False):
+                if (self.anchor.exit_contact=='grasped' and frame>self.anchor.core_end
+                        and getattr(self.scene,'freeze_carry_core',False)):
                     core_tick=round((self.anchor.core_end-self.anchor.synth_start)*self.tpf)-self.begin
                     if core_tick>0:
-                        if self.acquisition_post_commands is None:
-                            complete=self.continuation_proposal(executed_prefix=True)
-                            complete[:len(self.commands)]=self.commands
-                            complete=project_hand_commands(self.scene,complete,self.start,self.anchor)
-                            self.acquisition_post_commands=complete[core_tick:]
-                        # Stop the actually acquired core drive. Returning to
-                        # a stationary pregrasp's nominal post-padding undid
-                        # the very lift the policy was learning.
-                        c=self.acquisition_post_commands[tick-core_tick].copy()
+                        if self.post_commands is None:
+                            last=np.r_[self.scene.command_pose,self.scene.hand_command,self.scene.command_twist]
+                            self.post_commands=stopping_context(last,len(self.baseline)-core_tick,self.scene.dt)
+                        c=self.post_commands[tick-core_tick].copy()
                 c,self.preload_bounds=acquisition_preload(self.scene,self.anchor,c,self.preload_bounds)
                 if self.controller_handoff:
                     if getattr(self.scene,'post_context_commands',None) is not None and frame>self.anchor.core_end:
                         if frame-self.fps*self.scene.dt==self.anchor.core_end:
                             from multipath.execution.wrench_handoff import segment_wrenches
                             complete=self.continuation_proposal();complete[:end]=candidate
-                            self.post_wrenches=segment_wrenches(self.scene,self.scene.snapshot(),complete[tick:],transport=True)
+                            post=self.post_commands if self.post_commands is not None else complete[tick:]
+                            self.post_wrenches=segment_wrenches(self.scene,self.scene.snapshot(),post,transport=True)
                             self.post_begin=tick
                         self.scene.wrench_bias=self.post_wrenches[tick-self.post_begin]
                     else:self.scene.wrench_bias=self.wrenches[tick]
@@ -183,9 +201,8 @@ def refine(scene,anchor,data,baseline,start,out,candidates=64,iterations=3,use_p
         raise ValueError('MPC baseline/entry does not match the padded source interval')
     prior_origin={}
     def ppo_env(*args):
-        env=FloatingResidualEnv(*args,controller_handoff=True,acquisition_reference=replay)
-        env.metadata.update(residual_center='best_physically_evaluated_local_command_proposal',
-                            initialization_proposal=dict(prior_origin),initialization_is_acceptance=False)
+        env=FloatingResidualEnv(*args,controller_handoff=True)
+        env.metadata.update(mpc_proposal=dict(prior_origin),initialization_is_acceptance=False)
         return env
     ppo=LocalPPOSolver(scene,anchor,data,out/'ppo',ppo_config or PPOConfig(),env_factory=ppo_env,allow_physical_prefix=True) if use_ppo else None
     def evaluate(control,boundary,begin,label,folder,object_relative=False,prefix_ticks=None,acquisition_reference=None):

@@ -26,9 +26,11 @@ class PPOConfig:
     max_seconds: float = 480.
     evaluate_every: int = 5
     seed: int = 0
+    exploration_final_scale: float = .25
 
     def __post_init__(self):
-        if min(self.iterations,self.episodes_per_update,self.evaluate_every) < 1 or self.max_seconds <= 0:
+        if (min(self.iterations,self.episodes_per_update,self.evaluate_every) < 1 or self.max_seconds <= 0
+                or not 0 < self.exploration_final_scale <= 1):
             raise ValueError('PPO needs a positive bounded training budget')
 
 
@@ -193,7 +195,10 @@ class LocalPPOSolver:
         env=self.env_factory(self.scene,self.anchor,self.data,baseline,start,begin,folder)
         obs=env.reset();learner=SmallResidualPPO(len(obs),env.action_dim,seed=cfg.seed)
         report=dict(env.metadata,config=asdict(cfg),network_hidden=[64,64],
-            parameters=learner.parameter_count,status='training',iterations=0,episodes=0,history=[],success=False)
+            parameters=learner.parameter_count,status='training',iterations=0,episodes=0,history=[],success=False,
+            residual_noise_schedule={'kind':'linear_multiplier_of_learned_Gaussian_std','initial':1.,
+                'final':cfg.exploration_final_scale,'shared_across_sources':True,
+                'numeric_provenance':'engineering choice; Appendix specifies shared schedule, not its values'})
         self.reports.append(report)
         (folder/'entry.json').write_text(json.dumps(start,indent=2))
         np.savez_compressed(folder/'baseline.npz',commands=baseline)
@@ -270,6 +275,8 @@ class LocalPPOSolver:
         try:
             for iteration in range(cfg.iterations):
                 if time.monotonic()>=self.deadline:break
+                noise_scale=1.-(1.-cfg.exploration_final_scale)*iteration/max(1,cfg.iterations-1)
+                learner.set_exploration_scale(noise_scale)
                 episodes=[];results=[]
                 for _ in range(cfg.episodes_per_update):
                     if time.monotonic()>=self.deadline:break
@@ -296,7 +303,8 @@ class LocalPPOSolver:
                 if not episodes:break
                 metrics=learner.update(episodes)
                 row=dict(iteration=iteration+1,mean_return=float(np.mean([r['return_value'] for r in results])),
-                    max_source_steps=max(r['source_steps'] for r in results),training_successes=sum(r['success'] for r in results),**metrics)
+                    max_source_steps=max(r['source_steps'] for r in results),training_successes=sum(r['success'] for r in results),
+                    exploration_scale=noise_scale,**metrics)
                 from collections import Counter
                 row['failure_counts']=dict(Counter((r.get('failure') or {}).get('reason','passed').split(':')[0] for r in results))
                 report['iterations']=iteration+1;report['history'].append(row)

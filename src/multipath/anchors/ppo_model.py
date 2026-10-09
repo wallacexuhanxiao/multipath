@@ -34,6 +34,7 @@ class SmallResidualPPO(nn.Module):
             nn.init.zeros_(self.actor[-1].weight)
             nn.init.zeros_(self.actor[-1].bias)
         self.log_std = nn.Parameter(torch.full((self.action_dim,), -1.0))
+        self.register_buffer('exploration_scale',torch.tensor(1.))
         self.optimizer = torch.optim.Adam(self.parameters(), lr=3e-4)
         self.rng = torch.Generator(device='cpu').manual_seed(self.seed)
         self.updates = 0
@@ -43,7 +44,11 @@ class SmallResidualPPO(nn.Module):
         return sum(p.numel() for p in self.parameters())
 
     def _distribution(self, obs):
-        return Normal(self.actor(obs), self.log_std.clamp(-5., 1.).exp())
+        return Normal(self.actor(obs), self.log_std.clamp(-5., 1.).exp()*self.exploration_scale)
+
+    def set_exploration_scale(self,scale):
+        """One shared residual-noise schedule, fixed during each PPO batch."""
+        self.exploration_scale.fill_(float(scale))
 
     @torch.no_grad()
     def act(self, obs, deterministic=False):

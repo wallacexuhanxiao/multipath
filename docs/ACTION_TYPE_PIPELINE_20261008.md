@@ -444,4 +444,36 @@ residual PPO 结构。
 r200 / job 656569 使用同样三个输入、共享 60-update / 240 s
 solver 上限，通过实际 PhysX 重新检查 Anchor 和完整 pipeline。
 
+r200 实际用时 574.90 s，三个 Anchor 0 仍失败；完整轨迹数量为 0。
+实际 PPO report 已记录 lifting=true、C.4 early termination 和独立
+C.9 evaluation_return，证明新 objective 已进入物理训练；不能
+把 objective 的实现对齐当作 interaction 成功。
+
+### r201：PPO 直接对固定局部 retarget 做 residual
+
+继续核对 Sec. 3.2.2 的 a_ref+delta，发现 floating PPO 还执行
+contact-conditioned acquisition，在线改写 nominal wrist target。
+其输入又是静止准备手型：brush 原 CORE wrist proposal 只移动
+约 1.0 mm，hit 约 5.6 mm。训练无法等价于在固定 retarget 上
+学习 residual，失败 seed 的表示也更难保持一致。
+
+现在 acquisition PPO 从已有 local raw retarget 生成固定参考，
+使用已有局部几何拟合的恒定 wrist correction 和手指准备姿态。
+仅把命令坐标注册到真实 predecessor tool state，不设置对象状态。
+PPO 每步直接加 wrist/finger residual，不再调用 acquisition wrist
+重写；padding 从实际 CORE drive 停止，CORE 仍须完整物理通过。
+MPC 的 acquisition proposal 保留，已经通过的 bridge backend 不变。
+没有完整 robot reference 依赖，也没有 source/action 名称分支。
+
+所有类型共用一个 residual-noise multiplier，从 1 线性降到 0.25；
+同一 PPO batch 内固定，保留 learned Gaussian、64×64 模型和
+stored latent likelihood。Appendix 要求共享噪声 schedule，但未
+给出具体数值；上述倍率明确是工程选择。噪声倍率写入 checkpoint
+和训练记录，优化 reward 与 C.9 evaluation 继续分离。
+
+命令语义检查使用 r199 三类真实入口，只读取 32 / 24 / 30 帧
+local 数据；首步符合已有 drive velocity，实际 state 没有修改。
+这些检查不能提供 physical acceptance；下一步仍是 fresh
+padded/core 和完整连续 rollout。
+
 ![Whole-tool convex hull wrongly fills handle clearance](evidence/oracle_action_types_20261008/hammer_convex_hull_diagnosis.png)
