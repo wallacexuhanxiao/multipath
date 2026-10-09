@@ -441,7 +441,7 @@ residual PPO 结构。
 
 `r200_appendix_reward_check.json` 检查共同 C.4 边界，以及在 r199
 真实 brush 状态上 C.3 与 C.7/C.8 的分离；它不是物理成功证据。
-下一轮使用同样三个输入、共享 60-update / 240 s solver 上限，
-通过实际 PhysX 重新检查 Anchor 和完整 pipeline。
+r200 / job 656569 使用同样三个输入、共享 60-update / 240 s
+solver 上限，通过实际 PhysX 重新检查 Anchor 和完整 pipeline。
 
 ![Whole-tool convex hull wrongly fills handle clearance](evidence/oracle_action_types_20261008/hammer_convex_hull_diagnosis.png)

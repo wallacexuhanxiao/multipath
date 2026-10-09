@@ -12,9 +12,9 @@ def test_contact_requires_thumb_and_another_finger():
     assert not hand_tool_contact(paths,[[1,0,0],[0,0,0],[0,0,0],[1,0,0]])['opposition_contact']
 
 
-def test_tracking_reward_and_explicit_axis_tolerances():
+def test_tracking_reward_and_termination_share_appendix_boundary():
     score=object_tracking_score({'position_m':.04,'rotation_rad':np.deg2rad(24.)})
-    assert score['reward']<0 and score['feasible']
+    assert score['reward']<0 and not score['feasible']
     assert not object_tracking_score({'position_m':.051,'rotation_rad':0.})['feasible']
     score=object_tracking_score({'position_m':.03,'rotation_rad':.14})
     assert score['reward']>0 and score['feasible']
@@ -53,7 +53,8 @@ def test_core_entry_must_match_its_own_source_boundary():
     from types import SimpleNamespace
     from multipath.anchors.schema import InteractionAnchor
     from multipath.anchors.mpc import WindowEvaluation
-    state={'time_s':0.,'contact':{'mode':'grasped','opposition_contact':True},'hand_object_transform':np.eye(4),
+    state={'time_s':0.,'contact':{'mode':'grasped','opposition_contact':True,
+           'thumb_contact':True,'other_finger_contact':True},'hand_object_transform':np.eye(4),
            'objects':{'tool':{'pose':[.08,0,0,1,0,0,0]}}}
     scene=SimpleNamespace(manifest={'fps':30},state=lambda:state)
     data={'tool_pose':np.tile(np.eye(4),(6,1,1))}
