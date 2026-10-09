@@ -338,4 +338,37 @@ source-conditioned 抬升目标。native contact 仍直接来自 PhysX，
 撤销，同时真正分离的状态仍清除 proposal。该检查本身不提供
 物理成功证据；修复将交给同样三类输入的完整 pipeline 验证。
 
+r195 / job 655893 用时 593.24 s。真实 hit Replay 在 32 帧失去
+opposition 后，33–35 帧腕部目标继续上升，不再回落到原抓取位置。
+因此回跳机制已被消除；工具仍停留在桌面，三个 Anchor 0 仍失败。
+这不是 task success，也没有新类型的完整三解视频。
+
+### r196：重力力矩对照，不改默认控制参数
+
+按实测手姿 / q 和 URDF inertial 计算，hit 手自身的重力矩约
+0.27 Nm；URDF 总质量 1.122385 kg 与 PhysX 质量一致。默认外力
+PD 只在 root 补总重力，瞬态 wrench handoff 消退后没有该力矩
+前馈。这与原 pinned EgoEngine controller 相同，不能称为复现偏差。
+r196 / job 655934 使用已存在的 measured hand-gravity moment
+选项做三源对照，增益和 clamp 保持原值，PPO 恢复 20 updates。
+它是统一 embodiment 控制实验，没有 pour / brush / hit 特定配置。
+实验结果没有支持改默认值之前，默认 moment compensation 保持 false。
+Hopper 入口支持统一的可选 floating-config 路径，省去改写默认文件。
+
+### r197：失败 PPO seed 不再重复叠加 acquisition
+
+进一步检查发现，`continuation_proposal` 把实际 executed prefix
+覆盖进了失败策略的优化 seed。随后 whole-local PPO 将其相对原
+静止 acquisition reference 的差异再作为 pose residual，导致已经
+生成过的 source-object 抬升再次叠加。r195 保存的 failed PPO
+proposal 和未适应 nominal baseline 在局部区间差异可达 123 mm；
+这不是可直接当作下一次残差中心的同一种命令表示。
+
+现在失败的 optimizer seed 只包含 nominal + policy residual；
+实际 acquisition prefix 仅在显式 physical-prefix export 和 padding
+编译中使用。成功 episode 仍导出实际执行命令。零 action 在 seed
+模式保留 nominal，在 export 模式保留已执行 prefix。CPU 检查
+保护这一个已发生的语义错误，不新增物理验收层；仍需 fresh
+padded/core 和 full continuous execution 才能称为成功。
+
 ![Whole-tool convex hull wrongly fills handle clearance](evidence/oracle_action_types_20261008/hammer_convex_hull_diagnosis.png)

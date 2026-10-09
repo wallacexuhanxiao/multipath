@@ -93,15 +93,22 @@ class FloatingResidualEnv(MountedResidualEnv):
 
     def command_precheck(self):return validate_commands(self.scene,np.asarray(self.commands),self.start)
 
-    def continuation_proposal(self):
+    def continuation_proposal(self,*,executed_prefix=False):
         # Unknown future policy actions are an initialization only. Continue
         # the last residual to avoid jumping back to raw retarget after commit.
         residuals=np.asarray(self.residuals)
-        if not np.any(residuals):return self.baseline.copy()
-        residuals=np.concatenate((residuals,np.repeat(residuals[-1:],self.horizon-len(residuals),axis=0)))
-        phase=np.clip((self.begin+np.arange(len(self.baseline)+1))/max(1,(self.anchor.core_start-self.anchor.synth_start)*self.tpf),0,1)
-        controls=apply_residual(self.scene,self.baseline,self.start,residuals,self.tpf,phase**2*(3-2*phase),self.anchor)
-        count=min(len(self.commands),len(controls));controls[:count]=self.commands[:count]
+        if not np.any(residuals):controls=self.baseline.copy()
+        else:
+            residuals=np.concatenate((residuals,np.repeat(residuals[-1:],self.horizon-len(residuals),axis=0)))
+            phase=np.clip((self.begin+np.arange(len(self.baseline)+1))/max(1,(self.anchor.core_start-self.anchor.synth_start)*self.tpf),0,1)
+            controls=apply_residual(self.scene,self.baseline,self.start,residuals,self.tpf,phase**2*(3-2*phase),self.anchor)
+        # Failed optimizer seeds are unadapted command proposals. Mixing in
+        # the executed acquisition prefix makes the next PPO interpret the
+        # already applied source-object lift as another pose residual.
+        # Only a physical-prefix export or post-context compilation includes
+        # executed drives, and zero actions must include them in that role too.
+        if executed_prefix:
+            count=min(len(self.commands),len(controls));controls[:count]=self.commands[:count]
         return controls
 
     def step(self,action):
@@ -129,7 +136,7 @@ class FloatingResidualEnv(MountedResidualEnv):
                     core_tick=round((self.anchor.core_end-self.anchor.synth_start)*self.tpf)-self.begin
                     if core_tick>0:
                         if self.acquisition_post_commands is None:
-                            complete=self.continuation_proposal()
+                            complete=self.continuation_proposal(executed_prefix=True)
                             complete[:len(self.commands)]=self.commands
                             complete=project_hand_commands(self.scene,complete,self.start,self.anchor)
                             self.acquisition_post_commands=complete[core_tick:]

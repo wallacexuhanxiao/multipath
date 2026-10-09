@@ -1,0 +1,170 @@
+{
+  "method": "URDF FK at measured PhysX q/wrist; diagnostic only",
+  "urdf_total_mass_kg": 1.1223850489635483,
+  "measured_hand_mass_kg": 1.1223849058151245,
+  "steps": [
+    {
+      "source_frame": 25.0,
+      "uncompensated_hand_gravity_moment_nm": [
+        0.09853905626416223,
+        -0.2682131545967071,
+        0.0
+      ],
+      "commanded_torque_nm": [
+        0.06359791678895459,
+        -0.2385306840134515,
+        -0.016827269936267805
+      ],
+      "handoff_torque_nm": [
+        0.05413881312688674,
+        -0.22506139859959343,
+        -0.026832985182276062
+      ]
+    },
+    {
+      "source_frame": 26.0,
+      "uncompensated_hand_gravity_moment_nm": [
+        0.09457848289584056,
+        -0.2644653810788804,
+        0.0
+      ],
+      "commanded_torque_nm": [
+        0.07380010146471798,
+        -0.13116832621087782,
+        0.009026622680540499
+      ],
+      "handoff_torque_nm": [
+        0.0,
+        -0.008308583173555532,
+        -0.0005882486674374063
+      ]
+    },
+    {
+      "source_frame": 27.0,
+      "uncompensated_hand_gravity_moment_nm": [
+        0.09551889412051719,
+        -0.2628322524266255,
+        0.0
+      ],
+      "commanded_torque_nm": [
+        -0.04038531166701866,
+        -0.06482240370045414,
+        0.011079096830221877
+      ],
+      "handoff_torque_nm": [
+        0.0,
+        -0.0,
+        -0.0
+      ]
+    },
+    {
+      "source_frame": 28.0,
+      "uncompensated_hand_gravity_moment_nm": [
+        0.09792993029421926,
+        -0.261491081893723,
+        0.0
+      ],
+      "commanded_torque_nm": [
+        -0.06019753117314387,
+        -0.05586848685315246,
+        -0.008255372047419511
+      ],
+      "handoff_torque_nm": [
+        0.0,
+        -0.0,
+        -0.0
+      ]
+    },
+    {
+      "source_frame": 29.0,
+      "uncompensated_hand_gravity_moment_nm": [
+        0.09896348318579208,
+        -0.26155803554799656,
+        0.0
+      ],
+      "commanded_torque_nm": [
+        0.012935068070996675,
+        0.014978854120352762,
+        -0.039200512362478054
+      ],
+      "handoff_torque_nm": [
+        0.0,
+        -0.0,
+        -0.0
+      ]
+    },
+    {
+      "source_frame": 30.0,
+      "uncompensated_hand_gravity_moment_nm": [
+        0.09878222954975456,
+        -0.2613697934511162,
+        0.0
+      ],
+      "commanded_torque_nm": [
+        -0.022716653111244364,
+        0.023697095820326315,
+        -0.019845573398720746
+      ],
+      "handoff_torque_nm": [
+        0.0,
+        -0.0,
+        -0.0
+      ]
+    },
+    {
+      "source_frame": 31.0,
+      "uncompensated_hand_gravity_moment_nm": [
+        0.09590215066526699,
+        -0.2564986345782593,
+        0.0
+      ],
+      "commanded_torque_nm": [
+        -0.0020868872276981996,
+        -0.04453183228753808,
+        0.005377517756991496
+      ],
+      "handoff_torque_nm": [
+        0.0,
+        -0.0,
+        -0.0
+      ]
+    },
+    {
+      "source_frame": 32.0,
+      "uncompensated_hand_gravity_moment_nm": [
+        0.08888279516798131,
+        -0.24994406701271454,
+        0.0
+      ],
+      "commanded_torque_nm": [
+        0.15042359997351473,
+        -0.1798511823397655,
+        0.05603482907165776
+      ],
+      "handoff_torque_nm": [
+        0.0,
+        -0.0,
+        -0.0
+      ]
+    },
+    {
+      "source_frame": 33.0,
+      "uncompensated_hand_gravity_moment_nm": [
+        0.09077643184088097,
+        -0.2564774459238977,
+        0.0
+      ],
+      "commanded_torque_nm": [
+        0.11764773291730286,
+        0.16855442759143555,
+        -0.11078146477546677
+      ],
+      "handoff_torque_nm": [
+        0.0,
+        -0.0,
+        -0.0
+      ]
+    }
+  ],
+  "physical_acceptance": false
+}

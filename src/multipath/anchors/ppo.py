@@ -237,7 +237,7 @@ class LocalPPOSolver:
             prefix=getattr(env,'physical_prefix',None)
             if not self.allow_physical_prefix or prefix is None or result['success']:
                 return None
-            commands=env.continuation_proposal()
+            commands=env.continuation_proposal(executed_prefix=True)
             count=len(prefix['trace'])*env.tpf
             from multipath.anchors.floating import validate_commands
             if not validate_commands(self.scene,commands,start)['feasible']:return None

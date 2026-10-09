@@ -1,0 +1,9 @@
+{
+  "source": "r195 failed PPO saved baseline/proposal; CPU representation check",
+  "optimizer_seed_contains_executed_acquisition": false,
+  "executed_prefix_explicitly_exportable": true,
+  "zero_residual_seed_preserves_nominal": true,
+  "zero_residual_export_preserves_executed_prefix": true,
+  "largest_mixed_prefix_displacement_m": 0.12322257484812973,
+  "physical_acceptance": false
+}

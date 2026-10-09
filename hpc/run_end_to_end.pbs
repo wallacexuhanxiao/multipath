@@ -47,7 +47,7 @@ EXTRA=()
 [[ -z "${MULTIPATH_TEMPLATE_ARTIFACTS:-}" ]] || EXTRA+=(--template-artifacts "$MULTIPATH_TEMPLATE_ARTIFACTS" --template-proposals "$MULTIPATH_TEMPLATE_PROPOSALS")
 "$RUNTIME/envs/retarget/bin/python" -u scripts/run_end_to_end.py \
  --schedule "$MULTIPATH_SCHEDULE" --triplet "$MULTIPATH_TRIPLET" --sequence "$MULTIPATH_SEQUENCE" \
- --mount-report configs/franka_xhand_mount.json --floating-config configs/floating_xhand.json \
+ --mount-report configs/franka_xhand_mount.json --floating-config "${MULTIPATH_FLOATING_CONFIG:-configs/floating_xhand.json}" \
  --xhand-urdf "$ENGINE/assets/xhand/spider/xhand_right.urdf" --object-cache "$ENGINE/outputs/sim_usd" \
  --sim-prefix "$OUT/sim_prefix.json" --output-dir "$OUT" "${EXTRA[@]}" \
  --mpc-candidates "${MULTIPATH_MPC_CANDIDATES:-16}" --mpc-iters "${MULTIPATH_MPC_ITERS:-2}" \
