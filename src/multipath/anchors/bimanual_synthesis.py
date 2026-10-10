@@ -4,7 +4,7 @@ from pathlib import Path
 import numpy as np
 
 
-def refine_primary(scene,anchor,data,baseline,companions,output,*,baseline_commands=None,seconds=240.):
+def refine_primary(scene,anchor,data,baseline,companions,output,*,baseline_commands=None,seconds=240.,frozen_prefix_ticks=None):
     from multipath.anchors.mpc import WindowEvaluation,RefinementRequired
     from multipath.anchors.floating_search import refine,FloatingResidualEnv
     from multipath.anchors.ppo import LocalPPOSolver,PPOConfig
@@ -12,6 +12,8 @@ def refine_primary(scene,anchor,data,baseline,companions,output,*,baseline_comma
     from multipath.execution.wrench_handoff import segment_wrenches
     out=Path(output);out.mkdir(parents=True,exist_ok=True);tpf=scene.tpf
     begin=(anchor.core_start-anchor.synth_start)*tpf
+    frozen=begin if frozen_prefix_ticks is None else max(begin,int(frozen_prefix_ticks))
+    if frozen>=len(baseline):raise ValueError('No local controls remain after the physically acquired prefix')
     prefix={key:np.stack([step[key] for step in scene.executed_controls[:anchor.synth_start*tpf]])
         for key in ('right','right_wrenches',*[key for side in companions for key in (side,side+'_wrenches')])}
     if len(prefix['right'])!=anchor.synth_start*tpf:raise ValueError('Missing physically executed predecessor')
@@ -21,7 +23,7 @@ def refine_primary(scene,anchor,data,baseline,companions,output,*,baseline_comma
     properties=('frozen_synthesis_prefix_ticks','compiled_local_command_reference','freeze_carry_core',
                 'bridge_exit_velocity_constraints')
     old={key:getattr(scene,key,None) for key in properties}
-    scene.frozen_synthesis_prefix_ticks=begin
+    scene.frozen_synthesis_prefix_ticks=frozen
     scene.compiled_local_command_reference=True;scene.freeze_carry_core=anchor.exit_contact=='grasped'
     # A valid local grasp whose actual exit speed exceeds the next planner's
     # nominal budget is not a usable canonical boundary. No hardware rating
@@ -65,7 +67,7 @@ def refine_primary(scene,anchor,data,baseline,companions,output,*,baseline_comma
     if len(prefix_full_wrenches)!=begin:raise ValueError('Missing physically reached core context')
 
     def fresh(candidate):
-        candidate=np.asarray(candidate).copy();candidate[:begin]=baseline[:begin]
+        candidate=np.asarray(candidate).copy();candidate[:frozen]=baseline[:frozen]
         start=acquire(out/'predecessor');folder=out/'fresh_padded'/f'candidate_{len(attempts):03d}'
         scene.begin_recording(folder,mesh=True);scene.capture('SYNTHESIS_CONTEXT',anchor.synth_start)
         checks={'right':WindowEvaluation(scene,anchor,data,start)}
@@ -93,7 +95,7 @@ def refine_primary(scene,anchor,data,baseline,companions,output,*,baseline_comma
         return result['success']
 
     report=dict(source='oracle',source_provenance=scene.manifest['provenance'],
-        frozen_physical_context_ticks=begin,source_time_stretch=False,success=False)
+        frozen_physical_context_ticks=frozen,source_time_stretch=False,success=False)
     try:
         start=acquire(out/'mpc_entry');proposal=project_hand_commands(scene,baseline,start,anchor)
         try:proposal=refine(scene,anchor,data,proposal,start,out/'mpc',candidates=16,iterations=2,use_ppo=False)

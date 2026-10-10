@@ -1,0 +1,132 @@
+{
+  "tool": {
+    "physx_approximation": [
+      "convexDecomposition"
+    ],
+    "kinematic": false,
+    "planning_representation": "native_convex_pieces_with_contact_offset",
+    "native_physics_unchanged": true,
+    "exact_native_cooked_geometry": false,
+    "geometry_origin": "PhysX cooking representation of authored collider; not active actor shape introspection",
+    "native_piece_count": 1,
+    "authored_collision_prims": [
+      "/World/tool/geometry/mesh"
+    ],
+    "native_contact_offset_tensor_shape_slots": 1,
+    "source_mesh_bounds_m": [
+      [
+        -0.06265738,
+        -0.02665917,
+        -0.01513003
+      ],
+      [
+        0.06265738,
+        0.02665917,
+        0.01513003
+      ]
+    ],
+    "planning_mesh_bounds_m": [
+      [
+        -0.06405333041852905,
+        -0.028014516099450555,
+        -0.01635857250699047
+      ],
+      [
+        0.06406048697855637,
+        0.028069154746592256,
+        0.016497494411774734
+      ]
+    ],
+    "native_contact_offsets_m": [
+      [
+        0.0013625002466142178
+      ]
+    ],
+    "native_rest_offsets_m": [
+      [
+        0.0
+      ]
+    ],
+    "contact_envelope_inflation_m": 0.0013625002466142178
+  },
+  "target": {
+    "physx_approximation": [
+      "convexDecomposition"
+    ],
+    "kinematic": false,
+    "planning_representation": "native_convex_pieces_with_contact_offset",
+    "native_physics_unchanged": true,
+    "exact_native_cooked_geometry": false,
+    "geometry_origin": "PhysX cooking representation of authored collider; not active actor shape introspection",
+    "native_piece_count": 16,
+    "authored_collision_prims": [
+      "/World/target/geometry/mesh"
+    ],
+    "native_contact_offset_tensor_shape_slots": 16,
+    "source_mesh_bounds_m": [
+      [
+        -0.12663267,
+        -0.12589549,
+        -0.01441658
+      ],
+      [
+        0.12663267,
+        0.12589549,
+        0.01441658
+      ]
+    ],
+    "planning_mesh_bounds_m": [
+      [
+        -0.12809190337927692,
+        -0.1272579908877916,
+        -0.015872938101655444
+      ],
+      [
+        0.13183252748455865,
+        0.1325697145740909,
+        0.021482103969767487
+      ]
+    ],
+    "native_contact_offsets_m": [
+      [
+        0.0013625002466142178,
+        0.0013625002466142178,
+        0.0013625002466142178,
+        0.0013625002466142178,
+        0.0013625002466142178,
+        0.0013625002466142178,
+        0.0013625002466142178,
+        0.0013625002466142178,
+        0.0013625002466142178,
+        0.0013625002466142178,
+        0.0013625002466142178,
+        0.0013625002466142178,
+        0.0013625002466142178,
+        0.0013625002466142178,
+        0.0013625002466142178,
+        0.0013625002466142178
+      ]
+    ],
+    "native_rest_offsets_m": [
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    ],
+    "contact_envelope_inflation_m": 0.0013625002466142178
+  }
+}

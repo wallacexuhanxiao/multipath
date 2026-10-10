@@ -1,0 +1,72 @@
+{
+  "tool": {
+    "physx_approximation": [
+      "convexDecomposition"
+    ],
+    "kinematic": false,
+    "planning_representation": "convex_envelope_with_native_contact_offset",
+    "native_physics_unchanged": true,
+    "exact_native_cooked_geometry": false,
+    "native_contact_offsets_m": [
+      [
+        0.0013625002466142178
+      ]
+    ],
+    "native_rest_offsets_m": [
+      [
+        0.0
+      ]
+    ],
+    "contact_envelope_inflation_m": 0.0013625002466142178
+  },
+  "target": {
+    "physx_approximation": [
+      "convexDecomposition"
+    ],
+    "kinematic": false,
+    "planning_representation": "convex_envelope_with_native_contact_offset",
+    "native_physics_unchanged": true,
+    "exact_native_cooked_geometry": false,
+    "native_contact_offsets_m": [
+      [
+        0.0013625002466142178,
+        0.0013625002466142178,
+        0.0013625002466142178,
+        0.0013625002466142178,
+        0.0013625002466142178,
+        0.0013625002466142178,
+        0.0013625002466142178,
+        0.0013625002466142178,
+        0.0013625002466142178,
+        0.0013625002466142178,
+        0.0013625002466142178,
+        0.0013625002466142178,
+        0.0013625002466142178,
+        0.0013625002466142178,
+        0.0013625002466142178,
+        0.0013625002466142178
+      ]
+    ],
+    "native_rest_offsets_m": [
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    ],
+    "contact_envelope_inflation_m": 0.0013625002466142178
+  }
+}

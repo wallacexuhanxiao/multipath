@@ -91,7 +91,7 @@ def continue_oracle(scene,schedule,manifest,proposals,output,*,boundary_feedback
                             interaction_entry_twist_prior=twist.tolist(),hand_q=start['hand_q'],hand_dq=start['hand_dq'],
                             command_hand_q=start['command_hand_q'],contact={'mode':anchor.entry_contact},scene_id=start['scene_id'])
                         goal,fit=feedback_boundary_target(start,goal,start['wrist_xyz_wxyz'],start,boundaries[1],
-                            info['budget_s'],scene.dt,scene.cfg['planning'])
+                            info['budget_s'],scene.dt,scene.cfg['planning'],interior_scales=(1.,1.,1.))
                         goal.update(unvalidated_oracle_boundary=True,source_tool_boundary=target.tolist())
                         info['hands'][side]=dict(canonical_boundary_fit=fit,source_entry_physically_verified=False)
                         calibration=(start['wrist_xyz_wxyz'],start)
@@ -112,7 +112,7 @@ def continue_oracle(scene,schedule,manifest,proposals,output,*,boundary_feedback
                                 previous=np.load(folder/f'segment_{window["start"]}_{window["end"]}.npz',
                                     allow_pickle=False)[side][-1,:7]
                                 goal,fit=feedback_boundary_target(start,goal,previous,actual,boundaries[1],
-                                    info['budget_s'],scene.dt,scene.cfg['planning'])
+                                    info['budget_s'],scene.dt,scene.cfg['planning'],interior_scales=(1.,1.,1.))
                                 calibration=(previous,actual)
                                 info['hands'][side]['boundary_feedback']=dict(fit,
                                     physical_rollout=str(folder),acceptance_reused=False)
@@ -153,7 +153,7 @@ def continue_oracle(scene,schedule,manifest,proposals,output,*,boundary_feedback
                             goal,fit=feedback_boundary_target(start,goal,*calibration,boundaries[1],
                                 info['budget_s'],scene.dt,scene.cfg['planning'],
                                 clearance=lambda pose:planner.goal_clearance(pose)[0],
-                                clearance_gradient=planner.path_clearance_gradient)
+                                clearance_gradient=planner.path_clearance_gradient,interior_scales=(1.,1.,1.))
                             info['hands'][side]['collision_time_source_boundary_fit']=fit
                         info['hands'][side]['boundary_clearance_m']=1e-4
                     check=bridge_precheck(start,goal,info['budget_s'],scene.cfg['planning'])

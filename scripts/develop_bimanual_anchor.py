@@ -224,9 +224,11 @@ def main():
                                      failure=padded_failure,actual_end_frame=scene.ticks/tpf,state_resets_within_rollout=0)
         if not report['padded_rollout']['success'] and padded_failure and padded_failure['hand']=='right':
             from multipath.anchors.bimanual_synthesis import refine_primary
+            acquired=report.get('right_exit_resynthesis',{}).get('physical_grasp_frame')
             value=refine_primary(scene,anchor,data,right_padded,
                 {'left':dict(anchor=left_anchor,data=left_data,commands=left_padded)},out/'right_refinement',
-                baseline_commands=right_baseline_padded,seconds=args.left_ppo_seconds)
+                baseline_commands=right_baseline_padded,seconds=args.left_ppo_seconds,
+                frozen_prefix_ticks=None if acquired is None else round((acquired-anchor.synth_start)*tpf))
             right_padded=value['commands'];report['padded_rollout']=value['validation']
             report['right_refinement']=value['report']
             begin=(anchor.core_start-anchor.synth_start)*tpf;end=(anchor.core_end-anchor.synth_start)*tpf

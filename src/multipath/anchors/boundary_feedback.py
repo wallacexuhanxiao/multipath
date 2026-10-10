@@ -100,6 +100,10 @@ def collision_exit_proposal(scene,anchor,seed,feedback_run,*,side='right',source
     segments=continuous.get('segments',[])
     last=segments[-1] if segments else {}
     transition=last.get('hands',{}).get(side,{}).get('transition',{})
+    if (report.get('bimanual_anchor_success') and continuous.get('boundary_fit_failure')
+            and last.get('mode')=='RELAXED' and last.get('start')==anchor.core_end):
+        if source_boundary is None:raise ValueError('Quiet exit requires its unchanged oracle object boundary')
+        return quiet_grasp_exit_proposal(scene,anchor,seed,folder,core,side,source_boundary)
     center_for_bridge=bool(report.get('bimanual_anchor_success') and source_boundary is not None and not native
         and last.get('mode')=='RELAXED' and last.get('start')==anchor.core_end
         and transition.get('success') is False and transition.get('object_boundary_error')
@@ -197,3 +201,51 @@ def collision_exit_proposal(scene,anchor,seed,feedback_run,*,side='right',source
         (anchor.core_end-anchor.core_start)/scene.manifest['fps'],available_grasped_duration_s=duration,
         minimum_correction_duration_s=minimum,offset_m=delta.tolist(),
         source_time_stretch=False,state_assignment=False,physical_validation_required=True)
+
+
+def quiet_grasp_exit_proposal(scene,anchor,seed,folder,core,side,source_boundary):
+    """Refit only the physically acquired grasp tail inside the original core.
+
+    A local grasp can pass while its outgoing momentum blocks a short bridge.
+    Choose a zero-speed command boundary, not a wait or assigned physical state.
+    Source conditions and fresh padded/core acceptance remain unchanged.
+    """
+    from multipath.planning.bridge import feedback_boundary_target,coordinate_velocity
+    from multipath.planning.floating import pose_coordinates,coordinates_pose
+    from multipath.planning.timing import boundary_fitted_path
+    from scipy.spatial.transform import Rotation
+    acquired=next((s for i,s in enumerate(core)
+        if all(v['hands'][side]['contact']['mode']=='grasped' for v in core[i:])),None)
+    if acquired is None or acquired['source_frame']>=anchor.core_end:
+        raise RuntimeError('No physically acquired grasp tail available for exit resynthesis')
+    start=dict(acquired,**acquired['hands'][side]);world=getattr(scene,'scene',scene)
+    if side!='right':
+        role=world.supporting_hands[side].object_role
+        start['objects']=dict(tool=acquired['objects'][role])
+    old=recorded_core_commands(folder,anchor,scene.tpf,side)
+    if old.shape!=seed.shape:raise ValueError('Quiet exit seed has different source timing')
+    cut=round((acquired['source_frame']-anchor.core_start)*scene.tpf)
+    ticks=len(old)-cut;budget=ticks*scene.dt
+    wrist=np.asarray(source_boundary)@np.linalg.inv(start['hand_object_transform'])
+    pose=np.r_[wrist[:3,3],Rotation.from_matrix(wrist[:3,:3]).as_quat()[[3,0,1,2]]]
+    goal=dict(wrist_xyz_wxyz=pose.tolist(),wrist_twist=np.zeros(6).tolist())
+    goal,condition=feedback_boundary_target(start,goal,start['wrist_xyz_wxyz'],start,
+        source_boundary,budget,scene.dt,scene.cfg['planning'],final_coordinate_velocity=np.zeros(6))
+    near=pose_coordinates(start['wrist_xyz_wxyz']);raw=[near.copy()]
+    for command in old[cut:]:
+        near=pose_coordinates(command[:7],near);raw.append(near.copy())
+    raw=np.asarray(raw);raw[-1]=pose_coordinates(goal['wrist_xyz_wxyz'],raw[-1])
+    limits=scene.cfg['planning']
+    path,fit=boundary_fitted_path(raw,ticks,scene.dt,np.asarray(limits['velocity_limits']),
+        np.asarray(limits['acceleration_limits']),coordinate_velocity(start['wrist_xyz_wxyz'],
+        start['wrist_twist'],raw[0]),np.zeros(6))
+    from multipath.anchors.floating import controls_from_poses
+    hands=np.vstack((start['command_hand_q'],old[cut:,7:19]))
+    commands=old.copy()
+    commands[cut:]=controls_from_poses(np.asarray([coordinates_pose(q) for q in path]),hands,scene.dt)
+    return commands,dict(method='physically_acquired_grasp_quiet_exit_refit',feedback_run=str(folder),
+        physical_grasp_frame=float(acquired['source_frame']),available_grasped_duration_s=budget,
+        original_core_duration_s=(anchor.core_end-anchor.core_start)/world.manifest['fps'],
+        canonical_terminal_coordinate_velocity=np.zeros(6).tolist(),source_boundary_fit=condition,
+        nominal_tail_fit=fit,original_finger_commands_retained=True,source_time_stretch=False,
+        state_assignment=False,physical_validation_required=True)

@@ -1,0 +1,86 @@
+{
+  "refined": true,
+  "physics_samples": 2,
+  "safe_samples_used": 1,
+  "sphere_count": 2443,
+  "colliding_fit_samples": [
+    {
+      "tick": 1,
+      "collisions": [
+        {
+          "mesh": "tool",
+          "obstacle": "target",
+          "geometry": "triangle_mesh"
+        },
+        {
+          "mesh": "tool",
+          "obstacle": "peer_left_003",
+          "geometry": "triangle_mesh"
+        },
+        {
+          "mesh": "tool",
+          "obstacle": "peer_left_004",
+          "geometry": "triangle_mesh"
+        },
+        {
+          "mesh": "/xhand_right/right_hand_thumb_rota_link1/visuals/right_hand_thumb_rota_link1/node_STL_BINARY_/mesh",
+          "obstacle": "peer_left_006",
+          "geometry": "triangle_mesh"
+        },
+        {
+          "mesh": "/xhand_right/right_hand_thumb_rota_link2/visuals/right_hand_thumb_rota_link2/node_STL_BINARY_/mesh",
+          "obstacle": "peer_left_006",
+          "geometry": "triangle_mesh"
+        },
+        {
+          "mesh": "tool",
+          "obstacle": "peer_left_006",
+          "geometry": "triangle_mesh"
+        },
+        {
+          "mesh": "/xhand_right/right_hand_thumb_rota_link2/visuals/right_hand_thumb_rota_link2/node_STL_BINARY_/mesh",
+          "obstacle": "peer_left_007",
+          "geometry": "triangle_mesh"
+        },
+        {
+          "mesh": "/xhand_right/right_hand_thumb_rota_tip/visuals/right_hand_thumb_rota_tip/node_STL_BINARY_/mesh",
+          "obstacle": "peer_left_007",
+          "geometry": "triangle_mesh"
+        },
+        {
+          "mesh": "tool",
+          "obstacle": "peer_left_007",
+          "geometry": "triangle_mesh"
+        },
+        {
+          "mesh": "/xhand_right/right_hand_thumb_rota_link1/visuals/right_hand_thumb_rota_link1/node_STL_BINARY_/mesh",
+          "obstacle": "peer_left_012",
+          "geometry": "triangle_mesh"
+        },
+        {
+          "mesh": "/xhand_right/right_hand_thumb_rota_link2/visuals/right_hand_thumb_rota_link2/node_STL_BINARY_/mesh",
+          "obstacle": "peer_left_012",
+          "geometry": "triangle_mesh"
+        },
+        {
+          "mesh": "/xhand_right/right_hand_thumb_rota_link2/visuals/right_hand_thumb_rota_link2/node_STL_BINARY_/mesh",
+          "obstacle": "peer_left_013",
+          "geometry": "triangle_mesh"
+        },
+        {
+          "mesh": "tool",
+          "obstacle": "peer_left_017",
+          "geometry": "triangle_mesh"
+        },
+        {
+          "mesh": "tool",
+          "obstacle": "peer_left_018",
+          "geometry": "triangle_mesh"
+        }
+      ]
+    }
+  ],
+  "conservative_surface_coverage": true,
+  "source_time_stretch": false,
+  "simulator_state_assignment": false
+}

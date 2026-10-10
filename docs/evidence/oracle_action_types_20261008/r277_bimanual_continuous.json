@@ -1,0 +1,127 @@
+{
+  "source": "oracle",
+  "source_provenance": {
+    "triplet": "(brush, eraser, plate)",
+    "sequence": "20231103_057",
+    "input": "raw TACO MANO and object poses",
+    "source_video": "/scratch/e0985859/egoengine_baseline/data/taco_v1/Egocentric_RGB_Videos/(brush, eraser, plate)/20231103_057/color.mp4",
+    "schedule_sha256": "4f1e00a466cf9e9185af33070750852ed62cc0dd5a842583ec3ce9fe2521ec60",
+    "full_robot_reference_used": false,
+    "vlm_used": false,
+    "transform_world_to_robot": [
+      [
+        -0.3564076659688237,
+        0.9343305848933204,
+        0.0,
+        0.5962575927013769
+      ],
+      [
+        -0.9343305539536939,
+        -0.3564076541666626,
+        -0.0,
+        -0.02380021369492084
+      ],
+      [
+        0.0,
+        0.0,
+        1.0,
+        -0.1766161823272705
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "hand_assignments": {
+      "right": {
+        "object_role": "tool"
+      },
+      "left": {
+        "object_role": "target"
+      }
+    },
+    "local_supporting_retarget": true
+  },
+  "source_fps": 30.0,
+  "source_duration_s": 3.6666666666666665,
+  "continuation_start_frame": 32,
+  "full_pipeline_success": false,
+  "task_success": false,
+  "continuous_execution_success": false,
+  "padded_artifacts_complete": false,
+  "vlm_used": false,
+  "complete_robot_reference_required": false,
+  "relaxed_reference_tracking": false,
+  "source_time_stretch": false,
+  "segments": [
+    {
+      "start": 32,
+      "end": 39,
+      "mode": "RELAXED",
+      "contact": "grasped",
+      "budget_s": 0.23333333333333334,
+      "success": false,
+      "hands": {
+        "right": {
+          "canonical_boundary_fit": {
+            "measured_tool_position_offset_m": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "measured_tool_rotation_offset_rad": 1.1014348120303502e-16,
+            "predicted_tool_position_error_m": 0.0013658263068215331,
+            "predicted_tool_rotation_error_rad": 0.5234033863765715,
+            "canonical_boundary_velocity_selected": true,
+            "nominal_planning_limits_unchanged": true,
+            "fixed_terminal_coordinate_velocity": false,
+            "interior_scales": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "feedback_model": "world_wrist_tracking_and_measured_hand_object_transform",
+            "source_condition_unchanged": true,
+            "physics_acceptance": false,
+            "collision_boundary_fitted": false,
+            "boundary_fit_attempts": [
+              {
+                "solver_success": true,
+                "solver_message": "Optimization terminated successfully",
+                "minimum_constraint": -1.814992600657206e-12,
+                "feasible": true,
+                "clearance_m": null
+              }
+            ],
+            "collision_gradient_used": false,
+            "collision_queries": 0,
+            "boundary_fit_elapsed_s": 0.1464568143710494
+          },
+          "source_entry_physically_verified": false
+        }
+      }
+    }
+  ],
+  "anchors": [],
+  "initial_preparation_uses_synthesis_context": true,
+  "retention_sampling": {
+    "relative_pose_and_native_touch_hz": 120.0,
+    "thumb_and_non_thumb_opposition_hz": 30.0,
+    "native_dropouts_recorded": true
+  },
+  "status": "failed",
+  "error": "RuntimeError: No native mesh colliders found for physical peer hand left",
+  "failure_source_frame": 32.0,
+  "retention_at_failure": {
+    "right": {
+      "position_m": 0.0,
+      "rotation_rad": 5.806891135833868e-17,
+      "contact_retained": true
+    }
+  },
+  "actual_duration_s": 1.0666666666666667,
+  "state_resets_between_segments": 0,
+  "actual_trace": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_bimanual_r277/physical/exported_core/actual_trace.json"
+}

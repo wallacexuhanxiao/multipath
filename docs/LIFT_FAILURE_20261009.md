@@ -2,20 +2,36 @@
 
 ## Latest correction — 2026-10-11
 
-Current bimanual evidence: A0 padded and exported-core replay pass, including
-actual tool lifting, but a full 3.666667 s rollout does not. r263 executes the
-whole first 0.233333 s bridge with both grasps retained, then misses the next
-source boundary. r268 exposes a missing collision obstacle: the moving right
-thumb intersects the supporting left palm at source 36–39. The two-hand
-planner previously included the table and objects, but omitted the other hand.
-The shared planner now includes the other hand's measured rigid-body geometry
-and refreshes its poses for execution checks. r269 rejects a blind clearance
-projection that cannot fit the original time; the replacement fits source pose,
-endpoint velocity and collision together. r270/r271 find no valid entry from
-the newer A0 exit, including seven optimizer initializations in r271. This is
-search failure, not proof that a feasible entry does not exist. No invalid path
-is executed or accepted. r272 tests the joint fit from the earlier r263 A0,
-whose unmodified bridge had physically completed the seven-frame interval.
+Current bimanual source is Brush `(brush, eraser, plate)`, `20231103_057`,
+110 frames at 30 fps (3.666667 s). r275 passes both A0 padded synthesis and
+fresh exported-core execution from the actual initial predecessor. Preserving
+the physically acquired grasp prefix lets the small residual PPO refine the
+remaining quiet tail: 15 updates / 63 episodes, 173.603 s. These are sampled
+executable controls, not a successful deterministic policy. A0 exit X velocity
+improves from -0.54656 to -0.15177 m/s. Both hands and objects remain dynamic;
+the supporting plate has no fixture.
+
+r276 freezes and reexecutes those validated controls. A0 passes again. Removing
+an undocumented internal budget shrink lets the canonical source/time fit pass
+using the original configured limits: predicted tool error 1.366 mm / 0.52340
+rad, inside the unchanged C.4 condition. However, all seven collision-constrained
+fits fail, so the first bridge is rejected before execution. This is search
+failure, not proof of infeasibility. A1/A2 and full task success remain unverified.
+
+The collision model also needs correction: it previously replaced a native
+convex decomposition with one whole convex envelope, filling geometric empty
+space. r277 uses the PhysX cooking interface to export the native convex pieces
+for the dynamic objects, preserving native contact offsets and measured
+transforms. Separate pieces are separate cuRobo obstacles. The trial exported
+one tool piece and sixteen plate pieces, then stopped because the proposed
+peer-native-mesh selector did not resolve the URDF's shared collider assets.
+That selector was reverted to the established full conservative peer-hand
+geometry. r278 validates the object-only repair's interface, dimensions and
+shape counts. Its A0 measured exits are identical to r276. The old proposed-goal
+tool/plate collision disappears, while right-hand/tool versus peer-left mesh
+collisions remain. Seven coupled fits fail in 94.010 s; no bridge is executed.
+No simulator geometry or acceptance threshold is changed. This corrects a model
+error without claiming the full pipeline succeeds or proving entry infeasibility.
 
 The suspected visual-only obstacle explanation was checked against both XHand
 URDFs: no link without collision geometry was found, and the EE links explicitly
@@ -24,7 +40,8 @@ contain collision geometry. They remain in the physical obstacle model.
 **Current result:** the first two-hand Anchor is physically valid; the complete
 bimanual pipeline is still unverified. No source-time stretching, new grasp
 threshold, intermediate state assignment, or deterministic-policy success
-claim was introduced. Latest physical failure video remains r268 (1.3 s).
+claim was introduced. Latest locally decoded A0 actual-state video is r275
+(32 frames, 30 fps, 1.066667 s); it is a passed prefix, not the complete task.
 
 ### Earlier single-hand investigation
 
@@ -940,7 +957,13 @@ fresh padded/core replay and replans the bridge from the new measured exit.
 | r269 / 658343 | The peer-hand world loads and A0 passes. Blind goal projection asks for +64.666 mm X displacement; its velocity/acceleration endpoint envelope permits only +8.005 mm. Rejected before bridge execution. |
 | r270 / 658360 | Freeze the physically validated r267 command and wrench artifact. Fresh padded/core A0 passes; one coupled source/time/collision fit finds no feasible boundary. |
 | r271 / 658377 | Same frozen r267 A0. Seven rotational initializations, all inside the existing oracle tolerance, find no boundary satisfying all constraints. Each proposed goal still has negative peer/world clearance; no bridge executed. Total job wall time 313.281 s. |
-| r272 / 658407 | Test the same coupled fit from the earlier r263 A0, preserving its full command/wrench artifact. Pending at this update. |
+| r272 / 658407 | Same coupled fit, earlier r263 A0 and frozen inputs. A0 passes again; seven optimizer attempts fail source/time/collision compatibility. Total job 378 s; bridge not executed. |
+| r273 / 658430 | Same physical A0 exit as r272; collision gradient and pose cache reduce total job from 378 s to about 140 s (fit 74.231 s). Seven candidates still fail compatibility; no bridge executed. |
+| r274 / 658437 | The quiet-tail proposal preserves the earlier commands, wrenches and physical grasp exactly. At core exit, native grip remains and X velocity falls from -0.5466 to -0.2096 m/s. Actual object error 28.99 mm / 0.5546 rad fails unchanged C.4. MPC and 22 small-PPO updates fail fresh acceptance; no bridge. |
+| r275 / 658476 | Preserve the acquired-grasp prefix in MPC/PPO. Padded and fresh core both pass after 15 PPO updates / 63 episodes, 173.603 s. Physical exit X velocity -0.15177 m/s. The old internally shrunken canonical fit rejects the next entry. |
+| r276 / 658492 | Freeze r275 and use the original configured source/velocity/acceleration budgets. A0 and the nominal next-boundary fit pass. Seven collision/source/time fits fail (75.157 s); no bridge executed. |
+| r277 / 658513 | A0 passes. Native cooking exports 1 tool piece and 16 plate pieces. Peer-native-mesh ownership fails before planning; trial rejected. The proposed peer selector is reverted. |
+| r278 / 658539 | A0 passes with identical measured exits to r276. Native object shapes match tensor counts (tool 1, plate 16), with correct metre scale. Proposed-goal plate collision disappears; peer-left collisions remain. Seven fits fail in 94.010 s; no bridge executed. Job total about 142 s. |
 
 The r266/r267 result is an executable sampled command artifact, **not proof
 that the deterministic PPO policy succeeds**. The optimizer is still the
@@ -996,4 +1019,90 @@ Source and discrete timing rows retain float64 differences. Distance/gradient
 queries are cached by pose because endpoint velocity does not change geometry.
 No constraint, threshold, or source clock changes. The established fit without
 collision input is retained. r272 started with the preceding numerical backend;
-this gradient change awaits a matched fresh physical rerun.
+r273 verifies the gradient backend in a matched fresh rerun: both hands' actual core exits are identical to r272. It improves iteration time but does not produce a feasible bridge boundary.
+
+### Reusable exit resynthesis after r273
+
+The physical r263/r272/r273 core exit still moves at -0.5466 m/s in world X.
+This outgoing momentum consumes most of the following 0.233333 s acceleration
+budget. Passing the local grasp and nominal velocity ceiling is insufficient
+for the next collision-constrained entry. We now use the failed canonical fit
+as a trigger to refit only the physically acquired grasp tail, retaining the
+earlier acquisition and all finger commands. Its start is derived from native
+contact history, not a source-specific frame constant. Choose a quiet command
+exit under the original object boundary, then fit the same fixed-time tail.
+Actual padded/core replay and actual outgoing planning still decide validity;
+zero command velocity is not claimed to be zero measured velocity.
+
+For this recorded prefix the acquired tail is source [25,32], 0.233333 s. The
+cheap nominal fit finds a boundary with 5.24 mm / 0.1985 rad predicted object
+error and zero terminal command slope, within the existing source condition
+and nominal limits. This is a command proposal only. r274 reexecutes the task
+initial predecessor, tries padded Replay, falls back to both-hand PhysX MPC and
+small residual PPO if necessary, and then performs fresh exported-core replay
+before trying the bridge. No extra settling time or state assignment is used.
+
+The r274 Replay control comparison confirms that commands, wrenches and measured
+state through acquired-grasp frame 25 are exactly identical to r273. Its physical
+exit retains thumb/non-thumb opposition, but object fidelity fails (28.99 mm /
+0.5546 rad, or 31.77 degrees). Thus the nominal 5.24 mm / 0.1985 rad prediction
+does not capture grasp/closed-loop deflection. The actual X exit speed improves
+from -0.5466 to -0.2096 m/s. This is useful dynamics evidence, not a valid artifact.
+
+A search-flow omission was also corrected: local MPC/PPO had frozen only the
+incoming synthesis context, so an exit-only repair could perturb the previously
+passed acquisition inside CORE. The frozen-prefix extent now comes from the
+physically acquired grasp record; fresh acceptance keeps exactly that prefix
+and searches the remaining tail. No sample/frame constant selects the extent.
+The small residual model, rewards, source condition and final acceptance stay
+unchanged. r275 verifies this correction with successful fresh padded/core replay.
+
+New locally decoded actual-state video:
+`outputs/oracle_action_types_20261008/r274_bimanual/padded/floating_xhand_actual.mp4`
+
+### Declared budgets and native collision pieces
+
+The canonical fitter had multiplied the configured velocity, acceleration and
+source-error budgets by 0.98, 0.95 and 0.98. Those extra interiors excluded a
+necessary boundary despite the original configured limits allowing it. The
+bimanual caller now uses the original budgets; the established default for the
+earlier single-hand backend is retained. Nominal command fitting and actual
+physical validation still apply their original limits and C.4/grasp checks.
+r276 demonstrates the nominal improvement, but not a collision-safe bridge.
+
+Native convex cooking is available through the installed PhysX
+`request_convex_collision_representation` interface. The new planner retains
+each cooked piece and its authored collider transform, with native contact
+offset inflation. Dynamic object pieces are distinct world obstacles, preventing
+an overlapping combined mesh from corrupting signed distance. Peer-hand geometry
+retains the previously validated measured convex envelopes; its failed native
+selector from r277 is not part of the final implementation. Execution continues
+refreshing measured poses. This correction is independent of action names and
+source frame constants. r278 exports 16 plate pieces and one tool piece, matching
+their current native contact-offset tensor shape counts. Raw active-actor vertex
+equivalence is not asserted. Native PhysX tool/plate contact remains an independent
+hard gate. The cooked plate envelope reaches local Z +21.482 mm, versus visual
+mesh +14.417 mm; a visual-mesh hull is insufficient to describe native contact.
+
+The matched predecessor demonstrates a concrete modeling correction: r276's
+nominal goal intersected the whole plate envelope; r278's corresponding goal does
+not intersect any native plate piece. Both still intersect the supporting-hand
+geometry. The current strategy holds that hand stationary whenever its object is
+already inside the next source boundary. Joint boundary selection or a different
+physically validated canonical grasp remains necessary to investigate; the seven
+failed fits do not prove that all possible grasps or coordinated hand motions fail.
+The full 3.666667 s trajectory, later padded/core Anchors and task success have
+not passed. No failed candidate is converted into an accepted artifact.
+
+Locally verified passed-prefix video:
+`outputs/oracle_action_types_20261008/r275_bimanual/exported_core/floating_xhand_actual.mp4`.
+
+Measured A0 prefix: tool height increases 21.591 mm relative to task initial
+state. The graph shows actual right-wrist velocity and both hands' native
+opposition-contact flags; supporting-hand contact is intermittent during
+acquisition, rather than claimed continuously stable throughout A0. Its exit
+has native thumb/non-thumb opposition, and padded continuation is checked
+separately. The graph ends at 1.066667 s and is not full-task success evidence.
+
+![Measured A0 prefix](evidence/oracle_action_types_20261008/r275_actual_prefix.png)
+(32 source-frame intervals at 30 fps; failed 1.066667 s Replay prefix).

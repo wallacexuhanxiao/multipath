@@ -1,0 +1,25 @@
+{
+  "scope": "measured quiet-tail Replay, not accepted artifact",
+  "wrist_position_tracking_error_m": 0.014423817588726602,
+  "wrist_rotation_tracking_error_rad": 0.07432576489388965,
+  "hand_object_translation_change_m": 0.008620415727835295,
+  "hand_object_rotation_change_rad": 0.313552984186843,
+  "commanded_exit_twist": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+  ],
+  "actual_exit_twist": [
+    -0.2095891851187981,
+    -0.008996781394240424,
+    0.09849413494497355,
+    -0.13536235690116882,
+    0.7565771341323853,
+    -0.017970062792301178
+  ],
+  "native_grasp_retained": true,
+  "state_assignment": false
+}

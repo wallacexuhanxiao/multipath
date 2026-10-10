@@ -321,10 +321,17 @@ class FloatingPlanner:
         self.separate_object=bool(carry and self.allowed_object_contacts)
         cfg,self.sphere_count=robot_model(scene,carry,out,goal_hand,self.separate_object)
         live={'cuboid':{'table':scene.table},'mesh':{}}
+        self.object_meshes={}
+        import json
         for role in (['target'] if carry else ['tool','target']):
             p,q=scene.objects[role].get_world_pose()
-            path=self.out/(role+'_planning_collision.obj');planning_object_mesh(scene,role).export(path)
-            live['mesh'][role]=dict(file_path=str(path),pose=np.r_[p,q].tolist())
+            planning_object_mesh(scene,role)
+            for i,mesh in enumerate(scene.planning_object_parts[role]):
+                name=role if len(scene.planning_object_parts[role])==1 else f'{role}_part_{i:03d}'
+                path=self.out/(name+'_planning_collision.obj');mesh.export(path)
+                self.object_meshes[name]=dict(mesh=mesh,role=role)
+                live['mesh'][name]=dict(file_path=str(path),pose=np.r_[p,q].tolist())
+        (Path(out)/'object_collision_model.json').write_text(json.dumps(scene.planning_object_geometry,indent=2))
         from multipath.planning.hand_geometry import measured_peer_meshes
         self.peer_meshes=measured_peer_meshes(scene,self.out)
         for role,value in self.peer_meshes.items():
@@ -333,7 +340,8 @@ class FloatingPlanner:
         self.obstacle_roles=[]
         self.nominal_spheres=cfg['kinematics']['collision_spheres']['wrist']
         self.live=live
-        if any(role not in live['cuboid'] and role not in live['mesh'] for role in self.allowed_object_contacts):
+        if any(role not in live['cuboid'] and not any(v['role']==role for v in self.object_meshes.values())
+               for role in self.allowed_object_contacts):
             raise ValueError('Allowed object contact names an absent environment geometry')
         import json
         (Path(out)/'world_geometry.json').write_text(json.dumps(live,indent=2))
@@ -541,10 +549,12 @@ class FloatingPlanner:
 
     def world_clearance(self,centers,radii,gradient=False,per_sphere=False,ignored=()):
         checker=self.planner.world_coll_checker
-        for role in ignored:checker.enable_obstacle(role,False)
+        names=[name for name in (*self.live['cuboid'],*self.live['mesh'])
+               if name in ignored or self.object_meshes.get(name,{}).get('role') in ignored]
+        for role in names:checker.enable_obstacle(role,False)
         try:return self._world_clearance(centers,radii,gradient,per_sphere)
         finally:
-            for role in ignored:checker.enable_obstacle(role,True)
+            for role in names:checker.enable_obstacle(role,True)
 
     def _world_clearance(self,centers,radii,gradient=False,per_sphere=False):
         from curobo.geom.sdf.world import CollisionQueryBuffer
@@ -723,10 +733,12 @@ class FloatingPlanner:
 
     def mesh_obstacle(self,role):
         if role in self.peer_meshes:return self.peer_meshes[role]['mesh']
+        if role in self.object_meshes:return self.object_meshes[role]['mesh']
         return planning_object_mesh(self.scene,role)
 
     def mesh_obstacle_pose(self,role):
-        if role not in self.peer_meshes:return self.scene.objects[role].get_world_pose()
+        if role not in self.peer_meshes:
+            return self.scene.objects[self.object_meshes.get(role,{}).get('role',role)].get_world_pose()
         from pxr import UsdGeom
         value=self.peer_meshes[role]
         matrix=np.asarray(UsdGeom.XformCache().GetLocalToWorldTransform(value['prim'])).T
@@ -783,7 +795,7 @@ class FloatingPlanner:
                     position=delta[:3,:3]@p+delta[:3,3]
                     bodies.append(('tool',fcl.CollisionObject(self.fcl_objects['tool'],fcl.Transform(rotation,position))))
                 for name,body in bodies:
-                    if name=='tool' and role in self.allowed_object_contacts:continue
+                    if name=='tool' and self.object_meshes.get(role,{}).get('role',role) in self.allowed_object_contacts:continue
                     if fcl.collide(body,obstacle,fcl.CollisionRequest(),fcl.CollisionResult()):
                         collisions.append(dict(mesh=name,obstacle=role,geometry='triangle_mesh'))
         return collisions

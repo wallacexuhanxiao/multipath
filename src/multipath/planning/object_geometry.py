@@ -1,4 +1,35 @@
-"""Conservative planning envelopes for the scene's authored collision model."""
+"""Planning geometry from the scene's authored PhysX collision model."""
+
+
+def native_convex_meshes(stage,prim):
+    """Read each cooked convex piece without changing or advancing physics.
+
+    The PhysX cooking interface uses the collider's authored approximation;
+    replacing its decomposition with one hull fills real empty space.
+    Vertices are returned in the collider mesh's local coordinates.
+    """
+    import numpy as np
+    import trimesh
+    from pxr import UsdUtils,PhysicsSchemaTools
+    from omni.physx import get_physx_cooking_interface
+    from omni.physx.bindings._physx import PhysxCollisionRepresentationResult
+    result=[]
+    def receive(status,convexes):
+        if status!=PhysxCollisionRepresentationResult.RESULT_VALID:
+            raise RuntimeError(f'Native collision geometry unavailable for {prim.GetPath()}: {status}')
+        for convex in convexes:
+            indices=np.asarray(convex.indices,dtype=int);faces=[]
+            for polygon in convex.polygons:
+                vertices=indices[polygon.index_base:polygon.index_base+polygon.num_vertices]
+                faces.extend((vertices[0],vertices[j],vertices[j+1]) for j in range(1,len(vertices)-1))
+            result.append(trimesh.Trimesh(vertices=np.asarray(convex.vertices,dtype=float),
+                faces=np.asarray(faces,dtype=int),process=False))
+    get_physx_cooking_interface().request_convex_collision_representation(
+        stage_id=UsdUtils.StageCache.Get().GetId(stage).ToLongInt(),
+        collision_prim_id=PhysicsSchemaTools.sdfPathToInt(str(prim.GetPath())),
+        run_asynchronously=False,on_result=receive)
+    if not result:raise RuntimeError(f'No native convex pieces for {prim.GetPath()}')
+    return result
 
 
 def convex_contact_envelope(mesh,offset):
@@ -17,17 +48,18 @@ def convex_contact_envelope(mesh,offset):
 def planning_object_mesh(scene,role):
     """Keep dynamic convex cooking out of a visual-triangle-only world.
 
-    A convex decomposition can occupy a visual cavity. Its convex envelope
-    conservatively covers that space; native continuous physics still decides
-    acceptance. Kinematic triangle surfaces keep their original geometry.
+    Keep all native convex pieces individually; their contact envelopes retain
+    authored empty space. Kinematic triangle surfaces keep their geometry.
     """
-    from pxr import Usd,UsdPhysics
+    from pxr import Usd,UsdGeom,UsdPhysics
     if not hasattr(scene,'planning_object_meshes'):
-        scene.planning_object_meshes={};scene.planning_object_geometry={}
+        scene.planning_object_meshes={};scene.planning_object_geometry={};scene.planning_object_parts={}
     if role not in scene.planning_object_meshes:
         root=scene.world.stage.GetPrimAtPath(scene.objects[role].prim_path)
-        approximate={UsdPhysics.MeshCollisionAPI(prim).GetApproximationAttr().Get()
-                     for prim in Usd.PrimRange(root) if prim.HasAPI(UsdPhysics.CollisionAPI)}
+        colliders=[prim for prim in Usd.PrimRange(root,Usd.TraverseInstanceProxies())
+                   if prim.IsA(UsdGeom.Mesh) and prim.HasAPI(UsdPhysics.CollisionAPI)
+                   and UsdPhysics.CollisionAPI(prim).GetCollisionEnabledAttr().Get() is not False]
+        approximate={UsdPhysics.MeshCollisionAPI(prim).GetApproximationAttr().Get() for prim in colliders}
         kinematic=bool(UsdPhysics.RigidBodyAPI(root).GetKinematicEnabledAttr().Get())
         convex=not kinematic and bool(approximate&{'convexHull','convexDecomposition'})
         import numpy as np
@@ -35,12 +67,30 @@ def planning_object_mesh(scene,role):
         contact=np.asarray(view.get_contact_offsets());rest=np.asarray(view.get_rest_offsets())
         offset=float(np.max(contact[np.isfinite(contact)],initial=0.)) if convex else 0.
         mesh=scene.meshes[role]
-        scene.planning_object_meshes[role]=convex_contact_envelope(mesh.convex_hull,offset) if convex else mesh
+        parts=[mesh]
+        if convex:
+            from multipath.execution.mounted_scene import pose_matrix
+            import trimesh
+            p,q=scene.objects[role].get_world_pose();inverse=np.linalg.inv(pose_matrix(np.r_[p,q]))
+            cache=UsdGeom.XformCache();parts=[]
+            for prim in colliders:
+                matrix=inverse@np.asarray(cache.GetLocalToWorldTransform(prim)).T
+                for cooked in native_convex_meshes(scene.world.stage,prim):
+                    cooked.apply_transform(matrix)
+                    parts.append(convex_contact_envelope(cooked,offset))
+            mesh=trimesh.util.concatenate(parts)
+        scene.planning_object_parts[role]=parts
+        scene.planning_object_meshes[role]=mesh
         scene.planning_object_geometry[role]=dict(physx_approximation=sorted(str(x) for x in approximate),
-            kinematic=kinematic,planning_representation='convex_envelope_with_native_contact_offset' if convex else 'source_triangle_mesh',
+            kinematic=kinematic,planning_representation='native_convex_pieces_with_contact_offset' if convex else 'source_triangle_mesh',
             native_physics_unchanged=True,exact_native_cooked_geometry=False if convex else None,
+            geometry_origin='PhysX cooking representation of authored collider; not active actor shape introspection',
+            native_piece_count=len(parts),authored_collision_prims=[str(p.GetPath()) for p in colliders],
+            native_contact_offset_tensor_shape_slots=int(contact.shape[-1]),
+            source_mesh_bounds_m=scene.meshes[role].bounds.tolist(),planning_mesh_bounds_m=mesh.bounds.tolist(),
             native_contact_offsets_m=contact.tolist(),native_rest_offsets_m=rest.tolist(),
             contact_envelope_inflation_m=offset)
+        print('NATIVE_OBJECT_COLLISION_GEOMETRY',role,len(parts),mesh.bounds.tolist(),flush=True)
     return scene.planning_object_meshes[role]
 
 
