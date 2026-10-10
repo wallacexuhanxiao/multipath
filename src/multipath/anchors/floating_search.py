@@ -8,10 +8,56 @@ from pathlib import Path
 import numpy as np
 from scipy.spatial.transform import Rotation
 from multipath.anchors.mpc import WindowEvaluation,mppi_mean,RefinementRequired
-from multipath.anchors.floating import controls_from_poses,validate_commands,object_relative_command,object_relative_handoff,hand_command_boundary,project_hand_commands,grasp_command_bounds,stopping_context,acquisition_preload,AcquiredGraspProposal,grasp_drive_transform,join_core_controls
+from multipath.anchors.floating import controls_from_poses,validate_commands,object_relative_command,object_relative_handoff,hand_command_boundary,project_hand_commands,grasp_command_bounds,stopping_context,acquisition_preload,AcquiredGraspProposal,grasp_drive_transform,join_core_controls,outgoing_carry_context
 from multipath.anchors.ppo import MountedResidualEnv,LocalPPOSolver,PPOConfig
 from multipath.planning.timing import physics_ticks_per_frame
 from multipath.validation.physics import object_tracking_parameters,object_optimization_parameters
+
+
+def carry_preload_candidates(scene,anchor,baseline,start,core_exit):
+    """Small contact-directed MPC proposals around an executed grasp.
+
+    Preserve its wrist program; use actual-contact surface Jacobians for the
+    thumb and loaded opposing finger. Shared MPC noise sets the radius. Every
+    proposal still requires a fresh whole padded physical rollout.
+    """
+    if anchor.exit_contact!='grasped' or core_exit['contact']['mode']!='grasped':return
+    from multipath.anchors.mpc import MPCConfig
+    from multipath.anchors.pinch import contact_linearization
+    from multipath.anchors.grasp_retarget import tool_surface_distance
+    contact=core_exit['contact'];groups=('thumb','index','mid','ring','pinky')
+    loads={group:sum(force for path,force in zip(contact['link_paths'],contact['force_norms_n'])
+                    if group in path.rsplit('/',1)[-1]) for group in groups[1:]}
+    opposing=max(loads,key=loads.get)
+    distance=tool_surface_distance(scene.meshes['tool'],cache=scene.args.proposals/'geometry_cache')
+    pinch=contact_linearization(scene.args.xhand_urdf,distance,np.linalg.inv(core_exit['hand_object_transform']),
+        core_exit['hand_q'],opposing,side=getattr(scene,'side','right'))
+    gradient=np.asarray(pinch['gap_gradient_m_per_rad'])
+    frame=(start['time_s']+np.arange(1,len(baseline)+1)*scene.dt)*scene.manifest['fps']
+    phase=np.clip((frame-anchor.core_start)/(anchor.core_end-anchor.core_start),0,1)
+    envelope=phase**2*(3-2*phase)
+    hand_offsets=np.asarray(scene.contacts._physics_view.get_contact_offsets())
+    object_offsets=np.asarray(scene.objects['tool']._rigid_prim_view._physics_view.get_contact_offsets())
+    contact_band=float(np.max(hand_offsets,initial=0.)+np.max(object_offsets,initial=0.))
+    for selected,derivative in [(['thumb'],gradient[0]),(['thumb',opposing],gradient.sum(0))]:
+        magnitude=np.max(np.abs(derivative))
+        if magnitude<1e-8:continue
+        # Anatomical positive flexion can move a fitted phalange away from
+        # a thin rim. Move toward the actual object surface instead.
+        direction=-derivative/magnitude
+        # A fixed angular radius displaces a small rim by centimetres. Size
+        # this bounded preload family in metres from the actual contact band,
+        # then map it through the observed surface Jacobian.
+        surface_rate=float(np.max(np.abs(gradient@direction)))
+        radius=min(MPCConfig().finger_sigma_rad,contact_band/max(surface_rate,1e-8))
+        for scale in np.linspace(.25,1.,4)*radius:
+            proposal=np.asarray(baseline).copy()
+            proposal[:,7:19]+=envelope[:,None]*scale*direction
+            yield project_hand_commands(scene,proposal,start,anchor),dict(
+                method='actual_surface_Jacobian_preload_MPC',groups=selected,max_residual_rad=float(scale),
+                native_contact_band_m=contact_band,proposal_radius_rad=float(radius),
+                contact_linearization=pinch,
+                wrist_program_unchanged=True,source_time_stretch=False,physical_acceptance=False)
 
 
 def apply_residual(scene,baseline,start,residual,tpf,envelope,anchor=None):
@@ -19,7 +65,12 @@ def apply_residual(scene,baseline,start,residual,tpf,envelope,anchor=None):
     ticks=len(baseline);sample=np.arange(ticks+1)/tpf
     delta=np.vstack((np.zeros(18),residual));grid=np.arange(len(delta))
     interp=np.stack([np.interp(sample,grid,delta[:,j]) for j in range(18)],axis=1)
-    interp*=np.asarray(envelope)[:,None]
+    envelope=np.asarray(envelope).copy()
+    fixed=int(getattr(scene,'frozen_synthesis_prefix_ticks',0))
+    if fixed:
+        phase=np.clip((np.arange(ticks+1)-fixed-1)/max(1,tpf),0,1)
+        envelope*=phase**2*(3-2*phase)
+    interp*=envelope[:,None]
     poses=np.vstack((start['wrist_xyz_wxyz'],baseline[:,:7]));hands=np.vstack((hand_command_boundary(start),baseline[:,7:19]))
     poses[:,:3]+=interp[:,:3]
     rotations=Rotation.from_rotvec(interp[:,3:6])*Rotation.from_quat(poses[:,[4,5,6,3]])
@@ -46,11 +97,18 @@ def ppo_retarget_commands(scene,anchor,data,baseline,start,begin):
     changes only commands, never actual hand/object states.
     """
     details=scene.manifest.get('retarget_details',{}).get(anchor.id,{})
-    if getattr(scene,'validated_core_reference',False):
+    if getattr(scene,'surface_supported_object',False):
+        from multipath.planning.object_geometry import supported_object_targets
+        poses,report=supported_object_targets(scene,data['tool_pose'],start)
+        data=dict(data,tool_pose=poses)
+        scene.last_ppo_support_projection=report
+    if getattr(scene,'validated_core_reference',False) or getattr(scene,'compiled_local_command_reference',False):
         # The predecessor really executed this local retarget core. Carry
         # repair must refine that successful reference under outgoing load,
         # rather than replacing it with the earlier failed raw acquisition.
-        return project_hand_commands(scene,baseline,start,anchor),'physically_executed_local_retarget_core'
+        origin=('physically_executed_local_retarget_core' if getattr(scene,'validated_core_reference',False)
+                else 'compiled_local_replay_proposal; physical acceptance required')
+        return project_hand_commands(scene,baseline,start,anchor),origin
     if ((anchor.entry_contact,anchor.exit_contact)!=('free','grasped')
             or details.get('method')!='local_mesh_opposition_surface_IK'):
         return project_hand_commands(scene,baseline,start,anchor),'fixed_local_command_proposal'
@@ -188,7 +246,8 @@ class FloatingResidualEnv(MountedResidualEnv):
                                 self.post_commands=stopping_context(last,len(self.baseline)-core_tick,self.scene.dt)
                             else:
                                 boundary=self.scene.snapshot()
-                                self.post_commands=project_hand_commands(self.scene,np.asarray(context).copy(),boundary,self.anchor)
+                                post=outgoing_carry_context(self.scene,last,len(self.baseline)-core_tick)
+                                self.post_commands=project_hand_commands(self.scene,post,boundary,self.anchor)
                         c=self.post_commands[tick-core_tick].copy()
                 c,self.preload_bounds=acquisition_preload(self.scene,self.anchor,c,self.preload_bounds)
                 if self.controller_handoff:
@@ -208,7 +267,7 @@ class FloatingResidualEnv(MountedResidualEnv):
                 if (getattr(self.scene,'post_context_commands',None) is not None
                         and frame>self.anchor.core_end and self.objective.held is not None):
                     from multipath.validation.physics import check_retention,check_relaxed_tool_target_contact
-                    check_retention(self.scene.state(),self.objective.held)
+                    check_retention(self.scene.state(),self.objective.held,require_opposition=(tick+1)%self.tpf==0)
                     check_relaxed_tool_target_contact(self.scene,self.post_contact_steps)
             self.objective.observe(frame,c);self.failure=self.objective.failure
         except (RuntimeError,ValueError) as error:self.failure={'source_frame':self.scene.ticks*self.scene.dt*self.fps,'reason':str(error)}
@@ -257,6 +316,9 @@ def refine(scene,anchor,data,baseline,start,out,candidates=64,iterations=3,use_p
         try:
             for j,c in enumerate(control):
                 frame=anchor.synth_start+(begin+j+1)/tpf
+                if getattr(scene,'post_context_commands',None) is not None and frame==anchor.core_end+1/tpf:
+                    control[j:]=outgoing_carry_context(scene,executed_control[j-1],len(control)-j)
+                    executed_control[j:]=control[j:];c=control[j]
                 if acquisition is not None and frame<=anchor.core_end:
                     c,nominal_previous=acquisition.command_with_residual(frame,nominal_control[j],c,nominal_previous)
                     held=acquisition.held
@@ -317,7 +379,7 @@ def refine(scene,anchor,data,baseline,start,out,candidates=64,iterations=3,use_p
                 if (getattr(scene,'post_context_commands',None) is not None
                         and frame>anchor.core_end and objective.held is not None):
                     from multipath.validation.physics import check_retention,check_relaxed_tool_target_contact
-                    check_retention(scene.state(),objective.held)
+                    check_retention(scene.state(),objective.held,require_opposition=(j+1)%tpf==0)
                     check_relaxed_tool_target_contact(scene,post_contact_steps)
                 if (j+1)%tpf==0 and not objective.observe(frame,c):break
                 if j+1==prefix_ticks and not objective.tracking_failures:

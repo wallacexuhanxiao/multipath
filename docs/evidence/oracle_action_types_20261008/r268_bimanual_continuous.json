@@ -1,0 +1,583 @@
+{
+  "source": "oracle",
+  "source_provenance": {
+    "triplet": "(brush, eraser, plate)",
+    "sequence": "20231103_057",
+    "input": "raw TACO MANO and object poses",
+    "source_video": "/scratch/e0985859/egoengine_baseline/data/taco_v1/Egocentric_RGB_Videos/(brush, eraser, plate)/20231103_057/color.mp4",
+    "schedule_sha256": "4f1e00a466cf9e9185af33070750852ed62cc0dd5a842583ec3ce9fe2521ec60",
+    "full_robot_reference_used": false,
+    "vlm_used": false,
+    "transform_world_to_robot": [
+      [
+        -0.3564076659688237,
+        0.9343305848933204,
+        0.0,
+        0.5962575927013769
+      ],
+      [
+        -0.9343305539536939,
+        -0.3564076541666626,
+        -0.0,
+        -0.02380021369492084
+      ],
+      [
+        0.0,
+        0.0,
+        1.0,
+        -0.1766161823272705
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "hand_assignments": {
+      "right": {
+        "object_role": "tool"
+      },
+      "left": {
+        "object_role": "target"
+      }
+    },
+    "local_supporting_retarget": true
+  },
+  "source_fps": 30.0,
+  "source_duration_s": 3.6666666666666665,
+  "continuation_start_frame": 32,
+  "full_pipeline_success": false,
+  "task_success": false,
+  "continuous_execution_success": false,
+  "padded_artifacts_complete": false,
+  "vlm_used": false,
+  "complete_robot_reference_required": false,
+  "relaxed_reference_tracking": false,
+  "source_time_stretch": false,
+  "segments": [
+    {
+      "start": 32,
+      "end": 39,
+      "mode": "RELAXED",
+      "contact": "grasped",
+      "budget_s": 0.23333333333333334,
+      "success": false,
+      "hands": {
+        "right": {
+          "canonical_boundary_fit": {
+            "measured_tool_position_offset_m": [
+              0.0,
+              -2.7755575615628914e-17,
+              0.0
+            ],
+            "measured_tool_rotation_offset_rad": 5.1813632583625755e-17,
+            "predicted_tool_position_error_m": 0.0361924251885305,
+            "predicted_tool_rotation_error_rad": 0.280155435543087,
+            "canonical_boundary_velocity_selected": true,
+            "nominal_planning_limits_unchanged": true,
+            "feedback_model": "world_wrist_tracking_and_measured_hand_object_transform",
+            "source_condition_unchanged": true,
+            "physics_acceptance": false
+          },
+          "source_entry_physically_verified": false,
+          "boundary_feedback": {
+            "measured_tool_position_offset_m": [
+              -0.0031366499040165197,
+              -0.04229621380283825,
+              0.013087571508215823
+            ],
+            "measured_tool_rotation_offset_rad": 0.1460754778026967,
+            "predicted_tool_position_error_m": 0.045130265250639005,
+            "predicted_tool_rotation_error_rad": 0.29044718337258524,
+            "canonical_boundary_velocity_selected": true,
+            "nominal_planning_limits_unchanged": true,
+            "feedback_model": "world_wrist_tracking_and_measured_hand_object_transform",
+            "source_condition_unchanged": true,
+            "physics_acceptance": false,
+            "physical_rollout": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_bimanual_r263/physical",
+            "acceptance_reused": false
+          },
+          "allowed_object_environment_contacts": [],
+          "boundary_clearance_m": 0.0001,
+          "boundary_precheck": {
+            "feasible": true,
+            "reasons": [],
+            "budget_s": 0.23333333333333334,
+            "minimum_duration_velocity_only_s": 0.16286651742816774,
+            "minimum_duration_velocity_change_only_s": 0.21374999844003817,
+            "coordinate_displacement": [
+              -0.004544847164064503,
+              0.1425594703975251,
+              -0.007039317152104152,
+              0.48859955228450325,
+              -0.10969500748323568,
+              -0.14257879410232288
+            ],
+            "initial_coordinate_velocity": [
+              -0.546563509024045,
+              0.13622826781356512,
+              0.2060245539614591,
+              2.477659254240816,
+              0.12138294191998965,
+              0.500705895989384
+            ],
+            "terminal_coordinate_velocity": [
+              0.5221864831761458,
+              0.729978262672265,
+              0.03498181144756529,
+              0.6843452240667957,
+              0.22903427834286558,
+              -0.26729141129333556
+            ],
+            "hand_q_max_difference_rad": 0.0,
+            "reachable_displacement_lower": [
+              -0.013788214613081749,
+              0.050628825820859896,
+              -0.038475365269502335,
+              0.21833344264953783,
+              -0.16309151079877304,
+              -0.16710464571890254
+            ],
+            "reachable_displacement_upper": [
+              0.008100241915238568,
+              0.1514319989379491,
+              0.09471018386494137,
+              0.5121634368005827,
+              0.24485552886010592,
+              0.22156802548131388
+            ],
+            "limits_provenance": "configured nominal planning budget; not hardware ratings"
+          },
+          "surface_supported_payload": false,
+          "drive_memory_profile": {
+            "method": "measured_response_bandwidth",
+            "model": {
+              "model": "measured_rigid_grasp_Newton_Euler",
+              "mass_kg": 1.2723850011825562,
+              "hand_mass_kg": 1.1223849058151245,
+              "center_root_m": [
+                0.006705556233083775,
+                0.0259296376019854,
+                -0.09243306564436758
+              ],
+              "inertia_root_kg_m2": [
+                [
+                  0.015687179985611113,
+                  -0.0008216147442857002,
+                  0.0009033919594733038
+                ],
+                [
+                  -0.0008216147456360675,
+                  0.014844721266231478,
+                  0.003849209823117091
+                ],
+                [
+                  0.0009033919597326368,
+                  0.0038492098219878724,
+                  0.0031626791165675276
+                ]
+              ],
+              "physical_validation_required": true
+            },
+            "duration_s": 0.23333333333333334,
+            "source_time_stretch": false,
+            "physical_validation_required": true
+          },
+          "planning": {
+            "budget_s": 0.23333333333333334,
+            "curobo_duration_s": 0.23333333333333334,
+            "time_scale": 1.0,
+            "command_velocity_ratio": 0.9999999999999964,
+            "command_acceleration_ratio": 1.0000000000001563,
+            "parameterization": "endpoint_constrained_geometric_fit",
+            "geometry_max_adjustment": 0.23704375458871185,
+            "boundary_velocities_preserved": true,
+            "previous_fit_rejections": [
+              "fixed_budget: Fixed source budget violates dynamics: velocity=1.183, acceleration=27.379",
+              "path_parameterization: Boundary velocity is incompatible with the geometric path"
+            ],
+            "planner": "cuRobo_virtual_6DOF",
+            "hand_collision_spheres": 105,
+            "carried_object_collision": true,
+            "allowed_attached_object_contacts": [],
+            "geometry_solver": "curobo_graph_then_fixed_source_time_fit",
+            "curobo_optimize_dt": false,
+            "curobo_optimization_budget_s": 0.23333333333333334,
+            "collision_cover_refined_over_fitted_path": true,
+            "reference_tracking": false,
+            "source_time_stretch": false,
+            "arm_model_used": false,
+            "tracking_margin_m": 0.0,
+            "previous_command_tracking_margin_m": 0.031153520152227172,
+            "hand_boundary_motion": false,
+            "planned_hand_geometry": "entry_posture",
+            "planned_hand_sweep_samples": 1,
+            "hand_boundary_collision_validation": "measured_geometry_each_physics_step"
+          }
+        },
+        "left": {
+          "canonical_boundary_fit": {
+            "measured_tool_position_offset_m": [
+              0.0,
+              4.163336342344337e-17,
+              5.551115123125783e-17
+            ],
+            "measured_tool_rotation_offset_rad": 5.88954982674039e-17,
+            "predicted_tool_position_error_m": 1.3151844438153687e-08,
+            "predicted_tool_rotation_error_rad": 2.0559765070259103e-09,
+            "canonical_boundary_velocity_selected": true,
+            "nominal_planning_limits_unchanged": true,
+            "feedback_model": "world_wrist_tracking_and_measured_hand_object_transform",
+            "source_condition_unchanged": true,
+            "physics_acceptance": false
+          },
+          "source_entry_physically_verified": false,
+          "support_boundary_projection": {
+            "support": "table",
+            "measured_support_clearance_m": 4.221141064464362e-07,
+            "normal_translation_m": [
+              -0.005572000961529877,
+              -0.005558806871591271,
+              -0.005505640219991892
+            ],
+            "original_source_condition_unchanged": true,
+            "object_state_assignment": false
+          },
+          "persistent_constraint": "native supported contact stabilization",
+          "spatial_motion_required": false,
+          "controller_origin": "previously_executed_drive",
+          "source_time_stretch": false,
+          "source_boundary_checked": true,
+          "curobo_used": false,
+          "validated_support_context_retained": true,
+          "handoff_force_trace": [
+            {
+              "time_s": 1.0666666666666667,
+              "hand_mass_kg": 1.1222537755966187,
+              "hand_com_velocity_m_s": [
+                0.048777028918266296,
+                -0.06347382813692093,
+                -0.03372206166386604
+              ],
+              "commanded_wrench": [
+                1.3477826616188073,
+                0.22578151168838273,
+                6.6924057387015505,
+                -0.021142257912870145,
+                -0.05376847268472751,
+                0.011459449145416722
+              ],
+              "filtered_object_contact_force_n": [
+                -1.5592505931854248,
+                -0.9437395334243774,
+                8.561371803283691
+              ],
+              "all_contact_force_n": [
+                -1.5592505931854248,
+                -0.9437395334243774,
+                8.561371803283691
+              ],
+              "other_contact_force_n": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "diagnostic_only": true
+            },
+            {
+              "time_s": 1.075,
+              "hand_mass_kg": 1.1222537755966187,
+              "hand_com_velocity_m_s": [
+                0.021367784589529037,
+                -0.04559171199798584,
+                -0.008367142640054226
+              ],
+              "commanded_wrench": [
+                1.8133050426514785,
+                0.07252028752629036,
+                6.600998841930464,
+                0.12492011965357704,
+                -0.00027065718693780605,
+                0.08961177862132982
+              ],
+              "filtered_object_contact_force_n": [
+                -1.1956619024276733,
+                -1.2635974884033203,
+                8.087824821472168
+              ],
+              "all_contact_force_n": [
+                -1.1956619024276733,
+                -1.2635974884033203,
+                8.087824821472168
+              ],
+              "other_contact_force_n": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "diagnostic_only": true
+            },
+            {
+              "time_s": 1.0833333333333333,
+              "hand_mass_kg": 1.1222537755966187,
+              "hand_com_velocity_m_s": [
+                0.0071274349465966225,
+                -0.03082394227385521,
+                0.0017279849853366613
+              ],
+              "commanded_wrench": [
+                1.9377745574384255,
+                0.298736136813812,
+                6.448771211798777,
+                0.044003042516246045,
+                -0.025043206269058205,
+                0.036485191765930715
+              ],
+              "filtered_object_contact_force_n": [
+                -0.20201128721237183,
+                -0.8286411166191101,
+                5.896066665649414
+              ],
+              "all_contact_force_n": [
+                -0.20201128721237183,
+                -0.8286411166191101,
+                5.896066665649414
+              ],
+              "other_contact_force_n": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "diagnostic_only": true
+            },
+            {
+              "time_s": 1.0916666666666666,
+              "hand_mass_kg": 1.1222537755966187,
+              "hand_com_velocity_m_s": [
+                0.0048180208541452885,
+                -0.017787745222449303,
+                0.003987543284893036
+              ],
+              "commanded_wrench": [
+                1.9697912712272165,
+                0.38853447162699783,
+                6.632267721117612,
+                -0.003030200911668973,
+                -0.003913045658614611,
+                0.004360923267244545
+              ],
+              "filtered_object_contact_force_n": [
+                -0.3364233374595642,
+                -0.7277129888534546,
+                4.465899467468262
+              ],
+              "all_contact_force_n": [
+                -0.3364233374595642,
+                -0.7277129888534546,
+                4.465899467468262
+              ],
+              "other_contact_force_n": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "diagnostic_only": true
+            },
+            {
+              "time_s": 1.1,
+              "hand_mass_kg": 1.1222537755966187,
+              "hand_com_velocity_m_s": [
+                -0.002466699806973338,
+                -0.012572157196700573,
+                0.004333276301622391
+              ],
+              "commanded_wrench": [
+                1.9234337461519015,
+                0.4383629771784545,
+                6.674369837000724,
+                -0.01341565403675368,
+                0.0002129810392343945,
+                -0.013805757217889701
+              ],
+              "filtered_object_contact_force_n": [
+                -0.11182349920272827,
+                -0.748247504234314,
+                4.455431938171387
+              ],
+              "all_contact_force_n": [
+                -0.11182349920272827,
+                -0.748247504234314,
+                4.455431938171387
+              ],
+              "other_contact_force_n": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "diagnostic_only": true
+            },
+            {
+              "time_s": 1.1083333333333334,
+              "hand_mass_kg": 1.1222537755966187,
+              "hand_com_velocity_m_s": [
+                -0.008877154439687729,
+                -0.005505401641130447,
+                0.005343896336853504
+              ],
+              "commanded_wrench": [
+                2.043172393558528,
+                0.2928740691882761,
+                6.62846363916414,
+                0.009747124555327183,
+                0.001837690681375015,
+                0.004406047641358851
+              ],
+              "filtered_object_contact_force_n": [
+                -0.15480846166610718,
+                -0.7595651149749756,
+                4.546693325042725
+              ],
+              "all_contact_force_n": [
+                -0.15480846166610718,
+                -0.7595651149749756,
+                4.546693325042725
+              ],
+              "other_contact_force_n": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "diagnostic_only": true
+            },
+            {
+              "time_s": 1.1166666666666667,
+              "hand_mass_kg": 1.1222537755966187,
+              "hand_com_velocity_m_s": [
+                -0.009091528132557869,
+                0.00011829011054942384,
+                0.004766773898154497
+              ],
+              "commanded_wrench": [
+                2.118535544942656,
+                0.2341388934838448,
+                6.598392557910256,
+                0.004424370522250599,
+                -0.0030347699525948846,
+                0.005028442426275061
+              ],
+              "filtered_object_contact_force_n": [
+                -0.44101274013519287,
+                -0.7187871932983398,
+                4.473005771636963
+              ],
+              "all_contact_force_n": [
+                -0.44101274013519287,
+                -0.7187871932983398,
+                4.473005771636963
+              ],
+              "other_contact_force_n": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "diagnostic_only": true
+            },
+            {
+              "time_s": 1.125,
+              "hand_mass_kg": 1.1222537755966187,
+              "hand_com_velocity_m_s": [
+                -0.008945551700890064,
+                0.002461325377225876,
+                0.002391870366409421
+              ],
+              "commanded_wrench": [
+                2.1202436169778576,
+                0.18660213880022908,
+                6.5881655754185715,
+                0.012680908080474741,
+                -0.0035111261804512406,
+                0.006076361376934085
+              ],
+              "filtered_object_contact_force_n": [
+                0.0038625597953796387,
+                -0.7252012491226196,
+                4.253233909606934
+              ],
+              "all_contact_force_n": [
+                0.0038625597953796387,
+                -0.7252012491226196,
+                4.253233909606934
+              ],
+              "other_contact_force_n": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "diagnostic_only": true
+            },
+            {
+              "time_s": 1.1333333333333333,
+              "hand_mass_kg": 1.1222537755966187,
+              "hand_com_velocity_m_s": [
+                -0.009557584300637245,
+                0.007032929453998804,
+                0.003724803915247321
+              ],
+              "commanded_wrench": [
+                2.154320059027553,
+                0.032160156288754266,
+                6.624612945621285,
+                0.019257415186037324,
+                -0.002029618957272994,
+                0.021452829294854422
+              ],
+              "filtered_object_contact_force_n": [
+                -0.691339373588562,
+                -0.7297017574310303,
+                4.681877136230469
+              ],
+              "all_contact_force_n": [
+                -0.691339373588562,
+                -0.7297017574310303,
+                4.681877136230469
+              ],
+              "other_contact_force_n": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "diagnostic_only": true
+            }
+          ],
+          "retention_failure_frame": 39.0
+        }
+      }
+    }
+  ],
+  "anchors": [],
+  "initial_preparation_uses_synthesis_context": true,
+  "retention_sampling": {
+    "relative_pose_and_native_touch_hz": 120.0,
+    "thumb_and_non_thumb_opposition_hz": 30.0,
+    "native_dropouts_recorded": true
+  },
+  "status": "failed",
+  "error": "RuntimeError: Persistent grasp constraint failed: {'position_m': 0.02264264316659656, 'rotation_rad': 0.2105136244722657, 'contact_retained': False}",
+  "failure_source_frame": 39.0,
+  "retention_at_failure": {
+    "right": {
+      "position_m": 0.001722797972415479,
+      "rotation_rad": 0.05115842481324034,
+      "contact_retained": true
+    },
+    "left": {
+      "position_m": 0.02264264316659656,
+      "rotation_rad": 0.2105136244722657,
+      "contact_retained": false
+    }
+  },
+  "actual_duration_s": 1.3,
+  "state_resets_between_segments": 0,
+  "actual_trace": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_bimanual_r268/physical/exported_core/actual_trace.json"
+}

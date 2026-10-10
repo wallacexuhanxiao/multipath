@@ -177,13 +177,14 @@ class MountedResidualEnv:
 
 class LocalPPOSolver:
     """A small fresh model per failed window, sharing one wall-clock budget."""
-    def __init__(self,scene,anchor,data,out,config=None,env_factory=None,accept_controls=None,allow_physical_prefix=False):
+    def __init__(self,scene,anchor,data,out,config=None,env_factory=None,accept_controls=None,allow_physical_prefix=False,warm_start=None):
         self.scene,self.anchor,self.data=scene,anchor,data
         self.out=Path(out);self.out.mkdir(parents=True,exist_ok=True)
         self.config=config or PPOConfig();self.deadline=None;self.reports=[]
         self.env_factory=env_factory or MountedResidualEnv
         self.accept_controls=accept_controls
         self.allow_physical_prefix=allow_physical_prefix
+        self.warm_start=None if warm_start is None else Path(warm_start)
 
     def __call__(self,baseline,start,begin):
         self.selected_prefix=None
@@ -277,10 +278,24 @@ class LocalPPOSolver:
             return np.asarray(env.commands).copy()
         prefix=physical_prefix(zero)
         if prefix is not None:return prefix
+        if self.warm_start is not None:
+            previous=np.load(self.warm_start.parent/'baseline.npz',allow_pickle=False)['commands']
+            if not np.array_equal(previous,env.baseline):
+                raise ValueError('PPO continuation needs the same local residual reference')
+            metadata=learner.resume(self.warm_start)
+            for key in ('source_provenance','anchor','begin_tick','action_scales','physics_dt','source_frames'):
+                if metadata[key]!=env.metadata[key]:raise ValueError(f'PPO continuation differs in {key}')
+            report['optimizer_continuation']=dict(checkpoint=str(self.warm_start),previous_updates=learner.updates,
+                previous_acceptance_reused=False,zero_baseline_checked_again=True)
+            _,evaluation=rollout(True);report['resumed_evaluation']=evaluation;write()
+            if evaluation['success'] and accepted(np.asarray(env.commands).copy()):
+                report.update(success=True,status='resumed_controls_passed');write()
+                learner.save(folder/'policy.pt',env.metadata)
+                return np.asarray(env.commands).copy()
         try:
             for iteration in range(cfg.iterations):
                 if time.monotonic()>=self.deadline:break
-                noise_scale=1.-(1.-cfg.exploration_final_scale)*iteration/max(1,cfg.iterations-1)
+                noise_scale=1.-(1.-cfg.exploration_final_scale)*min(learner.updates,cfg.iterations-1)/max(1,cfg.iterations-1)
                 learner.set_exploration_scale(noise_scale)
                 episodes=[];results=[]
                 for _ in range(cfg.episodes_per_update):

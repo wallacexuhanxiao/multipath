@@ -1,0 +1,503 @@
+{
+  "windows": [
+    {
+      "anchor": "anchor_0",
+      "begin_tick": 0,
+      "source_start_frame": 14.0,
+      "source_frames": 24,
+      "source_fps": 30.0,
+      "physics_dt": 0.008333333333333333,
+      "entry_origin": "predecessor_rollout",
+      "entry_provenance": {
+        "trace": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_bimanual_r257/physical/left_mpc_entry/actual_trace.json",
+        "source_frame": 14.0,
+        "predecessor": {
+          "initial_scene": "84aef1532a65da717ad06b083f37d74bf857504f42c0bef8e009f5b20250adb8"
+        }
+      },
+      "source_provenance": {
+        "triplet": "(brush, eraser, plate)",
+        "sequence": "20231103_057",
+        "input": "raw TACO MANO and object poses",
+        "source_video": "/scratch/e0985859/egoengine_baseline/data/taco_v1/Egocentric_RGB_Videos/(brush, eraser, plate)/20231103_057/color.mp4",
+        "schedule_sha256": "4f1e00a466cf9e9185af33070750852ed62cc0dd5a842583ec3ce9fe2521ec60",
+        "full_robot_reference_used": false,
+        "vlm_used": false,
+        "transform_world_to_robot": [
+          [
+            -0.3564076659688237,
+            0.9343305848933204,
+            0.0,
+            0.5962575927013769
+          ],
+          [
+            -0.9343305539536939,
+            -0.3564076541666626,
+            -0.0,
+            -0.02380021369492084
+          ],
+          [
+            0.0,
+            0.0,
+            1.0,
+            -0.1766161823272705
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "hand_assignments": {
+          "right": {
+            "object_role": "tool"
+          },
+          "left": {
+            "object_role": "target"
+          }
+        },
+        "local_supporting_retarget": true
+      },
+      "action": "wrist_xyz_rotvec_and_12_fingers",
+      "action_scales": [
+        0.02,
+        0.02,
+        0.02,
+        0.2,
+        0.2,
+        0.2,
+        0.2,
+        0.2,
+        0.2,
+        0.2,
+        0.2,
+        0.2,
+        0.2,
+        0.2,
+        0.2,
+        0.2,
+        0.2,
+        0.2
+      ],
+      "residual_center": "fixed_local_retarget_command",
+      "reference_origin": "physically_executed_local_retarget_core",
+      "training_scene": "floating_PhysX",
+      "residual_velocity_feedforward": "nominal_replay_unchanged",
+      "objective": "Appendix C.3+C.7+C.8",
+      "early_termination": "C.4 weighted error > C; no rollout past tracking failure",
+      "evaluation_reward": "C.9 object tracking only",
+      "optimization_parameters": {
+        "contact_bonus": 2.0,
+        "lifting_scale_per_m": 10.0,
+        "human_mimic_scale": 0.0,
+        "action_smoothness_scale": 0.0,
+        "domain_randomization": false,
+        "parameter_provenance": "shared engineering coefficients; paper does not give numeric TACO values"
+      },
+      "residual_definition": "a_ref + delta; no contact-conditioned wrist target rewrite",
+      "tracking_parameters": {
+        "C": 1.0,
+        "lambda_p": 399.99999999999994,
+        "lambda_R": 3.6475626111241604,
+        "position_tolerance_m": 0.05,
+        "rotation_tolerance_rad": 0.5235987755982988,
+        "acceptance": "Appendix_C.4_weighted_error_le_C",
+        "parameter_provenance": "shared project tolerances; numeric TACO weights not specified in the paper"
+      },
+      "finger_projection": "URDF_limits_slew_and_native_contact_preload",
+      "clock_stretched": false,
+      "state_resets_within_episode": 0,
+      "domain_randomization": false,
+      "arm_ik_used": false,
+      "entry_acquisition": "physical_predecessor_execution_each_episode",
+      "lifting_reward_enabled": false,
+      "lifting_initial_height_m": 0.38232141733169556,
+      "config": {
+        "iterations": 60,
+        "episodes_per_update": 4,
+        "max_seconds": 240.0,
+        "evaluate_every": 5,
+        "seed": 0,
+        "exploration_final_scale": 0.25
+      },
+      "network_hidden": [
+        64,
+        64
+      ],
+      "parameters": 24293,
+      "status": "sampled_controls_passed",
+      "iterations": 14,
+      "episodes": 56,
+      "history": [
+        {
+          "iteration": 1,
+          "mean_return": 14.15654600093212,
+          "max_source_steps": 18,
+          "training_successes": 0,
+          "exploration_scale": 1.0,
+          "loss": 24.942423701286316,
+          "policy_loss": -0.04228083512862213,
+          "value_loss": 24.999802708625793,
+          "latent_entropy": 7.549125283956528,
+          "gradient_norm": 17.303343176841736,
+          "transitions": 72,
+          "episodes": 4,
+          "updates": 1,
+          "parameter_count": 24293,
+          "failure_counts": {
+            "core_exit_handoff": 4
+          }
+        },
+        {
+          "iteration": 2,
+          "mean_return": 12.67850499626375,
+          "max_source_steps": 19,
+          "training_successes": 0,
+          "exploration_scale": 0.9872881355932204,
+          "loss": 17.253898561000824,
+          "policy_loss": -0.03439548658207059,
+          "value_loss": 17.302939653396606,
+          "latent_entropy": 7.322764873504639,
+          "gradient_norm": 18.16897863149643,
+          "transitions": 73,
+          "episodes": 4,
+          "updates": 2,
+          "parameter_count": 24293,
+          "failure_counts": {
+            "core_exit_handoff": 3,
+            "post_context_grasp_retention": 1
+          }
+        },
+        {
+          "iteration": 3,
+          "mean_return": 15.668459035776415,
+          "max_source_steps": 18,
+          "training_successes": 0,
+          "exploration_scale": 0.9745762711864406,
+          "loss": 24.25757920742035,
+          "policy_loss": -0.039102389360778034,
+          "value_loss": 24.31084132194519,
+          "latent_entropy": 7.079736918210983,
+          "gradient_norm": 29.453928112983704,
+          "transitions": 72,
+          "episodes": 4,
+          "updates": 3,
+          "parameter_count": 24293,
+          "failure_counts": {
+            "core_exit_handoff": 4
+          }
+        },
+        {
+          "iteration": 4,
+          "mean_return": 16.16260490750816,
+          "max_source_steps": 22,
+          "training_successes": 0,
+          "exploration_scale": 0.961864406779661,
+          "loss": 22.020246028900146,
+          "policy_loss": -0.014290505845565349,
+          "value_loss": 22.048208713531494,
+          "latent_entropy": 6.835993945598602,
+          "gradient_norm": 34.55242991447449,
+          "transitions": 76,
+          "episodes": 4,
+          "updates": 4,
+          "parameter_count": 24293,
+          "failure_counts": {
+            "core_exit_handoff": 3,
+            "post_context_grasp_retention": 1
+          }
+        },
+        {
+          "iteration": 5,
+          "mean_return": 14.130036816370595,
+          "max_source_steps": 19,
+          "training_successes": 0,
+          "exploration_scale": 0.9491525423728814,
+          "loss": 11.294055700302124,
+          "policy_loss": -0.02555903175380081,
+          "value_loss": 11.332803130149841,
+          "latent_entropy": 6.594265282154083,
+          "gradient_norm": 29.86975932121277,
+          "transitions": 73,
+          "episodes": 4,
+          "updates": 5,
+          "parameter_count": 24293,
+          "failure_counts": {
+            "core_exit_handoff": 3,
+            "post_context_grasp_retention": 1
+          },
+          "evaluation": {
+            "success": false,
+            "failure": {
+              "source_frame": 32.0,
+              "reason": "core_exit_handoff"
+            },
+            "tracking_failure_count": 0,
+            "source_steps": 18,
+            "evaluation_return": 11.668164725093837,
+            "reward_terms": {
+              "object_tracking": 0.8978987420267709,
+              "contact": 0.0,
+              "lifting": 0.0,
+              "total": 0.8978987420267709
+            },
+            "return_value": 13.668164725093837,
+            "deterministic": true
+          }
+        },
+        {
+          "iteration": 6,
+          "mean_return": 15.09828032428757,
+          "max_source_steps": 19,
+          "training_successes": 0,
+          "exploration_scale": 0.9364406779661016,
+          "loss": 12.587135136127472,
+          "policy_loss": -0.020897190901450813,
+          "value_loss": 12.620734959840775,
+          "latent_entropy": 6.3511627316474915,
+          "gradient_norm": 26.050639778375626,
+          "transitions": 74,
+          "episodes": 4,
+          "updates": 6,
+          "parameter_count": 24293,
+          "failure_counts": {
+            "post_context_grasp_retention": 2,
+            "core_exit_handoff": 2
+          }
+        },
+        {
+          "iteration": 7,
+          "mean_return": 14.65870830255996,
+          "max_source_steps": 18,
+          "training_successes": 0,
+          "exploration_scale": 0.923728813559322,
+          "loss": 9.257586687803268,
+          "policy_loss": -0.020871603453997523,
+          "value_loss": 9.29064854979515,
+          "latent_entropy": 6.095178931951523,
+          "gradient_norm": 16.427466243505478,
+          "transitions": 72,
+          "episodes": 4,
+          "updates": 7,
+          "parameter_count": 24293,
+          "failure_counts": {
+            "core_exit_handoff": 4
+          }
+        },
+        {
+          "iteration": 8,
+          "mean_return": 13.156988088750339,
+          "max_source_steps": 18,
+          "training_successes": 0,
+          "exploration_scale": 0.9110169491525424,
+          "loss": 7.834426611661911,
+          "policy_loss": -0.049102296877890694,
+          "value_loss": 7.895192354917526,
+          "latent_entropy": 5.831709086894989,
+          "gradient_norm": 12.261646926403046,
+          "transitions": 72,
+          "episodes": 4,
+          "updates": 8,
+          "parameter_count": 24293,
+          "failure_counts": {
+            "core_exit_handoff": 4
+          }
+        },
+        {
+          "iteration": 9,
+          "mean_return": 14.161049215364587,
+          "max_source_steps": 18,
+          "training_successes": 0,
+          "exploration_scale": 0.8983050847457628,
+          "loss": 9.8523970246315,
+          "policy_loss": -0.042809614446014166,
+          "value_loss": 9.90634086728096,
+          "latent_entropy": 5.56713405251503,
+          "gradient_norm": 17.40959471464157,
+          "transitions": 72,
+          "episodes": 4,
+          "updates": 9,
+          "parameter_count": 24293,
+          "failure_counts": {
+            "core_exit_handoff": 4
+          }
+        },
+        {
+          "iteration": 10,
+          "mean_return": 14.138308295778506,
+          "max_source_steps": 18,
+          "training_successes": 0,
+          "exploration_scale": 0.885593220338983,
+          "loss": 10.21622958779335,
+          "policy_loss": -0.043571967631578445,
+          "value_loss": 10.270396739244461,
+          "latent_entropy": 5.297530829906464,
+          "gradient_norm": 11.65652072429657,
+          "transitions": 72,
+          "episodes": 4,
+          "updates": 10,
+          "parameter_count": 24293,
+          "failure_counts": {
+            "core_exit_handoff": 4
+          },
+          "evaluation": {
+            "success": false,
+            "failure": {
+              "source_frame": 32.0,
+              "reason": "core_exit_handoff"
+            },
+            "tracking_failure_count": 0,
+            "source_steps": 18,
+            "evaluation_return": 11.666369804125086,
+            "reward_terms": {
+              "object_tracking": 0.8977528055948026,
+              "contact": 0.0,
+              "lifting": 0.0,
+              "total": 0.8977528055948026
+            },
+            "return_value": 13.666369804125086,
+            "deterministic": true
+          }
+        },
+        {
+          "iteration": 11,
+          "mean_return": 13.644194741256626,
+          "max_source_steps": 18,
+          "training_successes": 0,
+          "exploration_scale": 0.8728813559322034,
+          "loss": 8.959418833255768,
+          "policy_loss": -0.0373769054422155,
+          "value_loss": 9.006850451231003,
+          "latent_entropy": 5.027326464653015,
+          "gradient_norm": 10.092082381248474,
+          "transitions": 72,
+          "episodes": 4,
+          "updates": 11,
+          "parameter_count": 24293,
+          "failure_counts": {
+            "core_exit_handoff": 4
+          }
+        },
+        {
+          "iteration": 12,
+          "mean_return": 16.1682587459984,
+          "max_source_steps": 19,
+          "training_successes": 0,
+          "exploration_scale": 0.8601694915254238,
+          "loss": 11.665635526180267,
+          "policy_loss": -0.054408500785939395,
+          "value_loss": 11.729585528373718,
+          "latent_entropy": 4.770791292190552,
+          "gradient_norm": 14.315342545509338,
+          "transitions": 73,
+          "episodes": 4,
+          "updates": 12,
+          "parameter_count": 24293,
+          "failure_counts": {
+            "core_exit_handoff": 3,
+            "post_context_grasp_retention": 1
+          }
+        },
+        {
+          "iteration": 13,
+          "mean_return": 12.67165768242656,
+          "max_source_steps": 18,
+          "training_successes": 0,
+          "exploration_scale": 0.847457627118644,
+          "loss": 8.950608178973198,
+          "policy_loss": -0.020347341589513235,
+          "value_loss": 8.97996386885643,
+          "latent_entropy": 4.504179686307907,
+          "gradient_norm": 21.921800911426544,
+          "transitions": 72,
+          "episodes": 4,
+          "updates": 13,
+          "parameter_count": 24293,
+          "failure_counts": {
+            "core_exit_handoff": 4
+          }
+        }
+      ],
+      "success": true,
+      "commit_requires_full_prediction": true,
+      "residual_noise_schedule": {
+        "kind": "linear_multiplier_of_learned_Gaussian_std",
+        "initial": 1.0,
+        "final": 0.25,
+        "shared_across_sources": true,
+        "numeric_provenance": "engineering choice; Appendix specifies shared schedule, not its values"
+      },
+      "best_proposal": {
+        "source_steps": 24,
+        "evaluation_return": 11.620895408998926,
+        "physical_acceptance": false,
+        "role": "initialization_for_fresh_local_replay"
+      },
+      "zero_policy": {
+        "success": false,
+        "failure": {
+          "source_frame": 32.0,
+          "reason": "core_exit_handoff"
+        },
+        "tracking_failure_count": 0,
+        "source_steps": 18,
+        "evaluation_return": 11.667970413285543,
+        "reward_terms": {
+          "object_tracking": 0.8978217500527338,
+          "contact": 0.0,
+          "lifting": 0.0,
+          "total": 0.8978217500527338
+        },
+        "return_value": 17.66797041328554,
+        "deterministic": true
+      },
+      "elapsed_s": 146.58642683550715,
+      "best_evaluation": {
+        "success": false,
+        "failure": {
+          "source_frame": 32.0,
+          "reason": "core_exit_handoff"
+        },
+        "tracking_failure_count": 0,
+        "source_steps": 18,
+        "evaluation_return": 11.668164725093837,
+        "reward_terms": {
+          "object_tracking": 0.8978987420267709,
+          "contact": 0.0,
+          "lifting": 0.0,
+          "total": 0.8978987420267709
+        },
+        "return_value": 13.668164725093837,
+        "deterministic": true
+      },
+      "fresh_replay_acceptance": [
+        {
+          "success": true
+        }
+      ],
+      "sampled_candidate": {
+        "success": true,
+        "failure": null,
+        "tracking_failure_count": 0,
+        "source_steps": 24,
+        "evaluation_return": 11.620895408998926,
+        "reward_terms": {
+          "object_tracking": 0.0,
+          "contact": 2.0,
+          "lifting": 0.0,
+          "total": 2.0
+        },
+        "return_value": 27.620895408998926,
+        "deterministic": false,
+        "command_precheck": {
+          "feasible": true,
+          "hand_velocity_ratio": 0.6921030831364604,
+          "hand_joint_bounds": true
+        }
+      },
+      "policy_deterministic_success": false,
+      "selection": "measured_sampled_commands; fresh_Replay_required"
+    }
+  ]
+}

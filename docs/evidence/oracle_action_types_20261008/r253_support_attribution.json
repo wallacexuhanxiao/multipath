@@ -1,0 +1,13 @@
+{
+  "old_run": "r247",
+  "new_run": "r253",
+  "source_fps": 30,
+  "physics_dt": 0.008333333333333333,
+  "first_changed_command_tick": 5,
+  "first_four_commands_identical": true,
+  "first_four_wrenches_identical": true,
+  "left_max_position_command_difference_m": 0.005575822208453015,
+  "retention_failure_source_frame": 33,
+  "support_projection_tested": true,
+  "bridge_success": false
+}

@@ -138,3 +138,12 @@ class SmallResidualPPO(nn.Module):
                     'obs_dim': self.obs_dim, 'action_dim': self.action_dim,
                     'hidden_sizes': [64, 64], 'seed': self.seed, 'updates': self.updates,
                     'rng_state': self.rng.get_state(), 'metadata': metadata}, path)
+
+    def resume(self,path):
+        """Continue this small optimizer; checkpoint weights are not evidence."""
+        value=torch.load(Path(path),map_location='cpu',weights_only=True)
+        if (value['obs_dim'],value['action_dim'],value['hidden_sizes'])!=(self.obs_dim,self.action_dim,[64,64]):
+            raise ValueError('Residual PPO checkpoint has another observation/action model')
+        self.load_state_dict(value['model']);self.optimizer.load_state_dict(value['optimizer'])
+        self.rng.set_state(value['rng_state']);self.updates=int(value['updates'])
+        return value['metadata']

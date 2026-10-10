@@ -1,0 +1,161 @@
+{
+  "source": "oracle",
+  "source_provenance": {
+    "triplet": "(brush, eraser, plate)",
+    "sequence": "20231103_057",
+    "input": "raw TACO MANO and object poses",
+    "source_video": "/scratch/e0985859/egoengine_baseline/data/taco_v1/Egocentric_RGB_Videos/(brush, eraser, plate)/20231103_057/color.mp4",
+    "schedule_sha256": "4f1e00a466cf9e9185af33070750852ed62cc0dd5a842583ec3ce9fe2521ec60",
+    "full_robot_reference_used": false,
+    "vlm_used": false,
+    "transform_world_to_robot": [
+      [
+        -0.3564076659688237,
+        0.9343305848933204,
+        0.0,
+        0.5962575927013769
+      ],
+      [
+        -0.9343305539536939,
+        -0.3564076541666626,
+        -0.0,
+        -0.02380021369492084
+      ],
+      [
+        0.0,
+        0.0,
+        1.0,
+        -0.1766161823272705
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "hand_assignments": {
+      "right": {
+        "object_role": "tool"
+      },
+      "left": {
+        "object_role": "target"
+      }
+    },
+    "local_supporting_retarget": true
+  },
+  "source_fps": 30.0,
+  "source_duration_s": 3.6666666666666665,
+  "continuation_start_frame": 32,
+  "full_pipeline_success": false,
+  "task_success": false,
+  "continuous_execution_success": false,
+  "padded_artifacts_complete": false,
+  "vlm_used": false,
+  "complete_robot_reference_required": false,
+  "relaxed_reference_tracking": false,
+  "source_time_stretch": false,
+  "segments": [
+    {
+      "start": 32,
+      "end": 39,
+      "mode": "RELAXED",
+      "contact": "grasped",
+      "budget_s": 0.23333333333333334,
+      "success": false,
+      "hands": {
+        "right": {
+          "canonical_boundary_fit": {
+            "measured_tool_position_offset_m": [
+              0.0,
+              2.7755575615628914e-17,
+              -5.551115123125783e-17
+            ],
+            "measured_tool_rotation_offset_rad": 8.979056672045763e-17,
+            "predicted_tool_position_error_m": 0.02833031926034931,
+            "predicted_tool_rotation_error_rad": 0.37444873517144717,
+            "canonical_boundary_velocity_selected": true,
+            "nominal_planning_limits_unchanged": true,
+            "feedback_model": "world_wrist_tracking_and_measured_hand_object_transform",
+            "source_condition_unchanged": true,
+            "physics_acceptance": false
+          },
+          "source_entry_physically_verified": false,
+          "allowed_object_environment_contacts": [],
+          "boundary_clearance_m": 0.0001,
+          "boundary_precheck": {
+            "feasible": false,
+            "reasons": [
+              "initial_velocity_exceeds_planning_budget"
+            ],
+            "budget_s": 0.23333333333333334,
+            "minimum_duration_velocity_only_s": 0.1318424680584994,
+            "minimum_duration_velocity_change_only_s": 0.20320445667243445,
+            "coordinate_displacement": [
+              0.008015738533492744,
+              0.1318424680584994,
+              0.024197873692854643,
+              0.37423287862331744,
+              0.31532557435859787,
+              0.0073558191285290064
+            ],
+            "initial_coordinate_velocity": [
+              -0.49190259941433995,
+              0.24822882920549902,
+              0.2668510313164063,
+              3.201330795887802,
+              1.4276822132730513,
+              0.7494069772739919
+            ],
+            "terminal_coordinate_velocity": [
+              0.5221828447921073,
+              0.43758651575350604,
+              -0.014504054746122817,
+              0.15326394580128522,
+              0.24984111697268216,
+              0.7643218197905809
+            ],
+            "hand_q_max_difference_rad": 0.0,
+            "reachable_displacement_lower": [
+              -0.013104395853913337,
+              0.013749051362402363,
+              -0.03465704073302649,
+              0.34204791190699924,
+              0.014666215997569843,
+              -0.02756126613367825
+            ],
+            "reachable_displacement_upper": [
+              0.020169786442059037,
+              0.14627452912803215,
+              0.09353800193275931,
+              0.42986979459083774,
+              0.37675589439310136,
+              0.38076465211541194
+            ],
+            "limits_provenance": "configured nominal planning budget; not hardware ratings"
+          }
+        }
+      }
+    }
+  ],
+  "anchors": [],
+  "initial_preparation_uses_synthesis_context": true,
+  "retention_sampling": {
+    "relative_pose_and_native_touch_hz": 120.0,
+    "thumb_and_non_thumb_opposition_hz": 30.0,
+    "native_dropouts_recorded": true
+  },
+  "status": "failed",
+  "error": "RuntimeError: right: fixed-time boundary failed {'feasible': False, 'reasons': ['initial_velocity_exceeds_planning_budget'], 'budget_s': 0.23333333333333334, 'minimum_duration_velocity_only_s': 0.1318424680584994, 'minimum_duration_velocity_change_only_s': 0.20320445667243445, 'coordinate_displacement': [0.008015738533492744, 0.1318424680584994, 0.024197873692854643, 0.37423287862331744, 0.31532557435859787, 0.0073558191285290064], 'initial_coordinate_velocity': [-0.49190259941433995, 0.24822882920549902, 0.2668510313164063, 3.201330795887802, 1.4276822132730513, 0.7494069772739919], 'terminal_coordinate_velocity': [0.5221828447921073, 0.43758651575350604, -0.014504054746122817, 0.15326394580128522, 0.24984111697268216, 0.7643218197905809], 'hand_q_max_difference_rad': 0.0, 'reachable_displacement_lower': [-0.013104395853913337, 0.013749051362402363, -0.03465704073302649, 0.34204791190699924, 0.014666215997569843, -0.02756126613367825], 'reachable_displacement_upper': [0.020169786442059037, 0.14627452912803215, 0.09353800193275931, 0.42986979459083774, 0.37675589439310136, 0.38076465211541194], 'limits_provenance': 'configured nominal planning budget; not hardware ratings'}",
+  "failure_source_frame": 32.0,
+  "retention_at_failure": {
+    "right": {
+      "position_m": 1.5515838457795457e-17,
+      "rotation_rad": 2.8670414251013966e-17,
+      "contact_retained": true
+    }
+  },
+  "actual_duration_s": 1.0666666666666667,
+  "state_resets_between_segments": 0,
+  "actual_trace": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_bimanual_r266/physical/exported_core/actual_trace.json"
+}

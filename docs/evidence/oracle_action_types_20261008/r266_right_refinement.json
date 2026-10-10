@@ -1,0 +1,68 @@
+{
+  "source": "oracle",
+  "source_provenance": {
+    "triplet": "(brush, eraser, plate)",
+    "sequence": "20231103_057",
+    "input": "raw TACO MANO and object poses",
+    "source_video": "/scratch/e0985859/egoengine_baseline/data/taco_v1/Egocentric_RGB_Videos/(brush, eraser, plate)/20231103_057/color.mp4",
+    "schedule_sha256": "4f1e00a466cf9e9185af33070750852ed62cc0dd5a842583ec3ce9fe2521ec60",
+    "full_robot_reference_used": false,
+    "vlm_used": false,
+    "transform_world_to_robot": [
+      [
+        -0.3564076659688237,
+        0.9343305848933204,
+        0.0,
+        0.5962575927013769
+      ],
+      [
+        -0.9343305539536939,
+        -0.3564076541666626,
+        -0.0,
+        -0.02380021369492084
+      ],
+      [
+        0.0,
+        0.0,
+        1.0,
+        -0.1766161823272705
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "hand_assignments": {
+      "right": {
+        "object_role": "tool"
+      },
+      "left": {
+        "object_role": "target"
+      }
+    },
+    "local_supporting_retarget": true
+  },
+  "frozen_physical_context_ticks": 24,
+  "source_time_stretch": false,
+  "success": true,
+  "attempts": [
+    {
+      "success": false,
+      "failure": {
+        "source_frame": 32.0,
+        "reason": "core_exit_handoff",
+        "hand": "right"
+      },
+      "actual_end_frame": 32.0,
+      "state_resets_within_rollout": 0
+    },
+    {
+      "success": true,
+      "failure": null,
+      "actual_end_frame": 38.0,
+      "state_resets_within_rollout": 0
+    }
+  ]
+}

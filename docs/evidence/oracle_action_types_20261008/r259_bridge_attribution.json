@@ -1,0 +1,15 @@
+{
+  "run": "oracle_bimanual_r259",
+  "pbs_job_id": "658200.hopper-m-02",
+  "same_physical_state_at_frame_32": true,
+  "left_first_4_commands_max_difference": 0.0,
+  "left_first_4_biases_max_difference": 0.0,
+  "changed_input": "right planned bridge commands and wrenches",
+  "native_tool_target_contact_steps_at_32": 0,
+  "native_tool_target_contact_steps_at_33": 1,
+  "tool_prediction_position_error_m": 0.0036499924812794953,
+  "tool_prediction_rotation_error_rad": 0.05492550920493448,
+  "padded_left_contact_at_33": "grasped",
+  "bridge_left_contact_at_33": "free",
+  "full_pipeline_success": false
+}

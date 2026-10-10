@@ -1,0 +1,298 @@
+{
+  "source": "oracle",
+  "source_provenance": {
+    "triplet": "(brush, eraser, plate)",
+    "sequence": "20231103_057",
+    "input": "raw TACO MANO and object poses",
+    "source_video": "/scratch/e0985859/egoengine_baseline/data/taco_v1/Egocentric_RGB_Videos/(brush, eraser, plate)/20231103_057/color.mp4",
+    "schedule_sha256": "4f1e00a466cf9e9185af33070750852ed62cc0dd5a842583ec3ce9fe2521ec60",
+    "full_robot_reference_used": false,
+    "vlm_used": false,
+    "transform_world_to_robot": [
+      [
+        -0.3564076659688237,
+        0.9343305848933204,
+        0.0,
+        0.5962575927013769
+      ],
+      [
+        -0.9343305539536939,
+        -0.3564076541666626,
+        -0.0,
+        -0.02380021369492084
+      ],
+      [
+        0.0,
+        0.0,
+        1.0,
+        -0.1766161823272705
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "hand_assignments": {
+      "right": {
+        "object_role": "tool"
+      },
+      "left": {
+        "object_role": "target"
+      }
+    },
+    "local_supporting_retarget": true
+  },
+  "source_fps": 30.0,
+  "source_duration_s": 3.6666666666666665,
+  "continuation_start_frame": 32,
+  "full_pipeline_success": false,
+  "task_success": false,
+  "continuous_execution_success": false,
+  "padded_artifacts_complete": false,
+  "vlm_used": false,
+  "complete_robot_reference_required": false,
+  "relaxed_reference_tracking": false,
+  "source_time_stretch": false,
+  "segments": [
+    {
+      "start": 32,
+      "end": 39,
+      "mode": "RELAXED",
+      "contact": "grasped",
+      "budget_s": 0.23333333333333334,
+      "success": false,
+      "hands": {
+        "right": {
+          "canonical_boundary_fit": {
+            "measured_tool_position_offset_m": [
+              -5.551115123125783e-17,
+              0.0,
+              0.0
+            ],
+            "measured_tool_rotation_offset_rad": 8.748962540199841e-17,
+            "predicted_tool_position_error_m": 0.028533798207468083,
+            "predicted_tool_rotation_error_rad": 0.25443112269498686,
+            "canonical_boundary_velocity_selected": true,
+            "nominal_planning_limits_unchanged": true,
+            "feedback_model": "world_wrist_tracking_and_measured_hand_object_transform",
+            "source_condition_unchanged": true,
+            "physics_acceptance": false
+          },
+          "source_entry_physically_verified": false,
+          "allowed_object_environment_contacts": [],
+          "boundary_clearance_m": 0.0001,
+          "boundary_precheck": {
+            "feasible": true,
+            "reasons": [],
+            "budget_s": 0.23333333333333334,
+            "minimum_duration_velocity_only_s": 0.14723482072790917,
+            "minimum_duration_velocity_change_only_s": 0.2017151598021627,
+            "coordinate_displacement": [
+              0.003445451871027627,
+              0.12999707996379622,
+              0.012745482917638884,
+              0.4417044621837275,
+              0.04630811739288254,
+              -0.08569257198670566
+            ],
+            "initial_coordinate_velocity": [
+              -0.517438782582369,
+              0.17603976114888284,
+              0.1605865653786509,
+              2.608368598389088,
+              0.12585823401245477,
+              0.7201723486005561
+            ],
+            "terminal_coordinate_velocity": [
+              0.4911370164284445,
+              0.45931516055516813,
+              0.03411912723461086,
+              0.38963316666418274,
+              0.0327558786095139,
+              0.014110130486244541
+            ],
+            "hand_q_max_difference_rad": 0.0,
+            "reachable_displacement_lower": [
+              -0.020262837822665036,
+              0.010081432905356586,
+              -0.04454019077180587,
+              0.22764665452274,
+              -0.1855172193844107,
+              -0.11019164650906488
+            ],
+            "reachable_displacement_upper": [
+              0.014125759053415982,
+              0.13816804882558864,
+              0.08997151904823361,
+              0.4677536613564204,
+              0.22252717899620342,
+              0.2815242249626517
+            ],
+            "limits_provenance": "configured nominal planning budget; not hardware ratings"
+          },
+          "surface_supported_payload": false,
+          "planning": {
+            "budget_s": 0.23333333333333334,
+            "curobo_duration_s": 0.23333333333333334,
+            "time_scale": 1.0,
+            "command_velocity_ratio": 0.9820340425387641,
+            "command_acceleration_ratio": 1.000000000000476,
+            "parameterization": "endpoint_constrained_geometric_fit",
+            "geometry_max_adjustment": 0.07501123284782762,
+            "boundary_velocities_preserved": true,
+            "previous_fit_rejections": [
+              "fixed_budget: Fixed source budget violates dynamics: velocity=0.983, acceleration=20.383",
+              "path_parameterization: Boundary velocity is incompatible with the geometric path"
+            ],
+            "planner": "cuRobo_virtual_6DOF",
+            "hand_collision_spheres": 4049,
+            "carried_object_collision": true,
+            "allowed_attached_object_contacts": [],
+            "geometry_solver": "curobo_graph_then_fixed_source_time_fit",
+            "curobo_optimize_dt": false,
+            "curobo_optimization_budget_s": 0.23333333333333334,
+            "collision_cover_refined_over_fitted_path": true,
+            "reference_tracking": false,
+            "source_time_stretch": false,
+            "arm_model_used": false,
+            "tracking_margin_m": 0.0,
+            "previous_command_tracking_margin_m": 0.031222045713402244,
+            "hand_boundary_motion": false,
+            "planned_hand_geometry": "entry_posture",
+            "planned_hand_sweep_samples": 1,
+            "hand_boundary_collision_validation": "measured_geometry_each_physics_step"
+          }
+        },
+        "left": {
+          "canonical_boundary_fit": {
+            "measured_tool_position_offset_m": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "measured_tool_rotation_offset_rad": 1.997549197177993e-17,
+            "predicted_tool_position_error_m": 2.947969234847057e-07,
+            "predicted_tool_rotation_error_rad": 0.0015031712155981671,
+            "canonical_boundary_velocity_selected": true,
+            "nominal_planning_limits_unchanged": true,
+            "feedback_model": "world_wrist_tracking_and_measured_hand_object_transform",
+            "source_condition_unchanged": true,
+            "physics_acceptance": false
+          },
+          "source_entry_physically_verified": false,
+          "allowed_object_environment_contacts": [
+            "table"
+          ],
+          "boundary_clearance_m": 0.0001,
+          "boundary_precheck": {
+            "feasible": true,
+            "reasons": [],
+            "budget_s": 0.23333333333333334,
+            "minimum_duration_velocity_only_s": 0.00921799020834324,
+            "minimum_duration_velocity_change_only_s": 0.08008692285788044,
+            "coordinate_displacement": [
+              0.00019491040320063213,
+              -0.0023979909148977886,
+              0.00921799020834324,
+              0.01062703300039658,
+              0.013337875532337451,
+              -0.015696316394311793
+            ],
+            "initial_coordinate_velocity": [
+              0.04535433303365365,
+              -0.014034679432853301,
+              -0.07485324715617026,
+              0.08270016613742825,
+              0.3497980598732297,
+              1.1967652363775727
+            ],
+            "terminal_coordinate_velocity": [
+              -0.016484593851062712,
+              -0.012035619218961345,
+              0.0007517058753236937,
+              0.040723501393280515,
+              0.010500139779878737,
+              -0.0045386064906338675
+            ],
+            "hand_q_max_difference_rad": 0.0,
+            "reachable_displacement_lower": [
+              -0.06449621667367396,
+              -0.07109689058618031,
+              -0.0764149299255096,
+              -0.1897378714483666,
+              -0.16021315873080944,
+              -0.04102137779835846
+            ],
+            "reachable_displacement_upper": [
+              0.07123248914961186,
+              0.06501382090075693,
+              0.05912457029331208,
+              0.21853672720553197,
+              0.2442827386498681,
+              0.3192075914386442
+            ],
+            "limits_provenance": "configured nominal planning budget; not hardware ratings"
+          },
+          "surface_supported_payload": true,
+          "contact_preload_model": "measured_native_force_reaction; link-origin moment approximation",
+          "planning": {
+            "budget_s": 0.23333333333333334,
+            "curobo_duration_s": 0.23333333333333334,
+            "time_scale": 1.0,
+            "command_velocity_ratio": 0.3989207509650772,
+            "command_acceleration_ratio": 1.0000000000001563,
+            "parameterization": "nonlinear_collision_constrained_source_time_fit",
+            "collision_fit_iterations": 6,
+            "minimum_planning_clearance_m": 1.394655555486679e-05,
+            "canonical_boundary_jointly_fitted": true,
+            "physical_entry_velocity_preserved": true,
+            "boundary_velocities_preserved": false,
+            "source_condition": 0.9580076275830339,
+            "source_solver_residual_tolerance": 1e-06,
+            "fixed_boundary_clearance_requirement_m": 0.0,
+            "interior_clearance_requirement_m": 0.0001,
+            "preceding_scp_failure": "Source-time collision fit cannot reduce physical clearance violation",
+            "previous_fit_rejections": [
+              "fixed_budget: Fixed source budget violates dynamics: velocity=0.040, acceleration=10.112",
+              "path_parameterization: Boundary velocity is incompatible with the geometric path"
+            ],
+            "planner": "cuRobo_virtual_6DOF",
+            "hand_collision_spheres": 88,
+            "carried_object_collision": true,
+            "allowed_attached_object_contacts": [
+              "table"
+            ],
+            "geometry_solver": "curobo_graph_then_fixed_source_time_fit",
+            "curobo_optimize_dt": false,
+            "curobo_optimization_budget_s": 0.23333333333333334,
+            "collision_cover_refined_over_fitted_path": true,
+            "reference_tracking": false,
+            "source_time_stretch": false,
+            "arm_model_used": false,
+            "tracking_margin_m": 0.0,
+            "previous_command_tracking_margin_m": 0.05741372009310965,
+            "hand_boundary_motion": false,
+            "planned_hand_geometry": "entry_posture",
+            "planned_hand_sweep_samples": 1,
+            "hand_boundary_collision_validation": "measured_geometry_each_physics_step"
+          }
+        }
+      }
+    }
+  ],
+  "anchors": [],
+  "initial_preparation_uses_synthesis_context": true,
+  "retention_sampling": {
+    "relative_pose_and_native_touch_hz": 120.0,
+    "thumb_and_non_thumb_opposition_hz": 30.0,
+    "native_dropouts_recorded": true
+  },
+  "status": "failed",
+  "error": "RuntimeError: Actual RELAXED native tool-target contact",
+  "failure_source_frame": 32.75,
+  "actual_duration_s": 1.0916666666666666,
+  "state_resets_between_segments": 0,
+  "actual_trace": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_bimanual_r244/physical/exported_core/actual_trace.json"
+}

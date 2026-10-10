@@ -1,0 +1,29 @@
+{
+  "source_frame": 32,
+  "actual_tool_velocity_m_s": [
+    -0.0236281156539917,
+    0.005587845575064421,
+    -0.003025644225999713
+  ],
+  "frozen_hand_rigid_tool_velocity_m_s": [
+    0.07036967193986074,
+    0.09875362512399134,
+    0.21894058227669075
+  ],
+  "actual_tool_height_m": 0.38235047459602356,
+  "first_four_rigid_tool_heights_m": [
+    0.3841787356595818,
+    0.38612738051624573,
+    0.38819307594480884,
+    0.39037321815240866
+  ],
+  "projected_height_increase_m": [
+    0.0018282610635582675,
+    0.0037769059202221733,
+    0.005842601348785281,
+    0.008022743556385104
+  ],
+  "all_contact_equals_filtered_object_contact": true,
+  "physics_force_trace": "r255_bimanual_continuous.json",
+  "interpretation": "supported-contact exit is not a rigid airborne carry boundary"
+}

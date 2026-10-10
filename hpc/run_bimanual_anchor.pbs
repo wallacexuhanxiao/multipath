@@ -5,7 +5,7 @@
 #PBS -j oe
 #PBS -k oed
 #PBS -l walltime=00:20:00
-#PBS -l select=1:ncpus=4:mem=75gb:ngpus=1:gpu_model=H200
+#PBS -l select=1:ncpus=4:mem=20gb:ngpus=1:gpu_model=H200
 set -euo pipefail
 ROOT=/scratch/e0985859/multipath_v0_fc2da7b
 RUNTIME=/scratch/e0985859/egoengine_baseline
@@ -24,9 +24,11 @@ export PYTHONPATH=$ROOT/src:$ENGINE/src PYTHONDONTWRITEBYTECODE=1
 export OMP_NUM_THREADS=2 OPENBLAS_NUM_THREADS=2 MKL_NUM_THREADS=2
 PROPOSALS=${MULTIPATH_SUPPORT_PROPOSALS:-$OUT/proposals}
 if [[ -z "${MULTIPATH_SUPPORT_PROPOSALS:-}" ]]; then
+PREP_EXTRA=()
+[[ -z "${MULTIPATH_EXISTING_SUPPORT_PROPOSALS:-}" ]] || PREP_EXTRA+=(--existing-supporting-proposals "$MULTIPATH_EXISTING_SUPPORT_PROPOSALS")
 "$RUNTIME/envs/retarget/bin/python" -u scripts/prepare_supporting_anchors.py \
  --schedule "$MULTIPATH_SCHEDULE" --proposals "$MULTIPATH_PREPARED_PROPOSALS" \
- --object-cache "$ENGINE/outputs/sim_usd" --output-dir "$PROPOSALS" >"$OUT/prepare.log" 2>&1
+ --object-cache "$ENGINE/outputs/sim_usd" --output-dir "$PROPOSALS" "${PREP_EXTRA[@]}" >"$OUT/prepare.log" 2>&1
 fi
 source "$ROOT/hpc/stage_torch_imports.sh"
 module load singularity
@@ -40,6 +42,14 @@ MP_ENV=(--env "LD_LIBRARY_PATH=/scratch/e0985859/semantic_verifier/compat_libs/x
 [[ -z "${CUDA_VISIBLE_DEVICES:-}" ]] || MP_ENV+=(--env "CUDA_VISIBLE_DEVICES=$CUDA_VISIBLE_DEVICES")
 EXTRA=()
 [[ -z "${MULTIPATH_LEFT_PADDED_CONTROLS:-}" ]] || EXTRA+=(--left-padded-controls "$MULTIPATH_LEFT_PADDED_CONTROLS")
+[[ -z "${MULTIPATH_LEFT_PREFIX_RUN:-}" ]] || EXTRA+=(--left-prefix-run "$MULTIPATH_LEFT_PREFIX_RUN")
+[[ -z "${MULTIPATH_RIGHT_BOUNDARY_FEEDBACK_RUN:-}" ]] || EXTRA+=(--right-boundary-feedback-run "$MULTIPATH_RIGHT_BOUNDARY_FEEDBACK_RUN")
+[[ -z "${MULTIPATH_BRIDGE_FEEDBACK_RUN:-}" ]] || EXTRA+=(--bridge-feedback-run "$MULTIPATH_BRIDGE_FEEDBACK_RUN")
+[[ -z "${MULTIPATH_RIGHT_CORE_RUN:-}" ]] || EXTRA+=(--right-core-run "$MULTIPATH_RIGHT_CORE_RUN")
+[[ -z "${MULTIPATH_CARRY_CONTEXT_RUN:-}" ]] || EXTRA+=(--carry-context-run "$MULTIPATH_CARRY_CONTEXT_RUN")
+[[ -z "${MULTIPATH_LEFT_PPO_CHECKPOINT:-}" ]] || EXTRA+=(--left-ppo-checkpoint "$MULTIPATH_LEFT_PPO_CHECKPOINT")
+[[ -z "${MULTIPATH_LEFT_PPO_SECONDS:-}" ]] || EXTRA+=(--left-ppo-seconds "$MULTIPATH_LEFT_PPO_SECONDS")
+[[ "${MULTIPATH_CONTINUE_ORACLE:-0}" != 1 ]] || EXTRA+=(--continue-oracle)
 singularity exec --nv -e "${MP_ENV[@]}" "$IMAGE" "$RUNTIME/envs/sim-isaac510/bin/python" -u scripts/develop_bimanual_anchor.py \
  --schedule "$MULTIPATH_SCHEDULE" --proposals "$PROPOSALS" --floating-config configs/floating_xhand_bimanual.json \
  --xhand-urdf "$ENGINE/assets/xhand/spider/xhand_right.urdf" --left-xhand-urdf "$ENGINE/assets/xhand/spider/xhand_left.urdf" \

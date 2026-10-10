@@ -1,0 +1,1385 @@
+{
+  "windows": [
+    {
+      "anchor": "anchor_0",
+      "begin_tick": 0,
+      "source_start_frame": 14.0,
+      "source_frames": 24,
+      "source_fps": 30.0,
+      "physics_dt": 0.008333333333333333,
+      "entry_origin": "predecessor_rollout",
+      "entry_provenance": {
+        "trace": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_bimanual_r252/physical/left_mpc_entry/actual_trace.json",
+        "source_frame": 14.0,
+        "predecessor": {
+          "initial_scene": "84aef1532a65da717ad06b083f37d74bf857504f42c0bef8e009f5b20250adb8"
+        }
+      },
+      "source_provenance": {
+        "triplet": "(brush, eraser, plate)",
+        "sequence": "20231103_057",
+        "input": "raw TACO MANO and object poses",
+        "source_video": "/scratch/e0985859/egoengine_baseline/data/taco_v1/Egocentric_RGB_Videos/(brush, eraser, plate)/20231103_057/color.mp4",
+        "schedule_sha256": "4f1e00a466cf9e9185af33070750852ed62cc0dd5a842583ec3ce9fe2521ec60",
+        "full_robot_reference_used": false,
+        "vlm_used": false,
+        "transform_world_to_robot": [
+          [
+            -0.3564076659688237,
+            0.9343305848933204,
+            0.0,
+            0.5962575927013769
+          ],
+          [
+            -0.9343305539536939,
+            -0.3564076541666626,
+            -0.0,
+            -0.02380021369492084
+          ],
+          [
+            0.0,
+            0.0,
+            1.0,
+            -0.1766161823272705
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "hand_assignments": {
+          "right": {
+            "object_role": "tool"
+          },
+          "left": {
+            "object_role": "target"
+          }
+        },
+        "local_supporting_retarget": true
+      },
+      "action": "wrist_xyz_rotvec_and_12_fingers",
+      "action_scales": [
+        0.02,
+        0.02,
+        0.02,
+        0.2,
+        0.2,
+        0.2,
+        0.2,
+        0.2,
+        0.2,
+        0.2,
+        0.2,
+        0.2,
+        0.2,
+        0.2,
+        0.2,
+        0.2,
+        0.2,
+        0.2
+      ],
+      "residual_center": "fixed_local_retarget_command",
+      "reference_origin": "physically_executed_local_retarget_core",
+      "training_scene": "floating_PhysX",
+      "residual_velocity_feedforward": "nominal_replay_unchanged",
+      "objective": "Appendix C.3+C.7+C.8",
+      "early_termination": "C.4 weighted error > C; no rollout past tracking failure",
+      "evaluation_reward": "C.9 object tracking only",
+      "optimization_parameters": {
+        "contact_bonus": 2.0,
+        "lifting_scale_per_m": 10.0,
+        "human_mimic_scale": 0.0,
+        "action_smoothness_scale": 0.0,
+        "domain_randomization": false,
+        "parameter_provenance": "shared engineering coefficients; paper does not give numeric TACO values"
+      },
+      "residual_definition": "a_ref + delta; no contact-conditioned wrist target rewrite",
+      "tracking_parameters": {
+        "C": 1.0,
+        "lambda_p": 399.99999999999994,
+        "lambda_R": 3.6475626111241604,
+        "position_tolerance_m": 0.05,
+        "rotation_tolerance_rad": 0.5235987755982988,
+        "acceptance": "Appendix_C.4_weighted_error_le_C",
+        "parameter_provenance": "shared project tolerances; numeric TACO weights not specified in the paper"
+      },
+      "finger_projection": "URDF_limits_slew_and_native_contact_preload",
+      "clock_stretched": false,
+      "state_resets_within_episode": 0,
+      "domain_randomization": false,
+      "arm_ik_used": false,
+      "entry_acquisition": "physical_predecessor_execution_each_episode",
+      "lifting_reward_enabled": true,
+      "lifting_initial_height_m": 0.38232141733169556,
+      "config": {
+        "iterations": 60,
+        "episodes_per_update": 4,
+        "max_seconds": 600.0,
+        "evaluate_every": 5,
+        "seed": 0,
+        "exploration_final_scale": 0.25
+      },
+      "network_hidden": [
+        64,
+        64
+      ],
+      "parameters": 24293,
+      "status": "budget_exhausted",
+      "iterations": 50,
+      "episodes": 211,
+      "history": [
+        {
+          "iteration": 1,
+          "mean_return": 15.1705895037402,
+          "max_source_steps": 19,
+          "training_successes": 0,
+          "exploration_scale": 0.6949152542372881,
+          "loss": 9.286548882722855,
+          "policy_loss": -0.03801288118120283,
+          "value_loss": 9.326661884784698,
+          "latent_entropy": 1.050067499279976,
+          "gradient_norm": 13.53927093744278,
+          "transitions": 73,
+          "episodes": 4,
+          "updates": 25,
+          "parameter_count": 24293,
+          "failure_counts": {
+            "Persistent grasp constraint failed": 1,
+            "core_exit_handoff": 3
+          }
+        },
+        {
+          "iteration": 2,
+          "mean_return": 14.155776378184841,
+          "max_source_steps": 18,
+          "training_successes": 0,
+          "exploration_scale": 0.6822033898305084,
+          "loss": 6.941365942358971,
+          "policy_loss": -0.030433850348345004,
+          "value_loss": 6.97322304546833,
+          "latent_entropy": 0.7116369381546974,
+          "gradient_norm": 17.286410599946976,
+          "transitions": 72,
+          "episodes": 4,
+          "updates": 26,
+          "parameter_count": 24293,
+          "failure_counts": {
+            "core_exit_handoff": 4
+          }
+        },
+        {
+          "iteration": 3,
+          "mean_return": 15.676478019475143,
+          "max_source_steps": 18,
+          "training_successes": 0,
+          "exploration_scale": 0.6694915254237288,
+          "loss": 8.794704347848892,
+          "policy_loss": -0.04638426372548565,
+          "value_loss": 8.841827005147934,
+          "latent_entropy": 0.3691742345690727,
+          "gradient_norm": 14.936230048537254,
+          "transitions": 72,
+          "episodes": 4,
+          "updates": 27,
+          "parameter_count": 24293,
+          "failure_counts": {
+            "core_exit_handoff": 4
+          }
+        },
+        {
+          "iteration": 4,
+          "mean_return": 13.661447168675737,
+          "max_source_steps": 18,
+          "training_successes": 0,
+          "exploration_scale": 0.6567796610169492,
+          "loss": 6.174610286951065,
+          "policy_loss": -0.04133531037950888,
+          "value_loss": 6.215992316603661,
+          "latent_entropy": 0.02337101846933365,
+          "gradient_norm": 12.879166930913925,
+          "transitions": 72,
+          "episodes": 4,
+          "updates": 28,
+          "parameter_count": 24293,
+          "failure_counts": {
+            "core_exit_handoff": 4
+          }
+        },
+        {
+          "iteration": 5,
+          "mean_return": 13.67319044490944,
+          "max_source_steps": 18,
+          "training_successes": 0,
+          "exploration_scale": 0.6440677966101696,
+          "loss": 4.030879184603691,
+          "policy_loss": -0.030568487476557493,
+          "value_loss": 4.060800105333328,
+          "latent_entropy": -0.32380788773298264,
+          "gradient_norm": 13.732337474822998,
+          "transitions": 72,
+          "episodes": 4,
+          "updates": 29,
+          "parameter_count": 24293,
+          "failure_counts": {
+            "core_exit_handoff": 4
+          },
+          "evaluation": {
+            "success": false,
+            "failure": {
+              "source_frame": 33.0,
+              "reason": "Persistent grasp constraint failed: {'position_m': 0.0013917482762094977, 'rotation_rad': 0.011709756063046, 'contact_retained': False}"
+            },
+            "tracking_failure_count": 0,
+            "source_steps": 19,
+            "evaluation_return": 11.666918198815619,
+            "reward_terms": {
+              "object_tracking": 0.8977841221160986,
+              "contact": 2.0,
+              "lifting": 0.00033080577850341797,
+              "total": 2.898114927894602
+            },
+            "return_value": 29.670996944657603,
+            "deterministic": true
+          }
+        },
+        {
+          "iteration": 6,
+          "mean_return": 17.15026924135519,
+          "max_source_steps": 18,
+          "training_successes": 0,
+          "exploration_scale": 0.6313559322033898,
+          "loss": 8.22907966375351,
+          "policy_loss": -0.026757165891467594,
+          "value_loss": 8.254478245973587,
+          "latent_entropy": -0.6793061457574368,
+          "gradient_norm": 23.050446093082428,
+          "transitions": 72,
+          "episodes": 4,
+          "updates": 30,
+          "parameter_count": 24293,
+          "failure_counts": {
+            "core_exit_handoff": 4
+          }
+        },
+        {
+          "iteration": 7,
+          "mean_return": 13.669086911867048,
+          "max_source_steps": 18,
+          "training_successes": 0,
+          "exploration_scale": 0.6186440677966102,
+          "loss": 5.558146312832832,
+          "policy_loss": -0.020873502595350146,
+          "value_loss": 5.576924547553062,
+          "latent_entropy": -1.0476980358362198,
+          "gradient_norm": 18.63679701089859,
+          "transitions": 72,
+          "episodes": 4,
+          "updates": 31,
+          "parameter_count": 24293,
+          "failure_counts": {
+            "core_exit_handoff": 4
+          }
+        },
+        {
+          "iteration": 8,
+          "mean_return": 13.47747866375558,
+          "max_source_steps": 20,
+          "training_successes": 0,
+          "exploration_scale": 0.6059322033898304,
+          "loss": 12.151390612125397,
+          "policy_loss": -0.030366197344847023,
+          "value_loss": 12.178913027048111,
+          "latent_entropy": -1.421842321753502,
+          "gradient_norm": 30.70620834827423,
+          "transitions": 62,
+          "episodes": 4,
+          "updates": 32,
+          "parameter_count": 24293,
+          "failure_counts": {
+            "core_exit_handoff": 2,
+            "core_entry_contact": 1,
+            "Actual RELAXED native tool-target contact": 1
+          }
+        },
+        {
+          "iteration": 9,
+          "mean_return": 15.150078654496248,
+          "max_source_steps": 20,
+          "training_successes": 0,
+          "exploration_scale": 0.5932203389830508,
+          "loss": 5.439478769898415,
+          "policy_loss": -0.045443431328749284,
+          "value_loss": 5.48131687939167,
+          "latent_entropy": -1.80272176861763,
+          "gradient_norm": 14.548982471227646,
+          "transitions": 74,
+          "episodes": 4,
+          "updates": 33,
+          "parameter_count": 24293,
+          "failure_counts": {
+            "core_exit_handoff": 3,
+            "Actual RELAXED native tool-target contact": 1
+          }
+        },
+        {
+          "iteration": 10,
+          "mean_return": 15.641933061827292,
+          "max_source_steps": 20,
+          "training_successes": 0,
+          "exploration_scale": 0.5805084745762712,
+          "loss": 4.949511989951134,
+          "policy_loss": -0.018160808162065223,
+          "value_loss": 4.963281899690628,
+          "latent_entropy": -2.1954745203256607,
+          "gradient_norm": 20.560043334960938,
+          "transitions": 76,
+          "episodes": 4,
+          "updates": 34,
+          "parameter_count": 24293,
+          "failure_counts": {
+            "Actual RELAXED native tool-target contact": 1,
+            "Persistent grasp constraint failed": 2,
+            "core_exit_handoff": 1
+          },
+          "evaluation": {
+            "success": false,
+            "failure": {
+              "source_frame": 33.0,
+              "reason": "Persistent grasp constraint failed: {'position_m': 0.0015131632454853335, 'rotation_rad': 0.013176229782129345, 'contact_retained': False}"
+            },
+            "tracking_failure_count": 0,
+            "source_steps": 19,
+            "evaluation_return": 11.667525339990666,
+            "reward_terms": {
+              "object_tracking": 0.8978904500285478,
+              "contact": 2.0,
+              "lifting": 0.00036656856536865234,
+              "total": 2.8982570185939167
+            },
+            "return_value": 31.67174117651563,
+            "deterministic": true
+          }
+        },
+        {
+          "iteration": 11,
+          "mean_return": 16.670928667371363,
+          "max_source_steps": 18,
+          "training_successes": 0,
+          "exploration_scale": 0.5677966101694916,
+          "loss": 5.5842785239219666,
+          "policy_loss": -0.03090326313395053,
+          "value_loss": 5.6099996119737625,
+          "latent_entropy": -2.5910737365484238,
+          "gradient_norm": 18.57134371995926,
+          "transitions": 72,
+          "episodes": 4,
+          "updates": 35,
+          "parameter_count": 24293,
+          "failure_counts": {
+            "core_exit_handoff": 4
+          }
+        },
+        {
+          "iteration": 12,
+          "mean_return": 16.671992254508186,
+          "max_source_steps": 18,
+          "training_successes": 0,
+          "exploration_scale": 0.5550847457627119,
+          "loss": 6.113794296979904,
+          "policy_loss": -0.04280754370847717,
+          "value_loss": 6.150614351034164,
+          "latent_entropy": -2.9937274008989334,
+          "gradient_norm": 17.909033477306366,
+          "transitions": 72,
+          "episodes": 4,
+          "updates": 36,
+          "parameter_count": 24293,
+          "failure_counts": {
+            "core_exit_handoff": 4
+          }
+        },
+        {
+          "iteration": 13,
+          "mean_return": 16.675336749274706,
+          "max_source_steps": 19,
+          "training_successes": 0,
+          "exploration_scale": 0.5423728813559322,
+          "loss": 5.0227950513362885,
+          "policy_loss": -0.03363870643079281,
+          "value_loss": 5.049627140164375,
+          "latent_entropy": -3.403325393795967,
+          "gradient_norm": 20.357537627220154,
+          "transitions": 74,
+          "episodes": 4,
+          "updates": 37,
+          "parameter_count": 24293,
+          "failure_counts": {
+            "Persistent grasp constraint failed": 2,
+            "core_exit_handoff": 2
+          }
+        },
+        {
+          "iteration": 14,
+          "mean_return": 15.664288105455812,
+          "max_source_steps": 19,
+          "training_successes": 0,
+          "exploration_scale": 0.5296610169491525,
+          "loss": 3.439331792294979,
+          "policy_loss": -0.03174574830336496,
+          "value_loss": 3.463425613939762,
+          "latent_entropy": -3.8259699642658234,
+          "gradient_norm": 18.760279774665833,
+          "transitions": 73,
+          "episodes": 4,
+          "updates": 38,
+          "parameter_count": 24293,
+          "failure_counts": {
+            "core_exit_handoff": 3,
+            "Persistent grasp constraint failed": 1
+          }
+        },
+        {
+          "iteration": 15,
+          "mean_return": 16.668110824746602,
+          "max_source_steps": 19,
+          "training_successes": 0,
+          "exploration_scale": 0.5169491525423728,
+          "loss": 3.7458594664931297,
+          "policy_loss": -0.03460562974214554,
+          "value_loss": 3.771954268217087,
+          "latent_entropy": -4.255416393280029,
+          "gradient_norm": 19.072535455226898,
+          "transitions": 73,
+          "episodes": 4,
+          "updates": 39,
+          "parameter_count": 24293,
+          "failure_counts": {
+            "Persistent grasp constraint failed": 1,
+            "core_exit_handoff": 3
+          },
+          "evaluation": {
+            "success": false,
+            "failure": {
+              "source_frame": 32.0,
+              "reason": "core_exit_handoff"
+            },
+            "tracking_failure_count": 0,
+            "source_steps": 18,
+            "evaluation_return": 11.669022093182232,
+            "reward_terms": {
+              "object_tracking": 0.8979209249913429,
+              "contact": 0.0,
+              "lifting": 0.0003567337989807129,
+              "total": 0.8982776587903236
+            },
+            "return_value": 21.673323164349227,
+            "deterministic": true
+          }
+        },
+        {
+          "iteration": 16,
+          "mean_return": 21.66327014692805,
+          "max_source_steps": 19,
+          "training_successes": 0,
+          "exploration_scale": 0.5042372881355932,
+          "loss": 9.494272351264954,
+          "policy_loss": -0.03119729016907513,
+          "value_loss": 9.516077250242233,
+          "latent_entropy": -4.6961400508880615,
+          "gradient_norm": 36.39389503002167,
+          "transitions": 75,
+          "episodes": 4,
+          "updates": 40,
+          "parameter_count": 24293,
+          "failure_counts": {
+            "Persistent grasp constraint failed": 3,
+            "core_exit_handoff": 1
+          }
+        },
+        {
+          "iteration": 17,
+          "mean_return": 19.17265080417389,
+          "max_source_steps": 19,
+          "training_successes": 0,
+          "exploration_scale": 0.4915254237288136,
+          "loss": 5.106599748134613,
+          "policy_loss": -0.04574369241527165,
+          "value_loss": 5.142030730843544,
+          "latent_entropy": -5.156376928091049,
+          "gradient_norm": 20.9944107234478,
+          "transitions": 74,
+          "episodes": 4,
+          "updates": 41,
+          "parameter_count": 24293,
+          "failure_counts": {
+            "Persistent grasp constraint failed": 2,
+            "core_exit_handoff": 2
+          }
+        },
+        {
+          "iteration": 18,
+          "mean_return": 15.672222776691282,
+          "max_source_steps": 19,
+          "training_successes": 0,
+          "exploration_scale": 0.47881355932203384,
+          "loss": 3.2013758942484856,
+          "policy_loss": -0.025049099989701062,
+          "value_loss": 3.215159498155117,
+          "latent_entropy": -5.632743716239929,
+          "gradient_norm": 33.88885337114334,
+          "transitions": 73,
+          "episodes": 4,
+          "updates": 42,
+          "parameter_count": 24293,
+          "failure_counts": {
+            "core_exit_handoff": 3,
+            "Persistent grasp constraint failed": 1
+          }
+        },
+        {
+          "iteration": 19,
+          "mean_return": 18.175834191476973,
+          "max_source_steps": 19,
+          "training_successes": 0,
+          "exploration_scale": 0.4661016949152542,
+          "loss": 3.633600875735283,
+          "policy_loss": -0.017621096863877028,
+          "value_loss": 3.638985514640808,
+          "latent_entropy": -6.118216276168823,
+          "gradient_norm": 23.32861739397049,
+          "transitions": 73,
+          "episodes": 4,
+          "updates": 43,
+          "parameter_count": 24293,
+          "failure_counts": {
+            "core_exit_handoff": 3,
+            "Persistent grasp constraint failed": 1
+          }
+        },
+        {
+          "iteration": 20,
+          "mean_return": 15.175376986474731,
+          "max_source_steps": 18,
+          "training_successes": 0,
+          "exploration_scale": 0.4533898305084746,
+          "loss": 2.364992395043373,
+          "policy_loss": -0.040301155764609575,
+          "value_loss": 2.3920533061027527,
+          "latent_entropy": -6.620127320289612,
+          "gradient_norm": 22.322583615779877,
+          "transitions": 72,
+          "episodes": 4,
+          "updates": 44,
+          "parameter_count": 24293,
+          "failure_counts": {
+            "core_exit_handoff": 4
+          },
+          "evaluation": {
+            "success": false,
+            "failure": {
+              "source_frame": 33.0,
+              "reason": "Persistent grasp constraint failed: {'position_m': 0.0014498124710074865, 'rotation_rad': 0.012919235484302698, 'contact_retained': False}"
+            },
+            "tracking_failure_count": 0,
+            "source_steps": 19,
+            "evaluation_return": 11.663384005934365,
+            "reward_terms": {
+              "object_tracking": 0.8968030507337761,
+              "contact": 2.0,
+              "lifting": 0.0004032254219055176,
+              "total": 2.8972062761556816
+            },
+            "return_value": 23.667998001486424,
+            "deterministic": true
+          }
+        },
+        {
+          "iteration": 21,
+          "mean_return": 15.150677612817766,
+          "max_source_steps": 19,
+          "training_successes": 0,
+          "exploration_scale": 0.44067796610169496,
+          "loss": 2.3143668100237846,
+          "policy_loss": -0.04653734201565385,
+          "value_loss": 2.3466311916708946,
+          "latent_entropy": -7.136461049318314,
+          "gradient_norm": 17.255718529224396,
+          "transitions": 74,
+          "episodes": 4,
+          "updates": 45,
+          "parameter_count": 24293,
+          "failure_counts": {
+            "Persistent grasp constraint failed": 2,
+            "core_exit_handoff": 2
+          }
+        },
+        {
+          "iteration": 22,
+          "mean_return": 22.66706286109158,
+          "max_source_steps": 19,
+          "training_successes": 0,
+          "exploration_scale": 0.4279661016949152,
+          "loss": 8.110542088747025,
+          "policy_loss": -0.001944748335517943,
+          "value_loss": 8.097154662013054,
+          "latent_entropy": -7.666088849306107,
+          "gradient_norm": 59.733736634254456,
+          "transitions": 73,
+          "episodes": 4,
+          "updates": 46,
+          "parameter_count": 24293,
+          "failure_counts": {
+            "core_exit_handoff": 3,
+            "Persistent grasp constraint failed": 1
+          }
+        },
+        {
+          "iteration": 23,
+          "mean_return": 20.175086938724657,
+          "max_source_steps": 19,
+          "training_successes": 0,
+          "exploration_scale": 0.4152542372881356,
+          "loss": 5.87767893075943,
+          "policy_loss": -0.04791123128961772,
+          "value_loss": 5.909169554710388,
+          "latent_entropy": -8.210294485092163,
+          "gradient_norm": 24.894307553768158,
+          "transitions": 76,
+          "episodes": 4,
+          "updates": 47,
+          "parameter_count": 24293,
+          "failure_counts": {
+            "Persistent grasp constraint failed": 4
+          }
+        },
+        {
+          "iteration": 24,
+          "mean_return": 19.67424509038601,
+          "max_source_steps": 19,
+          "training_successes": 0,
+          "exploration_scale": 0.40254237288135597,
+          "loss": 4.366015583276749,
+          "policy_loss": -0.037095294101163745,
+          "value_loss": 4.385570973157883,
+          "latent_entropy": -8.769950926303864,
+          "gradient_norm": 30.105185389518738,
+          "transitions": 74,
+          "episodes": 4,
+          "updates": 48,
+          "parameter_count": 24293,
+          "failure_counts": {
+            "Persistent grasp constraint failed": 2,
+            "core_exit_handoff": 2
+          }
+        },
+        {
+          "iteration": 25,
+          "mean_return": 22.13880032473219,
+          "max_source_steps": 18,
+          "training_successes": 0,
+          "exploration_scale": 0.38983050847457623,
+          "loss": 7.598647981882095,
+          "policy_loss": -0.016441226471215487,
+          "value_loss": 7.59639036655426,
+          "latent_entropy": -9.34944075345993,
+          "gradient_norm": 31.504297196865082,
+          "transitions": 72,
+          "episodes": 4,
+          "updates": 49,
+          "parameter_count": 24293,
+          "failure_counts": {
+            "core_exit_handoff": 4
+          },
+          "evaluation": {
+            "success": false,
+            "failure": {
+              "source_frame": 33.0,
+              "reason": "Persistent grasp constraint failed: {'position_m': 0.001271565556701425, 'rotation_rad': 0.012017340687076699, 'contact_retained': False}"
+            },
+            "tracking_failure_count": 0,
+            "source_steps": 19,
+            "evaluation_return": 11.672888361132122,
+            "reward_terms": {
+              "object_tracking": 0.897893335408045,
+              "contact": 2.0,
+              "lifting": 0.00040471553802490234,
+              "total": 2.89829805094607
+            },
+            "return_value": 33.6774251686692,
+            "deterministic": true
+          }
+        },
+        {
+          "iteration": 26,
+          "mean_return": 19.67415339626018,
+          "max_source_steps": 18,
+          "training_successes": 0,
+          "exploration_scale": 0.3771186440677966,
+          "loss": 3.3031453862786293,
+          "policy_loss": -0.04857091745361686,
+          "value_loss": 3.3318153768777847,
+          "latent_entropy": -9.95046979188919,
+          "gradient_norm": 26.22771579027176,
+          "transitions": 72,
+          "episodes": 4,
+          "updates": 50,
+          "parameter_count": 24293,
+          "failure_counts": {
+            "core_exit_handoff": 4
+          }
+        },
+        {
+          "iteration": 27,
+          "mean_return": 21.17360986394123,
+          "max_source_steps": 19,
+          "training_successes": 0,
+          "exploration_scale": 0.364406779661017,
+          "loss": 2.454718828201294,
+          "policy_loss": -0.04045642272103578,
+          "value_loss": 2.4740337282419205,
+          "latent_entropy": -10.570762872695923,
+          "gradient_norm": 17.528379380702972,
+          "transitions": 74,
+          "episodes": 4,
+          "updates": 51,
+          "parameter_count": 24293,
+          "failure_counts": {
+            "Persistent grasp constraint failed": 2,
+            "core_exit_handoff": 2
+          }
+        },
+        {
+          "iteration": 28,
+          "mean_return": 19.676018960121873,
+          "max_source_steps": 19,
+          "training_successes": 0,
+          "exploration_scale": 0.35169491525423724,
+          "loss": 9.631688073277473,
+          "policy_loss": -0.028445729636587203,
+          "value_loss": 9.637710452079773,
+          "latent_entropy": -11.211678266525269,
+          "gradient_norm": 34.081013560295105,
+          "transitions": 74,
+          "episodes": 4,
+          "updates": 52,
+          "parameter_count": 24293,
+          "failure_counts": {
+            "core_exit_handoff": 2,
+            "Persistent grasp constraint failed": 2
+          }
+        },
+        {
+          "iteration": 29,
+          "mean_return": 24.63134122983812,
+          "max_source_steps": 20,
+          "training_successes": 0,
+          "exploration_scale": 0.3389830508474576,
+          "loss": 7.354208290576935,
+          "policy_loss": -0.027503402321599424,
+          "value_loss": 7.357958137989044,
+          "latent_entropy": -11.87675416469574,
+          "gradient_norm": 55.46317571401596,
+          "transitions": 76,
+          "episodes": 4,
+          "updates": 53,
+          "parameter_count": 24293,
+          "failure_counts": {
+            "core_exit_handoff": 2,
+            "Persistent grasp constraint failed": 1,
+            "Actual RELAXED native tool-target contact": 1
+          }
+        },
+        {
+          "iteration": 30,
+          "mean_return": 22.178648266203112,
+          "max_source_steps": 19,
+          "training_successes": 0,
+          "exploration_scale": 0.326271186440678,
+          "loss": 3.7804515957832336,
+          "policy_loss": -0.04409083386417478,
+          "value_loss": 3.7994107604026794,
+          "latent_entropy": -12.565866529941559,
+          "gradient_norm": 28.47214186191559,
+          "transitions": 73,
+          "episodes": 4,
+          "updates": 54,
+          "parameter_count": 24293,
+          "failure_counts": {
+            "core_exit_handoff": 3,
+            "Persistent grasp constraint failed": 1
+          },
+          "evaluation": {
+            "success": false,
+            "failure": {
+              "source_frame": 33.0,
+              "reason": "Persistent grasp constraint failed: {'position_m': 0.001023174015435876, 'rotation_rad': 0.011037621599428818, 'contact_retained': False}"
+            },
+            "tracking_failure_count": 0,
+            "source_steps": 19,
+            "evaluation_return": 11.670934523826022,
+            "reward_terms": {
+              "object_tracking": 0.8978191080780458,
+              "contact": 2.0,
+              "lifting": 0.0003400444984436035,
+              "total": 2.8981591525764894
+            },
+            "return_value": 27.6750144617609,
+            "deterministic": true
+          }
+        },
+        {
+          "iteration": 31,
+          "mean_return": 24.13076556523892,
+          "max_source_steps": 20,
+          "training_successes": 0,
+          "exploration_scale": 0.31355932203389836,
+          "loss": 3.6980162039399147,
+          "policy_loss": -0.04687789734452963,
+          "value_loss": 3.7183359563350677,
+          "latent_entropy": -13.279054880142212,
+          "gradient_norm": 25.737652003765106,
+          "transitions": 75,
+          "episodes": 4,
+          "updates": 55,
+          "parameter_count": 24293,
+          "failure_counts": {
+            "core_exit_handoff": 2,
+            "Actual RELAXED native tool-target contact": 1,
+            "Persistent grasp constraint failed": 1
+          }
+        },
+        {
+          "iteration": 32,
+          "mean_return": 22.657071205238324,
+          "max_source_steps": 19,
+          "training_successes": 0,
+          "exploration_scale": 0.3008474576271186,
+          "loss": 2.763681545853615,
+          "policy_loss": -0.05248124140780419,
+          "value_loss": 2.788122922182083,
+          "latent_entropy": -14.01993328332901,
+          "gradient_norm": 24.360170364379883,
+          "transitions": 74,
+          "episodes": 4,
+          "updates": 56,
+          "parameter_count": 24293,
+          "failure_counts": {
+            "Persistent grasp constraint failed": 2,
+            "core_exit_handoff": 2
+          }
+        },
+        {
+          "iteration": 33,
+          "mean_return": 23.673239945994187,
+          "max_source_steps": 18,
+          "training_successes": 0,
+          "exploration_scale": 0.288135593220339,
+          "loss": 3.502102665603161,
+          "policy_loss": -0.06270615574612748,
+          "value_loss": 3.5352169051766396,
+          "latent_entropy": -14.795961260795593,
+          "gradient_norm": 24.393155932426453,
+          "transitions": 72,
+          "episodes": 4,
+          "updates": 57,
+          "parameter_count": 24293,
+          "failure_counts": {
+            "core_exit_handoff": 4
+          }
+        },
+        {
+          "iteration": 34,
+          "mean_return": 23.67935472720113,
+          "max_source_steps": 19,
+          "training_successes": 0,
+          "exploration_scale": 0.27542372881355937,
+          "loss": 3.696396455168724,
+          "policy_loss": -0.04376390064135194,
+          "value_loss": 3.7089420557022095,
+          "latent_entropy": -15.609147846698761,
+          "gradient_norm": 25.390848606824875,
+          "transitions": 74,
+          "episodes": 4,
+          "updates": 58,
+          "parameter_count": 24293,
+          "failure_counts": {
+            "Persistent grasp constraint failed": 2,
+            "core_exit_handoff": 2
+          }
+        },
+        {
+          "iteration": 35,
+          "mean_return": 24.17645864702401,
+          "max_source_steps": 20,
+          "training_successes": 0,
+          "exploration_scale": 0.2627118644067796,
+          "loss": 2.9723284617066383,
+          "policy_loss": -0.03419122422928922,
+          "value_loss": 2.9735968708992004,
+          "latent_entropy": -16.46140420436859,
+          "gradient_norm": 26.263911187648773,
+          "transitions": 75,
+          "episodes": 4,
+          "updates": 59,
+          "parameter_count": 24293,
+          "failure_counts": {
+            "Actual RELAXED native tool-target contact": 1,
+            "core_exit_handoff": 2,
+            "Persistent grasp constraint failed": 1
+          },
+          "evaluation": {
+            "success": false,
+            "failure": {
+              "source_frame": 33.0,
+              "reason": "Persistent grasp constraint failed: {'position_m': 0.0012216333186669257, 'rotation_rad': 0.011653192073669686, 'contact_retained': False}"
+            },
+            "tracking_failure_count": 0,
+            "source_steps": 19,
+            "evaluation_return": 11.671019553719313,
+            "reward_terms": {
+              "object_tracking": 0.8978004276401819,
+              "contact": 2.0,
+              "lifting": 0.0003606081008911133,
+              "total": 2.898161035741073
+            },
+            "return_value": 27.675303339539322,
+            "deterministic": true
+          }
+        },
+        {
+          "iteration": 36,
+          "mean_return": 25.67461273445268,
+          "max_source_steps": 19,
+          "training_successes": 0,
+          "exploration_scale": 0.25,
+          "loss": 3.7111479490995407,
+          "policy_loss": -0.03444537302129902,
+          "value_loss": 3.710886985063553,
+          "latent_entropy": -17.35314166545868,
+          "gradient_norm": 35.1814004778862,
+          "transitions": 76,
+          "episodes": 4,
+          "updates": 60,
+          "parameter_count": 24293,
+          "failure_counts": {
+            "Persistent grasp constraint failed": 4
+          }
+        },
+        {
+          "iteration": 37,
+          "mean_return": 26.17711408378928,
+          "max_source_steps": 19,
+          "training_successes": 0,
+          "exploration_scale": 0.25,
+          "loss": 3.905444920063019,
+          "policy_loss": -0.052396738217794336,
+          "value_loss": 3.923137255012989,
+          "latent_entropy": -17.352198719978333,
+          "gradient_norm": 29.506989002227783,
+          "transitions": 76,
+          "episodes": 4,
+          "updates": 61,
+          "parameter_count": 24293,
+          "failure_counts": {
+            "Persistent grasp constraint failed": 4
+          }
+        },
+        {
+          "iteration": 38,
+          "mean_return": 26.175884653506607,
+          "max_source_steps": 20,
+          "training_successes": 0,
+          "exploration_scale": 0.25,
+          "loss": 3.1141256541013718,
+          "policy_loss": -0.05078436341136694,
+          "value_loss": 3.1302053034305573,
+          "latent_entropy": -17.352369785308838,
+          "gradient_norm": 29.395229816436768,
+          "transitions": 75,
+          "episodes": 4,
+          "updates": 62,
+          "parameter_count": 24293,
+          "failure_counts": {
+            "core_exit_handoff": 2,
+            "Actual RELAXED native tool-target contact": 1,
+            "Persistent grasp constraint failed": 1
+          }
+        },
+        {
+          "iteration": 39,
+          "mean_return": 26.661252943893196,
+          "max_source_steps": 19,
+          "training_successes": 0,
+          "exploration_scale": 0.25,
+          "loss": 4.584219455718994,
+          "policy_loss": -0.04769573686644435,
+          "value_loss": 4.597216099500656,
+          "latent_entropy": -17.349528312683105,
+          "gradient_norm": 32.83436727523804,
+          "transitions": 74,
+          "episodes": 4,
+          "updates": 63,
+          "parameter_count": 24293,
+          "failure_counts": {
+            "core_exit_handoff": 2,
+            "Persistent grasp constraint failed": 2
+          }
+        },
+        {
+          "iteration": 40,
+          "mean_return": 21.670175566596185,
+          "max_source_steps": 19,
+          "training_successes": 0,
+          "exploration_scale": 0.25,
+          "loss": 4.462650179862976,
+          "policy_loss": -0.011939086893107742,
+          "value_loss": 4.4398976266384125,
+          "latent_entropy": -17.345823168754578,
+          "gradient_norm": 64.85020422935486,
+          "transitions": 73,
+          "episodes": 4,
+          "updates": 64,
+          "parameter_count": 24293,
+          "failure_counts": {
+            "core_exit_handoff": 3,
+            "Persistent grasp constraint failed": 1
+          },
+          "evaluation": {
+            "success": false,
+            "failure": {
+              "source_frame": 33.0,
+              "reason": "Persistent grasp constraint failed: {'position_m': 0.0012626673349092155, 'rotation_rad': 0.01335454185563695, 'contact_retained': False}"
+            },
+            "tracking_failure_count": 0,
+            "source_steps": 19,
+            "evaluation_return": 11.672483524902134,
+            "reward_terms": {
+              "object_tracking": 0.8979079698522144,
+              "contact": 2.0,
+              "lifting": 0.00034421682357788086,
+              "total": 2.8982521866757924
+            },
+            "return_value": 31.676573893649845,
+            "deterministic": true
+          }
+        },
+        {
+          "iteration": 41,
+          "mean_return": 26.671048661420016,
+          "max_source_steps": 20,
+          "training_successes": 0,
+          "exploration_scale": 0.25,
+          "loss": 2.9519664645195007,
+          "policy_loss": -0.01229128718841821,
+          "value_loss": 2.9295691773295403,
+          "latent_entropy": -17.34426975250244,
+          "gradient_norm": 47.318267822265625,
+          "transitions": 76,
+          "episodes": 4,
+          "updates": 65,
+          "parameter_count": 24293,
+          "failure_counts": {
+            "core_exit_handoff": 2,
+            "Actual RELAXED native tool-target contact": 2
+          }
+        },
+        {
+          "iteration": 42,
+          "mean_return": 26.173183871428627,
+          "max_source_steps": 19,
+          "training_successes": 0,
+          "exploration_scale": 0.25,
+          "loss": 6.167202413082123,
+          "policy_loss": -0.026295319017663132,
+          "value_loss": 6.158810675144196,
+          "latent_entropy": -17.34354305267334,
+          "gradient_norm": 35.6477712392807,
+          "transitions": 75,
+          "episodes": 4,
+          "updates": 66,
+          "parameter_count": 24293,
+          "failure_counts": {
+            "Persistent grasp constraint failed": 3,
+            "core_exit_handoff": 1
+          }
+        },
+        {
+          "iteration": 43,
+          "mean_return": 24.67389922866536,
+          "max_source_steps": 20,
+          "training_successes": 0,
+          "exploration_scale": 0.25,
+          "loss": 2.405751518905163,
+          "policy_loss": -0.013979021226987243,
+          "value_loss": 2.3850415125489235,
+          "latent_entropy": -17.344518303871155,
+          "gradient_norm": 33.25308209657669,
+          "transitions": 76,
+          "episodes": 4,
+          "updates": 67,
+          "parameter_count": 24293,
+          "failure_counts": {
+            "Actual RELAXED native tool-target contact": 1,
+            "Persistent grasp constraint failed": 1,
+            "core_exit_handoff": 2
+          }
+        },
+        {
+          "iteration": 44,
+          "mean_return": 25.175349434094358,
+          "max_source_steps": 19,
+          "training_successes": 0,
+          "exploration_scale": 0.25,
+          "loss": 2.797486796975136,
+          "policy_loss": -0.014130519237369299,
+          "value_loss": 2.776924416422844,
+          "latent_entropy": -17.346461176872253,
+          "gradient_norm": 26.343089044094086,
+          "transitions": 75,
+          "episodes": 4,
+          "updates": 68,
+          "parameter_count": 24293,
+          "failure_counts": {
+            "Persistent grasp constraint failed": 3,
+            "core_exit_handoff": 1
+          }
+        },
+        {
+          "iteration": 45,
+          "mean_return": 25.670401826528717,
+          "max_source_steps": 20,
+          "training_successes": 0,
+          "exploration_scale": 0.25,
+          "loss": 4.221995636820793,
+          "policy_loss": -0.024962269759271294,
+          "value_loss": 4.212258279323578,
+          "latent_entropy": -17.349816918373108,
+          "gradient_norm": 30.499285459518433,
+          "transitions": 75,
+          "episodes": 4,
+          "updates": 69,
+          "parameter_count": 24293,
+          "failure_counts": {
+            "core_exit_handoff": 2,
+            "Actual RELAXED native tool-target contact": 1,
+            "Persistent grasp constraint failed": 1
+          },
+          "evaluation": {
+            "success": false,
+            "failure": {
+              "source_frame": 33.0,
+              "reason": "Persistent grasp constraint failed: {'position_m': 0.0013807617634248597, 'rotation_rad': 0.014033999952999055, 'contact_retained': False}"
+            },
+            "tracking_failure_count": 0,
+            "source_steps": 19,
+            "evaluation_return": 11.671641304109412,
+            "reward_terms": {
+              "object_tracking": 0.8978447321952223,
+              "contact": 2.0,
+              "lifting": 0.0003445148468017578,
+              "total": 2.898189247042024
+            },
+            "return_value": 33.67570723495277,
+            "deterministic": true
+          }
+        },
+        {
+          "iteration": 46,
+          "mean_return": 24.176373750790603,
+          "max_source_steps": 19,
+          "training_successes": 0,
+          "exploration_scale": 0.25,
+          "loss": 3.1352599412202835,
+          "policy_loss": -0.010678956750780344,
+          "value_loss": 3.1112380623817444,
+          "latent_entropy": -17.350423216819763,
+          "gradient_norm": 30.1917462348938,
+          "transitions": 74,
+          "episodes": 4,
+          "updates": 70,
+          "parameter_count": 24293,
+          "failure_counts": {
+            "core_exit_handoff": 2,
+            "Persistent grasp constraint failed": 2
+          }
+        },
+        {
+          "iteration": 47,
+          "mean_return": 25.17543966310535,
+          "max_source_steps": 19,
+          "training_successes": 0,
+          "exploration_scale": 0.25,
+          "loss": 3.0743402615189552,
+          "policy_loss": -0.01979714457411319,
+          "value_loss": 3.0594378784298897,
+          "latent_entropy": -17.34976577758789,
+          "gradient_norm": 27.039845526218414,
+          "transitions": 73,
+          "episodes": 4,
+          "updates": 71,
+          "parameter_count": 24293,
+          "failure_counts": {
+            "Persistent grasp constraint failed": 1,
+            "core_exit_handoff": 3
+          }
+        },
+        {
+          "iteration": 48,
+          "mean_return": 27.67412464502086,
+          "max_source_steps": 20,
+          "training_successes": 0,
+          "exploration_scale": 0.25,
+          "loss": 2.6918467432260513,
+          "policy_loss": -0.0313476778101176,
+          "value_loss": 2.688490003347397,
+          "latent_entropy": -17.352206349372864,
+          "gradient_norm": 35.220617055892944,
+          "transitions": 76,
+          "episodes": 4,
+          "updates": 72,
+          "parameter_count": 24293,
+          "failure_counts": {
+            "core_exit_handoff": 1,
+            "Persistent grasp constraint failed": 2,
+            "Actual RELAXED native tool-target contact": 1
+          }
+        },
+        {
+          "iteration": 49,
+          "mean_return": 26.674624423730673,
+          "max_source_steps": 19,
+          "training_successes": 0,
+          "exploration_scale": 0.25,
+          "loss": 2.7791479900479317,
+          "policy_loss": -0.0390642792917788,
+          "value_loss": 2.7835053876042366,
+          "latent_entropy": -17.353439569473267,
+          "gradient_norm": 30.77599209547043,
+          "transitions": 76,
+          "episodes": 4,
+          "updates": 73,
+          "parameter_count": 24293,
+          "failure_counts": {
+            "Persistent grasp constraint failed": 4
+          }
+        },
+        {
+          "iteration": 50,
+          "mean_return": 25.008766141316244,
+          "max_source_steps": 19,
+          "training_successes": 0,
+          "exploration_scale": 0.25,
+          "loss": 3.6700989305973053,
+          "policy_loss": -0.04889844045101199,
+          "value_loss": 3.684284031391144,
+          "latent_entropy": -17.356671810150146,
+          "gradient_norm": 41.7939355969429,
+          "transitions": 55,
+          "episodes": 3,
+          "updates": 74,
+          "parameter_count": 24293,
+          "failure_counts": {
+            "core_exit_handoff": 2,
+            "Persistent grasp constraint failed": 1
+          },
+          "evaluation": {
+            "success": false,
+            "failure": {
+              "source_frame": 33.0,
+              "reason": "Persistent grasp constraint failed: {'position_m': 0.0013538762121830512, 'rotation_rad': 0.01382950823881847, 'contact_retained': False}"
+            },
+            "tracking_failure_count": 0,
+            "source_steps": 19,
+            "evaluation_return": 11.672533229413464,
+            "reward_terms": {
+              "object_tracking": 0.8980093337860897,
+              "contact": 2.0,
+              "lifting": 0.00036895275115966797,
+              "total": 2.898378286537249
+            },
+            "return_value": 29.67685754639192,
+            "deterministic": true
+          }
+        }
+      ],
+      "success": false,
+      "commit_requires_full_prediction": true,
+      "residual_noise_schedule": {
+        "kind": "linear_multiplier_of_learned_Gaussian_std",
+        "initial": 1.0,
+        "final": 0.25,
+        "shared_across_sources": true,
+        "numeric_provenance": "engineering choice; Appendix specifies shared schedule, not its values"
+      },
+      "best_proposal": {
+        "source_steps": 20,
+        "evaluation_return": 11.678048174111135,
+        "physical_acceptance": false,
+        "role": "initialization_for_fresh_local_replay"
+      },
+      "zero_policy": {
+        "success": false,
+        "failure": {
+          "source_frame": 33.0,
+          "reason": "Persistent grasp constraint failed: {'position_m': 0.0017589222125036724, 'rotation_rad': 0.012842907475791594, 'contact_retained': False}"
+        },
+        "tracking_failure_count": 0,
+        "source_steps": 19,
+        "evaluation_return": 11.668398798767907,
+        "reward_terms": {
+          "object_tracking": 0.8978629716005335,
+          "contact": 2.0,
+          "lifting": 0.0003579258918762207,
+          "total": 2.8982208974924095
+        },
+        "return_value": 25.67302650338827,
+        "deterministic": true
+      },
+      "elapsed_s": 593.7567624410149,
+      "optimizer_continuation": {
+        "checkpoint": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_bimanual_r251/physical/left_ppo/chunk_0000_attempt_00/last_policy.pt",
+        "previous_updates": 24,
+        "previous_acceptance_reused": false,
+        "zero_baseline_checked_again": true
+      },
+      "resumed_evaluation": {
+        "success": false,
+        "failure": {
+          "source_frame": 33.0,
+          "reason": "Persistent grasp constraint failed: {'position_m': 0.0015612166328875326, 'rotation_rad': 0.013800989326139218, 'contact_retained': False}"
+        },
+        "tracking_failure_count": 0,
+        "source_steps": 19,
+        "evaluation_return": 11.666705244415736,
+        "reward_terms": {
+          "object_tracking": 0.8977480368058282,
+          "contact": 2.0,
+          "lifting": 0.0003966689109802246,
+          "total": 2.8981447057168084
+        },
+        "return_value": 17.671252780788876,
+        "deterministic": true
+      },
+      "best_evaluation": {
+        "success": false,
+        "failure": {
+          "source_frame": 33.0,
+          "reason": "Persistent grasp constraint failed: {'position_m': 0.001271565556701425, 'rotation_rad': 0.012017340687076699, 'contact_retained': False}"
+        },
+        "tracking_failure_count": 0,
+        "source_steps": 19,
+        "evaluation_return": 11.672888361132122,
+        "reward_terms": {
+          "object_tracking": 0.897893335408045,
+          "contact": 2.0,
+          "lifting": 0.00040471553802490234,
+          "total": 2.89829805094607
+        },
+        "return_value": 33.6774251686692,
+        "deterministic": true
+      }
+    }
+  ]
+}

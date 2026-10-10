@@ -91,6 +91,12 @@
     }
   },
   "semantic_scope": "Bimanual XHand: left hand supports the plate, right hand operates the eraser; native eraser-plate contact required, no appearance-cleaning model.",
+  "allowed_object_environment_contacts": {
+    "target": ["table"]
+  },
+  "object_support": {
+    "target": "table"
+  },
   "hands": {
     "right": {
       "object_role": "tool"

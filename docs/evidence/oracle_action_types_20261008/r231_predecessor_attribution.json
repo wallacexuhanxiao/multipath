@@ -1,0 +1,32 @@
+{
+  "cached_local_commands_identical": true,
+  "left_predecessor_max_command_delta": 0.007624016740164599,
+  "left_predecessor_terminal_max_command_delta": 0.0004422814095496136,
+  "measured_states": {
+    "0": {
+      "left_wrist_delta_m": 0.0,
+      "baseline_opposition": false,
+      "replanned_predecessor_opposition": false
+    },
+    "14": {
+      "left_wrist_delta_m": 1.4749342647290216e-05,
+      "baseline_opposition": false,
+      "replanned_predecessor_opposition": false
+    },
+    "20": {
+      "left_wrist_delta_m": 1.7020428614423663e-05,
+      "baseline_opposition": false,
+      "replanned_predecessor_opposition": false
+    },
+    "32": {
+      "left_wrist_delta_m": 0.0001462816402832582,
+      "baseline_opposition": true,
+      "replanned_predecessor_opposition": false
+    }
+  },
+  "fix": "reuse physically validated source-clock predecessor after scene/actual initial hand and object checks; compiled Replay failure no longer silently retrains",
+  "confirmation_run": "r232",
+  "fixed_predecessor_joint_padded_success": true,
+  "fixed_predecessor_joint_core_success": true,
+  "scope": "local artifact reuse; full bimanual task not validated"
+}

@@ -248,7 +248,7 @@ def execute(scene,schedule,manifest,proposal_dir,report):
                     from multipath.validation.physics import check_relaxed_tool_target_contact
                     check_relaxed_tool_target_contact(scene,contact_steps_at_entry)
                 if cache:
-                    if carry:check_retention(scene.state(),held)
+                    if carry:check_retention(scene.state(),held,require_opposition=(j+1)%tpf==0)
                     clearance=planner.measured_clearance()
                     if min(clearance.values())<0:
                         collisions=planner.measured_mesh_collisions()

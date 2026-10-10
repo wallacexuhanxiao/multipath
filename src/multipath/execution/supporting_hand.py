@@ -68,6 +68,9 @@ class SupportingHand:
     def restore_count(self):return self.scene.restore_count
 
     @property
+    def tool_target_contact_steps(self):return self.scene.tool_target_contact_steps
+
+    @property
     def physical_properties(self):
         return dict(hand_mass_kg=float(np.asarray(self.av.get_masses()).sum()),
                     tool_mass_kg=float(self.objects['tool'].get_mass()))
@@ -111,7 +114,7 @@ class SupportingHand:
         for role,obj in self.objects.items():
             p,q=obj.get_world_pose();objects[role]={'pose':np.r_[p,q].tolist(),
                 'velocity':np.r_[obj.get_linear_velocity(),obj.get_angular_velocity()].tolist()}
-        result=dict(wrist_xyz_wxyz=pose.tolist(),wrist_twist=twist.tolist(),
+        result=dict(embodiment=self.embodiment,wrist_xyz_wxyz=pose.tolist(),wrist_twist=twist.tolist(),
             hand_q=np.asarray(self.robot.get_joint_positions())[self.fingers].tolist(),
             hand_dq=np.asarray(self.robot.get_joint_velocities())[self.fingers].tolist(),objects=objects,
             hand_object_transform=(np.linalg.inv(pose_matrix(pose))@pose_matrix(object_pose)).tolist(),

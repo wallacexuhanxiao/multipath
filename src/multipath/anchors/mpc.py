@@ -96,8 +96,9 @@ class WindowEvaluation:
                                           anchor.core_end-anchor.synth_start+1,2,3]
         # This chooses C.8's applicability inside the existing Oracle Anchor;
         # it does not discover or change an interaction interval.
-        self.lifting=bool(self.interaction_constraint.get('lifting',
-            anchor.exit_contact=='grasped' and len(core)>1 and np.max(core)>core[0]))
+        self.lifting=(not getattr(scene,'surface_supported_object',False) and
+            bool(self.interaction_constraint.get('lifting',
+                anchor.exit_contact=='grasped' and len(core)>1 and np.max(core)>core[0])))
 
     def observe(self, frame, command, measured=None):
         a = self.anchor
@@ -155,19 +156,20 @@ class WindowEvaluation:
                        check_transition(self.scene, command[:7], a.exit_contact, self.data['tool_pose'][index]))
             if not handoff['success']:
                 reason = 'core_exit_handoff'
-            if getattr(self.scene,'bridge_exit_constraints',False):
+            full_bridge_constraints=getattr(self.scene,'bridge_exit_constraints',False)
+            if full_bridge_constraints or getattr(self.scene,'bridge_exit_velocity_constraints',False):
                 from multipath.planning.bridge import coordinate_velocity,carried_object_clearance
                 velocity=coordinate_velocity(measured['wrist_xyz_wxyz'],measured['wrist_twist'])
                 ratio=float(np.max(np.abs(velocity)/self.scene.cfg['planning']['velocity_limits']))
                 self.scene.last_bridge_exit_velocity_ratio=ratio
                 if ratio>1.0001:
                     if reason is None:reason='core_exit_bridge_velocity'
-                if a.exit_contact=='grasped':
+                if full_bridge_constraints and a.exit_contact=='grasped':
                     clearance=carried_object_clearance(self.scene,measured)
                     self.scene.last_bridge_exit_clearance=clearance
                     if min(clearance.values())<0:
                         if reason is None:reason='core_exit_carried_object_collision'
-                else:
+                elif full_bridge_constraints:
                     from multipath.planning.bridge import hand_table_clearance
                     clearance=hand_table_clearance(self.scene)
                     self.scene.last_bridge_exit_hand_clearance=clearance

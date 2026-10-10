@@ -340,7 +340,7 @@ def rollout(scene,anchor,data,commands,start,out,mode='LOCAL_PADDED',core_only=F
             if (getattr(scene,'post_context_commands',None) is not None
                     and frame>anchor.core_end and objective.held is not None):
                 from multipath.validation.physics import check_retention,check_relaxed_tool_target_contact
-                check_retention(scene.state(),objective.held)
+                check_retention(scene.state(),objective.held,require_opposition=(k+1)%tpf==0)
                 check_relaxed_tool_target_contact(scene,post_contact_steps)
             if (k+1)%tpf:continue
             if frame==anchor.core_start:entry=scene.snapshot()
@@ -503,16 +503,73 @@ def source_grasp_core_controls(scene,anchor,data,start):
     return project_hand_commands(scene,commands,start,anchor),fit
 
 
+def outgoing_carry_context(scene,last_command,ticks):
+    """Transport a local load template from the newly reached physical q/dq.
+
+    The template is synthesis context, not a verified bridge. Register its
+    initial pose and velocity to actual exit measurements; an unchanged exit
+    keeps the original failed load. Final RELAXED planning remains independent.
+    """
+    template=getattr(scene,'post_context_commands',None)
+    if template is None:return stopping_context(last_command,ticks,scene.dt)
+    post=np.asarray(template)[:ticks].copy()
+    origin=getattr(scene,'post_context_entry',None)
+    if origin is not None:
+        actual=scene.snapshot()
+        if not origin['physically_acquired_state'] or not actual['physically_acquired_state']:
+            raise ValueError('Carry context registration requires actual physical boundaries')
+        old=np.asarray(origin['wrist_xyz_wxyz']);new=np.asarray(actual['wrist_xyz_wxyz'])
+        rotation=Rotation.from_quat(new[[4,5,6,3]])*Rotation.from_quat(old[[4,5,6,3]]).inv()
+        old_twist=np.asarray(origin['wrist_twist']);new_twist=np.asarray(actual['wrist_twist'])
+        delta_v=new_twist[:3]-rotation.apply(old_twist[:3])
+        delta_w=new_twist[3:]-rotation.apply(old_twist[3:])
+        time=np.arange(1,len(post)+1)*scene.dt
+        post[:,:3]=new[:3]+rotation.apply(post[:,:3]-old[:3])+time[:,None]*delta_v
+        correction=Rotation.from_rotvec(time[:,None]*delta_w)
+        pose=correction*rotation*Rotation.from_quat(post[:,[4,5,6,3]])
+        post[:,3:7]=pose.as_quat()[:,[3,0,1,2]]
+        post[:,19:22]=rotation.apply(post[:,19:22])+delta_v
+        post[:,22:25]=correction.apply(rotation.apply(post[:,22:25]))+delta_w
+        scene.last_context_registration=dict(entry_origin='predecessor_rollout',
+            translation_m=float(np.linalg.norm(new[:3]-old[:3])),rotation_rad=float(rotation.magnitude()),
+            linear_velocity_delta_m_s=delta_v.tolist(),angular_velocity_delta_rad_s=delta_w.tolist(),
+            source_time_stretch=False,bridge_acceptance=False)
+    post[:,7:19]=np.asarray(last_command)[7:19]
+    return post
+
+
+def acquisition_opposition_observed(contact,*,surface_supported=False):
+    """Use the declared load support when latching an acquisition controller.
+
+    Airborne carry needs an opposing pair. A declared table-supported object
+    can be stabilized by measured thumb/non-thumb pressure. Appendix C.7 and
+    the physical rollout gates continue to consume the raw native contact.
+    """
+    if contact['mode']!='grasped':return False
+    if surface_supported:return True
+    paths=contact['link_paths'];forces=np.asarray(contact['force_vectors_n'])
+    active=np.asarray(contact['force_norms_n'])>.01
+    thumb=active&np.asarray(['thumb' in p.rsplit('/',1)[-1] for p in paths])
+    other=active&np.asarray([any(f in p.rsplit('/',1)[-1] for f in ('index','mid','ring','pinky')) for p in paths])
+    return bool(np.any(forces[thumb]@forces[other].T<0.))
+
+
 class AcquiredGraspProposal:
-    """Existing object-relative MPC proposal, initialized by real opposition."""
+    """Object-relative MPC proposal initialized by actual supported contact."""
     def __init__(self,scene,anchor,data):
         self.scene,self.anchor,self.data=scene,anchor,data
         self.contact_run=0;self.contact_loss_run=0;self.held=None;self.handoff=None;self.acquired_frame=None
         self.drive_held=None
         self.preload_bounds=None
         from multipath.execution.mounted_scene import pose_matrix
-        self.entry_tool=pose_matrix(scene.state()['objects']['tool']['pose'])
-        self.source_entry=data['tool_pose'][anchor.core_start-anchor.synth_start]
+        state=scene.state()
+        self.entry_tool=pose_matrix(state['objects']['tool']['pose'])
+        if getattr(scene,'surface_supported_object',False):
+            from multipath.planning.object_geometry import supported_object_targets
+            poses,report=supported_object_targets(scene,data['tool_pose'],state)
+            self.data=dict(data,tool_pose=poses)
+            scene.last_acquisition_support_projection=report
+        self.source_entry=self.data['tool_pose'][anchor.core_start-anchor.synth_start]
         self.stationary_prior=scene.manifest.get('retarget_details',{}).get(anchor.id,{}).get('pre_acquisition_tool_motion')=='stationary_entry'
 
     def acquisition_command(self,frame,baseline,measured,previous_command=None):
@@ -560,13 +617,34 @@ class AcquiredGraspProposal:
             # native contact and final retention acceptance stay unchanged.
             if error['position_m']>.05 or error['rotation_rad']>.35:
                 self.held=None;self.drive_held=None;self.handoff=None;self.preload_bounds=None
-        self.contact_run=self.contact_run+1 if measured['contact']['mode']=='grasped' else 0
+        # A supported stabilizer may press on the surface. An unsupported
+        # payload must continue its acquisition until opposing forces form.
+        contact_ready=acquisition_opposition_observed(measured['contact'],
+            surface_supported=getattr(self.scene,'surface_supported_object',False))
+        self.contact_run=self.contact_run+1 if contact_ready else 0
         if self.held is None and self.contact_run>=tpf:
             self.held=np.asarray(measured['hand_object_transform'])
             previous=self.scene.command_pose if previous_command is None else previous_command[:7]
             self.drive_held=grasp_drive_transform(measured,previous)
             self.preload_bounds=grasp_command_bounds(self.scene,measured,self.anchor)
             self.acquired_frame=measured['time_s']*self.scene.manifest['fps']
+            if getattr(self.scene,'surface_supported_object',False):
+                from multipath.execution.mounted_scene import pose_matrix
+                from multipath.planning.object_geometry import supported_object_targets
+                index=np.clip(self.acquired_frame-self.anchor.synth_start,0,len(self.data['tool_pose'])-1)
+                lo=int(index);hi=min(lo+1,len(self.data['tool_pose'])-1);alpha=index-lo
+                source=self.data['tool_pose'][lo].copy()
+                if hi!=lo:
+                    source[:3,3]=(1-alpha)*source[:3,3]+alpha*self.data['tool_pose'][hi,:3,3]
+                    source[:3,:3]=Slerp([0,1],Rotation.from_matrix(self.data['tool_pose'][[lo,hi],:3,:3]))([alpha])[0].as_matrix()
+                correction=pose_matrix(measured['objects']['tool']['pose'])@np.linalg.inv(source)
+                poses,report=supported_object_targets(self.scene,correction@self.data['tool_pose'],measured)
+                self.data=dict(self.data,tool_pose=poses)
+                self.source_entry=poses[self.anchor.core_start-self.anchor.synth_start]
+                self.scene.last_acquisition_registration=dict(source_frame=self.acquired_frame,
+                    translation_m=correction[:3,3].tolist(),command_only=True,
+                    physical_origin='predecessor_rollout',support_projection=report,
+                    original_source_acceptance_unchanged=True)
             self.handoff=object_relative_handoff(self.scene,self.anchor,self.data,self.acquired_frame,self.drive_held,previous_command)
         if self.held is None:return self.acquisition_command(frame,baseline,measured,previous_command)
         if (self.anchor.entry_contact=='free' and measured['contact']['mode']=='grasped'

@@ -1,0 +1,3555 @@
+{
+  "bimanual_anchor_success": true,
+  "full_pipeline_success": false,
+  "task_success": false,
+  "source": "oracle",
+  "source_time_stretch": false,
+  "vlm_used": false,
+  "pbs_job_id": "658207.hopper-m-02",
+  "embodiment": "floating_xhand_bimanual",
+  "source_provenance": {
+    "triplet": "(brush, eraser, plate)",
+    "sequence": "20231103_057",
+    "input": "raw TACO MANO and object poses",
+    "source_video": "/scratch/e0985859/egoengine_baseline/data/taco_v1/Egocentric_RGB_Videos/(brush, eraser, plate)/20231103_057/color.mp4",
+    "schedule_sha256": "4f1e00a466cf9e9185af33070750852ed62cc0dd5a842583ec3ce9fe2521ec60",
+    "full_robot_reference_used": false,
+    "vlm_used": false,
+    "transform_world_to_robot": [
+      [
+        -0.3564076659688237,
+        0.9343305848933204,
+        0.0,
+        0.5962575927013769
+      ],
+      [
+        -0.9343305539536939,
+        -0.3564076541666626,
+        -0.0,
+        -0.02380021369492084
+      ],
+      [
+        0.0,
+        0.0,
+        1.0,
+        -0.1766161823272705
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "hand_assignments": {
+      "right": {
+        "object_role": "tool"
+      },
+      "left": {
+        "object_role": "target"
+      }
+    },
+    "local_supporting_retarget": true
+  },
+  "core_interval": [
+    20,
+    32
+  ],
+  "synthesis_interval": [
+    14,
+    38
+  ],
+  "source_fps": 30.0,
+  "target_fixture": false,
+  "initial_state": {
+    "embodiment": "floating_xhand_bimanual",
+    "wrist_xyz_wxyz": [
+      0.4158717691898346,
+      -0.1729564219713211,
+      0.6737166047096252,
+      0.7794934511184692,
+      -0.5225648880004883,
+      -0.3047357499599457,
+      0.16264109313488007
+    ],
+    "wrist_twist": [
+      -2.3977579754619174e-05,
+      8.180424214398115e-05,
+      -0.00015280500745643233,
+      -0.001977107487618923,
+      -0.002552725374698639,
+      -0.0009997682645916939
+    ],
+    "hand_q": [
+      0.833861231803894,
+      1.0794377326965332,
+      -0.14641056954860687,
+      0.17428435385227203,
+      0.31082019209861755,
+      1.0363855361938477,
+      0.2866753339767456,
+      1.2775882482528687,
+      0.25494301319122314,
+      1.5345609188079834,
+      0.30900847911834717,
+      1.8094881772994995
+    ],
+    "hand_dq": [
+      0.0010883789509534836,
+      0.00257393647916615,
+      4.1634228864495526e-07,
+      -0.0004148092120885849,
+      0.012705609202384949,
+      -0.011982560157775879,
+      0.020702481269836426,
+      -0.017331242561340332,
+      0.002035246230661869,
+      -0.0006000311113893986,
+      0.005555514246225357,
+      -0.0006054660771042109
+    ],
+    "objects": {
+      "target": {
+        "pose": [
+          0.5644927024841309,
+          0.01065228320658207,
+          0.38232141733169556,
+          0.7270418405532837,
+          0.010208225809037685,
+          0.012699464336037636,
+          0.6863999366760254
+        ],
+        "velocity": [
+          5.1762071962002665e-08,
+          -1.6666263036313467e-08,
+          -2.3940305027281283e-07,
+          1.6894567806957639e-06,
+          4.685465682996437e-06,
+          4.010545140431532e-08
+        ]
+      },
+      "tool": {
+        "pose": [
+          0.547560453414917,
+          -0.22147846221923828,
+          0.3823114335536957,
+          0.9958452582359314,
+          0.0113590769469738,
+          -0.00044187961611896753,
+          0.09035009145736694
+        ],
+        "velocity": [
+          9.84814869298134e-06,
+          5.7589692005421966e-05,
+          4.4965645429329015e-06,
+          4.470220574148698e-06,
+          -0.00015175531734712422,
+          8.100944251054898e-05
+        ]
+      }
+    },
+    "hand_object_transform": [
+      [
+        0.8527653429842863,
+        0.43241946198053044,
+        0.29292435662703187,
+        -0.01640029739590193
+      ],
+      [
+        0.13333932522720854,
+        0.3620123625682688,
+        -0.9225874883693647,
+        0.2553812720110604
+      ],
+      [
+        -0.5049870237469917,
+        0.8258089720075754,
+        0.2510530772544851,
+        -0.19779966600201646
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "contact": {
+      "mode": "free",
+      "thumb_contact": false,
+      "other_finger_contact": false,
+      "opposition_contact": false,
+      "touching_links": 0,
+      "link_paths": [
+        "/xhand_right/right_hand_link",
+        "/xhand_right/right_hand_ee_link",
+        "/xhand_right/right_hand_index_bend_link",
+        "/xhand_right/right_hand_index_rota_link1",
+        "/xhand_right/right_hand_index_rota_link2",
+        "/xhand_right/right_hand_index_rota_tip",
+        "/xhand_right/right_hand_mid_link1",
+        "/xhand_right/right_hand_mid_link2",
+        "/xhand_right/right_hand_mid_tip",
+        "/xhand_right/right_hand_pinky_link1",
+        "/xhand_right/right_hand_pinky_link2",
+        "/xhand_right/right_hand_pinky_tip",
+        "/xhand_right/right_hand_ring_link1",
+        "/xhand_right/right_hand_ring_link2",
+        "/xhand_right/right_hand_ring_tip",
+        "/xhand_right/right_hand_thumb_bend_link",
+        "/xhand_right/right_hand_thumb_rota_link1",
+        "/xhand_right/right_hand_thumb_rota_link2",
+        "/xhand_right/right_hand_thumb_rota_tip"
+      ],
+      "force_norms_n": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "force_vectors_n": [
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ]
+      ],
+      "evidence": "PhysX thumb AND non-thumb finger/tool contact; retention checked separately"
+    },
+    "physical_properties": {
+      "hand_mass_kg": 1.1223849058151245,
+      "tool_mass_kg": 0.15000000596046448,
+      "fixed_environment_roles": [],
+      "environment_collision_geometry": "triangle_mesh_for_fixed_roles",
+      "controllable_hands": [
+        "right",
+        "left"
+      ],
+      "target_fixture": false,
+      "supporting_hand_mass_kg": {
+        "left": 1.122253656387329
+      }
+    },
+    "interaction_contacts": {
+      "tool_target_contact_steps": 0,
+      "tool_target_impulse_n_s": 0.0
+    },
+    "scene_id": "84aef1532a65da717ad06b083f37d74bf857504f42c0bef8e009f5b20250adb8",
+    "time_s": 0.0,
+    "physically_acquired_state": true,
+    "state_origin": "continuous_PhysX_rollout",
+    "controller_wrench_bias": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "hand_self_gravity_torque": [
+      -0.0762818745855614,
+      -0.28457173483693343,
+      0.0
+    ],
+    "command_hand_dq": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "command_wrist": [
+      0.4158708076746926,
+      -0.1729531258325791,
+      0.6737105076364425,
+      0.7794307448271226,
+      -0.5226437111745154,
+      -0.30479197140397435,
+      0.16258265391992321
+    ],
+    "command_twist": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "command_hand_q": [
+      0.8334740579069494,
+      1.0794688330946112,
+      -0.1464105755366962,
+      0.1747049288289817,
+      0.3128965316703775,
+      1.034311147655258,
+      0.28834127266338366,
+      1.2763666354679457,
+      0.2552970570684907,
+      1.5344884030388313,
+      0.3095995194044286,
+      1.809406708740887
+    ],
+    "hands": {
+      "right": {
+        "wrist_xyz_wxyz": [
+          0.4158717691898346,
+          -0.1729564219713211,
+          0.6737166047096252,
+          0.7794934511184692,
+          -0.5225648880004883,
+          -0.3047357499599457,
+          0.16264109313488007
+        ],
+        "wrist_twist": [
+          -2.3977579754619174e-05,
+          8.180424214398115e-05,
+          -0.00015280500745643233,
+          -0.001977107487618923,
+          -0.002552725374698639,
+          -0.0009997682645916939
+        ],
+        "hand_q": [
+          0.833861231803894,
+          1.0794377326965332,
+          -0.14641056954860687,
+          0.17428435385227203,
+          0.31082019209861755,
+          1.0363855361938477,
+          0.2866753339767456,
+          1.2775882482528687,
+          0.25494301319122314,
+          1.5345609188079834,
+          0.30900847911834717,
+          1.8094881772994995
+        ],
+        "hand_dq": [
+          0.0010883789509534836,
+          0.00257393647916615,
+          4.1634228864495526e-07,
+          -0.0004148092120885849,
+          0.012705609202384949,
+          -0.011982560157775879,
+          0.020702481269836426,
+          -0.017331242561340332,
+          0.002035246230661869,
+          -0.0006000311113893986,
+          0.005555514246225357,
+          -0.0006054660771042109
+        ],
+        "contact": {
+          "mode": "free",
+          "thumb_contact": false,
+          "other_finger_contact": false,
+          "opposition_contact": false,
+          "touching_links": 0,
+          "link_paths": [
+            "/xhand_right/right_hand_link",
+            "/xhand_right/right_hand_ee_link",
+            "/xhand_right/right_hand_index_bend_link",
+            "/xhand_right/right_hand_index_rota_link1",
+            "/xhand_right/right_hand_index_rota_link2",
+            "/xhand_right/right_hand_index_rota_tip",
+            "/xhand_right/right_hand_mid_link1",
+            "/xhand_right/right_hand_mid_link2",
+            "/xhand_right/right_hand_mid_tip",
+            "/xhand_right/right_hand_pinky_link1",
+            "/xhand_right/right_hand_pinky_link2",
+            "/xhand_right/right_hand_pinky_tip",
+            "/xhand_right/right_hand_ring_link1",
+            "/xhand_right/right_hand_ring_link2",
+            "/xhand_right/right_hand_ring_tip",
+            "/xhand_right/right_hand_thumb_bend_link",
+            "/xhand_right/right_hand_thumb_rota_link1",
+            "/xhand_right/right_hand_thumb_rota_link2",
+            "/xhand_right/right_hand_thumb_rota_tip"
+          ],
+          "force_norms_n": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "force_vectors_n": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "evidence": "PhysX thumb AND non-thumb finger/tool contact; retention checked separately"
+        },
+        "hand_object_transform": [
+          [
+            0.8527653429842863,
+            0.43241946198053044,
+            0.29292435662703187,
+            -0.01640029739590193
+          ],
+          [
+            0.13333932522720854,
+            0.3620123625682688,
+            -0.9225874883693647,
+            0.2553812720110604
+          ],
+          [
+            -0.5049870237469917,
+            0.8258089720075754,
+            0.2510530772544851,
+            -0.19779966600201646
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "command_wrist": [
+          0.4158708076746926,
+          -0.1729531258325791,
+          0.6737105076364425,
+          0.7794307448271226,
+          -0.5226437111745154,
+          -0.30479197140397435,
+          0.16258265391992321
+        ],
+        "command_twist": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "command_hand_q": [
+          0.8334740579069494,
+          1.0794688330946112,
+          -0.1464105755366962,
+          0.1747049288289817,
+          0.3128965316703775,
+          1.034311147655258,
+          0.28834127266338366,
+          1.2763666354679457,
+          0.2552970570684907,
+          1.5344884030388313,
+          0.3095995194044286,
+          1.809406708740887
+        ],
+        "command_hand_dq": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "controller_wrench_bias": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "object_role": "tool"
+      },
+      "left": {
+        "embodiment": "floating_xhand",
+        "wrist_xyz_wxyz": [
+          0.2927301824092865,
+          -0.021963365375995636,
+          0.6065113544464111,
+          0.5189850926399231,
+          0.5941671133041382,
+          -0.5274133682250977,
+          -0.31536543369293213
+        ],
+        "wrist_twist": [
+          8.635101240826376e-05,
+          -0.00015383209575556788,
+          -0.0001581712444583248,
+          -0.0027776153292506933,
+          -0.00386480032466352,
+          0.0006415405659936368
+        ],
+        "hand_q": [
+          0.6540170311927795,
+          1.4616444110870361,
+          -0.10265741497278214,
+          0.11599044501781464,
+          0.6752136945724487,
+          0.556637704372406,
+          0.5822655558586121,
+          0.007966460660099983,
+          0.12504079937934875,
+          1.022005319595337,
+          9.750635854288703e-07,
+          1.6789451837539673
+        ],
+        "hand_dq": [
+          0.0122812669724226,
+          0.009712181985378265,
+          2.383077060130745e-07,
+          -0.0033633727580308914,
+          0.015787508338689804,
+          -0.009959302842617035,
+          0.015921443700790405,
+          -0.012150026857852936,
+          -0.0027623577043414116,
+          -0.002645640168339014,
+          0.011645891703665257,
+          -0.006619413383305073
+        ],
+        "objects": {
+          "tool": {
+            "pose": [
+              0.5644927024841309,
+              0.01065228320658207,
+              0.38232141733169556,
+              0.7270418405532837,
+              0.010208225809037685,
+              0.012699464336037636,
+              0.6863999366760254
+            ],
+            "velocity": [
+              5.1762071962002665e-08,
+              -1.6666263036313467e-08,
+              -2.3940305027281283e-07,
+              1.6894567806957639e-06,
+              4.685465682996437e-06,
+              4.010545140431532e-08
+            ]
+          },
+          "target": {
+            "pose": [
+              0.547560453414917,
+              -0.22147846221923828,
+              0.3823114335536957,
+              0.9958452582359314,
+              0.0113590769469738,
+              -0.00044187961611896753,
+              0.09035009145736694
+            ],
+            "velocity": [
+              9.84814869298134e-06,
+              5.7589692005421966e-05,
+              4.4965645429329015e-06,
+              4.470220574148698e-06,
+              -0.00015175531734712422,
+              8.100944251054898e-05
+            ]
+          }
+        },
+        "hand_object_transform": [
+          [
+            -0.9392237081023871,
+            -0.2935151088548785,
+            0.1780665802791491,
+            -0.00331456185865181
+          ],
+          [
+            0.07345390241723916,
+            0.3348592131075658,
+            0.9394007832744554,
+            -0.2911096493000587
+          ],
+          [
+            -0.33535555811419104,
+            0.895387172272917,
+            -0.29294788166332386,
+            -0.20105711008933363
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "contact": {
+          "mode": "free",
+          "thumb_contact": false,
+          "other_finger_contact": false,
+          "opposition_contact": false,
+          "touching_links": 0,
+          "link_paths": [
+            "/xhand_right/xhand_left/left_hand_link",
+            "/xhand_right/xhand_left/left_hand_ee_link",
+            "/xhand_right/xhand_left/left_hand_index_bend_link",
+            "/xhand_right/xhand_left/left_hand_index_rota_link1",
+            "/xhand_right/xhand_left/left_hand_index_rota_link2",
+            "/xhand_right/xhand_left/left_hand_index_rota_tip",
+            "/xhand_right/xhand_left/left_hand_mid_link1",
+            "/xhand_right/xhand_left/left_hand_mid_link2",
+            "/xhand_right/xhand_left/left_hand_mid_tip",
+            "/xhand_right/xhand_left/left_hand_pinky_link1",
+            "/xhand_right/xhand_left/left_hand_pinky_link2",
+            "/xhand_right/xhand_left/left_hand_pinky_tip",
+            "/xhand_right/xhand_left/left_hand_ring_link1",
+            "/xhand_right/xhand_left/left_hand_ring_link2",
+            "/xhand_right/xhand_left/left_hand_ring_tip",
+            "/xhand_right/xhand_left/left_hand_thumb_bend_link",
+            "/xhand_right/xhand_left/left_hand_thumb_rota_link1",
+            "/xhand_right/xhand_left/left_hand_thumb_rota_link2",
+            "/xhand_right/xhand_left/left_hand_thumb_rota_tip"
+          ],
+          "force_norms_n": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "force_vectors_n": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "evidence": "PhysX thumb AND non-thumb finger/tool contact; retention checked separately"
+        },
+        "command_wrist": [
+          0.2927336369677512,
+          -0.021969558369256573,
+          0.6065052895452686,
+          0.5189623945800004,
+          0.5941798602143922,
+          -0.5275087132476521,
+          -0.3152187877890589
+        ],
+        "command_twist": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "command_hand_q": [
+          0.6548123840947692,
+          1.462060133399729,
+          -0.10265741364970174,
+          0.11648606660645239,
+          0.6769219544034921,
+          0.5543953223861724,
+          0.583145345214169,
+          0.006918013626059372,
+          0.1246721587804858,
+          1.0219409261682326,
+          7.718522839520811e-05,
+          1.6787764579959936
+        ],
+        "command_hand_dq": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "controller_wrench_bias": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "applied_wrench": [
+          -2.6829563802956494e-07,
+          -1.455550362333604e-05,
+          11.009397246948208,
+          -0.03660973856130297,
+          -0.3464102143750315,
+          -8.764623457846465e-07
+        ],
+        "object_role": "target",
+        "side": "left",
+        "scene_id": "84aef1532a65da717ad06b083f37d74bf857504f42c0bef8e009f5b20250adb8",
+        "time_s": 0.0,
+        "physically_acquired_state": true,
+        "state_origin": "continuous_PhysX_rollout"
+      }
+    },
+    "entry_origin": "predecessor_rollout",
+    "source_provenance": {
+      "triplet": "(brush, eraser, plate)",
+      "sequence": "20231103_057",
+      "input": "raw TACO MANO and object poses",
+      "source_video": "/scratch/e0985859/egoengine_baseline/data/taco_v1/Egocentric_RGB_Videos/(brush, eraser, plate)/20231103_057/color.mp4",
+      "schedule_sha256": "4f1e00a466cf9e9185af33070750852ed62cc0dd5a842583ec3ce9fe2521ec60",
+      "full_robot_reference_used": false,
+      "vlm_used": false,
+      "transform_world_to_robot": [
+        [
+          -0.3564076659688237,
+          0.9343305848933204,
+          0.0,
+          0.5962575927013769
+        ],
+        [
+          -0.9343305539536939,
+          -0.3564076541666626,
+          -0.0,
+          -0.02380021369492084
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          -0.1766161823272705
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "hand_assignments": {
+        "right": {
+          "object_role": "tool"
+        },
+        "left": {
+          "object_role": "target"
+        }
+      },
+      "local_supporting_retarget": true
+    },
+    "entry_provenance": {
+      "trace": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_bimanual_r260/physical/padded/actual_trace.json",
+      "source_frame": 0.0,
+      "predecessor": {
+        "initial_scene": "84aef1532a65da717ad06b083f37d74bf857504f42c0bef8e009f5b20250adb8"
+      }
+    }
+  },
+  "right_seed_is_physical_proof": false,
+  "retention_sampling": {
+    "relative_pose_and_native_touch_hz": 120.0,
+    "thumb_and_non_thumb_opposition_hz": 30.0,
+    "native_dropouts_recorded": true
+  },
+  "left_predecessor_plan": {
+    "budget_s": 0.4666666666666667,
+    "curobo_duration_s": 0.4666666666666667,
+    "time_scale": 1.0,
+    "command_velocity_ratio": 0.6198979466711441,
+    "command_acceleration_ratio": 0.5642122264100635,
+    "parameterization": "squared_path_speed_reachability",
+    "minimum_computed_duration_s": 0.3596389324542996,
+    "previous_fit_rejections": [
+      "fixed_budget: Fixed source budget violates dynamics: velocity=0.479, acceleration=1.432"
+    ],
+    "planner": "cuRobo_virtual_6DOF",
+    "hand_collision_spheres": 294,
+    "carried_object_collision": false,
+    "geometry_solver": "trajectory_optimization_fixed_dt",
+    "curobo_optimize_dt": false,
+    "curobo_optimization_budget_s": 1.0333333333333334,
+    "collision_cover_refined_over_fitted_path": false,
+    "reference_tracking": false,
+    "source_time_stretch": false,
+    "arm_model_used": false,
+    "tracking_margin_m": 0.0,
+    "previous_command_tracking_margin_m": 8.394533751048494e-05,
+    "hand_boundary_motion": false,
+    "planned_hand_geometry": "sampled_free_finger_sweep",
+    "planned_hand_sweep_samples": 2,
+    "hand_boundary_collision_validation": "measured_geometry_each_physics_step",
+    "frozen_physical_predecessor": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_bimanual_r230/physical"
+  },
+  "right_core_seed": {
+    "method": "physically_passed_joint_core_command_seed",
+    "run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_bimanual_r247/physical",
+    "acceptance_reused": false,
+    "fresh_joint_physics_required": true
+  },
+  "padded_rollout": {
+    "success": true,
+    "failure": null,
+    "actual_end_frame": 38.0,
+    "state_resets_within_rollout": 0
+  },
+  "core_controller_program": "source-clock slice of padded commands and wrenches; no new takeover",
+  "core_replay": {
+    "success": true,
+    "failure": null,
+    "entry_physically_reachable": true,
+    "state_resets_within_rollout": 0
+  },
+  "core_entry": {
+    "embodiment": "floating_xhand_bimanual",
+    "wrist_xyz_wxyz": [
+      0.41968515515327454,
+      -0.1779705286026001,
+      0.49999427795410156,
+      0.7981796264648438,
+      -0.5001212954521179,
+      -0.2924564480781555,
+      0.1650981605052948
+    ],
+    "wrist_twist": [
+      -0.004307094850642649,
+      0.0037175450972267645,
+      0.03252782093850956,
+      -0.027618106454610825,
+      0.00802681315690279,
+      -0.010425393469631672
+    ],
+    "hand_q": [
+      0.8341494798660278,
+      1.0794786214828491,
+      -0.14641056954860687,
+      0.1740943342447281,
+      0.30969518423080444,
+      1.0374881029129028,
+      0.285769522190094,
+      1.2782312631607056,
+      0.25477319955825806,
+      1.534578561782837,
+      0.30870676040649414,
+      1.8095325231552124
+    ],
+    "hand_dq": [
+      0.0005150437355041504,
+      0.0028740742709487677,
+      8.72301484378113e-08,
+      -0.00045762117952108383,
+      0.019858919084072113,
+      -0.01888449490070343,
+      0.03212500363588333,
+      -0.026844725012779236,
+      0.002561122179031372,
+      -0.0004597241058945656,
+      0.007938001304864883,
+      -0.00038186926394701004
+    ],
+    "objects": {
+      "target": {
+        "pose": [
+          0.5644927024841309,
+          0.01065228320658207,
+          0.38232141733169556,
+          0.7270418405532837,
+          0.010208230465650558,
+          0.012699469923973083,
+          0.6863999366760254
+        ],
+        "velocity": [
+          5.121364665683359e-08,
+          -1.6976969163806643e-08,
+          -2.4079133709165035e-07,
+          1.7434299479646143e-06,
+          4.650819391827099e-06,
+          4.057077518382357e-08
+        ]
+      },
+      "tool": {
+        "pose": [
+          0.547560453414917,
+          -0.22147846221923828,
+          0.3823114335536957,
+          0.9958452582359314,
+          0.011359049007296562,
+          -0.00044187778257764876,
+          0.09035014361143112
+        ],
+        "velocity": [
+          9.869416317087598e-06,
+          5.793692616862245e-05,
+          4.5456299631041475e-06,
+          -2.459858933434589e-06,
+          -0.00015087630890775472,
+          8.168831118382514e-05
+        ]
+      }
+    },
+    "hand_object_transform": [
+      [
+        0.8627261069294527,
+        0.4142981483028873,
+        0.28993224852566746,
+        0.03932750215078695
+      ],
+      [
+        0.10599057012797611,
+        0.41246951746998023,
+        -0.9047844473696639,
+        0.08965235532803933
+      ],
+      [
+        -0.49443873580687153,
+        0.811311248209268,
+        0.3119365240923581,
+        -0.1500336189591478
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "contact": {
+      "mode": "free",
+      "thumb_contact": false,
+      "other_finger_contact": false,
+      "opposition_contact": false,
+      "touching_links": 0,
+      "link_paths": [
+        "/xhand_right/right_hand_link",
+        "/xhand_right/right_hand_ee_link",
+        "/xhand_right/right_hand_index_bend_link",
+        "/xhand_right/right_hand_index_rota_link1",
+        "/xhand_right/right_hand_index_rota_link2",
+        "/xhand_right/right_hand_index_rota_tip",
+        "/xhand_right/right_hand_mid_link1",
+        "/xhand_right/right_hand_mid_link2",
+        "/xhand_right/right_hand_mid_tip",
+        "/xhand_right/right_hand_pinky_link1",
+        "/xhand_right/right_hand_pinky_link2",
+        "/xhand_right/right_hand_pinky_tip",
+        "/xhand_right/right_hand_ring_link1",
+        "/xhand_right/right_hand_ring_link2",
+        "/xhand_right/right_hand_ring_tip",
+        "/xhand_right/right_hand_thumb_bend_link",
+        "/xhand_right/right_hand_thumb_rota_link1",
+        "/xhand_right/right_hand_thumb_rota_link2",
+        "/xhand_right/right_hand_thumb_rota_tip"
+      ],
+      "force_norms_n": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "force_vectors_n": [
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ]
+      ],
+      "evidence": "PhysX thumb AND non-thumb finger/tool contact; retention checked separately"
+    },
+    "physical_properties": {
+      "hand_mass_kg": 1.1223849058151245,
+      "tool_mass_kg": 0.15000000596046448,
+      "fixed_environment_roles": [],
+      "environment_collision_geometry": "triangle_mesh_for_fixed_roles",
+      "controllable_hands": [
+        "right",
+        "left"
+      ],
+      "target_fixture": false,
+      "supporting_hand_mass_kg": {
+        "left": 1.122253656387329
+      }
+    },
+    "interaction_contacts": {
+      "tool_target_contact_steps": 0,
+      "tool_target_impulse_n_s": 0.0
+    },
+    "scene_id": "84aef1532a65da717ad06b083f37d74bf857504f42c0bef8e009f5b20250adb8",
+    "time_s": 0.6666666666666666,
+    "physically_acquired_state": true,
+    "state_origin": "continuous_PhysX_rollout",
+    "controller_wrench_bias": [
+      -0.929069232088484,
+      1.5934688664511396,
+      6.788422965424916,
+      -0.04314573492262058,
+      -0.1753979729119613,
+      0.03913901414178574
+    ],
+    "hand_self_gravity_torque": [
+      -0.06696016399149247,
+      -0.2764979350921267,
+      0.0
+    ],
+    "command_hand_dq": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "command_wrist": [
+      0.41949695348739624,
+      -0.17787793278694153,
+      0.5015871524810791,
+      0.796663968098907,
+      -0.501549497050255,
+      -0.2948643995965582,
+      0.16379746576825005
+    ],
+    "command_twist": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "command_hand_q": [
+      0.8334740579069494,
+      1.0794688330946112,
+      -0.1464105755366962,
+      0.1747049288289817,
+      0.3128965316703775,
+      1.034311147655258,
+      0.28834127266338366,
+      1.2763666354679457,
+      0.2552970570684907,
+      1.5344884030388313,
+      0.3095995194044286,
+      1.809406708740887
+    ],
+    "hands": {
+      "right": {
+        "wrist_xyz_wxyz": [
+          0.41968515515327454,
+          -0.1779705286026001,
+          0.49999427795410156,
+          0.7981796264648438,
+          -0.5001212954521179,
+          -0.2924564480781555,
+          0.1650981605052948
+        ],
+        "wrist_twist": [
+          -0.004307094850642649,
+          0.0037175450972267645,
+          0.03252782093850956,
+          -0.027618106454610825,
+          0.00802681315690279,
+          -0.010425393469631672
+        ],
+        "hand_q": [
+          0.8341494798660278,
+          1.0794786214828491,
+          -0.14641056954860687,
+          0.1740943342447281,
+          0.30969518423080444,
+          1.0374881029129028,
+          0.285769522190094,
+          1.2782312631607056,
+          0.25477319955825806,
+          1.534578561782837,
+          0.30870676040649414,
+          1.8095325231552124
+        ],
+        "hand_dq": [
+          0.0005150437355041504,
+          0.0028740742709487677,
+          8.72301484378113e-08,
+          -0.00045762117952108383,
+          0.019858919084072113,
+          -0.01888449490070343,
+          0.03212500363588333,
+          -0.026844725012779236,
+          0.002561122179031372,
+          -0.0004597241058945656,
+          0.007938001304864883,
+          -0.00038186926394701004
+        ],
+        "contact": {
+          "mode": "free",
+          "thumb_contact": false,
+          "other_finger_contact": false,
+          "opposition_contact": false,
+          "touching_links": 0,
+          "link_paths": [
+            "/xhand_right/right_hand_link",
+            "/xhand_right/right_hand_ee_link",
+            "/xhand_right/right_hand_index_bend_link",
+            "/xhand_right/right_hand_index_rota_link1",
+            "/xhand_right/right_hand_index_rota_link2",
+            "/xhand_right/right_hand_index_rota_tip",
+            "/xhand_right/right_hand_mid_link1",
+            "/xhand_right/right_hand_mid_link2",
+            "/xhand_right/right_hand_mid_tip",
+            "/xhand_right/right_hand_pinky_link1",
+            "/xhand_right/right_hand_pinky_link2",
+            "/xhand_right/right_hand_pinky_tip",
+            "/xhand_right/right_hand_ring_link1",
+            "/xhand_right/right_hand_ring_link2",
+            "/xhand_right/right_hand_ring_tip",
+            "/xhand_right/right_hand_thumb_bend_link",
+            "/xhand_right/right_hand_thumb_rota_link1",
+            "/xhand_right/right_hand_thumb_rota_link2",
+            "/xhand_right/right_hand_thumb_rota_tip"
+          ],
+          "force_norms_n": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "force_vectors_n": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "evidence": "PhysX thumb AND non-thumb finger/tool contact; retention checked separately"
+        },
+        "hand_object_transform": [
+          [
+            0.8627261069294527,
+            0.4142981483028873,
+            0.28993224852566746,
+            0.03932750215078695
+          ],
+          [
+            0.10599057012797611,
+            0.41246951746998023,
+            -0.9047844473696639,
+            0.08965235532803933
+          ],
+          [
+            -0.49443873580687153,
+            0.811311248209268,
+            0.3119365240923581,
+            -0.1500336189591478
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "command_wrist": [
+          0.41949695348739624,
+          -0.17787793278694153,
+          0.5015871524810791,
+          0.796663968098907,
+          -0.501549497050255,
+          -0.2948643995965582,
+          0.16379746576825005
+        ],
+        "command_twist": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "command_hand_q": [
+          0.8334740579069494,
+          1.0794688330946112,
+          -0.1464105755366962,
+          0.1747049288289817,
+          0.3128965316703775,
+          1.034311147655258,
+          0.28834127266338366,
+          1.2763666354679457,
+          0.2552970570684907,
+          1.5344884030388313,
+          0.3095995194044286,
+          1.809406708740887
+        ],
+        "command_hand_dq": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "controller_wrench_bias": [
+          -0.929069232088484,
+          1.5934688664511396,
+          6.788422965424916,
+          -0.04314573492262058,
+          -0.1753979729119613,
+          0.03913901414178574
+        ],
+        "object_role": "tool"
+      },
+      "left": {
+        "embodiment": "floating_xhand",
+        "wrist_xyz_wxyz": [
+          0.2947930097579956,
+          -0.019459795206785202,
+          0.42089763283729553,
+          0.5130831003189087,
+          0.6129437685012817,
+          -0.5255831480026245,
+          -0.29121851921081543
+        ],
+        "wrist_twist": [
+          0.008764225180189943,
+          0.1293887537537447,
+          -0.3210649696416924,
+          2.063030481338501,
+          1.4646409749984741,
+          -0.2527001202106476
+        ],
+        "hand_q": [
+          0.6540746688842773,
+          1.5145325660705566,
+          -0.11069336533546448,
+          0.13589000701904297,
+          0.6386110186576843,
+          0.5619117617607117,
+          0.6065457463264465,
+          0.0008364186505787075,
+          0.15597878396511078,
+          1.1068661212921143,
+          0.03660271689295769,
+          1.7503533363342285
+        ],
+        "hand_dq": [
+          1.051496982574463,
+          0.7008999586105347,
+          2.086162567138672e-05,
+          0.10132100433111191,
+          -1.3802932500839233,
+          -0.4514167904853821,
+          -0.45335179567337036,
+          0.2756665349006653,
+          0.9605234861373901,
+          1.8148372173309326,
+          -0.32730793952941895,
+          0.18085426092147827
+        ],
+        "objects": {
+          "tool": {
+            "pose": [
+              0.5644927024841309,
+              0.01065228320658207,
+              0.38232141733169556,
+              0.7270418405532837,
+              0.010208230465650558,
+              0.012699469923973083,
+              0.6863999366760254
+            ],
+            "velocity": [
+              5.121364665683359e-08,
+              -1.6976969163806643e-08,
+              -2.4079133709165035e-07,
+              1.7434299479646143e-06,
+              4.650819391827099e-06,
+              4.057077518382357e-08
+            ]
+          },
+          "target": {
+            "pose": [
+              0.547560453414917,
+              -0.22147846221923828,
+              0.3823114335536957,
+              0.9958452582359314,
+              0.011359049007296562,
+              -0.00044187778257764876,
+              0.09035014361143112
+            ],
+            "velocity": [
+              9.869416317087598e-06,
+              5.793692616862245e-05,
+              4.5456299631041475e-06,
+              -2.459858933434589e-06,
+              -0.00015087630890775472,
+              8.168831118382514e-05
+            ]
+          }
+        },
+        "hand_object_transform": [
+          [
+            -0.9264437561606136,
+            -0.3256509384799627,
+            0.1888211665521993,
+            0.03951800379813458
+          ],
+          [
+            0.054863737444205675,
+            0.37943963248143653,
+            0.9235884016248831,
+            -0.12686668695378292
+          ],
+          [
+            -0.3724136637996343,
+            0.8660121428533624,
+            -0.33366305076508085,
+            -0.23974143789270258
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "contact": {
+          "mode": "free",
+          "thumb_contact": false,
+          "other_finger_contact": false,
+          "opposition_contact": false,
+          "touching_links": 0,
+          "link_paths": [
+            "/xhand_right/xhand_left/left_hand_link",
+            "/xhand_right/xhand_left/left_hand_ee_link",
+            "/xhand_right/xhand_left/left_hand_index_bend_link",
+            "/xhand_right/xhand_left/left_hand_index_rota_link1",
+            "/xhand_right/xhand_left/left_hand_index_rota_link2",
+            "/xhand_right/xhand_left/left_hand_index_rota_tip",
+            "/xhand_right/xhand_left/left_hand_mid_link1",
+            "/xhand_right/xhand_left/left_hand_mid_link2",
+            "/xhand_right/xhand_left/left_hand_mid_tip",
+            "/xhand_right/xhand_left/left_hand_pinky_link1",
+            "/xhand_right/xhand_left/left_hand_pinky_link2",
+            "/xhand_right/xhand_left/left_hand_pinky_tip",
+            "/xhand_right/xhand_left/left_hand_ring_link1",
+            "/xhand_right/xhand_left/left_hand_ring_link2",
+            "/xhand_right/xhand_left/left_hand_ring_tip",
+            "/xhand_right/xhand_left/left_hand_thumb_bend_link",
+            "/xhand_right/xhand_left/left_hand_thumb_rota_link1",
+            "/xhand_right/xhand_left/left_hand_thumb_rota_link2",
+            "/xhand_right/xhand_left/left_hand_thumb_rota_tip"
+          ],
+          "force_norms_n": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "force_vectors_n": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "evidence": "PhysX thumb AND non-thumb finger/tool contact; retention checked separately"
+        },
+        "command_wrist": [
+          0.30055585392748146,
+          -0.015407305210532178,
+          0.4179455677978278,
+          0.483348226281197,
+          0.6133264234324873,
+          -0.5149760039510022,
+          -0.35356032840944096
+        ],
+        "command_twist": [
+          -2.8299574570400665e-05,
+          1.97986560492025e-05,
+          -0.029521476517810896,
+          0.000155923873387847,
+          0.0019365468940780253,
+          3.650944947071109e-05
+        ],
+        "command_hand_q": [
+          0.6530165895652524,
+          1.5300150811662254,
+          -0.11135441522166545,
+          0.13692368867676488,
+          0.630832609186741,
+          0.5597414063997537,
+          0.6101695219309735,
+          0.0,
+          0.16719193144313493,
+          1.1088941748598913,
+          0.04347981531910871,
+          1.7510297627159186
+        ],
+        "command_hand_dq": [
+          -0.8494672711446771,
+          2.684825082554676,
+          -1.2314460382911996,
+          0.12631161213438546,
+          -2.11282760155155,
+          -1.2324765950761485,
+          -0.07469150799120694,
+          0.0,
+          2.191576749715668,
+          4.367190869558257,
+          1.426690819710428,
+          0.899343405850237
+        ],
+        "controller_wrench_bias": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "applied_wrench": [
+          1.64386303608357,
+          0.513954511563377,
+          13.134360609887432,
+          0.06841592763214609,
+          -0.3475978468601675,
+          -0.15686378358645112
+        ],
+        "object_role": "target",
+        "side": "left",
+        "scene_id": "84aef1532a65da717ad06b083f37d74bf857504f42c0bef8e009f5b20250adb8",
+        "time_s": 0.6666666666666666,
+        "physically_acquired_state": true,
+        "state_origin": "continuous_PhysX_rollout"
+      }
+    },
+    "entry_origin": "predecessor_rollout",
+    "source_provenance": {
+      "triplet": "(brush, eraser, plate)",
+      "sequence": "20231103_057",
+      "input": "raw TACO MANO and object poses",
+      "source_video": "/scratch/e0985859/egoengine_baseline/data/taco_v1/Egocentric_RGB_Videos/(brush, eraser, plate)/20231103_057/color.mp4",
+      "schedule_sha256": "4f1e00a466cf9e9185af33070750852ed62cc0dd5a842583ec3ce9fe2521ec60",
+      "full_robot_reference_used": false,
+      "vlm_used": false,
+      "transform_world_to_robot": [
+        [
+          -0.3564076659688237,
+          0.9343305848933204,
+          0.0,
+          0.5962575927013769
+        ],
+        [
+          -0.9343305539536939,
+          -0.3564076541666626,
+          -0.0,
+          -0.02380021369492084
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          -0.1766161823272705
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "hand_assignments": {
+        "right": {
+          "object_role": "tool"
+        },
+        "left": {
+          "object_role": "target"
+        }
+      },
+      "local_supporting_retarget": true
+    },
+    "entry_provenance": {
+      "trace": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_bimanual_r260/physical/exported_core/actual_trace.json",
+      "source_frame": 20.0,
+      "predecessor": {
+        "initial_scene": "84aef1532a65da717ad06b083f37d74bf857504f42c0bef8e009f5b20250adb8"
+      }
+    }
+  },
+  "core_exit": {
+    "embodiment": "floating_xhand_bimanual",
+    "wrist_xyz_wxyz": [
+      0.3238182067871094,
+      -0.17296364903450012,
+      0.49920326471328735,
+      0.7830947041511536,
+      -0.40308713912963867,
+      -0.40607282519340515,
+      0.24369753897190094
+    ],
+    "wrist_twist": [
+      -0.5305394157774748,
+      0.1566978681750455,
+      0.16538500779019968,
+      0.2174368053674698,
+      0.619683563709259,
+      2.808706045150757
+    ],
+    "hand_q": [
+      0.89583420753479,
+      1.1308649778366089,
+      -0.08326835930347443,
+      0.17502744495868683,
+      0.28938615322113037,
+      1.126975178718567,
+      0.2936331331729889,
+      1.3389103412628174,
+      0.3060380220413208,
+      1.642367959022522,
+      0.44602859020233154,
+      1.890972375869751
+    ],
+    "hand_dq": [
+      -0.07672187685966492,
+      -0.402152955532074,
+      -0.09284789860248566,
+      -0.004989197012037039,
+      -0.17076733708381653,
+      0.14046061038970947,
+      0.1314067542552948,
+      -0.010434342548251152,
+      0.026644572615623474,
+      0.05014002323150635,
+      -0.08942604064941406,
+      0.07492968440055847
+    ],
+    "objects": {
+      "target": {
+        "pose": [
+          0.5626923441886902,
+          0.010116697289049625,
+          0.3823528587818146,
+          0.7293815612792969,
+          -2.9953662306070328e-06,
+          4.654488293454051e-06,
+          0.68410724401474
+        ],
+        "velocity": [
+          0.017699534073472023,
+          0.00825586263090372,
+          -0.002029178198426962,
+          0.02439354732632637,
+          0.008246209472417831,
+          0.16790330410003662
+        ]
+      },
+      "tool": {
+        "pose": [
+          0.4662855863571167,
+          -0.1657113879919052,
+          0.39658254384994507,
+          0.980478823184967,
+          0.06792581081390381,
+          0.0058202981017529964,
+          0.18442824482917786
+        ],
+        "velocity": [
+          -0.6218261122703552,
+          0.590108335018158,
+          0.080020010471344,
+          1.0990315675735474,
+          0.9612776041030884,
+          2.1767780780792236
+        ]
+      }
+    },
+    "hand_object_transform": [
+      [
+        0.7768684042558314,
+        0.5147596906037623,
+        0.36262645159794515,
+        0.0385990569846667
+      ],
+      [
+        0.13969156659068754,
+        0.4206560083482025,
+        -0.896401020115437,
+        0.08139265791563371
+      ],
+      [
+        -0.6139721074221837,
+        0.747041487181318,
+        0.2548867743479187,
+        -0.15088376294223838
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "contact": {
+      "mode": "grasped",
+      "thumb_contact": true,
+      "other_finger_contact": true,
+      "opposition_contact": true,
+      "touching_links": 3,
+      "link_paths": [
+        "/xhand_right/right_hand_link",
+        "/xhand_right/right_hand_ee_link",
+        "/xhand_right/right_hand_index_bend_link",
+        "/xhand_right/right_hand_index_rota_link1",
+        "/xhand_right/right_hand_index_rota_link2",
+        "/xhand_right/right_hand_index_rota_tip",
+        "/xhand_right/right_hand_mid_link1",
+        "/xhand_right/right_hand_mid_link2",
+        "/xhand_right/right_hand_mid_tip",
+        "/xhand_right/right_hand_pinky_link1",
+        "/xhand_right/right_hand_pinky_link2",
+        "/xhand_right/right_hand_pinky_tip",
+        "/xhand_right/right_hand_ring_link1",
+        "/xhand_right/right_hand_ring_link2",
+        "/xhand_right/right_hand_ring_tip",
+        "/xhand_right/right_hand_thumb_bend_link",
+        "/xhand_right/right_hand_thumb_rota_link1",
+        "/xhand_right/right_hand_thumb_rota_link2",
+        "/xhand_right/right_hand_thumb_rota_tip"
+      ],
+      "force_norms_n": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        4.718468189239502,
+        0.0,
+        0.0,
+        3.2884435653686523,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        8.10590934753418,
+        0.0
+      ],
+      "force_vectors_n": [
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          1.577563762664795,
+          -4.386654853820801,
+          0.7297201752662659
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          1.039211630821228,
+          -3.11940336227417,
+          -0.056770484894514084
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          -3.3547770977020264,
+          7.157146453857422,
+          1.7962446212768555
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ]
+      ],
+      "evidence": "PhysX thumb AND non-thumb finger/tool contact; retention checked separately"
+    },
+    "physical_properties": {
+      "hand_mass_kg": 1.1223849058151245,
+      "tool_mass_kg": 0.15000000596046448,
+      "fixed_environment_roles": [],
+      "environment_collision_geometry": "triangle_mesh_for_fixed_roles",
+      "controllable_hands": [
+        "right",
+        "left"
+      ],
+      "target_fixture": false,
+      "supporting_hand_mass_kg": {
+        "left": 1.122253656387329
+      }
+    },
+    "interaction_contacts": {
+      "tool_target_contact_steps": 0,
+      "tool_target_impulse_n_s": 0.0
+    },
+    "scene_id": "84aef1532a65da717ad06b083f37d74bf857504f42c0bef8e009f5b20250adb8",
+    "time_s": 1.0666666666666667,
+    "physically_acquired_state": true,
+    "state_origin": "continuous_PhysX_rollout",
+    "controller_wrench_bias": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "hand_self_gravity_torque": [
+      0.03606447647303454,
+      -0.29111565936696576,
+      0.0
+    ],
+    "command_hand_dq": [
+      -0.19524872303009033,
+      -0.6545460820197846,
+      0.12462410330772333,
+      0.0,
+      -0.2845469266176237,
+      1.2758368402719444,
+      0.4430125504732185,
+      0.09826885163783494,
+      0.12395256757736339,
+      0.7809211984276931,
+      -0.12931734323501587,
+      0.12679070234298706
+    ],
+    "command_wrist": [
+      0.32972067654365506,
+      -0.16374580348483495,
+      0.5066949904424803,
+      0.7818966729347228,
+      -0.3768042382586208,
+      -0.43142622027486865,
+      0.24602352599556887
+    ],
+    "command_twist": [
+      -0.25493991388249665,
+      0.1941979242860725,
+      0.10285360421863941,
+      0.5783579658079708,
+      -0.873502797207571,
+      2.9187729988030005
+    ],
+    "command_hand_q": [
+      0.9090112609423687,
+      1.1685347970456403,
+      -0.07989326701770183,
+      0.17499999701976776,
+      0.3220674994194659,
+      1.1277167942895692,
+      0.30950501561100013,
+      1.3328490852415287,
+      0.31752322211266276,
+      1.6379854915071208,
+      0.4546159367461053,
+      1.886043962594441
+    ],
+    "hands": {
+      "right": {
+        "wrist_xyz_wxyz": [
+          0.3238182067871094,
+          -0.17296364903450012,
+          0.49920326471328735,
+          0.7830947041511536,
+          -0.40308713912963867,
+          -0.40607282519340515,
+          0.24369753897190094
+        ],
+        "wrist_twist": [
+          -0.5305394157774748,
+          0.1566978681750455,
+          0.16538500779019968,
+          0.2174368053674698,
+          0.619683563709259,
+          2.808706045150757
+        ],
+        "hand_q": [
+          0.89583420753479,
+          1.1308649778366089,
+          -0.08326835930347443,
+          0.17502744495868683,
+          0.28938615322113037,
+          1.126975178718567,
+          0.2936331331729889,
+          1.3389103412628174,
+          0.3060380220413208,
+          1.642367959022522,
+          0.44602859020233154,
+          1.890972375869751
+        ],
+        "hand_dq": [
+          -0.07672187685966492,
+          -0.402152955532074,
+          -0.09284789860248566,
+          -0.004989197012037039,
+          -0.17076733708381653,
+          0.14046061038970947,
+          0.1314067542552948,
+          -0.010434342548251152,
+          0.026644572615623474,
+          0.05014002323150635,
+          -0.08942604064941406,
+          0.07492968440055847
+        ],
+        "contact": {
+          "mode": "grasped",
+          "thumb_contact": true,
+          "other_finger_contact": true,
+          "opposition_contact": true,
+          "touching_links": 3,
+          "link_paths": [
+            "/xhand_right/right_hand_link",
+            "/xhand_right/right_hand_ee_link",
+            "/xhand_right/right_hand_index_bend_link",
+            "/xhand_right/right_hand_index_rota_link1",
+            "/xhand_right/right_hand_index_rota_link2",
+            "/xhand_right/right_hand_index_rota_tip",
+            "/xhand_right/right_hand_mid_link1",
+            "/xhand_right/right_hand_mid_link2",
+            "/xhand_right/right_hand_mid_tip",
+            "/xhand_right/right_hand_pinky_link1",
+            "/xhand_right/right_hand_pinky_link2",
+            "/xhand_right/right_hand_pinky_tip",
+            "/xhand_right/right_hand_ring_link1",
+            "/xhand_right/right_hand_ring_link2",
+            "/xhand_right/right_hand_ring_tip",
+            "/xhand_right/right_hand_thumb_bend_link",
+            "/xhand_right/right_hand_thumb_rota_link1",
+            "/xhand_right/right_hand_thumb_rota_link2",
+            "/xhand_right/right_hand_thumb_rota_tip"
+          ],
+          "force_norms_n": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            4.718468189239502,
+            0.0,
+            0.0,
+            3.2884435653686523,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            8.10590934753418,
+            0.0
+          ],
+          "force_vectors_n": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              1.577563762664795,
+              -4.386654853820801,
+              0.7297201752662659
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              1.039211630821228,
+              -3.11940336227417,
+              -0.056770484894514084
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              -3.3547770977020264,
+              7.157146453857422,
+              1.7962446212768555
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "evidence": "PhysX thumb AND non-thumb finger/tool contact; retention checked separately"
+        },
+        "hand_object_transform": [
+          [
+            0.7768684042558314,
+            0.5147596906037623,
+            0.36262645159794515,
+            0.0385990569846667
+          ],
+          [
+            0.13969156659068754,
+            0.4206560083482025,
+            -0.896401020115437,
+            0.08139265791563371
+          ],
+          [
+            -0.6139721074221837,
+            0.747041487181318,
+            0.2548867743479187,
+            -0.15088376294223838
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "command_wrist": [
+          0.32972067654365506,
+          -0.16374580348483495,
+          0.5066949904424803,
+          0.7818966729347228,
+          -0.3768042382586208,
+          -0.43142622027486865,
+          0.24602352599556887
+        ],
+        "command_twist": [
+          -0.25493991388249665,
+          0.1941979242860725,
+          0.10285360421863941,
+          0.5783579658079708,
+          -0.873502797207571,
+          2.9187729988030005
+        ],
+        "command_hand_q": [
+          0.9090112609423687,
+          1.1685347970456403,
+          -0.07989326701770183,
+          0.17499999701976776,
+          0.3220674994194659,
+          1.1277167942895692,
+          0.30950501561100013,
+          1.3328490852415287,
+          0.31752322211266276,
+          1.6379854915071208,
+          0.4546159367461053,
+          1.886043962594441
+        ],
+        "command_hand_dq": [
+          -0.19524872303009033,
+          -0.6545460820197846,
+          0.12462410330772333,
+          0.0,
+          -0.2845469266176237,
+          1.2758368402719444,
+          0.4430125504732185,
+          0.09826885163783494,
+          0.12395256757736339,
+          0.7809211984276931,
+          -0.12931734323501587,
+          0.12679070234298706
+        ],
+        "controller_wrench_bias": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "object_role": "tool"
+      },
+      "left": {
+        "embodiment": "floating_xhand",
+        "wrist_xyz_wxyz": [
+          0.2945055663585663,
+          -0.022337565198540688,
+          0.41290536522865295,
+          0.5098546743392944,
+          0.6113699674606323,
+          -0.5377181768417358,
+          -0.2777307629585266
+        ],
+        "wrist_twist": [
+          0.0362061759950492,
+          -0.030153852280585085,
+          -0.008060992985092434,
+          -0.9897361993789673,
+          -0.0854862853884697,
+          -0.6292353868484497
+        ],
+        "hand_q": [
+          0.7491527795791626,
+          1.5410444736480713,
+          -0.10739785432815552,
+          0.09363879263401031,
+          0.6986472606658936,
+          0.6966341137886047,
+          0.5750002861022949,
+          6.670007132925093e-05,
+          0.2899784445762634,
+          1.0815986394882202,
+          0.0007448733667843044,
+          1.8048291206359863
+        ],
+        "hand_dq": [
+          0.7413629293441772,
+          0.5388610363006592,
+          1.0967254638671875e-05,
+          0.36059391498565674,
+          -0.16558262705802917,
+          0.2851523756980896,
+          -0.4597223997116089,
+          -0.10589791089296341,
+          3.3739233016967773,
+          -0.18823015689849854,
+          0.06827598810195923,
+          -1.282820224761963
+        ],
+        "objects": {
+          "tool": {
+            "pose": [
+              0.5626923441886902,
+              0.010116697289049625,
+              0.3823528587818146,
+              0.7293815612792969,
+              -2.9953662306070328e-06,
+              4.654488293454051e-06,
+              0.68410724401474
+            ],
+            "velocity": [
+              0.017699534073472023,
+              0.00825586263090372,
+              -0.002029178198426962,
+              0.02439354732632637,
+              0.008246209472417831,
+              0.16790330410003662
+            ]
+          },
+          "target": {
+            "pose": [
+              0.4662855863571167,
+              -0.1657113879919052,
+              0.39658254384994507,
+              0.980478823184967,
+              0.06792581081390381,
+              0.0058202981017529964,
+              0.18442824482917786
+            ],
+            "velocity": [
+              -0.6218261122703552,
+              0.590108335018158,
+              0.080020010471344,
+              1.0990315675735474,
+              0.9612776041030884,
+              2.1767780780792236
+            ]
+          }
+        },
+        "hand_object_transform": [
+          [
+            -0.9216526162534784,
+            -0.3271005736877176,
+            0.20871432544577387,
+            0.034819926251769606
+          ],
+          [
+            0.07402144264059542,
+            0.3798027128460827,
+            0.9221012554726085,
+            -0.12536420096512538
+          ],
+          [
+            -0.3808901166774001,
+            0.8653063700262017,
+            -0.3258337076018294,
+            -0.23870959858979007
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "contact": {
+          "mode": "grasped",
+          "thumb_contact": true,
+          "other_finger_contact": true,
+          "opposition_contact": true,
+          "touching_links": 2,
+          "link_paths": [
+            "/xhand_right/xhand_left/left_hand_link",
+            "/xhand_right/xhand_left/left_hand_ee_link",
+            "/xhand_right/xhand_left/left_hand_index_bend_link",
+            "/xhand_right/xhand_left/left_hand_index_rota_link1",
+            "/xhand_right/xhand_left/left_hand_index_rota_link2",
+            "/xhand_right/xhand_left/left_hand_index_rota_tip",
+            "/xhand_right/xhand_left/left_hand_mid_link1",
+            "/xhand_right/xhand_left/left_hand_mid_link2",
+            "/xhand_right/xhand_left/left_hand_mid_tip",
+            "/xhand_right/xhand_left/left_hand_pinky_link1",
+            "/xhand_right/xhand_left/left_hand_pinky_link2",
+            "/xhand_right/xhand_left/left_hand_pinky_tip",
+            "/xhand_right/xhand_left/left_hand_ring_link1",
+            "/xhand_right/xhand_left/left_hand_ring_link2",
+            "/xhand_right/xhand_left/left_hand_ring_tip",
+            "/xhand_right/xhand_left/left_hand_thumb_bend_link",
+            "/xhand_right/xhand_left/left_hand_thumb_rota_link1",
+            "/xhand_right/xhand_left/left_hand_thumb_rota_link2",
+            "/xhand_right/xhand_left/left_hand_thumb_rota_tip"
+          ],
+          "force_norms_n": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0396066904067993,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            7.905128002166748,
+            0.0
+          ],
+          "force_vectors_n": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.40650200843811035,
+              -0.131546750664711,
+              0.9477518796920776
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              -1.9657526016235352,
+              -0.8121927976608276,
+              7.613619804382324
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "evidence": "PhysX thumb AND non-thumb finger/tool contact; retention checked separately"
+        },
+        "command_wrist": [
+          0.30204071948193484,
+          -0.023346781344641323,
+          0.39794110529001875,
+          0.5508046722523009,
+          0.5906579046566955,
+          -0.48911813516416736,
+          -0.3293947518481812
+        ],
+        "command_twist": [
+          -0.0008849488307016706,
+          0.0009315379538506197,
+          -0.0010926681703837815,
+          -0.004905192706706004,
+          -0.00758541880695644,
+          -0.0023510346437746236
+        ],
+        "command_hand_q": [
+          0.7536612824549128,
+          1.5374284477673112,
+          -0.10863033246071516,
+          0.10512615363230698,
+          0.6981438128844298,
+          0.6972553083185293,
+          0.5713974771336667,
+          0.0,
+          0.29232617354523716,
+          1.08126204209964,
+          0.0,
+          1.8047313784020462
+        ],
+        "command_hand_dq": [
+          1.8676693439483616,
+          0.8321235179901176,
+          -1.3287884518504123,
+          1.653633490204811,
+          -0.4738041870296028,
+          0.5465857386589024,
+          -0.5878395438194328,
+          0.0,
+          3.6856568455696093,
+          -1.1240751743316757,
+          0.0,
+          -1.6196290254592682
+        ],
+        "controller_wrench_bias": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "applied_wrench": [
+          1.3477826616188073,
+          0.22578151168838273,
+          6.6924057387015505,
+          -0.021142257912870145,
+          -0.05376847268472751,
+          0.011459449145416722
+        ],
+        "object_role": "target",
+        "side": "left",
+        "scene_id": "84aef1532a65da717ad06b083f37d74bf857504f42c0bef8e009f5b20250adb8",
+        "time_s": 1.0666666666666667,
+        "physically_acquired_state": true,
+        "state_origin": "continuous_PhysX_rollout"
+      }
+    },
+    "entry_origin": "predecessor_rollout",
+    "source_provenance": {
+      "triplet": "(brush, eraser, plate)",
+      "sequence": "20231103_057",
+      "input": "raw TACO MANO and object poses",
+      "source_video": "/scratch/e0985859/egoengine_baseline/data/taco_v1/Egocentric_RGB_Videos/(brush, eraser, plate)/20231103_057/color.mp4",
+      "schedule_sha256": "4f1e00a466cf9e9185af33070750852ed62cc0dd5a842583ec3ce9fe2521ec60",
+      "full_robot_reference_used": false,
+      "vlm_used": false,
+      "transform_world_to_robot": [
+        [
+          -0.3564076659688237,
+          0.9343305848933204,
+          0.0,
+          0.5962575927013769
+        ],
+        [
+          -0.9343305539536939,
+          -0.3564076541666626,
+          -0.0,
+          -0.02380021369492084
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          -0.1766161823272705
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "hand_assignments": {
+        "right": {
+          "object_role": "tool"
+        },
+        "left": {
+          "object_role": "target"
+        }
+      },
+      "local_supporting_retarget": true
+    },
+    "entry_provenance": {
+      "trace": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_bimanual_r260/physical/exported_core/actual_trace.json",
+      "source_frame": 32.0,
+      "predecessor": {
+        "initial_scene": "84aef1532a65da717ad06b083f37d74bf857504f42c0bef8e009f5b20250adb8"
+      }
+    }
+  },
+  "continuous_candidate": {
+    "source": "oracle",
+    "source_provenance": {
+      "triplet": "(brush, eraser, plate)",
+      "sequence": "20231103_057",
+      "input": "raw TACO MANO and object poses",
+      "source_video": "/scratch/e0985859/egoengine_baseline/data/taco_v1/Egocentric_RGB_Videos/(brush, eraser, plate)/20231103_057/color.mp4",
+      "schedule_sha256": "4f1e00a466cf9e9185af33070750852ed62cc0dd5a842583ec3ce9fe2521ec60",
+      "full_robot_reference_used": false,
+      "vlm_used": false,
+      "transform_world_to_robot": [
+        [
+          -0.3564076659688237,
+          0.9343305848933204,
+          0.0,
+          0.5962575927013769
+        ],
+        [
+          -0.9343305539536939,
+          -0.3564076541666626,
+          -0.0,
+          -0.02380021369492084
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          -0.1766161823272705
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "hand_assignments": {
+        "right": {
+          "object_role": "tool"
+        },
+        "left": {
+          "object_role": "target"
+        }
+      },
+      "local_supporting_retarget": true
+    },
+    "source_fps": 30.0,
+    "source_duration_s": 3.6666666666666665,
+    "continuation_start_frame": 32,
+    "full_pipeline_success": false,
+    "task_success": false,
+    "continuous_execution_success": false,
+    "padded_artifacts_complete": false,
+    "vlm_used": false,
+    "complete_robot_reference_required": false,
+    "relaxed_reference_tracking": false,
+    "source_time_stretch": false,
+    "segments": [
+      {
+        "start": 32,
+        "end": 39,
+        "mode": "RELAXED",
+        "contact": "grasped",
+        "budget_s": 0.23333333333333334,
+        "success": false,
+        "hands": {
+          "right": {
+            "canonical_boundary_fit": {
+              "measured_tool_position_offset_m": [
+                -1.1102230246251565e-16,
+                -8.326672684688674e-17,
+                -1.1102230246251565e-16
+              ],
+              "measured_tool_rotation_offset_rad": 1.505882842286355e-17,
+              "predicted_tool_position_error_m": 0.03301444073726745,
+              "predicted_tool_rotation_error_rad": 0.2679165304549709,
+              "canonical_boundary_velocity_selected": true,
+              "nominal_planning_limits_unchanged": true,
+              "feedback_model": "world_wrist_tracking_and_measured_hand_object_transform",
+              "source_condition_unchanged": true,
+              "physics_acceptance": false
+            },
+            "source_entry_physically_verified": false,
+            "allowed_object_environment_contacts": [],
+            "boundary_clearance_m": 0.0001,
+            "boundary_precheck": {
+              "feasible": true,
+              "reasons": [],
+              "budget_s": 0.23333333333333334,
+              "minimum_duration_velocity_only_s": 0.14637349823561255,
+              "minimum_duration_velocity_change_only_s": 0.20713961833451755,
+              "coordinate_displacement": [
+                0.0006035525738969372,
+                0.13156120823795067,
+                0.00922751052793147,
+                0.43912049470683767,
+                0.020612421370463707,
+                -0.09438993579438071
+              ],
+              "initial_coordinate_velocity": [
+                -0.530539415777298,
+                0.1566978681755149,
+                0.165385007788732,
+                2.50402915392689,
+                0.20878272339874823,
+                0.6931985760738612
+              ],
+              "terminal_coordinate_velocity": [
+                0.5051586758952897,
+                0.5129479052456976,
+                0.03408400360838115,
+                0.39339057948950534,
+                0.030975602172134128,
+                -0.03908346255521167
+              ],
+              "hand_q_max_difference_rad": 0.0,
+              "reachable_displacement_lower": [
+                -0.017383115020411205,
+                0.016415489122544546,
+                -0.04392217320762061,
+                0.20811222209696406,
+                -0.1756679391440821,
+                -0.11891595368784505
+              ],
+              "reachable_displacement_upper": [
+                0.011460942381275914,
+                0.13983519134240502,
+                0.09046494253361367,
+                0.46532000829171555,
+                0.2316115484439547,
+                0.2715428135088633
+              ],
+              "limits_provenance": "configured nominal planning budget; not hardware ratings"
+            },
+            "surface_supported_payload": false,
+            "planning": {
+              "budget_s": 0.23333333333333334,
+              "curobo_duration_s": 0.23333333333333334,
+              "time_scale": 1.0,
+              "command_velocity_ratio": 0.9700145584790576,
+              "command_acceleration_ratio": 1.0000000000001563,
+              "parameterization": "endpoint_constrained_geometric_fit",
+              "geometry_max_adjustment": 0.07258867695237603,
+              "boundary_velocities_preserved": true,
+              "previous_fit_rejections": [
+                "fixed_budget: Fixed source budget violates dynamics: velocity=0.987, acceleration=20.232",
+                "path_parameterization: Boundary velocity is incompatible with the geometric path"
+              ],
+              "planner": "cuRobo_virtual_6DOF",
+              "hand_collision_spheres": 16675,
+              "carried_object_collision": true,
+              "allowed_attached_object_contacts": [],
+              "geometry_solver": "curobo_graph_then_fixed_source_time_fit",
+              "curobo_optimize_dt": false,
+              "curobo_optimization_budget_s": 0.23333333333333334,
+              "collision_cover_refined_over_fitted_path": true,
+              "reference_tracking": false,
+              "source_time_stretch": false,
+              "arm_model_used": false,
+              "tracking_margin_m": 0.0,
+              "previous_command_tracking_margin_m": 0.03128813115815794,
+              "hand_boundary_motion": false,
+              "planned_hand_geometry": "entry_posture",
+              "planned_hand_sweep_samples": 1,
+              "hand_boundary_collision_validation": "measured_geometry_each_physics_step"
+            }
+          },
+          "left": {
+            "canonical_boundary_fit": {
+              "measured_tool_position_offset_m": [
+                0.0,
+                4.163336342344337e-17,
+                5.551115123125783e-17
+              ],
+              "measured_tool_rotation_offset_rad": 5.88954982674039e-17,
+              "predicted_tool_position_error_m": 1.3151844438153687e-08,
+              "predicted_tool_rotation_error_rad": 2.0559765070259103e-09,
+              "canonical_boundary_velocity_selected": true,
+              "nominal_planning_limits_unchanged": true,
+              "feedback_model": "world_wrist_tracking_and_measured_hand_object_transform",
+              "source_condition_unchanged": true,
+              "physics_acceptance": false
+            },
+            "source_entry_physically_verified": false,
+            "support_boundary_projection": {
+              "support": "table",
+              "measured_support_clearance_m": 4.221141064464362e-07,
+              "normal_translation_m": [
+                -0.005572000961529877,
+                -0.005558806871591271,
+                -0.005505640219991892
+              ],
+              "original_source_condition_unchanged": true,
+              "object_state_assignment": false
+            },
+            "persistent_constraint": "native supported contact stabilization",
+            "spatial_motion_required": false,
+            "controller_origin": "previously_executed_drive",
+            "source_time_stretch": false,
+            "source_boundary_checked": true,
+            "curobo_used": false,
+            "validated_support_context_retained": true,
+            "handoff_force_trace": [
+              {
+                "time_s": 1.0666666666666667,
+                "hand_mass_kg": 1.1222537755966187,
+                "hand_com_velocity_m_s": [
+                  0.048777028918266296,
+                  -0.06347382813692093,
+                  -0.03372206166386604
+                ],
+                "commanded_wrench": [
+                  1.3477826616188073,
+                  0.22578151168838273,
+                  6.6924057387015505,
+                  -0.021142257912870145,
+                  -0.05376847268472751,
+                  0.011459449145416722
+                ],
+                "filtered_object_contact_force_n": [
+                  -1.5592505931854248,
+                  -0.9437395334243774,
+                  8.561371803283691
+                ],
+                "all_contact_force_n": [
+                  -1.5592505931854248,
+                  -0.9437395334243774,
+                  8.561371803283691
+                ],
+                "other_contact_force_n": [
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                "diagnostic_only": true
+              },
+              {
+                "time_s": 1.075,
+                "hand_mass_kg": 1.1222537755966187,
+                "hand_com_velocity_m_s": [
+                  0.021367784589529037,
+                  -0.04559171199798584,
+                  -0.008367142640054226
+                ],
+                "commanded_wrench": [
+                  1.8133050426514785,
+                  0.07252028752629036,
+                  6.600998841930464,
+                  0.12492011965357704,
+                  -0.00027065718693780605,
+                  0.08961177862132982
+                ],
+                "filtered_object_contact_force_n": [
+                  -1.1956619024276733,
+                  -1.2635974884033203,
+                  8.087824821472168
+                ],
+                "all_contact_force_n": [
+                  -1.1956619024276733,
+                  -1.2635974884033203,
+                  8.087824821472168
+                ],
+                "other_contact_force_n": [
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                "diagnostic_only": true
+              },
+              {
+                "time_s": 1.0833333333333333,
+                "hand_mass_kg": 1.1222537755966187,
+                "hand_com_velocity_m_s": [
+                  0.0071274349465966225,
+                  -0.03082394227385521,
+                  0.0017279849853366613
+                ],
+                "commanded_wrench": [
+                  1.9377745574384255,
+                  0.298736136813812,
+                  6.448771211798777,
+                  0.044003042516246045,
+                  -0.025043206269058205,
+                  0.036485191765930715
+                ],
+                "filtered_object_contact_force_n": [
+                  -0.20201128721237183,
+                  -0.8286411166191101,
+                  5.896066665649414
+                ],
+                "all_contact_force_n": [
+                  -0.20201128721237183,
+                  -0.8286411166191101,
+                  5.896066665649414
+                ],
+                "other_contact_force_n": [
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                "diagnostic_only": true
+              },
+              {
+                "time_s": 1.0916666666666666,
+                "hand_mass_kg": 1.1222537755966187,
+                "hand_com_velocity_m_s": [
+                  0.0048180208541452885,
+                  -0.017787745222449303,
+                  0.003987543284893036
+                ],
+                "commanded_wrench": [
+                  1.9697912712272165,
+                  0.38853447162699783,
+                  6.632267721117612,
+                  -0.003030200911668973,
+                  -0.003913045658614611,
+                  0.004360923267244545
+                ],
+                "filtered_object_contact_force_n": [
+                  -0.3364233374595642,
+                  -0.7277129888534546,
+                  4.465899467468262
+                ],
+                "all_contact_force_n": [
+                  -0.3364233374595642,
+                  -0.7277129888534546,
+                  4.465899467468262
+                ],
+                "other_contact_force_n": [
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                "diagnostic_only": true
+              },
+              {
+                "time_s": 1.1,
+                "hand_mass_kg": 1.1222537755966187,
+                "hand_com_velocity_m_s": [
+                  0.006308395881205797,
+                  -0.00866793841123581,
+                  -0.013644853606820107
+                ],
+                "commanded_wrench": [
+                  1.9234337461519015,
+                  0.4383629771784545,
+                  6.674369837000724,
+                  -0.01341565403675368,
+                  0.0002129810392343945,
+                  -0.013805757217889701
+                ],
+                "filtered_object_contact_force_n": [
+                  -0.5155927538871765,
+                  -0.3064305782318115,
+                  2.096874952316284
+                ],
+                "all_contact_force_n": [
+                  -0.5155927538871765,
+                  -0.3064305782318115,
+                  2.096874952316284
+                ],
+                "other_contact_force_n": [
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                "diagnostic_only": true
+              }
+            ]
+          }
+        }
+      }
+    ],
+    "anchors": [],
+    "initial_preparation_uses_synthesis_context": true,
+    "retention_sampling": {
+      "relative_pose_and_native_touch_hz": 120.0,
+      "thumb_and_non_thumb_opposition_hz": 30.0,
+      "native_dropouts_recorded": true
+    },
+    "status": "failed",
+    "error": "RuntimeError: Actual RELAXED native tool-target contact",
+    "failure_source_frame": 33.0,
+    "native_contact_failure": {
+      "forces_n": [
+        12.623366355895996,
+        0.0,
+        0.0
+      ],
+      "points_world": [
+        [
+          0.496671199798584,
+          -0.10032585263252258,
+          0.38981157541275024
+        ],
+        [
+          0.4970332086086273,
+          -0.1001737117767334,
+          0.3936651945114136
+        ],
+        [
+          0.4976320266723633,
+          -0.1004924327135086,
+          0.3937774896621704
+        ]
+      ],
+      "normals_world": [
+        [
+          -0.4799513518810272,
+          -0.8736779689788818,
+          0.07958302646875381
+        ],
+        [
+          -0.4799513518810272,
+          -0.8736779689788818,
+          0.07958302646875381
+        ],
+        [
+          -0.4799513518810272,
+          -0.8736779689788818,
+          0.07958302646875381
+        ]
+      ],
+      "native_separations_m": [
+        0.002176836133003235,
+        0.002300843596458435,
+        0.0025238990783691406
+      ],
+      "evidence": "native PhysX contact points; positive separation may produce contact before mesh overlap"
+    },
+    "retention_at_failure": {
+      "right": {
+        "position_m": 0.0013218539264906583,
+        "rotation_rad": 0.052949551517031325,
+        "contact_retained": true
+      },
+      "left": {
+        "position_m": 0.0021133435189919112,
+        "rotation_rad": 0.003817483142930712,
+        "contact_retained": false
+      }
+    },
+    "actual_duration_s": 1.1,
+    "state_resets_between_segments": 0,
+    "actual_trace": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_bimanual_r260/physical/exported_core/actual_trace.json"
+  }
+}

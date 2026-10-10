@@ -59,3 +59,42 @@ def hand_sweep_meshes(scene,goal,meshes):
 def hand_sweep_spheres(scene,goal,meshes,cover):
     geometry,count=hand_sweep_meshes(scene,goal,meshes)
     return [sphere for vertices,faces in geometry for sphere in cover(vertices,faces=faces)],count
+
+
+def measured_peer_meshes(scene,output):
+    """Other physical hands are collision obstacles, including nested imports.
+
+    Use actual rigid-body ownership rather than an ancestor path. Per-mesh
+    poses are refreshed during execution, so peer finger motion is measured.
+    Native contact offsets and a convex envelope conservatively cover cooking.
+    """
+    import json
+    from pathlib import Path
+    import trimesh
+    from pxr import Usd,UsdGeom
+    from multipath.planning.floating import usd_mesh_faces
+    from multipath.planning.object_geometry import convex_contact_envelope
+    world=getattr(scene,'scene',scene);out=Path(output);result={};report=[]
+    hands={'right':world,**getattr(world,'supporting_hands',{})}
+    cache=UsdGeom.XformCache()
+    for side,peer in hands.items():
+        if peer is scene:continue
+        links=tuple(str(p) for p in peer.contacts.prim_paths)
+        offsets=np.asarray(peer.contacts._physics_view.get_contact_offsets())
+        offset=float(np.max(offsets[np.isfinite(offsets)],initial=0.))
+        for prim in Usd.PrimRange.Stage(world.world.stage,Usd.TraverseInstanceProxies()):
+            path=str(prim.GetPath())
+            if not prim.IsA(UsdGeom.Mesh) or 'collision' in path.lower():continue
+            if not any(path.startswith(link+'/') for link in links):continue
+            source=UsdGeom.Mesh(prim);matrix=np.asarray(cache.GetLocalToWorldTransform(prim)).T
+            scale=np.linalg.norm(matrix[:3,:3],axis=0)
+            mesh=trimesh.Trimesh(vertices=np.asarray(source.GetPointsAttr().Get())*scale,
+                faces=usd_mesh_faces(source),process=False).convex_hull
+            mesh=convex_contact_envelope(mesh,offset)
+            name=f'peer_{side}_{len(result):03d}';file=out/(name+'.obj');mesh.export(file)
+            result[name]=dict(mesh=mesh,prim=prim,scale=scale,file_path=str(file))
+            report.append(dict(name=name,side=side,source_mesh=path,
+                native_contact_offset_m=offset,representation='convex_contact_envelope',
+                pose_origin='actual_PhysX_mesh_transform'))
+    (out/'peer_hand_geometry.json').write_text(json.dumps(report,indent=2))
+    return result

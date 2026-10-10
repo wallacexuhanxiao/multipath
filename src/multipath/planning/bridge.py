@@ -219,7 +219,7 @@ def free_exit_clearance_offset(scene,actual,geometry,obstacle_roles=None):
         obstacle_roles=sorted(roles),physically_acquired_feedback=True,physics_acceptance=False,source_time_stretch=False)
 
 
-def feedback_boundary_target(start,goal,planned_pose,actual_state,source_target,budget,dt,planning):
+def feedback_boundary_target(start,goal,planned_pose,actual_state,source_target,budget,dt,planning,*,clearance=None,clearance_gradient=None):
     """Develop one canonical boundary using a preceding physical rollout.
 
     Only the next oracle boundary conditions this fit. No relaxed reference
@@ -251,12 +251,37 @@ def feedback_boundary_target(start,goal,planned_pose,actual_state,source_target,
         # transform of the tool also rotates that deflection when the new goal
         # changes orientation, causing successive feedback fits to oscillate.
         return tracking@pose_matrix(coordinates_pose(x))@measured_held
-    def constraints(x):
+    def nominal_constraints(x):
         q,v1=x[:6],x[6:]
         low,high=discrete_displacement_bounds(v0,v1,budget,dt,vmax,amax);m=tool(q)
         position=np.sum((m[:3,3]-source_target[:3,3])**2)/OBJECT_POSITION_TOLERANCE_M**2
         rotation=Rotation.from_matrix(source_target[:3,:3].T@m[:3,:3]).magnitude()**2/OBJECT_ROTATION_TOLERANCE_RAD**2
         return np.r_[q-q0-low,q0+high-q,.98**2-position-rotation]
+    geometry_cache={}
+    def geometry(q):
+        # Geometry depends on pose, not terminal velocity. Cache the paired
+        # distance/gradient so SLSQP reuses the same float32 collision query.
+        key=tuple(q)
+        if key not in geometry_cache:
+            if clearance_gradient is None:
+                geometry_cache[key]=(float(clearance(coordinates_pose(q))),None)
+            else:
+                value,gradient=clearance_gradient(np.asarray(q)[None])
+                geometry_cache[key]=(float(value[0]),np.asarray(gradient[0],dtype=float))
+        return geometry_cache[key]
+    def constraints(x):
+        values=nominal_constraints(x)
+        if clearance is not None:values=np.r_[values,geometry(x[:6])[0]-1e-4]
+        return values
+    def constraint_jacobian(x):
+        # Source pose and discrete time envelopes are float64. Only the GPU
+        # collision row needs its existing autograd/ZYX kinematics gradient;
+        # finite differences can lose precision in rounded GPU distances.
+        epsilon=1e-6;jacobian=np.empty((13,len(x)))
+        for i in range(len(x)):
+            step=np.zeros_like(x);step[i]=epsilon
+            jacobian[:,i]=(nominal_constraints(x+step)-nominal_constraints(x-step))/(2*epsilon)
+        return np.vstack((jacobian,np.r_[geometry(x[:6])[1],np.zeros(6)]))
     def objective(x):
         predicted=predicted_tool(x[:6])
         position=np.sum((predicted[:3,3]-source_target[:3,3])**2)/OBJECT_POSITION_TOLERANCE_M**2
@@ -269,11 +294,42 @@ def feedback_boundary_target(start,goal,planned_pose,actual_state,source_target,
     # Keeping its velocity fixed exhausted the reachable rotation envelope and
     # repeated the same failed boundary. Choose a canonical velocity together
     # with the pose; the subsequent physical Anchor must accept this entry.
-    result=minimize(objective,np.r_[seed,np.clip(v1_seed,-vmax,vmax)],method='SLSQP',
-                    bounds=[(None,None)]*6+list(zip(-vmax,vmax)),
-                    constraints=[dict(type='ineq',fun=constraints)],options={'maxiter':120,'ftol':1e-10})
-    if not result.success or min(constraints(result.x)) < -1e-8:
-        raise RuntimeError('No feedback boundary proposal within original source/time conditions')
+    options={'maxiter':120,'ftol':1e-10}
+    # Collision queries use float32 GPU geometry. The default 1e-8 numerical
+    # difference can disappear; use a geometric step for this coupled fit.
+    if clearance is not None:options['eps']=1e-4
+    seeds=[seed]
+    if clearance is not None:
+        # Peer-hand obstacles make this nonconvex. Sample a few orientations
+        # inside the existing source tolerance, around the carried object.
+        # Select one canonical boundary; these are not trajectory solutions.
+        for axis in np.eye(3):
+            for sign in (-1,1):
+                candidate=source_target.copy()
+                candidate[:3,:3]=source_target[:3,:3]@Rotation.from_rotvec(
+                    axis*sign*.8*OBJECT_ROTATION_TOLERANCE_RAD).as_matrix()
+                wrist=candidate@np.linalg.inv(held)
+                pose=np.r_[wrist[:3,3],Rotation.from_matrix(wrist[:3,:3]).as_quat()[[3,0,1,2]]]
+                seeds.append(pose_coordinates(pose,q0))
+    attempts=[];feasible=False
+    condition=dict(type='ineq',fun=constraints)
+    if clearance is not None and clearance_gradient is not None:
+        condition['jac']=constraint_jacobian
+    for candidate in seeds:
+        result=minimize(objective,np.r_[candidate,np.clip(v1_seed,-vmax,vmax)],method='SLSQP',
+                        bounds=[(None,None)]*6+list(zip(-vmax,vmax)),
+                        constraints=[condition],options=options)
+        minimum=float(min(constraints(result.x)))
+        feasible=minimum>=-1e-8 and (result.success or clearance is not None)
+        attempts.append(dict(solver_success=bool(result.success),solver_message=str(result.message),
+            minimum_constraint=minimum,feasible=bool(feasible),
+            clearance_m=None if clearance is None else geometry(result.x[:6])[0]))
+        if feasible:break
+    if not feasible:
+        error=RuntimeError('No canonical boundary found within source/time/collision conditions')
+        error.boundary_fit_report=dict(attempts=attempts,source_time_stretch=False,physics_acceptance=False,
+            collision_gradient_used=clearance_gradient is not None,collision_queries=len(geometry_cache))
+        raise error
     q,v1=result.x[:6],result.x[6:];pose=coordinates_pose(q);eps=1e-5
     advanced=coordinates_pose(q+eps*v1)
     twist=np.r_[v1[:3],(Rotation.from_quat(advanced[[4,5,6,3]])*
@@ -287,7 +343,9 @@ def feedback_boundary_target(start,goal,planned_pose,actual_state,source_target,
         predicted_tool_rotation_error_rad=float(Rotation.from_matrix(source_target[:3,:3].T@predicted[:3,:3]).magnitude()),
         canonical_boundary_velocity_selected=True,nominal_planning_limits_unchanged=True,
         feedback_model='world_wrist_tracking_and_measured_hand_object_transform',
-        source_condition_unchanged=True,physics_acceptance=False)
+        source_condition_unchanged=True,physics_acceptance=False,
+        collision_boundary_fitted=clearance is not None,boundary_fit_attempts=attempts,
+        collision_gradient_used=clearance_gradient is not None,collision_queries=len(geometry_cache))
 
 
 def quiet_boundary_target(start,goal,source_target,budget,dt,planning):

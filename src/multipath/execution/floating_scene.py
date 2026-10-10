@@ -229,9 +229,27 @@ class FloatingScene:
     def step_control(self,command,mode,frame,*,supporting_commands=None):
         if not np.isclose(frame,(self.ticks+1)*self.dt*self.manifest['fps'],rtol=0,atol=1e-8):
             raise ValueError('Command source frame differs from actual physics clock')
+        provider=getattr(self,'supporting_control_provider',None)
+        if provider is not None and supporting_commands is None:
+            supplied=provider(frame)
+            supporting_commands={side:value[0] for side,value in supplied.items()}
+            for side,(_,wrench) in supplied.items():self.supporting_hands[side].wrench_bias=np.asarray(wrench)
+        provider=getattr(self,'control_wrench_provider',None)
+        if provider is not None:self.wrench_bias=np.asarray(provider(frame,command))
         for side,value in (supporting_commands or {}).items():
             self.supporting_hands[side].pending_command=np.asarray(value)
         self._drive(command[:7],command[7:19],command[19:25]);self.world.step(render=False);self.ticks+=1
+        self.executed_controls.append({
+            'right':np.r_[self.command_pose,self.hand_command,self.command_twist].copy(),
+            'right_wrenches':self.wrench_bias.copy(),
+            **{side:np.r_[hand.command_pose,hand.hand_command,hand.command_twist].copy()
+               for side,hand in getattr(self,'supporting_hands',{}).items()},
+            **{side+'_wrenches':hand.wrench_bias.copy()
+               for side,hand in getattr(self,'supporting_hands',{}).items()}})
+        from multipath.validation.physics import hand_tool_contact
+        for side,hand in {'right':self,**getattr(self,'supporting_hands',{})}.items():
+            contact=hand_tool_contact(hand.contacts.prim_paths,hand.contacts.get_contact_force_matrix(dt=self.dt))
+            self.executed_controls[-1][side+'_native_opposition']=contact['opposition_contact']
         for support in getattr(self,'supporting_hands',{}).values():support.pending_command=None
         if self.tool_target_contacts is not None:
             force=float(np.linalg.norm(self.tool_target_contacts.get_contact_force_matrix(dt=self.dt)))
@@ -287,6 +305,7 @@ class FloatingScene:
 
     def begin_recording(self,out,mesh=False):
         self.out=Path(out);self.out.mkdir(parents=True,exist_ok=True);self.records=[];self.record_mesh=mesh;self.record_start_tick=self.ticks
+        self.executed_controls=[]
         if mesh:self.recorder=ActualMeshRecorder(self.world.stage,self.out)
 
     def begin_trial(self,out,state,mesh=False):
@@ -324,6 +343,10 @@ class FloatingScene:
 
     def save(self):
         if self.record_mesh:self.recorder.save()
+        if self.executed_controls:
+            np.savez_compressed(self.out/'executed_controls.npz',
+                **{key:np.asarray([step[key] for step in self.executed_controls])
+                   for key in self.executed_controls[0]})
         (self.out/'actual_trace.json').write_text(json.dumps(self.records))
         (self.out/'pipeline_result.json').write_text(json.dumps({'embodiment':self.embodiment,'source_fps':self.manifest['fps'],
             'table_z':self.table['pose'][2]+.02,'source':'oracle','actual_duration_s':(self.ticks-self.record_start_tick)*self.dt,

@@ -1,0 +1,65 @@
+{
+  "scope": "measured visual mesh geometry; native contact offset and convex cooking not included",
+  "frames": [
+    {
+      "source_frame": 32,
+      "visual_triangle_intersections": [],
+      "near_pairs": []
+    },
+    {
+      "source_frame": 33,
+      "visual_triangle_intersections": [],
+      "near_pairs": []
+    },
+    {
+      "source_frame": 34,
+      "visual_triangle_intersections": [],
+      "near_pairs": []
+    },
+    {
+      "source_frame": 35,
+      "visual_triangle_intersections": [],
+      "near_pairs": []
+    },
+    {
+      "source_frame": 36,
+      "visual_triangle_intersections": [
+        [
+          "/xhand_right/right_hand_thumb_rota_link2",
+          "/xhand_right/xhand_left/left_hand_link"
+        ]
+      ],
+      "near_pairs": []
+    },
+    {
+      "source_frame": 37,
+      "visual_triangle_intersections": [
+        [
+          "/xhand_right/right_hand_thumb_rota_link2",
+          "/xhand_right/xhand_left/left_hand_link"
+        ]
+      ],
+      "near_pairs": []
+    },
+    {
+      "source_frame": 38,
+      "visual_triangle_intersections": [
+        [
+          "/xhand_right/right_hand_thumb_rota_link2",
+          "/xhand_right/xhand_left/left_hand_link"
+        ]
+      ],
+      "near_pairs": []
+    },
+    {
+      "source_frame": 39,
+      "visual_triangle_intersections": [
+        [
+          "/xhand_right/right_hand_thumb_rota_link2",
+          "/xhand_right/xhand_left/left_hand_link"
+        ]
+      ],
+      "near_pairs": []
+    }
+  ]
+}

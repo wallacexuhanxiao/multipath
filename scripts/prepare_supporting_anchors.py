@@ -3,7 +3,7 @@
 Only padded Anchor windows are retargeted. No complete robot reference or
 automatically inferred contact interval is created.
 """
-import argparse,hashlib,json
+import argparse,hashlib,json,shutil
 from dataclasses import replace
 from pathlib import Path
 import numpy as np
@@ -13,6 +13,7 @@ def main():
     p=argparse.ArgumentParser()
     for name in ('schedule','proposals','object-cache','output-dir'):
         p.add_argument('--'+name,type=Path,required=True)
+    p.add_argument('--existing-supporting-proposals',type=Path,help='Reuse identical local retarget arrays after oracle metadata edits')
     args=p.parse_args()
     from egoengine.taco import load_sequence,mano_forward
     from egoengine.taco.loader import HandData
@@ -26,6 +27,27 @@ def main():
     assignments=schedule.metadata['hands']
     if set(assignments)!={'right','left'}:
         raise ValueError('The bimanual oracle must declare both hand/object assignments')
+    if args.existing_supporting_proposals:
+        previous=json.loads((args.existing_supporting_proposals/'manifest.json').read_text())
+        for key in ('triplet','sequence','transform_world_to_robot'):
+            if previous['provenance'][key]!=original['provenance'][key]:raise ValueError('Cached local proposals use another source')
+        if previous['hands']!=assignments:raise ValueError('Cached local proposals use another hand/object assignment')
+        out=args.output_dir;out.mkdir(parents=True,exist_ok=True)
+        for anchor in schedule.anchors.values():
+            path=args.existing_supporting_proposals/previous['anchors'][anchor.id]
+            arrays=np.load(path,allow_pickle=False)
+            if not np.array_equal(arrays['source_frames'],np.arange(anchor.synth_start,anchor.synth_end)):
+                raise ValueError('Cached local proposals have different synthesis intervals')
+            if 'left_wrist_hand_q' not in arrays:raise ValueError('Cached local proposals lack the supporting hand')
+            shutil.copy2(path,out/previous['anchors'][anchor.id])
+        geometry_cache=args.existing_supporting_proposals/'geometry_cache'
+        if geometry_cache.exists():shutil.copytree(geometry_cache,out/'geometry_cache',dirs_exist_ok=True)
+        previous['provenance']=dict(previous['provenance'],schedule_sha256=hashlib.sha256(args.schedule.read_bytes()).hexdigest())
+        previous['physical_validation']=False
+        (out/'manifest.json').write_text(json.dumps(previous,indent=2))
+        (out/'oracle_schedule.json').write_text(args.schedule.read_text())
+        print('SUPPORT_LOCAL_ARRAYS_REUSED_CURRENT_ORACLE_UNVALIDATED',flush=True)
+        return
     seq=load_sequence(original['provenance']['triplet'],original['provenance']['sequence'])
     if seq.n_frames!=schedule.num_frames or abs(seq.fps-schedule.fps)>1e-5:
         raise ValueError('Oracle/source clocks differ')

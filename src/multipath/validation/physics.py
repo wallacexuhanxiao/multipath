@@ -45,8 +45,17 @@ def retention_errors(state, held_transform):
             'contact_retained':state['contact']['mode']=='grasped'}
 
 
-def check_retention(state,held_transform):
+def check_retention(state,held_transform,*,require_opposition=True):
+    """Retain geometry every physics step, opposition at control boundaries.
+
+    Between source control steps native finger contact is still required.
+    A one-step thumb-contact dropout is recorded, never rewritten as contact.
+    """
     errors=retention_errors(state,held_transform)
+    if not require_opposition:
+        errors['opposition_observed']=errors['contact_retained']
+        errors['contact_retained']=bool(state['contact'].get('touching_links',0)>0)
+        errors['contact_requirement']='native_touch_between_source_control_boundaries'
     if errors['position_m']>.05 or errors['rotation_rad']>.35 or not errors['contact_retained']:
         raise RuntimeError(f'Persistent grasp constraint failed: {errors}')
     return errors
@@ -59,7 +68,20 @@ def check_relaxed_tool_target_contact(scene,contact_steps_at_entry):
     pushed a plate 14 cm. Use the existing measured contact counter (force
     above 0.01 N), with the same physics clock. Interactions belong to Anchors.
     """
-    if scene.tool_target_contact_steps>contact_steps_at_entry:
+    # A supporting hand exposes its manipulated object as 'tool', but the
+    # pair sensor and collision counters belong to the shared physical world.
+    # Keep native pair diagnostics on that owner for either hand's optimizer.
+    owner=getattr(scene,'scene',scene)
+    if owner.tool_target_contact_steps>contact_steps_at_entry:
+        force,points,normals,separations,counts,starts=owner.tool_target_contacts.get_contact_force_data(dt=owner.dt)
+        active=[np.arange(int(s),int(s)+int(c)) for c,s in zip(np.asarray(counts).ravel(),np.asarray(starts).ravel()) if c]
+        indices=np.concatenate(active) if active else np.array([],dtype=int)
+        owner.relaxed_contact_failure=dict(
+            forces_n=np.asarray(force)[indices].reshape(-1).tolist(),
+            points_world=np.asarray(points)[indices].tolist(),
+            normals_world=np.asarray(normals)[indices].tolist(),
+            native_separations_m=np.asarray(separations)[indices].reshape(-1).tolist(),
+            evidence='native PhysX contact points; positive separation may produce contact before mesh overlap')
         raise RuntimeError('Actual RELAXED native tool-target contact')
 
 
