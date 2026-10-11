@@ -24752,5 +24752,60 @@
       "proxy_overlap_but_full_meshes_clear_ticks": []
     },
     "state_resets_between_segments": 0
+  },
+  {
+    "run": "r295",
+    "pbs_job_id": "658824.hopper-m-02",
+    "a0_padded_rollout": {
+      "success": true,
+      "failure": null,
+      "actual_end_frame": 38.0,
+      "state_resets_within_rollout": 0
+    },
+    "a0_core_replay": {
+      "success": true,
+      "failure": null,
+      "entry_physically_reachable": true,
+      "state_resets_within_rollout": 0
+    },
+    "continuation_status": "failed",
+    "error": "RuntimeError: Persistent grasp constraint failed: {'position_m': 0.0095857927083511, 'rotation_rad': 0.04543860110890951, 'contact_retained': False}",
+    "failure_source_frame": 33.0,
+    "actual_duration_s": 1.1,
+    "retention_at_failure": {
+      "right": {
+        "position_m": 0.0010730599130261088,
+        "rotation_rad": 0.025470732980638053,
+        "contact_retained": true
+      },
+      "left": {
+        "position_m": 0.0095857927083511,
+        "rotation_rad": 0.04543860110890951,
+        "contact_retained": false
+      }
+    },
+    "bridge_physically_executed": true,
+    "bridge_completed": false,
+    "state_resets_between_segments": 0,
+    "supported_payload_dynamics": {
+      "payload_mass_kg": 0.3500000238418579,
+      "support_normal": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "normal_load_supplied_by_environment": true,
+      "tangential_inertia_retained": true,
+      "yaw_inertia_retained": true,
+      "maximum_added_force_n": 4.045403084041917,
+      "maximum_added_moment_nm": 0.8738278442957933,
+      "physical_validation_required": true
+    },
+    "paired_commands_match_r294": true,
+    "maximum_command_difference": {
+      "right": 0.0,
+      "left": 0.0
+    },
+    "default_change_reverted": true
   }
 ]

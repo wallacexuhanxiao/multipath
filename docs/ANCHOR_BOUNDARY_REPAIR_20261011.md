@@ -120,11 +120,17 @@ r294 在连续执行到源帧 **37 / 110** 时停止，actual duration **1.23333
 
 第一处失败为左手 native thumb contact 消失，非拇指仍有接触。左侧 hand/object 相对位置误差 8.293 mm、旋转误差 0.04618 rad；右侧仍保留接触，相对位置误差 2.269 mm、旋转误差 0.07404 rad。没有先触发 tool/plate 非预期接触拒绝。不是用目标动画代替实际执行；该次 actual trace 和本地视频保留。
 
-### 14. 桌面支撑不能删除 payload 的平面惯性
+### 14. 支持负载惯性对照未改善，默认改动已撤回
 
-检查执行模型发现明确漏项：`supported_object` 原先完全排除 payload 的质量和惯性，只保留 hand dynamics 与实测接触 preload。环境支持 payload 的法向负载，不意味着平面运动和 yaw 没有惯性。
+执行模型原先在 `supported_object` 模式排除 payload 质量和惯性，只保留 hand dynamics 与实测接触 preload。为检查这个近似是否造成失败，r295 增加切向及 yaw 惯性项，实际质量、COM、inertia 和桌面法向均来自当前 PhysX 状态。
 
-r295 从实际 PhysX hand+object 与 hand-only Newton–Euler 模型的差值计算 payload wrench：保留桌面切向力及绕法向的内禀转矩，扣除由环境供应的法向负载，并保留力作用点的力矩。桌面法向、payload mass/COM/inertia 都来自当前场景，未新增任务名或 sample 参数。起步仍使用原 takeover memory，手指、目标路径、source clock、物理验收保持。这个漏项对本次接触失效的贡献需要以 r295 实测比较判定，尚不预先声称修复成功。
+两次 bridge 的右/左 commands 最大差异均为 **0.0**。r295 payload mass 为 0.35 kg，新增最大切向力 4.045 N、最大 root moment 0.874 Nm。左侧 native thumb contact 更早在帧 **33** 消失，hand/object 相对位置误差 9.586 mm、旋转误差 0.04544 rad；右侧仍有效。这不能证明补惯性是正确修复；当前 grasp 尚没有证明它能承受该刚性负载假设。**已撤回这项默认代码改动**，恢复已验证的执行接口，并保留负结果和同路径对照证据。
+
+### 15. 将失败 successor 作为局部抓取的 post-padding 上下文
+
+r296 保留 r285 右侧 core、原执行接口与真实 initial predecessor，把 r294 的 cuRobo commands 用作 A0 post-padding 的载荷上下文。先执行 Replay，失败才进入既有 contact-directed MPC，再必要时启用 24,293 参数的小 residual PPO，compute budget 240 s。改变的是局部交互合成；最终 RELAXED 仍由 cuRobo 重新生成，手指冻结，不在 RELAXED 训练 RL。
+
+候选必须重新通过 joint padded rollout 和从真实入口执行的 exported core，再进入完整 bridge 验证。上下文是实际失败 predecessor 的已保存计划和实测 core exit，不是 GT mid-air state；没有直接设置后续 Anchor 状态。r296 尚无实测结果，不能将其列为成功修复。
 
 ## 实验记录
 
@@ -146,7 +152,8 @@ r295 从实际 PhysX hand+object 与 hand-only Newton–Euler 模型的差值计
 | r292 / 658807 | double 坐标变换；ESDF 处才转 float32 | 距离核对差降至 0.330 μm，查询约快 122 倍；候选仍违反原 source/dynamics，bridge 未执行 |
 | r293 / 658809 | 合法运动 null-space、独立两侧 oracle 条件、整体目标缩放 | nominal ratio 转为 1.000；尚有 clearance/source 小残差，未执行 |
 | r294 / 658811 | 近可行候选的原约束恢复 | nominal/source/几何通过；首次真实 bridge 执行到帧 37，左拇指失去接触 |
-| r295 / 658824 | 桌面负载的切向/yaw 惯性 feedforward | 已提交，interactive H200 排队；实测结果尚未产生 |
+| r295 / 658824 | 桌面负载的切向/yaw 惯性 feedforward，同一 commands | 左侧更早在帧 33 掉接触；这项默认改动已撤回 |
+| r296 / 658835 | 失败 bridge 作为真实 outgoing synthesis context；局部 Replay/MPC/小 PPO | 已提交，实测结果尚未产生 |
 
 所有作业使用 interactive H200 / 20 min。没有修改原来的 5 cm + 30° **联合椭球**物体验收条件，没有增加等待或伸长 source clock，也没有用 GT 中间状态作为物理证据。
 

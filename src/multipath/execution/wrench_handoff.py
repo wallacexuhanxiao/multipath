@@ -109,31 +109,8 @@ def bandwidth_handoff_profile(ticks,dt,mass,inertia_world,config):
     return 1-3*phase**2+2*phase**3
 
 
-def supported_payload_wrenches(scene,start,commands,hand_model):
-    """The table supports normal load, not tangential/yaw payload inertia."""
-    from multipath.execution.transport_dynamics import TransportDynamics
-    payload_model=TransportDynamics(scene,True)
-    mass=payload_model.mass-hand_model.mass
-    if mass<=0:raise ValueError('Invalid measured supported payload mass')
-    extra=payload_model.commands(scene,start,commands)-hand_model.commands(scene,start,commands)
-    table=np.asarray(scene.table['pose'])
-    normal=Rotation.from_quat(table[[4,5,6,3]]).apply([0.,0.,1.])
-    center=(payload_model.mass*payload_model.center-hand_model.mass*hand_model.center)/mass
-    lever=Rotation.from_quat(np.asarray(commands)[:,[4,5,6,3]]).apply(center-hand_model.root_com)
-    force=extra[:,:3]-np.outer(extra[:,:3]@normal,normal)
-    intrinsic=extra[:,3:]-np.cross(lever,extra[:,:3])
-    torque=np.outer(intrinsic@normal,normal)+np.cross(lever,force)
-    scene.last_supported_payload_dynamics=dict(payload_mass_kg=mass,
-        support_normal=normal.tolist(),normal_load_supplied_by_environment=True,
-        tangential_inertia_retained=True,yaw_inertia_retained=True,
-        maximum_added_force_n=float(np.max(np.linalg.norm(force,axis=1))),
-        maximum_added_moment_nm=float(np.max(np.linalg.norm(torque,axis=1))),
-        physical_validation_required=True)
-    return np.c_[force,torque]
-
-
 def segment_wrenches(scene,start,commands,*,transport=False,baseline_commands=None,free_motion=False,supported_object=None):
-    """Keep the established takeover; validate new payload terms in physics."""
+    """The physically checked r96 transport/core controller interface."""
     from multipath.execution.transport_dynamics import TransportDynamics
     carry=start['contact']['mode']=='grasped'
     if supported_object is None:supported_object=getattr(scene,'surface_supported_object',False)
@@ -144,7 +121,6 @@ def segment_wrenches(scene,start,commands,*,transport=False,baseline_commands=No
     model=TransportDynamics(scene,carry and not supported_object)
     feedforward=model.commands(scene,start,commands) if (transport and carry) or (free_motion and not carry) else np.zeros((len(commands),6))
     if transport and carry and supported_object:
-        feedforward+=supported_payload_wrenches(scene,start,commands,model)
         # Fading all previous drive response removes the wrist's contact
         # preload as well as its transient tracking error. A hand-only mass
         # model supplies no replacement for that measured reaction.
@@ -161,8 +137,6 @@ def segment_wrenches(scene,start,commands,*,transport=False,baseline_commands=No
     origin='measured_response_bandwidth'
     scene.last_drive_memory_profile=dict(method=origin,model=model.report(),
         duration_s=len(commands)*scene.dt,source_time_stretch=False,physical_validation_required=True)
-    if transport and carry and supported_object:
-        scene.last_drive_memory_profile['supported_payload_dynamics']=scene.last_supported_payload_dynamics
     return feedforward+bias*profile
 
 
