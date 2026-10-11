@@ -276,7 +276,12 @@ def continue_oracle(scene,schedule,manifest,proposals,output,*,boundary_feedback
                         poses,support_fit=supported_object_targets(hand,data['tool_pose'],start)
                         command_data=dict(data,tool_pose=poses)
                     source_core=data['tool_pose'][anchor.core_start-anchor.synth_start:anchor.core_end-anchor.synth_start+1]
-                    keep_support=bool(support and stable and all(object_tracking_score(core_pose_errors(start,p))['feasible'] for p in source_core))
+                    # Pose similarity does not supply a stabilizing controller.
+                    # A physically moving bridge exit needs local source fit
+                    # and transport feedforward. Only reuse an actual compiled
+                    # support program whose context has already been executed.
+                    keep_support=bool(support and stable and getattr(hand,'support_hold_program',None) is not None
+                        and all(object_tracking_score(core_pose_errors(start,p))['feasible'] for p in source_core))
                     if keep_support:
                         controls=support_hold_commands(hand,start,(anchor.core_end-anchor.core_start)*tpf)
                         fit=dict(curobo_used=False,persistent_constraint='source-conditioned native support',
