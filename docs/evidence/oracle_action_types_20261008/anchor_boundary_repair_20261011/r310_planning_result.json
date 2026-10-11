@@ -1,0 +1,37 @@
+{
+  "run": "r310",
+  "pbs_job_id": "659005.hopper-m-02",
+  "job_walltime_s": 323,
+  "bimanual_anchor_success": true,
+  "padded_rollout": {
+    "success": true,
+    "failure": null,
+    "actual_end_frame": 38.0,
+    "state_resets_within_rollout": 0
+  },
+  "core_replay": {
+    "success": true,
+    "failure": null,
+    "entry_physically_reachable": true,
+    "state_resets_within_rollout": 0
+  },
+  "full_pipeline_success": false,
+  "task_success": false,
+  "failure": "RuntimeError: Nonlinear source-time collision fit rejected: Feasibility restoration: Iteration limit reached; clearance_residual=-0.004326190969347954; source_condition=-0.36405148769354767",
+  "failure_source_frame": 32.0,
+  "actual_duration_s": 1.0666666666666667,
+  "source_duration_s": 3.6666666666666665,
+  "state_resets_between_segments": 0,
+  "bridge_physically_executed": false,
+  "planning_residuals": {
+    "clearance_residual_m": -0.004326190969347954,
+    "source_condition": -0.36405148769354767,
+    "source_conditions": [
+      -0.23296090066209874,
+      -0.36405148769354767
+    ],
+    "nominal_dynamics_ratio": 1.0000952832120902
+  },
+  "candidate_exact_mesh_failure": null,
+  "planning_residuals_are_not_actual_physics": true
+}

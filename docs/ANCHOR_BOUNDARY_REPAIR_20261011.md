@@ -7,7 +7,7 @@
 
 已确认：A0 在移动载荷上下文下通过 padded rollout `[14,38)`，导出的 core `[20,32)` 也从真实可达入口重新执行通过；r299 右手工具实际抬升 41.422 mm。r306 新 bridge 执行至帧 37，先前的工具/食指碰撞未在这个实际前缀出现，但左手失去抓取。r307 用这条新 bridge 的载荷重新合成左手，contact-directed MPC 的候选通过 fresh padded/core；右手实际抬升 40.989 mm。随后新 bridge 在帧 33.75 触发 PhysX 工具/盘子接触，两手当时仍保持抓取。
 
-尚未完成：完整物理 bridge、后续 A1/A2、完整 **3.666667 s** 任务。r300/r301 的负面实验改动均已撤回。r308/r309 修复 native-contact 反馈遗漏与 command / predicted-state 混用后，真实 bridge 推进到帧 **38**，双手仍保持抓取；工具与左手食指 mesh 碰撞，实际停止于 **1.266667 s**，零 resets。r310 使用更长的 r309 实测反馈，作业 **659005** 已提交，尚未验收。不能把预测无 mesh 重叠描述成完整任务通过。
+尚未完成：完整物理 bridge、后续 A1/A2、完整 **3.666667 s** 任务。r300/r301 的负面实验改动均已撤回。r308/r309 修复 native-contact 反馈遗漏与 command / predicted-state 混用后，真实 bridge 推进到帧 **38**，双手仍保持抓取；工具与左手食指 mesh 碰撞，实际停止于 **1.266667 s**，零 resets。r310 使用更长的 r309 实测反馈，作业 **659005** 已结束（5 min 23 s）：A0 padded/core 再次通过，但新 bridge 候选不满足联合约束，规划阶段拒绝，未执行 bridge。不能把预测无 mesh 重叠描述成完整任务通过。
 
 ## 找到的原因与修复
 
@@ -249,7 +249,7 @@ r306 仍优化原 0.1 mm margin；若优化未完全达到它，只有同时满�
 | r307 / 658976 | 用 r306 新运动载荷修左手；右手完整控制程序保持冻结 | contact-directed MPC 的第 5 个 fresh padded trial 通过，fresh core 通过；新 bridge 33.75 发生 native tool/plate contact，双方仍抓取 |
 | r308 / 658986 | 冻结 r307 A0；native contact 失败也进入实测跟踪预测反馈 | 联合路径拟合通过；执行前预检查错用 predicted physical boundary，bridge 未执行 |
 | r309 / 658998 | 命令时间可行性与实际交接目标分开；A0 / path feedback 保持不变 | 原预算实际执行至 38，双手仍抓取；tool/左食指 mesh 碰撞，actual 1.266667 s，零 resets |
-| r310 / 659005 | 同一冻结 A0，预测更新为 r309 更长的实际反馈 | 已提交 interactive H200 10 min，尚未验收 |
+| r310 / 659005 | 同一冻结 A0，预测更新为 r309 更长的实际反馈 | 5 min 23 s；A0 padded/core 通过；source/cover 联合拟合未通过，bridge 未执行 |
 
 所有作业使用 interactive H200，r300–r310 上限为 10 min，其余为 20 min。没有修改原来的 5 cm + 30° **联合椭球**物体验收条件，没有增加等待或伸长 source clock，也没有用 GT 中间状态作为物理证据。
 
@@ -282,6 +282,12 @@ r309 的 command precheck 通过，实际 PhysX 从帧 32 连续执行到帧 38�
 旧预测来自只执行到 33.75 的 r307，后半段固定最后观测误差。帧 38 时，右 wrist 平移预测与实测相差 **8.431 mm**，左 wrist 相差 **14.683 mm**；实际手指关节相对入口最大变化分别为 0.02702 / 0.03847 rad。冻结手指命令不等于实际 finger articulation 完全不动。这些数据证明跟踪预测还不充分，不能把碰撞全部归因于常值尾段，也不能把模型预测作为物理证明。
 
 r310 不改 controller、reward、阈值或时间预算；继续冻结通过的 A0，改用 r309 覆盖至帧 38 的实际记录重新预测/规划。其结果仍需要 fresh continuous PhysX。报告证据为 `r309_physical_bridge_result.json`。
+
+### 29. r310 最新结果：更长历史反馈仍未打通 bridge
+
+作业 659005 已结束，wall time 5 min 23 s。A0 padded `[14,38)` 和 fresh exported core `[20,32)` 均再次通过。新 bridge 的联合拟合在原 0.233333 s 预算下未通过：cover clearance residual 为 −4.326 mm，两侧 source-condition residual 分别为 −0.233 / −0.364；这些是预测/规划残差，不是实测穿透或新物理失败。保存候选的完整 mesh 查询没有报告相交，但它仍违反原 source 条件，不能据此接受。
+
+因此本轮在帧 32 结束，实际前缀 1.066667 s，零 segment resets；没有执行新的 bridge。最远的真实 bridge 证据仍是 r309 的帧 38。两个接口修复已经有 r309 的执行验证，但仅靠延长历史跟踪误差反馈没有解决双手 bridge。后续应以真实 physical candidate rollout 校正这一近似模型，继续保留原时间、入口语义和实际碰撞验收。
 
 ## 可复用范围与验证边界
 
