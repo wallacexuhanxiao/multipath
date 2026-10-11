@@ -41,7 +41,7 @@ def main():
         from multipath.planning.floating import FloatingPlanner,sphere_world_clearance
         from multipath.planning.bridge import project_boundary_target,bridge_precheck,terminal_stop_target
         from multipath.execution.mounted_scene import pose_matrix
-        from multipath.execution.wrench_handoff import segment_wrenches
+        from multipath.execution.wrench_handoff import segment_wrenches,local_anchor_wrenches
         from multipath.anchors.floating import (join_core_controls,source_grasp_core_controls,
             source_retarget_core_controls,quiet_release_exit,validate_commands,AcquiredGraspProposal,project_hand_commands,acquisition_preload,
             free_grasp_registration,register_grasp_controls)
@@ -71,7 +71,8 @@ def main():
         app=start_simulation(out);scene=FloatingScene(args,manifest,out,initial,initial_hand=initial_hand)
         report['initial_hand_origin']=('local_interaction_canonical_free_pregrasp' if first.id in templates else 'local_human_context')
         initial_state=scene.snapshot();start_frame=0;resets=0
-        report.update(embodiment=scene.embodiment,physics='PhysX CPU',table_z=float(scene.table['pose'][2]+.02),initial_state=initial_state)
+        report.update(embodiment=scene.embodiment,physics='PhysX CPU',table_z=float(scene.table['pose'][2]+.02),initial_state=initial_state,
+            core_tracking_policy=scene.cfg.get('validation',{}).get('core_tracking_policy','strict'))
         if args.start_core_run:
             prior=json.loads((args.start_core_run/'bridge_result.json').read_text())
             if not prior.get('next_core_success') or prior['source_provenance']!=manifest['provenance']:
@@ -264,7 +265,7 @@ def main():
                 info['transition']=transition
                 if not transition['success']:raise RuntimeError('Actual oracle boundary failed')
             else:
-                a=schedule.anchors[w['anchor']];d=local[a.id];reused=False
+                a=schedule.anchors[w['anchor']];d=local[a.id];reused=False;native_wrenches=None
                 stable_carry=a.entry_contact==a.exit_contact=='grasped'
                 template_used=False
                 folder=out/'cores'/a.id;folder.mkdir(parents=True,exist_ok=True)
@@ -289,6 +290,7 @@ def main():
                     info['canonical_core_reused']=reused
                     info['seed_drive_boundary_matches']=drive_matches
                     info['seed_commands_preserved']=bool(reused or preserve_free_drive)
+                    if reused or preserve_free_drive:native_wrenches=seed.get('controller_wrenches')
                     info['validated_local_seed']=str(seed_path.parent)
                 elif a.entry_contact==a.exit_contact=='grasped':
                     commands,handoff=source_grasp_core_controls(scene,a,d,start)
@@ -320,22 +322,30 @@ def main():
                     feedback['offset_m']=terminal_offset.tolist()
                     feedback['previous_offset_m']=previous_offset.tolist()
                     info['exit_geometry_feedback']=dict(feedback,physical_rollout=str(args.exit_geometry_feedback_run))
-                commands=project_hand_commands(scene,commands,start,a)
-                commands=quiet_release_exit(scene,a,commands,terminal_offset)
+                if native_wrenches is None or terminal_offset is not None:
+                    commands=project_hand_commands(scene,commands,start,a)
+                    commands=quiet_release_exit(scene,a,commands,terminal_offset)
+                    # A reshaped proposal requires new physical synthesis;
+                    # its controls no longer belong to the saved program.
+                    native_wrenches=None
                 np.savez_compressed(folder/'commands.npz',commands=commands)
                 check=validate_commands(scene,commands,start);info['command_precheck']=check
                 if not check['feasible']:raise RuntimeError('Local core command rejected')
                 objective=WindowEvaluation(scene,a,d,start)
                 if not objective.observe(a.core_start,commands[0]):raise RuntimeError(str(objective.failure))
                 info['carried_dynamics_feedforward']=stable_carry
-                wrenches=segment_wrenches(scene,start,commands,transport=stable_carry)
-                acquisition=AcquiredGraspProposal(scene,a,d) if not reused and a.entry_contact=='free' and a.exit_contact=='grasped' else None
+                wrenches=(native_wrenches if native_wrenches is not None else
+                          local_anchor_wrenches(scene,start,commands,a))
+                info['native_controller_program_replayed']=native_wrenches is not None
+                acquisition=AcquiredGraspProposal(scene,a,d) if native_wrenches is None and not reused and a.entry_contact=='free' and a.exit_contact=='grasped' else None
                 preload=None
                 for k,c in enumerate(commands):
                     scene.wrench_bias=wrenches[k];frame=a.core_start+(k+1)*scene.dt*schedule.fps
                     if acquisition is not None:
                         c=acquisition.command(frame,c)
-                    c,preload=acquisition_preload(scene,a,c,preload);commands[k]=c
+                    if native_wrenches is None:
+                        c,preload=acquisition_preload(scene,a,c,preload)
+                    commands[k]=c
                     scene.step_control(c,'ANCHOR',frame)
                     if (k+1)%scene.tpf==0 and not objective.observe(frame,c):
                         np.savez_compressed(folder/'commands.npz',commands=commands)
@@ -344,6 +354,8 @@ def main():
                     info['local_refinement']=dict(method='measured_grasp_object_relative_MPC_proposal',
                         grasp_acquired_frame=acquisition.acquired_frame,target_handoff=acquisition.handoff)
                 exit_state=scene.snapshot();(folder/'exit.json').write_text(json.dumps(exit_state,indent=2))
+                info['core_tracking_policy']=objective.core_tracking_policy
+                info['core_tracking_diagnostics']=objective.tracking_failures
                 info['native_preload_retained_during_synthesis']=preload is not None
                 np.savez_compressed(folder/'commands.npz',commands=commands)
                 report['anchors'].append(dict(id=a.id,core_interval=[a.core_start,a.core_end],synthesis_interval=[a.synth_start,a.synth_end],

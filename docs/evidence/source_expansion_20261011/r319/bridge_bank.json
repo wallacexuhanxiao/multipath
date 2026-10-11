@@ -1,0 +1,783 @@
+{
+  "status": "search_exhausted",
+  "source_provenance": {
+    "triplet": "(put in, bowl, plate)",
+    "sequence": "20231024_258",
+    "input": "raw TACO MANO and object poses",
+    "source_video": "/scratch/e0985859/egoengine_baseline/data/taco_v1/Egocentric_RGB_Videos/(put in, bowl, plate)/20231024_258/color.mp4",
+    "schedule_sha256": "a8aca58533ea60402957ca6cd6f3dfaf2a1f74b6e989543f04f0203ebb1871a4",
+    "full_robot_reference_used": false,
+    "vlm_used": false,
+    "transform_world_to_robot": [
+      [
+        -0.40828712522914196,
+        0.912853503975095,
+        0.0,
+        0.5801715379134981
+      ],
+      [
+        -0.9128535512848791,
+        -0.4082871463891371,
+        -0.0,
+        -0.01896962132366683
+      ],
+      [
+        0.0,
+        0.0,
+        1.0,
+        -0.20422064304351806
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ]
+  },
+  "source": "oracle",
+  "baseline_run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_demo_expansion_r318_20231024_258/final",
+  "solutions_per_interval": 3,
+  "source_duration_s": 4.266666666666667,
+  "intervals": [
+    {
+      "window": [
+        0,
+        25
+      ],
+      "budget_s": 0.8333333333333334,
+      "contact": "free",
+      "solutions": [
+        {
+          "index": 0,
+          "baseline": true,
+          "local_physical_success": true,
+          "actual_trace": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_demo_expansion_r318_20231024_258/final/actual_trace.json"
+        },
+        {
+          "index": 1,
+          "baseline": false,
+          "artifact": "interval_0_25/solution_1",
+          "local_physical_success": true,
+          "diversity": {
+            "actual_wrist_min_exclusion_clearance_m": 0.006013019495480701,
+            "actual_wrist_exclusion_pass": true,
+            "minimum_arc_distance_m": 0.0,
+            "actual_arc_pass": true,
+            "path_length_m": 0.2048946878884707,
+            "endpoint_distance_m": 0.19174074981611955,
+            "arc_reference_length_m": 0.19331797129839615,
+            "arc_length_ratio": 1.0598843269061897,
+            "backward_progress_fraction": 0.0,
+            "endpoint_overshoot_fraction": 0.0,
+            "smooth_arc_pass": true,
+            "comparisons": [
+              {
+                "source_run": "baseline",
+                "mean_nearest_path_distance_m": 0.006412508512955314,
+                "max_nearest_path_distance_m": 0.017711272882964358,
+                "middle_median_path_distance_m": 0.006252318776279997,
+                "symmetric_hausdorff_m": 0.017711272882964358
+              }
+            ]
+          },
+          "actual_trace": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_demo_expansion_r318_20231024_258/diversity/bank_00/interval_0_25/solution_1_attempt_16/actual_trace.json",
+          "resumed_from": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_demo_expansion_r318_20231024_258/diversity/bank_00/interval_0_25/solution_1"
+        },
+        {
+          "index": 2,
+          "baseline": false,
+          "artifact": "interval_0_25/solution_2",
+          "local_physical_success": true,
+          "diversity": {
+            "actual_wrist_min_exclusion_clearance_m": 0.007495234798589301,
+            "actual_wrist_exclusion_pass": true,
+            "minimum_arc_distance_m": 0.0,
+            "actual_arc_pass": true,
+            "path_length_m": 0.21087537456755953,
+            "endpoint_distance_m": 0.19165520243633707,
+            "arc_reference_length_m": 0.19331797129839615,
+            "arc_length_ratio": 1.090821371397813,
+            "backward_progress_fraction": 0.0,
+            "endpoint_overshoot_fraction": 0.0,
+            "smooth_arc_pass": true,
+            "comparisons": [
+              {
+                "source_run": "baseline",
+                "mean_nearest_path_distance_m": 0.008378873687691987,
+                "max_nearest_path_distance_m": 0.023249585238540794,
+                "middle_median_path_distance_m": 0.011602542765621556,
+                "symmetric_hausdorff_m": 0.023249585238540794
+              },
+              {
+                "source_run": "solution_1",
+                "mean_nearest_path_distance_m": 0.010133105582561431,
+                "max_nearest_path_distance_m": 0.027224902446981412,
+                "middle_median_path_distance_m": 0.012727090205626672,
+                "symmetric_hausdorff_m": 0.027224902446981412
+              }
+            ]
+          },
+          "actual_trace": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_demo_expansion_r318_20231024_258/diversity/bank_00/interval_0_25/solution_2_attempt_19/actual_trace.json",
+          "resumed_from": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_demo_expansion_r318_20231024_258/diversity/bank_00/interval_0_25/solution_2"
+        }
+      ],
+      "attempts": [],
+      "complete": true
+    },
+    {
+      "window": [
+        59,
+        68
+      ],
+      "budget_s": 0.3,
+      "contact": "grasped",
+      "solutions": [
+        {
+          "index": 0,
+          "baseline": true,
+          "local_physical_success": true,
+          "actual_trace": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_demo_expansion_r318_20231024_258/final/actual_trace.json"
+        }
+      ],
+      "attempts": [
+        {
+          "solution": 1,
+          "attempt": 0,
+          "seed_index": 0,
+          "status": "rejected",
+          "terminal_history_ticks": 2,
+          "error": "Detour waypoint collides with physical geometry"
+        },
+        {
+          "solution": 1,
+          "attempt": 1,
+          "seed_index": 1,
+          "status": "rejected",
+          "terminal_history_ticks": 2,
+          "error": "Detour waypoint collides with physical geometry"
+        },
+        {
+          "solution": 1,
+          "attempt": 2,
+          "seed_index": 2,
+          "status": "rejected",
+          "terminal_history_ticks": 2,
+          "error": "Detour waypoint collides with physical geometry"
+        },
+        {
+          "solution": 1,
+          "attempt": 3,
+          "seed_index": 3,
+          "status": "rejected",
+          "terminal_history_ticks": 2,
+          "error": "Detour waypoint collides with physical geometry"
+        },
+        {
+          "solution": 1,
+          "attempt": 4,
+          "seed_index": 4,
+          "status": "rejected",
+          "terminal_history_ticks": 2,
+          "error": "Detour waypoint collides with physical geometry"
+        },
+        {
+          "solution": 1,
+          "attempt": 5,
+          "seed_index": 5,
+          "status": "rejected",
+          "terminal_history_ticks": 2,
+          "error": "Detour waypoint collides with physical geometry"
+        },
+        {
+          "solution": 1,
+          "attempt": 6,
+          "seed_index": 6,
+          "status": "rejected",
+          "terminal_history_ticks": 2,
+          "error": "Detour waypoint collides with physical geometry"
+        },
+        {
+          "solution": 1,
+          "attempt": 7,
+          "seed_index": 7,
+          "status": "rejected",
+          "terminal_history_ticks": 2,
+          "error": "Detour waypoint collides with physical geometry"
+        },
+        {
+          "solution": 1,
+          "attempt": 8,
+          "seed_index": 0,
+          "status": "rejected",
+          "terminal_history_ticks": 2,
+          "error": "Detour waypoint collides with physical geometry"
+        },
+        {
+          "solution": 1,
+          "attempt": 9,
+          "seed_index": 1,
+          "status": "rejected",
+          "terminal_history_ticks": 2,
+          "error": "Detour waypoint collides with physical geometry"
+        },
+        {
+          "solution": 1,
+          "attempt": 10,
+          "seed_index": 2,
+          "status": "rejected",
+          "terminal_history_ticks": 2,
+          "error": "Detour waypoint collides with physical geometry"
+        },
+        {
+          "solution": 1,
+          "attempt": 11,
+          "seed_index": 3,
+          "status": "rejected",
+          "terminal_history_ticks": 2,
+          "error": "Detour waypoint collides with physical geometry"
+        },
+        {
+          "solution": 1,
+          "attempt": 12,
+          "seed_index": 4,
+          "status": "rejected",
+          "terminal_history_ticks": 2,
+          "error": "Detour waypoint collides with physical geometry"
+        },
+        {
+          "solution": 1,
+          "attempt": 13,
+          "seed_index": 5,
+          "status": "rejected",
+          "terminal_history_ticks": 2,
+          "error": "Detour waypoint collides with physical geometry"
+        },
+        {
+          "solution": 1,
+          "attempt": 14,
+          "seed_index": 6,
+          "status": "rejected",
+          "terminal_history_ticks": 2,
+          "error": "Detour waypoint collides with physical geometry"
+        },
+        {
+          "solution": 1,
+          "attempt": 15,
+          "seed_index": 7,
+          "status": "rejected",
+          "terminal_history_ticks": 2,
+          "error": "Detour waypoint collides with physical geometry"
+        },
+        {
+          "solution": 1,
+          "attempt": 16,
+          "seed_index": 0,
+          "status": "rejected",
+          "terminal_history_ticks": 2,
+          "error": "Detour waypoint collides with physical geometry"
+        },
+        {
+          "solution": 1,
+          "attempt": 17,
+          "seed_index": 1,
+          "status": "rejected",
+          "terminal_history_ticks": 2,
+          "error": "Detour waypoint collides with physical geometry"
+        },
+        {
+          "solution": 1,
+          "attempt": 18,
+          "seed_index": 2,
+          "status": "rejected",
+          "terminal_history_ticks": 2,
+          "error": "Detour waypoint collides with physical geometry"
+        },
+        {
+          "solution": 1,
+          "attempt": 19,
+          "seed_index": 3,
+          "status": "rejected",
+          "terminal_history_ticks": 2,
+          "error": "Detour waypoint collides with physical geometry"
+        },
+        {
+          "solution": 1,
+          "attempt": 20,
+          "seed_index": 4,
+          "status": "rejected",
+          "terminal_history_ticks": 2,
+          "error": "Detour waypoint collides with physical geometry"
+        },
+        {
+          "solution": 1,
+          "attempt": 21,
+          "seed_index": 5,
+          "status": "rejected",
+          "terminal_history_ticks": 2,
+          "error": "Detour waypoint collides with physical geometry"
+        },
+        {
+          "solution": 1,
+          "attempt": 22,
+          "seed_index": 6,
+          "status": "rejected",
+          "terminal_history_ticks": 2,
+          "error": "Detour waypoint collides with physical geometry"
+        },
+        {
+          "solution": 1,
+          "attempt": 23,
+          "seed_index": 7,
+          "status": "rejected",
+          "terminal_history_ticks": 2,
+          "error": "Detour waypoint collides with physical geometry"
+        }
+      ],
+      "complete": false
+    },
+    {
+      "window": [
+        88,
+        96
+      ],
+      "budget_s": 0.26666666666666666,
+      "contact": "grasped",
+      "solutions": [
+        {
+          "index": 0,
+          "baseline": true,
+          "local_physical_success": true,
+          "actual_trace": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_demo_expansion_r318_20231024_258/final/actual_trace.json"
+        },
+        {
+          "index": 1,
+          "baseline": false,
+          "artifact": "interval_88_96/solution_1",
+          "local_physical_success": true,
+          "diversity": {
+            "actual_wrist_min_exclusion_clearance_m": 0.0018568485727752002,
+            "actual_wrist_exclusion_pass": true,
+            "minimum_arc_distance_m": 0.0,
+            "actual_arc_pass": true,
+            "path_length_m": 0.18652363522818094,
+            "endpoint_distance_m": 0.15026481239811187,
+            "arc_reference_length_m": 0.17495890604969183,
+            "arc_length_ratio": 1.0660996884331484,
+            "backward_progress_fraction": 0.0,
+            "endpoint_overshoot_fraction": 0.0,
+            "smooth_arc_pass": true,
+            "comparisons": [
+              {
+                "source_run": "baseline",
+                "mean_nearest_path_distance_m": 0.009264803930669195,
+                "max_nearest_path_distance_m": 0.017613030015788282,
+                "middle_median_path_distance_m": 0.01455754195771171,
+                "symmetric_hausdorff_m": 0.01781821377747492
+              }
+            ]
+          },
+          "actual_trace": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r319_20231024_258/bank_00/interval_88_96/solution_1_attempt_5/actual_trace.json"
+        },
+        {
+          "index": 2,
+          "baseline": false,
+          "artifact": "interval_88_96/solution_2",
+          "local_physical_success": true,
+          "diversity": {
+            "actual_wrist_min_exclusion_clearance_m": 0.0015563291011817491,
+            "actual_wrist_exclusion_pass": true,
+            "minimum_arc_distance_m": 0.0,
+            "actual_arc_pass": true,
+            "path_length_m": 0.18376234982845438,
+            "endpoint_distance_m": 0.15167017419750087,
+            "arc_reference_length_m": 0.17495890604969183,
+            "arc_length_ratio": 1.0503172086379085,
+            "backward_progress_fraction": 0.0,
+            "endpoint_overshoot_fraction": 2.220446049250313e-16,
+            "smooth_arc_pass": true,
+            "comparisons": [
+              {
+                "source_run": "baseline",
+                "mean_nearest_path_distance_m": 0.0060093147681279015,
+                "max_nearest_path_distance_m": 0.012361804257476352,
+                "middle_median_path_distance_m": 0.009468487827956439,
+                "symmetric_hausdorff_m": 0.012489019578492607
+              },
+              {
+                "source_run": "solution_1",
+                "mean_nearest_path_distance_m": 0.003518933641198216,
+                "max_nearest_path_distance_m": 0.0058034477733650575,
+                "middle_median_path_distance_m": 0.00472048540065458,
+                "symmetric_hausdorff_m": 0.0058034477733650575
+              }
+            ]
+          },
+          "actual_trace": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r319_20231024_258/bank_00/interval_88_96/solution_2_attempt_10/actual_trace.json"
+        }
+      ],
+      "attempts": [
+        {
+          "solution": 1,
+          "attempt": 0,
+          "seed_index": 0,
+          "status": "rejected",
+          "terminal_history_ticks": 2,
+          "following_core_native_controller_program_replayed": true,
+          "error": "Following Anchor failed: {'source_frame': 117.0, 'reason': 'core_exit_handoff', 'handoff': {'wrist_error': {'position_m': 0.062377448982159564, 'rotation_rad': 0.17089946324176195}, 'wrist_tracking_diagnostic_only': True, 'actual_contact': {'mode': 'free', 'thumb_contact': False, 'other_finger_contact': False, 'opposition_contact': False, 'touching_links': 0, 'link_paths': ['/xhand_right/right_hand_link', '/xhand_right/right_hand_ee_link', '/xhand_right/right_hand_index_bend_link', '/xhand_right/right_hand_index_rota_link1', '/xhand_right/right_hand_index_rota_link2', '/xhand_right/right_hand_index_rota_tip', '/xhand_right/right_hand_mid_link1', '/xhand_right/right_hand_mid_link2', '/xhand_right/right_hand_mid_tip', '/xhand_right/right_hand_pinky_link1', '/xhand_right/right_hand_pinky_link2', '/xhand_right/right_hand_pinky_tip', '/xhand_right/right_hand_ring_link1', '/xhand_right/right_hand_ring_link2', '/xhand_right/right_hand_ring_tip', '/xhand_right/right_hand_thumb_bend_link', '/xhand_right/right_hand_thumb_rota_link1', '/xhand_right/right_hand_thumb_rota_link2', '/xhand_right/right_hand_thumb_rota_tip'], 'force_norms_n': [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'force_vectors_n': [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]], 'evidence': 'PhysX thumb AND non-thumb finger/tool contact; retention checked separately'}, 'actual_wrist_twist': [-0.40123878246914474, 0.29543891306620323, -0.041290445873426555, 0.016957761719822884, 2.7646994590759277, 2.14904522895813], 'object_boundary_error': {'position_m': 0.058183346309472424, 'rotation_rad': 0.4652904946590007}, 'success': False, 'preceding_failure': None}}"
+        },
+        {
+          "solution": 1,
+          "attempt": 1,
+          "seed_index": 1,
+          "status": "rejected",
+          "terminal_history_ticks": 2,
+          "error": "No excluded-path-free detour in original source time: ['original_seed: Detour separation cannot fit immutable source time and dynamics', 'original_direction: Detour separation cannot fit immutable source time and dynamics', 'moving_boundary_seed: Detour separation cannot fit immutable source time and dynamics', 'moving_boundary_direction: Detour separation cannot fit immutable source time and dynamics', 'size_0.5_seed: Detour separation cannot fit immutable source time and dynamics', 'size_0.5_direction: Detour separation cannot fit immutable source time and dynamics', 'size_0.25_seed: Detour separation cannot fit immutable source time and dynamics', 'size_0.25_direction: Detour separation cannot fit immutable source time and dynamics', 'size_0.125_seed: Detour separation cannot fit immutable source time and dynamics', 'size_0.125_direction: Detour separation cannot fit immutable source time and dynamics', 'size_0.0625_seed: Detour separation cannot fit immutable source time and dynamics', 'size_0.0625_direction: Detour separation cannot fit immutable source time and dynamics', 'size_0.03125_seed: Detour separation cannot fit immutable source time and dynamics', 'size_0.03125_direction: Detour separation cannot fit immutable source time and dynamics', 'size_0.015625_seed: Detour separation cannot fit immutable source time and dynamics', 'size_0.015625_direction: Detour separation cannot fit immutable source time and dynamics', 'fixed_budget: Fixed source budget violates dynamics: velocity=1.573, acceleration=26.332']"
+        },
+        {
+          "solution": 1,
+          "attempt": 2,
+          "seed_index": 2,
+          "status": "rejected",
+          "terminal_history_ticks": 2,
+          "following_core_native_controller_program_replayed": true,
+          "error": "Following Anchor failed: {'source_frame': 117.0, 'reason': 'core_exit_handoff', 'handoff': {'wrist_error': {'position_m': 0.06022662196279338, 'rotation_rad': 0.178250923747036}, 'wrist_tracking_diagnostic_only': True, 'actual_contact': {'mode': 'free', 'thumb_contact': False, 'other_finger_contact': False, 'opposition_contact': False, 'touching_links': 0, 'link_paths': ['/xhand_right/right_hand_link', '/xhand_right/right_hand_ee_link', '/xhand_right/right_hand_index_bend_link', '/xhand_right/right_hand_index_rota_link1', '/xhand_right/right_hand_index_rota_link2', '/xhand_right/right_hand_index_rota_tip', '/xhand_right/right_hand_mid_link1', '/xhand_right/right_hand_mid_link2', '/xhand_right/right_hand_mid_tip', '/xhand_right/right_hand_pinky_link1', '/xhand_right/right_hand_pinky_link2', '/xhand_right/right_hand_pinky_tip', '/xhand_right/right_hand_ring_link1', '/xhand_right/right_hand_ring_link2', '/xhand_right/right_hand_ring_tip', '/xhand_right/right_hand_thumb_bend_link', '/xhand_right/right_hand_thumb_rota_link1', '/xhand_right/right_hand_thumb_rota_link2', '/xhand_right/right_hand_thumb_rota_tip'], 'force_norms_n': [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'force_vectors_n': [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]], 'evidence': 'PhysX thumb AND non-thumb finger/tool contact; retention checked separately'}, 'actual_wrist_twist': [-0.43841584415357815, 0.313798288490279, -0.02963679749135384, 0.04552057757973671, 2.5106234550476074, 1.813432216644287], 'object_boundary_error': {'position_m': 0.056675308732502955, 'rotation_rad': 0.781738870271971}, 'success': False, 'preceding_failure': None}}"
+        },
+        {
+          "solution": 1,
+          "attempt": 3,
+          "seed_index": 3,
+          "status": "rejected",
+          "terminal_history_ticks": 2,
+          "following_core_native_controller_program_replayed": true,
+          "error": "Following Anchor failed: {'source_frame': 117.0, 'reason': 'core_exit_handoff', 'handoff': {'wrist_error': {'position_m': 0.06254344682907984, 'rotation_rad': 0.16780527416792812}, 'wrist_tracking_diagnostic_only': True, 'actual_contact': {'mode': 'free', 'thumb_contact': False, 'other_finger_contact': False, 'opposition_contact': False, 'touching_links': 0, 'link_paths': ['/xhand_right/right_hand_link', '/xhand_right/right_hand_ee_link', '/xhand_right/right_hand_index_bend_link', '/xhand_right/right_hand_index_rota_link1', '/xhand_right/right_hand_index_rota_link2', '/xhand_right/right_hand_index_rota_tip', '/xhand_right/right_hand_mid_link1', '/xhand_right/right_hand_mid_link2', '/xhand_right/right_hand_mid_tip', '/xhand_right/right_hand_pinky_link1', '/xhand_right/right_hand_pinky_link2', '/xhand_right/right_hand_pinky_tip', '/xhand_right/right_hand_ring_link1', '/xhand_right/right_hand_ring_link2', '/xhand_right/right_hand_ring_tip', '/xhand_right/right_hand_thumb_bend_link', '/xhand_right/right_hand_thumb_rota_link1', '/xhand_right/right_hand_thumb_rota_link2', '/xhand_right/right_hand_thumb_rota_tip'], 'force_norms_n': [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'force_vectors_n': [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]], 'evidence': 'PhysX thumb AND non-thumb finger/tool contact; retention checked separately'}, 'actual_wrist_twist': [-0.41622703234370356, 0.3026189865005974, -0.02302258931816345, -0.11653915047645569, 2.786461353302002, 1.8930799961090088], 'object_boundary_error': {'position_m': 0.04366508511741545, 'rotation_rad': 0.5142393358924058}, 'success': False, 'preceding_failure': None}}"
+        },
+        {
+          "solution": 1,
+          "attempt": 4,
+          "seed_index": 4,
+          "status": "rejected",
+          "terminal_history_ticks": 2,
+          "following_core_native_controller_program_replayed": true,
+          "error": "Following Anchor failed: {'source_frame': 117.0, 'reason': 'core_exit_handoff', 'handoff': {'wrist_error': {'position_m': 0.058959521152956114, 'rotation_rad': 0.16847823513044433}, 'wrist_tracking_diagnostic_only': True, 'actual_contact': {'mode': 'free', 'thumb_contact': False, 'other_finger_contact': False, 'opposition_contact': False, 'touching_links': 0, 'link_paths': ['/xhand_right/right_hand_link', '/xhand_right/right_hand_ee_link', '/xhand_right/right_hand_index_bend_link', '/xhand_right/right_hand_index_rota_link1', '/xhand_right/right_hand_index_rota_link2', '/xhand_right/right_hand_index_rota_tip', '/xhand_right/right_hand_mid_link1', '/xhand_right/right_hand_mid_link2', '/xhand_right/right_hand_mid_tip', '/xhand_right/right_hand_pinky_link1', '/xhand_right/right_hand_pinky_link2', '/xhand_right/right_hand_pinky_tip', '/xhand_right/right_hand_ring_link1', '/xhand_right/right_hand_ring_link2', '/xhand_right/right_hand_ring_tip', '/xhand_right/right_hand_thumb_bend_link', '/xhand_right/right_hand_thumb_rota_link1', '/xhand_right/right_hand_thumb_rota_link2', '/xhand_right/right_hand_thumb_rota_tip'], 'force_norms_n': [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'force_vectors_n': [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]], 'evidence': 'PhysX thumb AND non-thumb finger/tool contact; retention checked separately'}, 'actual_wrist_twist': [-0.4043711995581017, 0.28643347648699136, -0.03779574950407627, 0.3445107936859131, 2.780831813812256, 1.7356997728347778], 'object_boundary_error': {'position_m': 0.056963322433408355, 'rotation_rad': 0.15111354537020225}, 'success': False, 'preceding_failure': None}}"
+        },
+        {
+          "solution": 1,
+          "attempt": 5,
+          "seed_index": 5,
+          "status": "accepted",
+          "terminal_history_ticks": 2,
+          "following_core_native_controller_program_replayed": true,
+          "diversity": {
+            "actual_wrist_min_exclusion_clearance_m": 0.0018568485727752002,
+            "actual_wrist_exclusion_pass": true,
+            "minimum_arc_distance_m": 0.0,
+            "actual_arc_pass": true,
+            "path_length_m": 0.18652363522818094,
+            "endpoint_distance_m": 0.15026481239811187,
+            "arc_reference_length_m": 0.17495890604969183,
+            "arc_length_ratio": 1.0660996884331484,
+            "backward_progress_fraction": 0.0,
+            "endpoint_overshoot_fraction": 0.0,
+            "smooth_arc_pass": true,
+            "comparisons": [
+              {
+                "source_run": "baseline",
+                "mean_nearest_path_distance_m": 0.009264803930669195,
+                "max_nearest_path_distance_m": 0.017613030015788282,
+                "middle_median_path_distance_m": 0.01455754195771171,
+                "symmetric_hausdorff_m": 0.01781821377747492
+              }
+            ]
+          }
+        },
+        {
+          "solution": 2,
+          "attempt": 0,
+          "seed_index": 0,
+          "status": "rejected",
+          "terminal_history_ticks": 2,
+          "following_core_native_controller_program_replayed": true,
+          "error": "Following Anchor failed: {'source_frame': 117.0, 'reason': 'core_exit_handoff', 'handoff': {'wrist_error': {'position_m': 0.062377448982159564, 'rotation_rad': 0.17089946324176195}, 'wrist_tracking_diagnostic_only': True, 'actual_contact': {'mode': 'free', 'thumb_contact': False, 'other_finger_contact': False, 'opposition_contact': False, 'touching_links': 0, 'link_paths': ['/xhand_right/right_hand_link', '/xhand_right/right_hand_ee_link', '/xhand_right/right_hand_index_bend_link', '/xhand_right/right_hand_index_rota_link1', '/xhand_right/right_hand_index_rota_link2', '/xhand_right/right_hand_index_rota_tip', '/xhand_right/right_hand_mid_link1', '/xhand_right/right_hand_mid_link2', '/xhand_right/right_hand_mid_tip', '/xhand_right/right_hand_pinky_link1', '/xhand_right/right_hand_pinky_link2', '/xhand_right/right_hand_pinky_tip', '/xhand_right/right_hand_ring_link1', '/xhand_right/right_hand_ring_link2', '/xhand_right/right_hand_ring_tip', '/xhand_right/right_hand_thumb_bend_link', '/xhand_right/right_hand_thumb_rota_link1', '/xhand_right/right_hand_thumb_rota_link2', '/xhand_right/right_hand_thumb_rota_tip'], 'force_norms_n': [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'force_vectors_n': [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]], 'evidence': 'PhysX thumb AND non-thumb finger/tool contact; retention checked separately'}, 'actual_wrist_twist': [-0.40123878246914474, 0.29543891306620323, -0.041290445873426555, 0.016957761719822884, 2.7646994590759277, 2.14904522895813], 'object_boundary_error': {'position_m': 0.058183346309472424, 'rotation_rad': 0.4652904946590007}, 'success': False, 'preceding_failure': None}}"
+        },
+        {
+          "solution": 2,
+          "attempt": 1,
+          "seed_index": 1,
+          "status": "rejected",
+          "terminal_history_ticks": 2,
+          "error": "No excluded-path-free detour in original source time: ['original_seed: Detour separation cannot fit immutable source time and dynamics', 'original_direction: Detour separation cannot fit immutable source time and dynamics', 'moving_boundary_seed: Detour separation cannot fit immutable source time and dynamics', 'moving_boundary_direction: Detour separation cannot fit immutable source time and dynamics', 'size_0.5_seed: Detour separation cannot fit immutable source time and dynamics', 'size_0.5_direction: Detour separation cannot fit immutable source time and dynamics', 'size_0.25_seed: Detour separation cannot fit immutable source time and dynamics', 'size_0.25_direction: Detour separation cannot fit immutable source time and dynamics', 'size_0.125_seed: Detour separation cannot fit immutable source time and dynamics', 'size_0.125_direction: Detour separation cannot fit immutable source time and dynamics', 'size_0.0625_seed: Detour separation cannot fit immutable source time and dynamics', 'size_0.0625_direction: Detour separation cannot fit immutable source time and dynamics', 'size_0.03125_seed: Detour separation cannot fit immutable source time and dynamics', 'size_0.03125_direction: Detour separation cannot fit immutable source time and dynamics', 'size_0.015625_seed: Detour separation cannot fit immutable source time and dynamics', 'size_0.015625_direction: Detour separation cannot fit immutable source time and dynamics', 'fixed_budget: Fixed source budget violates dynamics: velocity=1.573, acceleration=26.332']"
+        },
+        {
+          "solution": 2,
+          "attempt": 2,
+          "seed_index": 2,
+          "status": "rejected",
+          "terminal_history_ticks": 2,
+          "following_core_native_controller_program_replayed": true,
+          "error": "Following Anchor failed: {'source_frame': 117.0, 'reason': 'core_exit_handoff', 'handoff': {'wrist_error': {'position_m': 0.06222316740285239, 'rotation_rad': 0.17808085975003224}, 'wrist_tracking_diagnostic_only': True, 'actual_contact': {'mode': 'free', 'thumb_contact': False, 'other_finger_contact': False, 'opposition_contact': False, 'touching_links': 0, 'link_paths': ['/xhand_right/right_hand_link', '/xhand_right/right_hand_ee_link', '/xhand_right/right_hand_index_bend_link', '/xhand_right/right_hand_index_rota_link1', '/xhand_right/right_hand_index_rota_link2', '/xhand_right/right_hand_index_rota_tip', '/xhand_right/right_hand_mid_link1', '/xhand_right/right_hand_mid_link2', '/xhand_right/right_hand_mid_tip', '/xhand_right/right_hand_pinky_link1', '/xhand_right/right_hand_pinky_link2', '/xhand_right/right_hand_pinky_tip', '/xhand_right/right_hand_ring_link1', '/xhand_right/right_hand_ring_link2', '/xhand_right/right_hand_ring_tip', '/xhand_right/right_hand_thumb_bend_link', '/xhand_right/right_hand_thumb_rota_link1', '/xhand_right/right_hand_thumb_rota_link2', '/xhand_right/right_hand_thumb_rota_tip'], 'force_norms_n': [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'force_vectors_n': [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]], 'evidence': 'PhysX thumb AND non-thumb finger/tool contact; retention checked separately'}, 'actual_wrist_twist': [-0.4342796434357158, 0.34992118563731245, -0.039302666029367696, -0.330520361661911, 2.60429048538208, 1.949286699295044], 'object_boundary_error': {'position_m': 0.07653976158750816, 'rotation_rad': 0.8628409422758985}, 'success': False, 'preceding_failure': None}}"
+        },
+        {
+          "solution": 2,
+          "attempt": 3,
+          "seed_index": 3,
+          "status": "rejected",
+          "terminal_history_ticks": 2,
+          "following_core_native_controller_program_replayed": true,
+          "error": "Following Anchor failed: {'source_frame': 117.0, 'reason': 'core_exit_handoff', 'handoff': {'wrist_error': {'position_m': 0.06254344682907984, 'rotation_rad': 0.16780527416792812}, 'wrist_tracking_diagnostic_only': True, 'actual_contact': {'mode': 'free', 'thumb_contact': False, 'other_finger_contact': False, 'opposition_contact': False, 'touching_links': 0, 'link_paths': ['/xhand_right/right_hand_link', '/xhand_right/right_hand_ee_link', '/xhand_right/right_hand_index_bend_link', '/xhand_right/right_hand_index_rota_link1', '/xhand_right/right_hand_index_rota_link2', '/xhand_right/right_hand_index_rota_tip', '/xhand_right/right_hand_mid_link1', '/xhand_right/right_hand_mid_link2', '/xhand_right/right_hand_mid_tip', '/xhand_right/right_hand_pinky_link1', '/xhand_right/right_hand_pinky_link2', '/xhand_right/right_hand_pinky_tip', '/xhand_right/right_hand_ring_link1', '/xhand_right/right_hand_ring_link2', '/xhand_right/right_hand_ring_tip', '/xhand_right/right_hand_thumb_bend_link', '/xhand_right/right_hand_thumb_rota_link1', '/xhand_right/right_hand_thumb_rota_link2', '/xhand_right/right_hand_thumb_rota_tip'], 'force_norms_n': [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'force_vectors_n': [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]], 'evidence': 'PhysX thumb AND non-thumb finger/tool contact; retention checked separately'}, 'actual_wrist_twist': [-0.41622703234370356, 0.3026189865005974, -0.02302258931816345, -0.11653915047645569, 2.786461353302002, 1.8930799961090088], 'object_boundary_error': {'position_m': 0.04366508511741545, 'rotation_rad': 0.5142393358924058}, 'success': False, 'preceding_failure': None}}"
+        },
+        {
+          "solution": 2,
+          "attempt": 4,
+          "seed_index": 4,
+          "status": "rejected",
+          "terminal_history_ticks": 2,
+          "following_core_native_controller_program_replayed": true,
+          "error": "Following Anchor failed: {'source_frame': 117.0, 'reason': 'core_exit_handoff', 'handoff': {'wrist_error': {'position_m': 0.05831937295509486, 'rotation_rad': 0.17443565965746938}, 'wrist_tracking_diagnostic_only': True, 'actual_contact': {'mode': 'free', 'thumb_contact': False, 'other_finger_contact': False, 'opposition_contact': False, 'touching_links': 0, 'link_paths': ['/xhand_right/right_hand_link', '/xhand_right/right_hand_ee_link', '/xhand_right/right_hand_index_bend_link', '/xhand_right/right_hand_index_rota_link1', '/xhand_right/right_hand_index_rota_link2', '/xhand_right/right_hand_index_rota_tip', '/xhand_right/right_hand_mid_link1', '/xhand_right/right_hand_mid_link2', '/xhand_right/right_hand_mid_tip', '/xhand_right/right_hand_pinky_link1', '/xhand_right/right_hand_pinky_link2', '/xhand_right/right_hand_pinky_tip', '/xhand_right/right_hand_ring_link1', '/xhand_right/right_hand_ring_link2', '/xhand_right/right_hand_ring_tip', '/xhand_right/right_hand_thumb_bend_link', '/xhand_right/right_hand_thumb_rota_link1', '/xhand_right/right_hand_thumb_rota_link2', '/xhand_right/right_hand_thumb_rota_tip'], 'force_norms_n': [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'force_vectors_n': [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]], 'evidence': 'PhysX thumb AND non-thumb finger/tool contact; retention checked separately'}, 'actual_wrist_twist': [-0.4475197928374985, 0.29304249824936235, -0.02204782597294743, 0.19454041123390198, 2.5458292961120605, 1.7772316932678223], 'object_boundary_error': {'position_m': 0.037571785739206824, 'rotation_rad': 0.46458420566242553}, 'success': False, 'preceding_failure': None}}"
+        },
+        {
+          "solution": 2,
+          "attempt": 5,
+          "seed_index": 5,
+          "status": "rejected",
+          "terminal_history_ticks": 2,
+          "error": "No excluded-path-free detour in original source time: ['original_seed: Detour separation cannot fit immutable source time and dynamics', 'original_direction: Detour separation cannot fit immutable source time and dynamics', 'moving_boundary_seed: Detour separation cannot fit immutable source time and dynamics', 'moving_boundary_direction: Detour separation cannot fit immutable source time and dynamics', 'size_0.5_seed: Detour separation cannot fit immutable source time and dynamics', 'size_0.5_direction: Detour separation cannot fit immutable source time and dynamics', 'size_0.25_seed: Detour separation cannot fit immutable source time and dynamics', 'size_0.25_direction: Detour separation cannot fit immutable source time and dynamics', 'size_0.125_seed: Detour separation cannot fit immutable source time and dynamics', 'size_0.125_direction: Detour separation cannot fit immutable source time and dynamics', 'size_0.0625_seed: Detour separation cannot fit immutable source time and dynamics', 'size_0.0625_direction: Detour separation cannot fit immutable source time and dynamics', 'size_0.03125_seed: Detour separation cannot fit immutable source time and dynamics', 'size_0.03125_direction: Detour separation cannot fit immutable source time and dynamics', 'size_0.015625_seed: Detour separation cannot fit immutable source time and dynamics', 'size_0.015625_direction: Detour separation cannot fit immutable source time and dynamics', 'fixed_budget: Fixed source budget violates dynamics: velocity=1.573, acceleration=26.332']"
+        },
+        {
+          "solution": 2,
+          "attempt": 6,
+          "seed_index": 6,
+          "status": "rejected",
+          "terminal_history_ticks": 2,
+          "error": "Measured path failed exclusion: {'actual_wrist_min_exclusion_clearance_m': -0.0005522116431735244, 'actual_wrist_exclusion_pass': False, 'minimum_arc_distance_m': 0.0, 'actual_arc_pass': True, 'path_length_m': 0.18210815454128876, 'endpoint_distance_m': 0.1502445936829969, 'arc_reference_length_m': 0.17495890604969183, 'arc_length_ratio': 1.0408624439476457, 'backward_progress_fraction': 0.0, 'endpoint_overshoot_fraction': 2.220446049250313e-16, 'smooth_arc_pass': True, 'comparisons': [{'source_run': 'baseline', 'mean_nearest_path_distance_m': 0.0022395087465301926, 'max_nearest_path_distance_m': 0.00429294844624475, 'middle_median_path_distance_m': 0.0025154800670525107, 'symmetric_hausdorff_m': 0.00429294844624475}, {'source_run': 'solution_1', 'mean_nearest_path_distance_m': 0.010019467792867038, 'max_nearest_path_distance_m': 0.017876453331243887, 'middle_median_path_distance_m': 0.016568785966826063, 'symmetric_hausdorff_m': 0.017876453331243887}]}"
+        },
+        {
+          "solution": 2,
+          "attempt": 7,
+          "seed_index": 7,
+          "status": "rejected",
+          "terminal_history_ticks": 2,
+          "error": "No excluded-path-free detour in original source time: ['original_seed: Detour separation cannot fit immutable source time and dynamics', 'original_direction: Detour separation cannot fit immutable source time and dynamics', 'moving_boundary_seed: Detour separation cannot fit immutable source time and dynamics', 'moving_boundary_direction: Detour separation cannot fit immutable source time and dynamics', 'size_0.5_seed: Detour separation cannot fit immutable source time and dynamics', 'size_0.5_direction: Detour separation cannot fit immutable source time and dynamics', 'size_0.25_seed: Detour separation cannot fit immutable source time and dynamics', 'size_0.25_direction: Detour separation cannot fit immutable source time and dynamics', 'size_0.125_seed: Detour separation cannot fit immutable source time and dynamics', 'size_0.125_direction: Detour separation cannot fit immutable source time and dynamics', 'size_0.0625_seed: Detour separation cannot fit immutable source time and dynamics', 'size_0.0625_direction: Detour separation cannot fit immutable source time and dynamics', 'size_0.03125_seed: Detour separation cannot fit immutable source time and dynamics', 'size_0.03125_direction: Detour separation cannot fit immutable source time and dynamics', 'size_0.015625_seed: Detour separation cannot fit immutable source time and dynamics', 'size_0.015625_direction: Detour separation cannot fit immutable source time and dynamics', 'fixed_budget: Fixed source budget violates dynamics: velocity=1.573, acceleration=26.332']"
+        },
+        {
+          "solution": 2,
+          "attempt": 8,
+          "seed_index": 0,
+          "status": "rejected",
+          "terminal_history_ticks": 2,
+          "following_core_native_controller_program_replayed": true,
+          "error": "Following Anchor failed: {'source_frame': 117.0, 'reason': 'core_exit_handoff', 'handoff': {'wrist_error': {'position_m': 0.058030095827115026, 'rotation_rad': 0.16662349835188348}, 'wrist_tracking_diagnostic_only': True, 'actual_contact': {'mode': 'free', 'thumb_contact': False, 'other_finger_contact': False, 'opposition_contact': False, 'touching_links': 0, 'link_paths': ['/xhand_right/right_hand_link', '/xhand_right/right_hand_ee_link', '/xhand_right/right_hand_index_bend_link', '/xhand_right/right_hand_index_rota_link1', '/xhand_right/right_hand_index_rota_link2', '/xhand_right/right_hand_index_rota_tip', '/xhand_right/right_hand_mid_link1', '/xhand_right/right_hand_mid_link2', '/xhand_right/right_hand_mid_tip', '/xhand_right/right_hand_pinky_link1', '/xhand_right/right_hand_pinky_link2', '/xhand_right/right_hand_pinky_tip', '/xhand_right/right_hand_ring_link1', '/xhand_right/right_hand_ring_link2', '/xhand_right/right_hand_ring_tip', '/xhand_right/right_hand_thumb_bend_link', '/xhand_right/right_hand_thumb_rota_link1', '/xhand_right/right_hand_thumb_rota_link2', '/xhand_right/right_hand_thumb_rota_tip'], 'force_norms_n': [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'force_vectors_n': [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]], 'evidence': 'PhysX thumb AND non-thumb finger/tool contact; retention checked separately'}, 'actual_wrist_twist': [-0.37863924984216435, 0.24703269479229178, -0.04822859168266732, 0.5295195579528809, 3.126188039779663, 1.4145766496658325], 'object_boundary_error': {'position_m': 0.03857826804311607, 'rotation_rad': 0.44480479468314854}, 'success': False, 'preceding_failure': None}}"
+        },
+        {
+          "solution": 2,
+          "attempt": 9,
+          "seed_index": 1,
+          "status": "rejected",
+          "terminal_history_ticks": 2,
+          "error": "No excluded-path-free detour in original source time: ['original_seed: Detour separation cannot fit immutable source time and dynamics', 'original_direction: Detour separation cannot fit immutable source time and dynamics', 'moving_boundary_seed: Detour separation cannot fit immutable source time and dynamics', 'moving_boundary_direction: Detour separation cannot fit immutable source time and dynamics', 'size_0.5_seed: Detour separation cannot fit immutable source time and dynamics', 'size_0.5_direction: Detour separation cannot fit immutable source time and dynamics', 'size_0.25_seed: Detour separation cannot fit immutable source time and dynamics', 'size_0.25_direction: Detour separation cannot fit immutable source time and dynamics', 'size_0.125_seed: Detour separation cannot fit immutable source time and dynamics', 'size_0.125_direction: Detour separation cannot fit immutable source time and dynamics', 'size_0.0625_seed: Detour separation cannot fit immutable source time and dynamics', 'size_0.0625_direction: Detour separation cannot fit immutable source time and dynamics', 'size_0.03125_seed: Detour separation cannot fit immutable source time and dynamics', 'size_0.03125_direction: Detour separation cannot fit immutable source time and dynamics', 'size_0.015625_seed: Detour separation cannot fit immutable source time and dynamics', 'size_0.015625_direction: Detour separation cannot fit immutable source time and dynamics', 'fixed_budget: Fixed source budget violates dynamics: velocity=1.573, acceleration=26.332']"
+        },
+        {
+          "solution": 2,
+          "attempt": 10,
+          "seed_index": 2,
+          "status": "accepted",
+          "terminal_history_ticks": 2,
+          "following_core_native_controller_program_replayed": true,
+          "diversity": {
+            "actual_wrist_min_exclusion_clearance_m": 0.0015563291011817491,
+            "actual_wrist_exclusion_pass": true,
+            "minimum_arc_distance_m": 0.0,
+            "actual_arc_pass": true,
+            "path_length_m": 0.18376234982845438,
+            "endpoint_distance_m": 0.15167017419750087,
+            "arc_reference_length_m": 0.17495890604969183,
+            "arc_length_ratio": 1.0503172086379085,
+            "backward_progress_fraction": 0.0,
+            "endpoint_overshoot_fraction": 2.220446049250313e-16,
+            "smooth_arc_pass": true,
+            "comparisons": [
+              {
+                "source_run": "baseline",
+                "mean_nearest_path_distance_m": 0.0060093147681279015,
+                "max_nearest_path_distance_m": 0.012361804257476352,
+                "middle_median_path_distance_m": 0.009468487827956439,
+                "symmetric_hausdorff_m": 0.012489019578492607
+              },
+              {
+                "source_run": "solution_1",
+                "mean_nearest_path_distance_m": 0.003518933641198216,
+                "max_nearest_path_distance_m": 0.0058034477733650575,
+                "middle_median_path_distance_m": 0.00472048540065458,
+                "symmetric_hausdorff_m": 0.0058034477733650575
+              }
+            ]
+          }
+        }
+      ],
+      "complete": true
+    },
+    {
+      "window": [
+        117,
+        128
+      ],
+      "budget_s": 0.36666666666666664,
+      "contact": "free",
+      "solutions": [
+        {
+          "index": 0,
+          "baseline": true,
+          "local_physical_success": true,
+          "actual_trace": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_demo_expansion_r318_20231024_258/final/actual_trace.json"
+        },
+        {
+          "index": 1,
+          "baseline": false,
+          "artifact": "interval_117_128/solution_1",
+          "local_physical_success": true,
+          "diversity": {
+            "actual_wrist_min_exclusion_clearance_m": 0.003705605973854991,
+            "actual_wrist_exclusion_pass": true,
+            "minimum_arc_distance_m": 0.0,
+            "actual_arc_pass": true,
+            "path_length_m": 0.11192892247530668,
+            "endpoint_distance_m": 0.03042011350120395,
+            "arc_reference_length_m": 0.054778692591220306,
+            "arc_length_ratio": 2.043293061237576,
+            "backward_progress_fraction": 0.2614040503379803,
+            "endpoint_overshoot_fraction": 0.2614040503379802,
+            "smooth_arc_pass": true,
+            "comparisons": [
+              {
+                "source_run": "baseline",
+                "mean_nearest_path_distance_m": 0.013557052656902099,
+                "max_nearest_path_distance_m": 0.03405930254862243,
+                "middle_median_path_distance_m": 0.019678929684192062,
+                "symmetric_hausdorff_m": 0.03905536283728661
+              }
+            ]
+          },
+          "actual_trace": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r319_20231024_258/bank_00/interval_117_128/solution_1_attempt_0/actual_trace.json"
+        },
+        {
+          "index": 2,
+          "baseline": false,
+          "artifact": "interval_117_128/solution_2",
+          "local_physical_success": true,
+          "diversity": {
+            "actual_wrist_min_exclusion_clearance_m": 0.001932792023321019,
+            "actual_wrist_exclusion_pass": true,
+            "minimum_arc_distance_m": 0.0,
+            "actual_arc_pass": true,
+            "path_length_m": 0.11428943495360619,
+            "endpoint_distance_m": 0.03217381024080668,
+            "arc_reference_length_m": 0.054778692591220306,
+            "arc_length_ratio": 2.0863848614730176,
+            "backward_progress_fraction": 0.021610792696148073,
+            "endpoint_overshoot_fraction": 0.012653777712431813,
+            "smooth_arc_pass": true,
+            "comparisons": [
+              {
+                "source_run": "baseline",
+                "mean_nearest_path_distance_m": 0.011546980500790088,
+                "max_nearest_path_distance_m": 0.028401492431212472,
+                "middle_median_path_distance_m": 0.016864891297354353,
+                "symmetric_hausdorff_m": 0.03943401548865276
+              },
+              {
+                "source_run": "solution_1",
+                "mean_nearest_path_distance_m": 0.01812865822913426,
+                "max_nearest_path_distance_m": 0.04107454798687819,
+                "middle_median_path_distance_m": 0.027334573935340598,
+                "symmetric_hausdorff_m": 0.04107454798687819
+              }
+            ]
+          },
+          "actual_trace": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r319_20231024_258/bank_00/interval_117_128/solution_2_attempt_1/actual_trace.json"
+        }
+      ],
+      "attempts": [
+        {
+          "solution": 1,
+          "attempt": 0,
+          "seed_index": 0,
+          "status": "accepted",
+          "terminal_history_ticks": 0,
+          "terminal_target_origin": "actual_released_state_free_stop",
+          "diversity": {
+            "actual_wrist_min_exclusion_clearance_m": 0.003705605973854991,
+            "actual_wrist_exclusion_pass": true,
+            "minimum_arc_distance_m": 0.0,
+            "actual_arc_pass": true,
+            "path_length_m": 0.11192892247530668,
+            "endpoint_distance_m": 0.03042011350120395,
+            "arc_reference_length_m": 0.054778692591220306,
+            "arc_length_ratio": 2.043293061237576,
+            "backward_progress_fraction": 0.2614040503379803,
+            "endpoint_overshoot_fraction": 0.2614040503379802,
+            "smooth_arc_pass": true,
+            "comparisons": [
+              {
+                "source_run": "baseline",
+                "mean_nearest_path_distance_m": 0.013557052656902099,
+                "max_nearest_path_distance_m": 0.03405930254862243,
+                "middle_median_path_distance_m": 0.019678929684192062,
+                "symmetric_hausdorff_m": 0.03905536283728661
+              }
+            ]
+          }
+        },
+        {
+          "solution": 2,
+          "attempt": 0,
+          "seed_index": 0,
+          "status": "rejected",
+          "terminal_history_ticks": 0,
+          "terminal_target_origin": "actual_released_state_free_stop",
+          "error": "No excluded-path-free detour in original source time: ['original_seed: Detour separation cannot fit immutable source time and dynamics', 'original_direction: Detour separation cannot fit immutable source time and dynamics', 'moving_boundary_seed: Detour separation cannot fit immutable source time and dynamics', 'moving_boundary_direction: Detour separation cannot fit immutable source time and dynamics', 'size_0.5_seed: Detour separation cannot fit immutable source time and dynamics', 'size_0.5_direction: Detour separation cannot fit immutable source time and dynamics', 'size_0.25_seed: Detour separation cannot fit immutable source time and dynamics', 'size_0.25_direction: Detour separation cannot fit immutable source time and dynamics', 'size_0.125_seed: Detour separation cannot fit immutable source time and dynamics', 'size_0.125_direction: Detour separation cannot fit immutable source time and dynamics', 'size_0.0625_seed: Detour separation cannot fit immutable source time and dynamics', 'size_0.0625_direction: Detour separation cannot fit immutable source time and dynamics', 'size_0.03125_seed: Detour separation cannot fit immutable source time and dynamics', 'size_0.03125_direction: Detour separation cannot fit immutable source time and dynamics', 'size_0.015625_seed: Detour separation cannot fit immutable source time and dynamics', 'size_0.015625_direction: Detour separation cannot fit immutable source time and dynamics', 'fixed_budget: Fixed source budget violates dynamics: velocity=0.479, acceleration=17.134']"
+        },
+        {
+          "solution": 2,
+          "attempt": 1,
+          "seed_index": 1,
+          "status": "accepted",
+          "terminal_history_ticks": 0,
+          "terminal_target_origin": "actual_released_state_free_stop",
+          "diversity": {
+            "actual_wrist_min_exclusion_clearance_m": 0.001932792023321019,
+            "actual_wrist_exclusion_pass": true,
+            "minimum_arc_distance_m": 0.0,
+            "actual_arc_pass": true,
+            "path_length_m": 0.11428943495360619,
+            "endpoint_distance_m": 0.03217381024080668,
+            "arc_reference_length_m": 0.054778692591220306,
+            "arc_length_ratio": 2.0863848614730176,
+            "backward_progress_fraction": 0.021610792696148073,
+            "endpoint_overshoot_fraction": 0.012653777712431813,
+            "smooth_arc_pass": true,
+            "comparisons": [
+              {
+                "source_run": "baseline",
+                "mean_nearest_path_distance_m": 0.011546980500790088,
+                "max_nearest_path_distance_m": 0.028401492431212472,
+                "middle_median_path_distance_m": 0.016864891297354353,
+                "symmetric_hausdorff_m": 0.03943401548865276
+              },
+              {
+                "source_run": "solution_1",
+                "mean_nearest_path_distance_m": 0.01812865822913426,
+                "max_nearest_path_distance_m": 0.04107454798687819,
+                "middle_median_path_distance_m": 0.027334573935340598,
+                "symmetric_hausdorff_m": 0.04107454798687819
+              }
+            ]
+          }
+        }
+      ],
+      "complete": true
+    }
+  ],
+  "full_rollout_verified": false,
+  "pbs_job_id": "659500.hopper-m-02",
+  "resumed_from": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_demo_expansion_r318_20231024_258/diversity/bank_00"
+}

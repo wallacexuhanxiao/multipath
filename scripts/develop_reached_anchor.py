@@ -148,6 +148,8 @@ def main():
             report['exit_geometry_feedback']=dict(feedback,physical_run=str(feedback_run),
                 original_rotation_and_finger_commands_preserved=True)
         controls=project_hand_commands(scene,controls,entry,local)
+        predecessor_program_path=args.entry_run/'executed_controls.npz'
+        predecessor_program=(dict(np.load(predecessor_program_path)) if predecessor_program_path.exists() else None)
         def predecessor_commands(window):
             path=(args.entry_run/f'relaxed_{window["start"]}_{window["end"]}.npz' if window['mode']=='RELAXED'
                   else args.entry_run/'anchors'/window['anchor']/'executed_core.npz' if runtime_prefix
@@ -171,6 +173,10 @@ def main():
                 free_model=segment.get('planning',segment).get('free_motion_dynamics_feedforward',False)
                 wrench=segment_wrenches(scene,scene.snapshot(),command,transport=carry,baseline_commands=delta,free_motion=free_model) if (
                     window['start']>0 or delta is not None or free_model) else np.zeros((len(command),6))
+                begin=window['start']*tpf;end=begin+len(command)
+                if predecessor_program is not None and end<=len(predecessor_program['right']):
+                    command=predecessor_program['right'][begin:end]
+                    wrench=predecessor_program['right_wrenches'][begin:end]
                 for k,c in enumerate(command):
                     source_frame=window['start']+(k+1)/tpf
                     scene.wrench_bias=wrench[k];scene.step_control(c,window['mode'],source_frame)
@@ -228,6 +234,14 @@ def main():
             candidate=solver(controls,entry,0)
             if candidate is not None:controls=candidate;result=accepted['validation']
         report['local_replay']=result
+        native_wrenches=None
+        if result['success']:
+            # Acquisition changes drives after their feedforward was built.
+            # The physical result belongs to both executed arrays. Rebuilding
+            # feedforward from the compiled drives changed a successful replay.
+            program=np.load(result['executed_controller_program'])
+            controls=program['right'].copy()
+            native_wrenches=program['right_wrenches'].copy()
         np.savez_compressed(out/'local_controls.npz',commands=controls)
         if not result['success']:raise RuntimeError('Reached-entry local interaction failed')
         # Execute the exact predecessor controller through the pre-context,
@@ -242,7 +256,8 @@ def main():
             if not context.observe(state['source_frame'],command,measured=state):
                 raise RuntimeError(f'Physical pre-context failed: {context.failure}')
         padded_result,_,_=rollout(scene,local,cropped,controls,reached,out/'fresh_padded',
-                                 continue_from_current=True,controller_handoff=True,mesh=False)
+                                 continue_from_current=True,controller_handoff=True,mesh=False,
+                                 controller_wrenches=native_wrenches)
         core_trace=list(scene.records)
         padded_result.update(rollout_interval=[anchor.synth_start,anchor.synth_end],
             pre_context='actual predecessor controller execution; no boundary reset',
@@ -259,7 +274,8 @@ def main():
         # starts at its freshly measured endpoint, with no restore at handoff.
         reached=reach(anchor.core_start,out/'core_entry_acquisition');core=controls[:(anchor.core_end-anchor.core_start)*tpf]
         validation,core_entry,core_exit=rollout(scene,anchor,data,core,reached,out/'exported_core',
-            core_only=True,continue_from_current=True,controller_handoff=True)
+            core_only=True,continue_from_current=True,controller_handoff=True,
+            controller_wrenches=native_wrenches[:len(core)])
         report['core_replay']=validation
         if hasattr(scene,'last_bridge_exit_hand_clearance'):
             report['core_exit_hand_clearance']=scene.last_bridge_exit_hand_clearance
@@ -269,7 +285,8 @@ def main():
             state_resets_within_padded_rollout=0,state_resets_within_core_replay=0,handoff_verified=True,
             controller_handoff='measured_mass_inertia_gain_response',
             validation_scope='continuous padded replay from physical predecessor plus fresh physical-prefix core replay')
-        report['anchor']=save_anchor(out/'anchors',anchor,core_entry,core_exit,core,valid,manifest['provenance'])
+        report['anchor']=save_anchor(out/'anchors',anchor,core_entry,core_exit,core,valid,manifest['provenance'],
+            controller_wrenches=native_wrenches[:len(core)])
         report.update(core_success=report['anchor']['local_rollout_success'],status='reached_core_valid')
     except Exception as error:
         import traceback;traceback.print_exc();report.update(status='failed',error=str(error))

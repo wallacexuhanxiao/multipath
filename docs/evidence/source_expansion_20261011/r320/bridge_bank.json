@@ -1,0 +1,453 @@
+{
+  "status": "complete",
+  "source_provenance": {
+    "triplet": "(put in, bowl, plate)",
+    "sequence": "20231024_258",
+    "input": "raw TACO MANO and object poses",
+    "source_video": "/scratch/e0985859/egoengine_baseline/data/taco_v1/Egocentric_RGB_Videos/(put in, bowl, plate)/20231024_258/color.mp4",
+    "schedule_sha256": "a8aca58533ea60402957ca6cd6f3dfaf2a1f74b6e989543f04f0203ebb1871a4",
+    "full_robot_reference_used": false,
+    "vlm_used": false,
+    "transform_world_to_robot": [
+      [
+        -0.40828712522914196,
+        0.912853503975095,
+        0.0,
+        0.5801715379134981
+      ],
+      [
+        -0.9128535512848791,
+        -0.4082871463891371,
+        -0.0,
+        -0.01896962132366683
+      ],
+      [
+        0.0,
+        0.0,
+        1.0,
+        -0.20422064304351806
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ]
+  },
+  "source": "oracle",
+  "baseline_run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_demo_expansion_r318_20231024_258/final",
+  "solutions_per_interval": 3,
+  "source_duration_s": 4.266666666666667,
+  "intervals": [
+    {
+      "window": [
+        0,
+        25
+      ],
+      "budget_s": 0.8333333333333334,
+      "contact": "free",
+      "solutions": [
+        {
+          "index": 0,
+          "baseline": true,
+          "local_physical_success": true,
+          "actual_trace": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_demo_expansion_r318_20231024_258/final/actual_trace.json"
+        },
+        {
+          "index": 1,
+          "baseline": false,
+          "artifact": "interval_0_25/solution_1",
+          "local_physical_success": true,
+          "diversity": {
+            "actual_wrist_min_exclusion_clearance_m": 0.006013019495480701,
+            "actual_wrist_exclusion_pass": true,
+            "minimum_arc_distance_m": 0.0,
+            "actual_arc_pass": true,
+            "path_length_m": 0.2048946878884707,
+            "endpoint_distance_m": 0.19174074981611955,
+            "arc_reference_length_m": 0.19331797129839615,
+            "arc_length_ratio": 1.0598843269061897,
+            "backward_progress_fraction": 0.0,
+            "endpoint_overshoot_fraction": 0.0,
+            "smooth_arc_pass": true,
+            "comparisons": [
+              {
+                "source_run": "baseline",
+                "mean_nearest_path_distance_m": 0.006412508512955314,
+                "max_nearest_path_distance_m": 0.017711272882964358,
+                "middle_median_path_distance_m": 0.006252318776279997,
+                "symmetric_hausdorff_m": 0.017711272882964358
+              }
+            ]
+          },
+          "actual_trace": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_demo_expansion_r318_20231024_258/diversity/bank_00/interval_0_25/solution_1_attempt_16/actual_trace.json",
+          "resumed_from": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r319_20231024_258/bank_00/interval_0_25/solution_1"
+        },
+        {
+          "index": 2,
+          "baseline": false,
+          "artifact": "interval_0_25/solution_2",
+          "local_physical_success": true,
+          "diversity": {
+            "actual_wrist_min_exclusion_clearance_m": 0.007495234798589301,
+            "actual_wrist_exclusion_pass": true,
+            "minimum_arc_distance_m": 0.0,
+            "actual_arc_pass": true,
+            "path_length_m": 0.21087537456755953,
+            "endpoint_distance_m": 0.19165520243633707,
+            "arc_reference_length_m": 0.19331797129839615,
+            "arc_length_ratio": 1.090821371397813,
+            "backward_progress_fraction": 0.0,
+            "endpoint_overshoot_fraction": 0.0,
+            "smooth_arc_pass": true,
+            "comparisons": [
+              {
+                "source_run": "baseline",
+                "mean_nearest_path_distance_m": 0.008378873687691987,
+                "max_nearest_path_distance_m": 0.023249585238540794,
+                "middle_median_path_distance_m": 0.011602542765621556,
+                "symmetric_hausdorff_m": 0.023249585238540794
+              },
+              {
+                "source_run": "solution_1",
+                "mean_nearest_path_distance_m": 0.010133105582561431,
+                "max_nearest_path_distance_m": 0.027224902446981412,
+                "middle_median_path_distance_m": 0.012727090205626672,
+                "symmetric_hausdorff_m": 0.027224902446981412
+              }
+            ]
+          },
+          "actual_trace": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_demo_expansion_r318_20231024_258/diversity/bank_00/interval_0_25/solution_2_attempt_19/actual_trace.json",
+          "resumed_from": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r319_20231024_258/bank_00/interval_0_25/solution_2"
+        }
+      ],
+      "attempts": [],
+      "complete": true
+    },
+    {
+      "window": [
+        59,
+        68
+      ],
+      "budget_s": 0.3,
+      "contact": "grasped",
+      "solutions": [
+        {
+          "index": 0,
+          "baseline": true,
+          "local_physical_success": true,
+          "actual_trace": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_demo_expansion_r318_20231024_258/final/actual_trace.json"
+        },
+        {
+          "index": 1,
+          "baseline": false,
+          "artifact": "interval_59_68/solution_1",
+          "local_physical_success": true,
+          "diversity": {
+            "actual_wrist_min_exclusion_clearance_m": 0.010929956130510798,
+            "actual_wrist_exclusion_pass": true,
+            "minimum_arc_distance_m": 0.0,
+            "actual_arc_pass": true,
+            "path_length_m": 0.1983858387346772,
+            "endpoint_distance_m": 0.18038940999288067,
+            "arc_reference_length_m": 0.1812554230311389,
+            "arc_length_ratio": 1.0945098106145787,
+            "backward_progress_fraction": 0.0,
+            "endpoint_overshoot_fraction": 0.0,
+            "smooth_arc_pass": true,
+            "comparisons": [
+              {
+                "source_run": "baseline",
+                "mean_nearest_path_distance_m": 0.014451705993606689,
+                "max_nearest_path_distance_m": 0.025838221690864905,
+                "middle_median_path_distance_m": 0.02201982433112966,
+                "symmetric_hausdorff_m": 0.025838221690864905
+              }
+            ]
+          },
+          "actual_trace": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r320_20231024_258/bank_00/interval_59_68/solution_1_attempt_0/actual_trace.json"
+        },
+        {
+          "index": 2,
+          "baseline": false,
+          "artifact": "interval_59_68/solution_2",
+          "local_physical_success": true,
+          "diversity": {
+            "actual_wrist_min_exclusion_clearance_m": 0.0002733652742384718,
+            "actual_wrist_exclusion_pass": true,
+            "minimum_arc_distance_m": 0.0,
+            "actual_arc_pass": true,
+            "path_length_m": 0.1981118072639576,
+            "endpoint_distance_m": 0.18051822368093287,
+            "arc_reference_length_m": 0.1812554230311389,
+            "arc_length_ratio": 1.092997958079979,
+            "backward_progress_fraction": 0.0,
+            "endpoint_overshoot_fraction": 0.0,
+            "smooth_arc_pass": true,
+            "comparisons": [
+              {
+                "source_run": "baseline",
+                "mean_nearest_path_distance_m": 0.014255764014790314,
+                "max_nearest_path_distance_m": 0.026104756172934496,
+                "middle_median_path_distance_m": 0.022234625943941516,
+                "symmetric_hausdorff_m": 0.026104756172934496
+              },
+              {
+                "source_run": "solution_1",
+                "mean_nearest_path_distance_m": 0.0017413820708511794,
+                "max_nearest_path_distance_m": 0.004321019481059646,
+                "middle_median_path_distance_m": 0.0023666071058530904,
+                "symmetric_hausdorff_m": 0.004321019481059646
+              }
+            ]
+          },
+          "actual_trace": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r320_20231024_258/bank_00/interval_59_68/solution_2_attempt_0/actual_trace.json"
+        }
+      ],
+      "attempts": [
+        {
+          "solution": 1,
+          "attempt": 0,
+          "seed_index": 0,
+          "status": "accepted",
+          "terminal_history_ticks": 2,
+          "following_core_native_controller_program_replayed": true,
+          "diversity": {
+            "actual_wrist_min_exclusion_clearance_m": 0.010929956130510798,
+            "actual_wrist_exclusion_pass": true,
+            "minimum_arc_distance_m": 0.0,
+            "actual_arc_pass": true,
+            "path_length_m": 0.1983858387346772,
+            "endpoint_distance_m": 0.18038940999288067,
+            "arc_reference_length_m": 0.1812554230311389,
+            "arc_length_ratio": 1.0945098106145787,
+            "backward_progress_fraction": 0.0,
+            "endpoint_overshoot_fraction": 0.0,
+            "smooth_arc_pass": true,
+            "comparisons": [
+              {
+                "source_run": "baseline",
+                "mean_nearest_path_distance_m": 0.014451705993606689,
+                "max_nearest_path_distance_m": 0.025838221690864905,
+                "middle_median_path_distance_m": 0.02201982433112966,
+                "symmetric_hausdorff_m": 0.025838221690864905
+              }
+            ]
+          }
+        },
+        {
+          "solution": 2,
+          "attempt": 0,
+          "seed_index": 0,
+          "status": "accepted",
+          "terminal_history_ticks": 2,
+          "following_core_native_controller_program_replayed": true,
+          "diversity": {
+            "actual_wrist_min_exclusion_clearance_m": 0.0002733652742384718,
+            "actual_wrist_exclusion_pass": true,
+            "minimum_arc_distance_m": 0.0,
+            "actual_arc_pass": true,
+            "path_length_m": 0.1981118072639576,
+            "endpoint_distance_m": 0.18051822368093287,
+            "arc_reference_length_m": 0.1812554230311389,
+            "arc_length_ratio": 1.092997958079979,
+            "backward_progress_fraction": 0.0,
+            "endpoint_overshoot_fraction": 0.0,
+            "smooth_arc_pass": true,
+            "comparisons": [
+              {
+                "source_run": "baseline",
+                "mean_nearest_path_distance_m": 0.014255764014790314,
+                "max_nearest_path_distance_m": 0.026104756172934496,
+                "middle_median_path_distance_m": 0.022234625943941516,
+                "symmetric_hausdorff_m": 0.026104756172934496
+              },
+              {
+                "source_run": "solution_1",
+                "mean_nearest_path_distance_m": 0.0017413820708511794,
+                "max_nearest_path_distance_m": 0.004321019481059646,
+                "middle_median_path_distance_m": 0.0023666071058530904,
+                "symmetric_hausdorff_m": 0.004321019481059646
+              }
+            ]
+          }
+        }
+      ],
+      "complete": true
+    },
+    {
+      "window": [
+        88,
+        96
+      ],
+      "budget_s": 0.26666666666666666,
+      "contact": "grasped",
+      "solutions": [
+        {
+          "index": 0,
+          "baseline": true,
+          "local_physical_success": true,
+          "actual_trace": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_demo_expansion_r318_20231024_258/final/actual_trace.json"
+        },
+        {
+          "index": 1,
+          "baseline": false,
+          "artifact": "interval_88_96/solution_1",
+          "local_physical_success": true,
+          "diversity": {
+            "actual_wrist_min_exclusion_clearance_m": 0.0018568485727752002,
+            "actual_wrist_exclusion_pass": true,
+            "minimum_arc_distance_m": 0.0,
+            "actual_arc_pass": true,
+            "path_length_m": 0.18652363522818094,
+            "endpoint_distance_m": 0.15026481239811187,
+            "arc_reference_length_m": 0.17495890604969183,
+            "arc_length_ratio": 1.0660996884331484,
+            "backward_progress_fraction": 0.0,
+            "endpoint_overshoot_fraction": 0.0,
+            "smooth_arc_pass": true,
+            "comparisons": [
+              {
+                "source_run": "baseline",
+                "mean_nearest_path_distance_m": 0.009264803930669195,
+                "max_nearest_path_distance_m": 0.017613030015788282,
+                "middle_median_path_distance_m": 0.01455754195771171,
+                "symmetric_hausdorff_m": 0.01781821377747492
+              }
+            ]
+          },
+          "actual_trace": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r319_20231024_258/bank_00/interval_88_96/solution_1_attempt_5/actual_trace.json",
+          "resumed_from": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r319_20231024_258/bank_00/interval_88_96/solution_1"
+        },
+        {
+          "index": 2,
+          "baseline": false,
+          "artifact": "interval_88_96/solution_2",
+          "local_physical_success": true,
+          "diversity": {
+            "actual_wrist_min_exclusion_clearance_m": 0.0015563291011817491,
+            "actual_wrist_exclusion_pass": true,
+            "minimum_arc_distance_m": 0.0,
+            "actual_arc_pass": true,
+            "path_length_m": 0.18376234982845438,
+            "endpoint_distance_m": 0.15167017419750087,
+            "arc_reference_length_m": 0.17495890604969183,
+            "arc_length_ratio": 1.0503172086379085,
+            "backward_progress_fraction": 0.0,
+            "endpoint_overshoot_fraction": 2.220446049250313e-16,
+            "smooth_arc_pass": true,
+            "comparisons": [
+              {
+                "source_run": "baseline",
+                "mean_nearest_path_distance_m": 0.0060093147681279015,
+                "max_nearest_path_distance_m": 0.012361804257476352,
+                "middle_median_path_distance_m": 0.009468487827956439,
+                "symmetric_hausdorff_m": 0.012489019578492607
+              },
+              {
+                "source_run": "solution_1",
+                "mean_nearest_path_distance_m": 0.003518933641198216,
+                "max_nearest_path_distance_m": 0.0058034477733650575,
+                "middle_median_path_distance_m": 0.00472048540065458,
+                "symmetric_hausdorff_m": 0.0058034477733650575
+              }
+            ]
+          },
+          "actual_trace": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r319_20231024_258/bank_00/interval_88_96/solution_2_attempt_10/actual_trace.json",
+          "resumed_from": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r319_20231024_258/bank_00/interval_88_96/solution_2"
+        }
+      ],
+      "attempts": [],
+      "complete": true
+    },
+    {
+      "window": [
+        117,
+        128
+      ],
+      "budget_s": 0.36666666666666664,
+      "contact": "free",
+      "solutions": [
+        {
+          "index": 0,
+          "baseline": true,
+          "local_physical_success": true,
+          "actual_trace": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_demo_expansion_r318_20231024_258/final/actual_trace.json"
+        },
+        {
+          "index": 1,
+          "baseline": false,
+          "artifact": "interval_117_128/solution_1",
+          "local_physical_success": true,
+          "diversity": {
+            "actual_wrist_min_exclusion_clearance_m": 0.003705605973854991,
+            "actual_wrist_exclusion_pass": true,
+            "minimum_arc_distance_m": 0.0,
+            "actual_arc_pass": true,
+            "path_length_m": 0.11192892247530668,
+            "endpoint_distance_m": 0.03042011350120395,
+            "arc_reference_length_m": 0.054778692591220306,
+            "arc_length_ratio": 2.043293061237576,
+            "backward_progress_fraction": 0.2614040503379803,
+            "endpoint_overshoot_fraction": 0.2614040503379802,
+            "smooth_arc_pass": true,
+            "comparisons": [
+              {
+                "source_run": "baseline",
+                "mean_nearest_path_distance_m": 0.013557052656902099,
+                "max_nearest_path_distance_m": 0.03405930254862243,
+                "middle_median_path_distance_m": 0.019678929684192062,
+                "symmetric_hausdorff_m": 0.03905536283728661
+              }
+            ]
+          },
+          "actual_trace": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r319_20231024_258/bank_00/interval_117_128/solution_1_attempt_0/actual_trace.json",
+          "resumed_from": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r319_20231024_258/bank_00/interval_117_128/solution_1"
+        },
+        {
+          "index": 2,
+          "baseline": false,
+          "artifact": "interval_117_128/solution_2",
+          "local_physical_success": true,
+          "diversity": {
+            "actual_wrist_min_exclusion_clearance_m": 0.001932792023321019,
+            "actual_wrist_exclusion_pass": true,
+            "minimum_arc_distance_m": 0.0,
+            "actual_arc_pass": true,
+            "path_length_m": 0.11428943495360619,
+            "endpoint_distance_m": 0.03217381024080668,
+            "arc_reference_length_m": 0.054778692591220306,
+            "arc_length_ratio": 2.0863848614730176,
+            "backward_progress_fraction": 0.021610792696148073,
+            "endpoint_overshoot_fraction": 0.012653777712431813,
+            "smooth_arc_pass": true,
+            "comparisons": [
+              {
+                "source_run": "baseline",
+                "mean_nearest_path_distance_m": 0.011546980500790088,
+                "max_nearest_path_distance_m": 0.028401492431212472,
+                "middle_median_path_distance_m": 0.016864891297354353,
+                "symmetric_hausdorff_m": 0.03943401548865276
+              },
+              {
+                "source_run": "solution_1",
+                "mean_nearest_path_distance_m": 0.01812865822913426,
+                "max_nearest_path_distance_m": 0.04107454798687819,
+                "middle_median_path_distance_m": 0.027334573935340598,
+                "symmetric_hausdorff_m": 0.04107454798687819
+              }
+            ]
+          },
+          "actual_trace": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r319_20231024_258/bank_00/interval_117_128/solution_2_attempt_1/actual_trace.json",
+          "resumed_from": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r319_20231024_258/bank_00/interval_117_128/solution_2"
+        }
+      ],
+      "attempts": [],
+      "complete": true
+    }
+  ],
+  "full_rollout_verified": false,
+  "pbs_job_id": "659511.hopper-m-02",
+  "resumed_from": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r319_20231024_258/bank_00"
+}

@@ -48,6 +48,11 @@ def terminal_velocity_residual(commands, delta, duration_s, dt):
     source timing are unchanged. Only physical validation can accept it.
     """
     original=np.asarray(commands);candidate=original.copy()
+    # Identity shooting must replay the exact validated drive/wrench pair.
+    # A quaternion -> rotation-vector -> quaternion round trip changes bits,
+    # so the caller would otherwise discard the native controller program.
+    if not np.any(np.asarray(delta)):
+        return candidate
     ticks=min(len(candidate)-1,max(3,round(duration_s/dt)))
     duration=ticks*dt
     phase=np.clip((np.arange(len(candidate))-(len(candidate)-1-ticks))/ticks,0,1)
@@ -55,7 +60,8 @@ def terminal_velocity_residual(commands, delta, duration_s, dt):
     coordinates=[];near=None
     for pose in original[:,:7]:
         near=pose_coordinates(pose,near);coordinates.append(near)
-    candidate[:,:7]=np.asarray([coordinates_pose(q+r) for q,r in zip(coordinates,residual)])
+    active=np.flatnonzero(phase>0)
+    candidate[active,:7]=np.asarray([coordinates_pose(coordinates[i]+residual[i]) for i in active])
     candidate[1:,19:22]+=np.diff(residual[:,:3],axis=0)/dt
     old=Rotation.from_quat(original[:,[4,5,6,3]])
     new=Rotation.from_quat(candidate[:,[4,5,6,3]])

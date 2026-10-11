@@ -1,0 +1,113 @@
+{
+  "success": false,
+  "status": "failed",
+  "source_provenance": {
+    "triplet": "(put in, bowl, plate)",
+    "sequence": "20231024_258",
+    "input": "raw TACO MANO and object poses",
+    "source_video": "/scratch/e0985859/egoengine_baseline/data/taco_v1/Egocentric_RGB_Videos/(put in, bowl, plate)/20231024_258/color.mp4",
+    "schedule_sha256": "a8aca58533ea60402957ca6cd6f3dfaf2a1f74b6e989543f04f0203ebb1871a4",
+    "full_robot_reference_used": false,
+    "vlm_used": false,
+    "transform_world_to_robot": [
+      [
+        -0.40828712522914196,
+        0.912853503975095,
+        0.0,
+        0.5801715379134981
+      ],
+      [
+        -0.9128535512848791,
+        -0.4082871463891371,
+        -0.0,
+        -0.01896962132366683
+      ],
+      [
+        0.0,
+        0.0,
+        1.0,
+        -0.20422064304351806
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ]
+  },
+  "v0_run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_demo_expansion_r318_20231024_258",
+  "baseline_run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_demo_expansion_r318_20231024_258/final",
+  "source_duration_s": 4.266666666666667,
+  "solutions_per_interval": 3,
+  "intervals_share_exclusions": false,
+  "full_runs": [
+    {
+      "index": 0,
+      "run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_demo_expansion_r318_20231024_258/final",
+      "full_pipeline_success": true
+    }
+  ],
+  "steps": [
+    {
+      "name": "bank_00",
+      "status": "finished",
+      "returncode": 0,
+      "elapsed_s": 90.37956456281245,
+      "success": true,
+      "result": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r320_20231024_258/bank_00/bridge_bank.json"
+    },
+    {
+      "name": "full_solution_1_attempt_0",
+      "status": "finished",
+      "returncode": 0,
+      "elapsed_s": 39.17497974075377,
+      "success": false,
+      "result": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r320_20231024_258/full_solution_1_attempt_0/pipeline_result.json"
+    },
+    {
+      "name": "anchor_solution_1_0",
+      "status": "finished",
+      "returncode": 0,
+      "elapsed_s": 35.087289571762085,
+      "success": true,
+      "result": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r320_20231024_258/anchor_solution_1_0/development_result.json"
+    },
+    {
+      "name": "full_solution_1_attempt_1",
+      "status": "finished",
+      "returncode": 0,
+      "elapsed_s": 48.07538408599794,
+      "success": false,
+      "result": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r320_20231024_258/full_solution_1_attempt_1/pipeline_result.json"
+    },
+    {
+      "name": "boundary_solution_1_1",
+      "status": "finished",
+      "returncode": 0,
+      "elapsed_s": 75.60257167927921,
+      "success": true,
+      "result": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r320_20231024_258/boundary_solution_1_1/development_result.json"
+    },
+    {
+      "name": "full_solution_1_attempt_2",
+      "status": "finished",
+      "returncode": 0,
+      "elapsed_s": 49.78331637196243,
+      "success": false,
+      "result": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r320_20231024_258/full_solution_1_attempt_2/pipeline_result.json"
+    }
+  ],
+  "elapsed_s": 338.29698193632066,
+  "physical_anchor_repairs": [
+    {
+      "anchor": "anchor_0",
+      "entry_run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r320_20231024_258/full_solution_1_attempt_0",
+      "artifact": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r320_20231024_258/anchor_solution_1_0/combined_anchors"
+    }
+  ],
+  "physical_boundary_refinements": [
+    "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r320_20231024_258/boundary_solution_1_1"
+  ],
+  "error": "Continuous solution 1 failed: RuntimeError: Continuous Anchor failed: {'source_frame': 117.0, 'reason': 'core_exit_handoff', 'handoff': {'wrist_error': {'position_m': 0.05732829836734337, 'rotation_rad': 0.18828901782328814}, 'wrist_tracking_diagnostic_only': True, 'actual_contact': {'mode': 'free', 'thumb_contact': False, 'other_finger_contact': False, 'opposition_contact': False, 'touching_links': 0, 'link_paths': ['/xhand_right/right_hand_link', '/xhand_right/right_hand_ee_link', '/xhand_right/right_hand_index_bend_link', '/xhand_right/right_hand_index_rota_link1', '/xhand_right/right_hand_index_rota_link2', '/xhand_right/right_hand_index_rota_tip', '/xhand_right/right_hand_mid_link1', '/xhand_right/right_hand_mid_link2', '/xhand_right/right_hand_mid_tip', '/xhand_right/right_hand_pinky_link1', '/xhand_right/right_hand_pinky_link2', '/xhand_right/right_hand_pinky_tip', '/xhand_right/right_hand_ring_link1', '/xhand_right/right_hand_ring_link2', '/xhand_right/right_hand_ring_tip', '/xhand_right/right_hand_thumb_bend_link', '/xhand_right/right_hand_thumb_rota_link1', '/xhand_right/right_hand_thumb_rota_link2', '/xhand_right/right_hand_thumb_rota_tip'], 'force_norms_n': [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'force_vectors_n': [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]], 'evidence': 'PhysX thumb AND non-thumb finger/tool contact; retention checked separately'}, 'actual_wrist_twist': [-0.3281428835571594, 0.1853741952735797, -0.04452504646317913, 0.6898338794708252, 3.0862438678741455, 1.4783129692077637], 'object_boundary_error': {'position_m': 0.09032687709875978, 'rotation_rad': 2.128799892208098}, 'success': False, 'preceding_failure': None}}"
+}

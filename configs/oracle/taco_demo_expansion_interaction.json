@@ -1,0 +1,35 @@
+[
+  {
+    "schedule": "/scratch/e0985859/multipath_v0_fc2da7b/configs/oracle/taco_put_in_20231024_258.json",
+    "triplet": "(put in, bowl, plate)",
+    "sequence": "20231024_258",
+    "prepared_proposals": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_e2e_multisource_r163_20231024_258/proposals",
+    "seed_artifacts": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_e2e_multisource_r163_20231024_258/local_seeds",
+    "initial_bridge_run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_e2e_multisource_r163_20231024_258/candidate_02",
+    "template_artifacts": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_e2e_r140_20231024_248/local_anchor_0_00/anchors",
+    "template_proposals": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_e2e_r140_20231024_248/proposals",
+    "solutions_per_interval": 3
+  },
+  {
+    "schedule": "/scratch/e0985859/multipath_v0_fc2da7b/configs/oracle/taco_pour_20231024_246.json",
+    "triplet": "(pour in some, bowl, plate)",
+    "sequence": "20231024_246",
+    "template_artifacts": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_e2e_r140_20231024_248/local_anchor_0_00/anchors",
+    "template_proposals": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_e2e_r140_20231024_248/proposals",
+    "solutions_per_interval": 3,
+    "prepared_proposals": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_demo_expansion_r316_20231024_246/proposals",
+    "initial_bridge_run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_demo_expansion_r316_20231024_246/candidate_00"
+  },
+  {
+    "schedule": "/scratch/e0985859/multipath_v0_fc2da7b/configs/oracle/taco_empty_20231027_149.json",
+    "triplet": "(empty, bowl, plate)",
+    "sequence": "20231027_149",
+    "solutions_per_interval": 3
+  },
+  {
+    "schedule": "/scratch/e0985859/multipath_v0_fc2da7b/configs/oracle/taco_empty_20230928_031.json",
+    "triplet": "(empty, cup, plate)",
+    "sequence": "20230928_031",
+    "solutions_per_interval": 3
+  }
+]

@@ -77,7 +77,9 @@ class WindowEvaluation:
     existing task contract at the end of post-context.
     """
     def __init__(self, scene, anchor, data, start, *, continue_tracking_failures=False,
-                 core_tracking_policy='strict'):
+                 core_tracking_policy=None):
+        if core_tracking_policy is None:
+            core_tracking_policy=getattr(scene,'cfg',{}).get('validation',{}).get('core_tracking_policy','strict')
         if core_tracking_policy not in ('strict','diagnostic'):
             raise ValueError('Unknown CORE reference tracking policy')
         self.scene, self.anchor, self.data = scene, anchor, data
@@ -105,6 +107,10 @@ class WindowEvaluation:
         self.lifting=(not getattr(scene,'surface_supported_object',False) and
             bool(self.interaction_constraint.get('lifting',
                 anchor.exit_contact=='grasped' and len(core)>1 and np.max(core)>core[0])))
+
+    @property
+    def tracking_feasible(self):
+        return self.core_tracking_policy=='diagnostic' or not self.tracking_failures
 
     def observe(self, frame, command, measured=None):
         a = self.anchor

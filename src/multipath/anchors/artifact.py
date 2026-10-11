@@ -17,7 +17,7 @@ def reachable_entry(state):
     return False
 
 
-def save_anchor(root, anchor, entry, exit_state, commands, validation, provenance):
+def save_anchor(root, anchor, entry, exit_state, commands, validation, provenance,*,controller_wrenches=None):
     root = Path(root)/anchor.id
     root.mkdir(parents=True, exist_ok=True)
     reachable=reachable_entry(entry)
@@ -37,7 +37,15 @@ def save_anchor(root, anchor, entry, exit_state, commands, validation, provenanc
     (root/'report.json').write_text(json.dumps(report, indent=2))
     (root/'entry.json').write_text(json.dumps(entry, indent=2))
     (root/'exit.json').write_text(json.dumps(exit_state, indent=2))
-    np.savez_compressed(root/'commands.npz', commands=np.asarray(commands))
+    arrays={'commands':np.asarray(commands)}
+    if controller_wrenches is not None:
+        wrench=np.asarray(controller_wrenches)
+        if wrench.shape!=(len(commands),6) or not np.isfinite(wrench).all():
+            raise ValueError('Anchor native controller program has an invalid shape/state')
+        arrays['controller_wrenches']=wrench
+        report['controller_program']='executed_wrist_finger_twist_plus_native_external_wrench'
+        (root/'report.json').write_text(json.dumps(report,indent=2))
+    np.savez_compressed(root/'commands.npz', **arrays)
     trace_path=Path(validation.get('physical_trace') or entry.get('entry_provenance',{}).get('trace',''))
     if trace_path.is_file():
         samples=[s for s in json.loads(trace_path.read_text()) if anchor.core_start<=s.get('source_frame',-1)<=anchor.core_end]
@@ -65,7 +73,11 @@ def load_validated_anchor(root, anchor, *, provenance=None, fps=None, dt=None):
         raise ValueError('Anchor source fps mismatch')
     if dt is not None and not np.isclose(report['validation']['control_dt'],dt,rtol=0,atol=1e-10):
         raise ValueError('Anchor physics timestep mismatch')
-    commands=np.load(root/'commands.npz',allow_pickle=False)['commands']
+    program=np.load(root/'commands.npz',allow_pickle=False)
+    commands=program['commands']
+    wrenches=program['controller_wrenches'] if 'controller_wrenches' in program else None
+    if wrenches is not None and (wrenches.shape!=(len(commands),6) or not np.isfinite(wrenches).all()):
+        raise ValueError('Invalid native Anchor controller program')
     dt=report['validation']['control_dt'];fps=report['validation']['source_fps']
     if not (np.isfinite(dt) and dt>0 and np.isfinite(fps) and fps>0):raise ValueError('Invalid Anchor clock')
     if (commands.ndim!=2 or commands.shape[1]!=(25 if entry.get('embodiment')=='floating_xhand' else 26) or not np.isfinite(commands).all() or
@@ -76,4 +88,4 @@ def load_validated_anchor(root, anchor, *, provenance=None, fps=None, dt=None):
         raise ValueError('Anchor measured boundary clocks mismatch')
     if entry['contact']['mode']!=anchor.entry_contact or exit_state['contact']['mode']!=anchor.exit_contact:
         raise ValueError('Anchor contact boundary mismatch')
-    return dict(report=report,entry=entry,exit=exit_state,commands=commands)
+    return dict(report=report,entry=entry,exit=exit_state,commands=commands,controller_wrenches=wrenches)

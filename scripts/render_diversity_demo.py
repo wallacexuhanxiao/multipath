@@ -186,11 +186,11 @@ def header(canvas, case, frame, current, slow):
     fps = case['runs'][0]['fps']; sample=frame+case['offset']
     time = case['traces'][0][sample]['time_s']
     text(canvas,'Interaction-Anchored Trajectory Generation',(24,38),1.0,thickness=2)
-    text(canvas,f"{case['label']}  |  3 successful actual PhysX rollouts  |  no segment resets",(24,75),.7)
+    text(canvas,f"{case['label']}  |  {len(case['runs'])} successful actual PhysX rollouts  |  no segment resets",(24,75),.7)
     mode = f'cuRobo bridge {current+1}  |  {1/slow:g}x playback' if current is not None else 'Interaction Anchor  |  1x playback'
     text(canvas,mode,(1110,36),.75,(180,233,191),2)
     text(canvas,f"Source time {time:.2f} / {case['reports'][0]['actual_duration_s']:.2f} s",(1330,74),.7)
-    for i,color in enumerate(COLORS):
+    for i,color in enumerate(COLORS[:len(case['runs'])]):
         text(canvas,f'Solution {i+1}',(24+i*230,110),.65,color,2)
     text(canvas,'Measured wrist paths; playback speed only',(1130,110),.65)
     for start,end,mode in case['schedule']:
@@ -282,9 +282,10 @@ def main():
             for canvas in canvases.values():header(canvas,case,frame,current,args.slow_factor)
             box=(24,140,1380,868)
             canvases['overlay'][140:1008,24:1404]=scene_view(images,case,project,frame,current,box,True)
-            text(canvases['overlay'],'Three separate actual rollouts overlaid',(40,990),.65)
+            text(canvases['overlay'],f"{len(images)} separate actual rollouts overlaid",(40,990),.65)
+            column=(SIZE[0]-48-24*(len(images)-1))//len(images)
             for i,image in enumerate(images):
-                box=(24+i*632,165,608,450)
+                box=(24+i*(column+24),165,column,450)
                 view=scene_view([image],case,project,frame,None,box,False)
                 x,y,w,h=box;canvases['stacked'][y:y+h,x:x+w]=view
                 text(canvases['stacked'],f'Solution {i+1} | task passed',(x,150),.65,COLORS[i],2)

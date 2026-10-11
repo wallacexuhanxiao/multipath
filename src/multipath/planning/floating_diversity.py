@@ -434,9 +434,22 @@ def plan_detour(planner,start,goal_command,ticks,exclusions,goal_state,seed_inde
         p=np.r_[xyz,rotation.as_quat()[[3,0,1,2]]]
         near=pose_coordinates(p,near);targets.append(near.copy())
     targets[-1]=q1
+    waypoint_path=np.vstack((q0,targets))
+    invalid=[k for k,q in enumerate(waypoint_path) if not planner.valid(q)]
+    if invalid and planner.carry:
+        # A start-refined sphere cover can still overlap at a rotated waypoint.
+        # Use the same full-mesh cover refinement as the baseline planner;
+        # real mesh intersections remain rejected by both checks below.
+        planner.refine_path_cover(waypoint_path,invalid)
     pieces=[];current=q0.copy()
-    for target in targets:
-        if not planner.valid(target):raise RuntimeError('Detour waypoint collides with physical geometry')
+    for index,target in enumerate(targets):
+        if not planner.valid(target):
+            import json
+            diagnostic=dict(waypoint=index,coordinates=target.tolist(),seed=seed,
+                exact_mesh_collisions=planner.measured_mesh_collisions(coordinates_pose(target)),
+                conservative_cover_refined=bool(getattr(planner,'path_cover_refined',False)))
+            (scene.out/'detour_waypoint_failure.json').write_text(json.dumps(diagnostic,indent=2))
+            raise RuntimeError(f'Detour waypoint collides with physical geometry: {diagnostic["exact_mesh_collisions"]}')
         result=planner.planner.plan_single_js(planner.js(current),planner.js(target),
                     MotionGenPlanConfig(enable_graph=True,enable_opt=False,max_attempts=1))
         if not bool(result.success.item()):raise RuntimeError(f'cuRobo detour subplan: {result.status}')
@@ -509,8 +522,11 @@ def plan_detour(planner,start,goal_command,ticks,exclusions,goal_state,seed_inde
                 raise RuntimeError('Source-time fit crosses an excluded wrist path')
             if not metrics['smooth_arc_pass']:
                 raise RuntimeError('Source-time detour has excessive loops or backward progress')
-            for k,q in enumerate(path):
-                if not planner.valid(q):raise RuntimeError(f'Fitted detour physical collision at tick {k}')
+            invalid=[k for k,q in enumerate(path) if not planner.valid(q)]
+            if invalid and planner.carry:
+                planner.refine_path_cover(path,invalid)
+                invalid=[k for k,q in enumerate(path) if not planner.valid(q)]
+            if invalid:raise RuntimeError(f'Fitted detour physical collision at tick {invalid[0]}')
             if actual_exclusion is not exclusions:
                 exclusions.clear();exclusions.update(actual_exclusion)
                 exclusions['moving_boundary_protection_applied']=True

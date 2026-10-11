@@ -43,6 +43,13 @@ def main():
         core=root/'cores'/a.id
         entry=json.loads((core/'entry.json').read_text());exit_state=json.loads((core/'exit.json').read_text())
         commands=np.load(core/'commands.npz')['commands']
+        native_path=root/'executed_controls.npz'
+        native_wrenches=None
+        if native_path.exists():
+            program=np.load(native_path)
+            tpf=round(120/schedule.fps)
+            commands=program['right'][a.core_start*tpf:a.core_end*tpf]
+            native_wrenches=program['right_wrenches'][a.core_start*tpf:a.core_end*tpf]
         segment=next(s for s in report['segments'] if s.get('anchor')==a.id)
         validation=dict(success=True,padded_rollout_complete=True,core_replay_success=True,
             state_resets_within_padded_rollout=0,state_resets_within_core_replay=0,handoff_verified=True,
@@ -57,7 +64,10 @@ def main():
             count=exit_state.get('interaction_contacts',{}).get('tool_target_contact_steps',0)-entry.get('interaction_contacts',{}).get('tool_target_contact_steps',0)
             if count<=0:raise ValueError(f'{a.id}: physical tool-target interaction missing')
             validation['tool_target_contact_steps']=count
-        exported.append(save_anchor(root/'anchors',a,entry,exit_state,commands,validation,report['source_provenance']))
+        validation['core_tracking_policy']=report.get('core_tracking_policy','strict')
+        validation['core_tracking_diagnostics']=segment.get('core_tracking_diagnostics',[])
+        exported.append(save_anchor(root/'anchors',a,entry,exit_state,commands,validation,report['source_provenance'],
+            controller_wrenches=native_wrenches))
     (root/'anchor_export.json').write_text(json.dumps(dict(anchors=exported,padded_contexts_complete=True,
         fresh_artifact_rollout_pending=True),indent=2))
     print('CONNECTED_ANCHORS_EXPORTED',len(exported))

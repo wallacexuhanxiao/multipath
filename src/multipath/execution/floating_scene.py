@@ -33,6 +33,8 @@ class FloatingScene:
         self.out.mkdir(parents=True,exist_ok=True)
         self.cfg=json.loads(Path(args.floating_config).read_text())
         self.Action=ArticulationAction
+        from multipath.object_assets import ensure_object_usds
+        ensure_object_usds(args.object_cache,manifest.get('object_assets',{}))
         self.meshes={r:trimesh.load(args.object_cache/o['id']/(o['id']+'_m.obj'),force='mesh') for r,o in manifest['initial_objects'].items()}
         initial=manifest['initial_objects']
         z=min((pose_matrix(o['pose'])[:3,:3]@self.meshes[r].vertices.T).T[:,2].min()+o['pose'][2] for r,o in initial.items())-.001
@@ -240,6 +242,7 @@ class FloatingScene:
             self.supporting_hands[side].pending_command=np.asarray(value)
         self._drive(command[:7],command[7:19],command[19:25]);self.world.step(render=False);self.ticks+=1
         self.executed_controls.append({
+            'source_frame':float(frame),
             'right':np.r_[self.command_pose,self.hand_command,self.command_twist].copy(),
             'right_wrenches':self.wrench_bias.copy(),
             **{side:np.r_[hand.command_pose,hand.hand_command,hand.command_twist].copy()
@@ -288,7 +291,11 @@ class FloatingScene:
         if preserve:target_velocity[self.fingers]=state.get('command_hand_dq',np.zeros(12))
         self.robot.apply_action(self.Action(joint_positions=drive,joint_velocities=target_velocity))
         for role,obj in self.objects.items():
-            s=state['objects'][role];obj.set_world_pose(position=np.asarray(s['pose'][:3]),orientation=np.asarray(s['pose'][3:]));obj.set_linear_velocity(np.asarray(s['velocity'][:3]));obj.set_angular_velocity(np.asarray(s['velocity'][3:]))
+            s=state['objects'][role]
+            obj.set_world_pose(position=np.asarray(s['pose'][:3]),orientation=np.asarray(s['pose'][3:]))
+            if role not in self.fixed_environment_roles:
+                obj.set_linear_velocity(np.asarray(s['velocity'][:3]))
+                obj.set_angular_velocity(np.asarray(s['velocity'][3:]))
         for side,support in getattr(self,'supporting_hands',{}).items():
             support.restore_development(state['hands'][side])
         self.ticks=round(state['time_s']/self.dt);self.lineage=state['entry_provenance'];self.restore_count+=1
@@ -333,7 +340,8 @@ class FloatingScene:
         for role,obj in self.objects.items():
             initial=self.manifest['initial_objects'][role]['pose']
             obj.set_world_pose(position=np.asarray(initial[:3]),orientation=np.asarray(initial[3:]))
-            obj.set_linear_velocity(np.zeros(3));obj.set_angular_velocity(np.zeros(3))
+            if role not in self.fixed_environment_roles:
+                obj.set_linear_velocity(np.zeros(3));obj.set_angular_velocity(np.zeros(3))
         self.wrench_bias=np.zeros(6);self.transport_load=False
         for _ in range(120):
             self._drive(pose,self.initial_drive_hand,np.zeros(6));self.world.step(render=False)

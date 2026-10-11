@@ -16,6 +16,8 @@ def main():
     p.add_argument('--mount-report',type=Path,required=True)
     p.add_argument('--output-dir',type=Path,required=True)
     p.add_argument('--object-cache',type=Path,help='Optional existing meshes for local object-aware grasp retargeting.')
+    p.add_argument('--template-artifacts',type=Path,help='Validated local acquisition library, for initialization only.')
+    p.add_argument('--template-proposals',type=Path)
     args=p.parse_args()
     from egoengine.taco import load_sequence, mano_forward, compute_pseudo_base
     from egoengine.taco.loader import HandData
@@ -35,6 +37,10 @@ def main():
                 'source_video':seq.video_path,'schedule_sha256':hashlib.sha256(args.schedule.read_bytes()).hexdigest(),
                 'full_robot_reference_used':False,'vlm_used':False,'transform_world_to_robot':transform.tolist()}
     initial={}; final={}
+    object_assets={}
+    if args.object_cache:
+        from multipath.object_assets import prepare_source_meshes
+        object_assets=prepare_source_meshes(seq.objects,args.object_cache)
     for role,obj in seq.objects.items():
         def pose(frame):
             t=transform@obj.poses[frame]
@@ -42,6 +48,19 @@ def main():
         initial[role]={'id':obj.object_id,'pose':pose(0)}
         final[role]=pose(seq.n_frames-1)
     paths={};retarget_details={};table_z=None
+    library_initialization=False
+    if args.template_artifacts and args.template_proposals:
+        prior=json.loads((args.template_proposals/'manifest.json').read_text())
+        if prior['initial_objects']['tool']['id']==seq.objects['tool'].object_id:
+            from multipath.anchors.artifact import load_validated_anchor
+            from multipath.anchors.schema import InteractionAnchor
+            for report_path in args.template_artifacts.glob('*/report.json'):
+                report=json.loads(report_path.read_text())
+                if (report['entry_contact'],report['exit_contact'])!=('free','grasped'):continue
+                old=InteractionAnchor(**{key:report[key] for key in InteractionAnchor.__dataclass_fields__})
+                load_validated_anchor(args.template_artifacts,old,provenance=prior['provenance'])
+                library_initialization=True
+                break
     if args.object_cache:
         import trimesh
         table_z=min(((transform@obj.poses[0])[:3,:3]@
@@ -56,19 +75,24 @@ def main():
         arrays={'source_frames':np.arange(s,e),'wrist_hand_q':result.qpos,'human_joints':joints}
         arrays['raw_wrist_hand_q']=np.array(result.qpos,copy=True)
         for role,obj in seq.objects.items():arrays[role+'_pose']=transform[None]@obj.poses[s:e]
-        if args.object_cache:
+        if args.object_cache and not library_initialization:
             import trimesh
             from egoengine.retarget.ik import SIM_URDF
             from multipath.anchors.grasp_retarget import surface_grasp_prior
             oid=initial['tool']['id'];mesh=trimesh.load(args.object_cache/oid/(oid+'_m.obj'),force='mesh')
             arrays['wrist_hand_q'],detail=surface_grasp_prior(anchor,arrays['source_frames'],arrays['wrist_hand_q'],
                 joints,arrays['tool_pose'],mesh,SIM_URDF['right'],fps=schedule.fps,table_z=table_z,
-                geometry_cache=out/'geometry_cache')
+                geometry_cache=args.object_cache/oid/'geometry_cache')
             if detail:retarget_details[anchor.id]=detail
+        elif library_initialization and (anchor.entry_contact,anchor.exit_contact)==('free','grasped'):
+            retarget_details[anchor.id]=dict(method='validated_local_acquisition_library_initialization',
+                library=str(args.template_artifacts),physical_acceptance=False,
+                redundant_surface_IK_skipped=True)
         path=out/(anchor.id+'.npz');np.savez_compressed(path,**arrays)
         paths[anchor.id]=path.name
         print(anchor.id,s,e,'retargeted',flush=True)
     manifest={'provenance':provenance,'initial_objects':initial,'final_objects':final,
+              'object_assets':object_assets,
               'anchors':paths,'mount_xyzw':mount['candidate_mount_quaternion_xyzw'],
               'interaction_constraints':schedule.metadata.get('interaction_constraints',{}),
               'retarget_details':retarget_details,

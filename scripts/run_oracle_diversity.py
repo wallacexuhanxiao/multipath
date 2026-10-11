@@ -24,7 +24,7 @@ def main():
     p.add_argument('--boundary-feedback-run',type=Path,help='Previously observed continuous carry-boundary failure; refine its preceding Anchor first')
     p.add_argument('--validated-anchors',type=Path,help='Optional already physically refined local artifacts of this source')
     p.add_argument('--executed-prefix-run',type=Path,help='Reuse the actually passed prefix for its solution index; replay from initial state')
-    p.add_argument('--full-attempts',type=int,default=3)
+    p.add_argument('--full-attempts',type=int,default=6)
     args=p.parse_args()
     if args.solutions_per_interval<2:p.error('Diversity requires at least two solutions')
     out=args.output_dir.resolve();out.mkdir(parents=True,exist_ok=True)
@@ -75,6 +75,8 @@ def main():
         params=list(common);position=params.index('--planned-bridges');del params[position:position+2]
         params+=['--entry-run',entry_run,'--baseline-run',candidate,'--bridge-bank',selected_bank,
             '--anchor-id',preceding['anchor'],'--output-dir',folder]
+        for entry in report['full_runs'][1:]:
+            params+=['--exclude-actual-run',entry['run']]
         result=run(name,'refine_diverse_anchor.py',params,folder/'development_result.json','success')
         if not result.get('success'):raise RuntimeError(f'Physical boundary refinement failed: {result.get("error")}')
         common[common.index('--validated-anchors')+1]=folder/'anchors'
@@ -107,6 +109,21 @@ def main():
             if not args.resume_bank:raise ValueError('A resumed full diversity run requires its local bridge bank')
             resumed=json.loads((args.resume_diversity_run/'diversity_result.json').read_text())
             if resumed['source_provenance']!=passed['source_provenance']:raise ValueError('Resumed full source differs')
+            if args.validated_anchors is None:
+                anchor_ids=[w['anchor'] for w in json.loads(args.schedule.read_text())['windows']
+                    if w['mode']=='ANCHOR']
+                # Keep the latest physically validated canonical refinements.
+                # Starting again from the original V0 discards repaired exits.
+                for step in reversed(resumed.get('steps',[])):
+                    if not step.get('success') or not step.get('result'):continue
+                    folder=Path(step['result']).parent
+                    roots=[folder/'combined_anchors',folder/'anchors']
+                    latest=next((r for r in roots if all((r/anchor_id/'commands.npz').exists()
+                        for anchor_id in anchor_ids)),None)
+                    if latest is not None:
+                        common[common.index('--validated-anchors')+1]=latest
+                        report['resumed_validated_anchors']=str(latest)
+                        break
             for entry in resumed['full_runs'][1:]:
                 actual=json.loads((Path(entry['run'])/'pipeline_result.json').read_text())
                 if not (actual.get('full_pipeline_success') and actual.get('diverse_solution_success') and
@@ -130,7 +147,9 @@ def main():
             if any(entry['index']==index for entry in report['full_runs']):continue
             prefix=None
             if resumed:
-                previous=args.resume_diversity_run/f'full_solution_{index}_attempt_0'
+                attempts=[Path(step['result']).parent for step in resumed.get('steps',[])
+                    if step['name'].startswith(f'full_solution_{index}_attempt_') and step.get('result')]
+                previous=attempts[-1] if attempts else args.resume_diversity_run/f'full_solution_{index}_attempt_0'
                 if (previous/'pipeline_result.json').exists():
                     actual=json.loads((previous/'pipeline_result.json').read_text())
                     failed=next((s for s in actual.get('segments',[]) if not s.get('success')),None)

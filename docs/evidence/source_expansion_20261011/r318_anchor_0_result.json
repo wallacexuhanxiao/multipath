@@ -1,0 +1,68 @@
+{
+  "core_success": true,
+  "replay_success": true,
+  "padded_success": true,
+  "core_replay_success": true,
+  "native_padded_program": true,
+  "native_core_program": true,
+  "controller_program_comparison": {
+    "right": {
+      "identical": true,
+      "max_abs_difference": 0.0
+    },
+    "right_wrenches": {
+      "identical": true,
+      "max_abs_difference": 0.0
+    }
+  },
+  "actual_state_video": "/Users/apple/Desktop/semantic verifier/multipath/outputs/new_source_demos_20261011/r318_258_anchor_0/exported_core/anchor_0_actual_h264.mp4",
+  "frames": 34,
+  "fps": 30.0,
+  "scope": "local Anchor only; not a full task trajectory",
+  "core_interval": [
+    25,
+    59
+  ],
+  "synthesis_interval": [
+    19,
+    65
+  ],
+  "entry_origin": "predecessor_rollout",
+  "entry_physically_reachable": true,
+  "handoff_verified": true,
+  "source_provenance": {
+    "triplet": "(put in, bowl, plate)",
+    "sequence": "20231024_258",
+    "input": "raw TACO MANO and object poses",
+    "source_video": "/scratch/e0985859/egoengine_baseline/data/taco_v1/Egocentric_RGB_Videos/(put in, bowl, plate)/20231024_258/color.mp4",
+    "schedule_sha256": "a8aca58533ea60402957ca6cd6f3dfaf2a1f74b6e989543f04f0203ebb1871a4",
+    "full_robot_reference_used": false,
+    "vlm_used": false,
+    "transform_world_to_robot": [
+      [
+        -0.40828712522914196,
+        0.912853503975095,
+        0.0,
+        0.5801715379134981
+      ],
+      [
+        -0.9128535512848791,
+        -0.4082871463891371,
+        -0.0,
+        -0.01896962132366683
+      ],
+      [
+        0.0,
+        0.0,
+        1.0,
+        -0.20422064304351806
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ]
+  }
+}

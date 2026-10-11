@@ -39,8 +39,8 @@ EXTRA=()
 [[ -z "${MULTIPATH_EXECUTED_PREFIX_RUN:-}" ]] || EXTRA+=(--executed-prefix-run "$MULTIPATH_EXECUTED_PREFIX_RUN")
 "$RUNTIME/envs/retarget/bin/python" -u scripts/run_oracle_diversity.py \
  --v0-run "$MULTIPATH_V0_RUN" --schedule "$MULTIPATH_SCHEDULE" \
- --floating-config configs/floating_xhand.json --xhand-urdf "$ENGINE/assets/xhand/spider/xhand_right.urdf" \
+ --floating-config "${MULTIPATH_FLOATING_CONFIG:-configs/floating_xhand.json}" --xhand-urdf "$ENGINE/assets/xhand/spider/xhand_right.urdf" \
  --object-cache "$ENGINE/outputs/sim_usd" --sim-prefix "$OUT/sim_prefix.json" --output-dir "$OUT" \
  --solutions-per-interval "${MULTIPATH_SOLUTIONS_PER_INTERVAL:-3}" \
  --attempts-per-solution "${MULTIPATH_ATTEMPTS_PER_SOLUTION:-24}" \
- --full-attempts "${MULTIPATH_FULL_ATTEMPTS:-3}" "${EXTRA[@]}" >"$OUT/run.log" 2>&1
+ --full-attempts "${MULTIPATH_FULL_ATTEMPTS:-6}" "${EXTRA[@]}" >"$OUT/run.log" 2>&1

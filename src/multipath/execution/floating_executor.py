@@ -54,12 +54,15 @@ def execute(scene,schedule,manifest,proposal_dir,report):
             raise ValueError('Serial diversity requires a successful continuous predecessor rollout')
         previous_runs.append(directory)
     prefix_root=getattr(scene.args,'executed_prefix_run',None);passed_prefix={};prefix_trace=[]
+    prefix_program=None
     if prefix_root:
         prefix_report=json.loads((prefix_root/'pipeline_result.json').read_text())
         if (prefix_report['source_provenance']!=manifest['provenance'] or prefix_report.get('state_resets_between_segments')!=0 or
             prefix_report.get('bridge_solution')!=solution or prefix_report.get('source')!='oracle'):
             raise ValueError('Executed prefix must be an uninterrupted actual attempt of the selected solution')
         prefix_trace=json.loads((prefix_root/'actual_trace.json').read_text())
+        program_path=prefix_root/'executed_controls.npz'
+        if program_path.exists():prefix_program=dict(np.load(program_path))
         for segment in prefix_report['segments']:
             if not segment.get('success'):break
             passed_prefix[segment['start']]=segment
@@ -238,6 +241,11 @@ def execute(scene,schedule,manifest,proposal_dir,report):
             delta_baseline=np.load(baseline_command_path)['commands'] if timing.get('delta_dynamics_feedforward') else None
             wrenches=segment_wrenches(scene,scene.snapshot(),commands,transport=carry,
                 baseline_commands=delta_baseline,free_motion=free_model) if cache and (carry or window['start']>0 or delta_baseline is not None or free_model) else np.zeros((len(commands),6))
+            if info.get('physically_verified_prefix_drive_reused') and prefix_program is not None:
+                from multipath.execution.wrench_handoff import recorded_control_segment
+                commands,wrenches=recorded_control_segment(prefix_program,window['start'],window['end'],tpf)
+                info['native_controller_program_replayed']=True
+                np.savez_compressed(scene.out/f'relaxed_{window["start"]}_{window["end"]}.npz',commands=commands)
             actual_wrist=[start['wrist_xyz_wxyz'][:3]]
             contact_steps_at_entry=scene.tool_target_contact_steps
             for j,command in enumerate(commands):
@@ -309,22 +317,34 @@ def execute(scene,schedule,manifest,proposal_dir,report):
             check=validate_commands(scene,commands,start)
             if not check['feasible']:raise RuntimeError(f'Canonical commands infeasible from actual entry: {check}')
             objective=WindowEvaluation(scene,anchor,data,start)
+            info['core_tracking_policy']=objective.core_tracking_policy
             if not objective.observe(anchor.core_start,commands[0]):raise RuntimeError(str(objective.failure))
             from multipath.execution.wrench_handoff import segment_wrenches
             handoff=artifact['report']['validation'].get('controller_handoff')
             stable_carry=bool(isinstance(handoff,dict) and handoff.get('carried_dynamics_feedforward'))
             info['carried_dynamics_feedforward']=stable_carry
-            wrenches=segment_wrenches(scene,scene.snapshot(),commands,transport=stable_carry) if handoff else np.zeros((len(commands),6))
+            native=artifact.get('controller_wrenches')
+            if prefix_core and prefix_program is not None:
+                from multipath.execution.wrench_handoff import recorded_control_segment
+                commands,native=recorded_control_segment(prefix_program,window['start'],window['end'],tpf)
+            wrenches=(native if native is not None else
+                      segment_wrenches(scene,scene.snapshot(),commands,transport=stable_carry,
+                          free_motion=bool(isinstance(handoff,dict) and handoff.get('free_motion_dynamics_feedforward')))
+                      if handoff else np.zeros((len(commands),6)))
+            info['native_controller_program_replayed']=native is not None
+            np.savez_compressed(scene.out/'anchors'/anchor.id/'executed_core.npz',commands=commands,controller_wrenches=wrenches)
             for j,command in enumerate(commands):
                 scene.wrench_bias=wrenches[j]
                 frame=anchor.core_start+(j+1)/tpf;scene.step_control(command,'ANCHOR',frame)
                 if (j+1)%tpf==0 and not objective.observe(frame,command):
                     info['failure']=objective.failure;raise RuntimeError(f'Continuous Anchor failed: {objective.failure}')
             if diverse:
+                info['core_tracking_diagnostics']=objective.tracking_failures
                 transition=check_interaction_boundary(scene,artifact['exit'],anchor.exit_contact)
-                np.savez_compressed(scene.out/'anchors'/anchor.id/'executed_core.npz',commands=commands)
+                np.savez_compressed(scene.out/'anchors'/anchor.id/'executed_core.npz',commands=commands,controller_wrenches=wrenches)
                 info['measured_exit']=scene.snapshot()
             else:
+                info['core_tracking_diagnostics']=objective.tracking_failures
                 transition=scene.check_transition(np.asarray(artifact['exit']['wrist_xyz_wxyz']),anchor.exit_contact,canonical=artifact['exit'])
             held=np.asarray(scene.state()['hand_object_transform']) if anchor.exit_contact=='grasped' else None
             report['anchors'].append(dict(artifact['report'],handoff_verified=transition['success'],

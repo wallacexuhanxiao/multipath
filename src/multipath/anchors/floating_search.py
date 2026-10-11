@@ -229,10 +229,9 @@ class FloatingResidualEnv(MountedResidualEnv):
         self.objective.last_reward=0.
         try:
             if self.controller_handoff and self.k==0:
-                from multipath.execution.wrench_handoff import segment_wrenches
+                from multipath.execution.wrench_handoff import segment_wrenches,local_anchor_wrenches
                 handoff_commands=self.baseline.copy();handoff_commands[:end]=candidate
-                self.wrenches=segment_wrenches(self.scene,self.start,handoff_commands,
-                    transport=self.anchor.entry_contact==self.anchor.exit_contact=='grasped')
+                self.wrenches=local_anchor_wrenches(self.scene,self.start,handoff_commands,self.anchor)
             for tick in range(self.k*self.tpf,end):
                 c=candidate[tick];frame=self.anchor.synth_start+(self.begin+tick+1)/self.tpf
                 if (self.anchor.exit_contact=='grasped' and frame>self.anchor.core_end
@@ -272,13 +271,14 @@ class FloatingResidualEnv(MountedResidualEnv):
             self.objective.observe(frame,c);self.failure=self.objective.failure
         except (RuntimeError,ValueError) as error:self.failure={'source_frame':self.scene.ticks*self.scene.dt*self.fps,'reason':str(error)}
         self.k+=1;self.previous_action=action
-        if self.failure is None and not self.objective.tracking_failures and self.k==min(20,self.horizon):
+        if self.failure is None and self.objective.tracking_feasible and self.k==min(20,self.horizon):
             self.physical_prefix={'state':self.scene.snapshot(),'trace':list(self.scene.records)}
         done=self.failure is not None or self.k==self.horizon
         if done:self.scene.save()
         obs=self.observation(self.scene.snapshot()) if self.failure is None else np.zeros_like(self.last_observation)
         self.last_observation=obs
-        tracking_failure=next(iter(self.objective.tracking_failures),None)
+        tracking_failure=(next(iter(self.objective.tracking_failures),None)
+                          if not self.objective.tracking_feasible else None)
         return obs,float(self.objective.last_reward),done,{'success':bool(done and self.failure is None and tracking_failure is None and len(self.commands)==len(self.baseline)),
             'failure':self.failure or tracking_failure,'tracking_failure_count':len(self.objective.tracking_failures),
             'source_steps':self.k,'evaluation_return':self.objective.evaluation_return,
@@ -361,10 +361,9 @@ def refine(scene,anchor,data,baseline,start,out,candidates=64,iterations=3,use_p
                         # Its original core/object and exit-contact gates apply;
                         # persistent retention already applies to entry-grasped Anchors.
                 if j==0:
-                    from multipath.execution.wrench_handoff import segment_wrenches
+                    from multipath.execution.wrench_handoff import segment_wrenches,local_anchor_wrenches
                     handoff_controls=np.asarray(control).copy();handoff_controls[0]=c
-                    wrenches=segment_wrenches(scene,boundary,handoff_controls,
-                        transport=anchor.entry_contact==anchor.exit_contact=='grasped')
+                    wrenches=local_anchor_wrenches(scene,boundary,handoff_controls,anchor)
                 if getattr(scene,'post_context_commands',None) is not None and frame>anchor.core_end:
                     if frame-scene.dt*scene.manifest['fps']==anchor.core_end:
                         post_wrenches=segment_wrenches(scene,scene.snapshot(),control[j:],transport=True);post_begin=j
@@ -382,12 +381,12 @@ def refine(scene,anchor,data,baseline,start,out,candidates=64,iterations=3,use_p
                     check_retention(scene.state(),objective.held,require_opposition=(j+1)%tpf==0)
                     check_relaxed_tool_target_contact(scene,post_contact_steps)
                 if (j+1)%tpf==0 and not objective.observe(frame,c):break
-                if j+1==prefix_ticks and not objective.tracking_failures:
+                if j+1==prefix_ticks and objective.tracking_feasible:
                     prefix={'state':scene.snapshot(),'trace':list(scene.records)}
         except (RuntimeError,ValueError) as error:objective.failure={'reason':str(error)};objective.total_return=-np.inf
         scene.save()
         if acquisition is not None:
-            valid_prediction=(objective.failure is None and not objective.tracking_failures and executed==len(control))
+            valid_prediction=(objective.failure is None and objective.tracking_feasible and executed==len(control))
             # A failed prediction is a nominal optimization seed, not a
             # hybrid of measured prefix and untouched stationary future.
             control[:]=executed_control if valid_prediction else proposal_control
@@ -409,7 +408,8 @@ def refine(scene,anchor,data,baseline,start,out,candidates=64,iterations=3,use_p
                     executed_control[future,7:19]=np.clip(executed_control[future,7:19],*preload_bounds)
             control[:]=executed_control
             np.savez_compressed(Path(folder)/'commands.npz',commands=executed_control)
-        tracking_failure=next(iter(objective.tracking_failures),None)
+        tracking_failure=(next(iter(objective.tracking_failures),None)
+                          if not objective.tracking_feasible else None)
         return objective.total_return,objective.failure is None and tracking_failure is None and executed==len(control),{'failure':objective.failure or tracking_failure,'score':objective.total_return,
             'tracking_failure_count':len(objective.tracking_failures),
             'proposal':('acquisition_with_pose_finger_residual' if acquisition is not None else

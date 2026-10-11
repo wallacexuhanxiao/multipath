@@ -23,7 +23,7 @@ def main():
     import numpy as np
     from multipath.oracle_schedule import OracleSchedule
     from multipath.execution.floating_scene import FloatingScene
-    from multipath.execution.wrench_handoff import segment_wrenches
+    from multipath.execution.wrench_handoff import segment_wrenches,recorded_control_segment
     from multipath.anchors.artifact import load_validated_anchor,save_anchor
     from multipath.anchors.floating import rebase_grasp_commands,validate_commands
     from multipath.anchors.mpc import WindowEvaluation
@@ -70,6 +70,8 @@ def main():
             command_points=np.vstack((entry['wrist_xyz_wxyz'][:3],data['commands'][:,:3]))))
     local=dict(np.load(args.proposals/manifest['anchors'][anchor.id]))
     core=np.load(args.entry_run/'anchors'/anchor.id/'executed_core.npz')['commands']
+    program_path=args.entry_run/'executed_controls.npz'
+    predecessor_program=dict(np.load(program_path)) if program_path.exists() else None
     initial=np.asarray(prior['initial_state']['command_wrist'])
     initial_hand=np.asarray(prior['initial_state']['command_hand_q'])
     report=dict(status='initializing',anchor_id=anchor.id,success=False,source_provenance=manifest['provenance'],
@@ -95,20 +97,38 @@ def main():
                 old=np.load(args.baseline_run/f'relaxed_{w["start"]}_{w["end"]}.npz')['commands'] if s.get('delta_dynamics_feedforward') else None
                 wrench=segment_wrenches(scene,scene.snapshot(),commands,transport=w.get('contact')=='grasped' or s.get('carried_dynamics_feedforward',False),
                     baseline_commands=old) if w['start']>0 or old is not None else np.zeros((len(commands),6))
+                if predecessor_program is not None:
+                    commands,wrench=recorded_control_segment(predecessor_program,w['start'],w['end'],scene.tpf)
                 for j,c in enumerate(commands):
                     scene.wrench_bias=wrench[j];frame=w['start']+(j+1)/scene.tpf;scene.step_control(c,w['mode'],frame)
                     if np.isclose(frame,anchor.synth_start):padded_entry=scene.snapshot()
             if padded_entry is None:raise ValueError('No real padded entry was acquired')
             return padded_entry,scene.snapshot()
-        def execute_core(candidate):
+        def execute_core(candidate,wrench=None):
             entry=scene.snapshot();objective=WindowEvaluation(scene,anchor,local,entry)
             if not validate_commands(scene,candidate,entry)['feasible']:raise RuntimeError('Candidate finger limits')
             if not objective.observe(anchor.core_start,candidate[0]):raise RuntimeError(str(objective.failure))
-            wrench=segment_wrenches(scene,entry,candidate,transport=anchor.entry_contact==anchor.exit_contact=='grasped')
+            changed_at=None;baseline_drive=None;baseline_wrench=None
+            if wrench is None and predecessor_program is not None:
+                baseline_drive,baseline_wrench=recorded_control_segment(
+                    predecessor_program,anchor.core_start,anchor.core_end,scene.tpf)
+                changed=np.flatnonzero(np.any(candidate!=baseline_drive,axis=1))
+                changed_at=int(changed[0]) if len(changed) else None
+                wrench=baseline_wrench.copy()
+            elif wrench is None:
+                wrench=segment_wrenches(scene,entry,candidate,transport=anchor.entry_contact==anchor.exit_contact=='grasped')
             for j,c in enumerate(candidate):
+                if changed_at is not None and j==changed_at:
+                    # Preserve the physically acquired preload and unchanged
+                    # prefix. Add only the model response to this residual,
+                    # evaluated at its actually reached onset state.
+                    actual=scene.snapshot();carry=actual['contact']['mode']=='grasped'
+                    new=segment_wrenches(scene,actual,candidate[j:],transport=carry)
+                    old=segment_wrenches(scene,actual,baseline_drive[j:],transport=carry)
+                    wrench[j:]=baseline_wrench[j:]+new-old
                 scene.wrench_bias=wrench[j];frame=anchor.core_start+(j+1)/scene.tpf;scene.step_control(c,'ANCHOR',frame)
                 if (j+1)%scene.tpf==0 and not objective.observe(frame,c):raise RuntimeError(str(objective.failure))
-            return entry,scene.snapshot(),objective
+            return entry,scene.snapshot(),objective,wrench
         def outgoing(entry,folder,physical):
             commands=rebase_grasp_commands(baseline,baseline_meta['entry'],entry,scene.dt)
             q0=pose_coordinates(entry['wrist_xyz_wxyz']);q1=pose_coordinates(commands[-1,:7],q0)
@@ -148,11 +168,14 @@ def main():
             trial=dict(index=index,terminal_coordinate_velocity_residual=delta.tolist(),success=False)
             report['trials'].append(trial);exit_state=None
             try:
-                entry,exit_state,objective=execute_core(candidate)
+                native=None
+                if predecessor_program is not None and np.array_equal(candidate,core):
+                    _,native=recorded_control_segment(predecessor_program,anchor.core_start,anchor.core_end,scene.tpf)
+                entry,exit_state,objective,wrench=execute_core(candidate,native)
                 _,timing,validation=outgoing(exit_state,folder,True)
                 scene.save();trial.update(success=True,padded_local_rollout_success=True,
                     measured_exit=exit_state,outgoing_planning=timing,outgoing_validation=validation)
-                accepted=candidate;break
+                accepted=candidate;accepted_wrenches=wrench.copy();break
             except RuntimeError as error:
                 trial['error']=str(error);scene.save()
                 if exit_state is not None:
@@ -168,7 +191,7 @@ def main():
             print('ANCHOR_BOUNDARY_TRIAL',index,trial.get('error'),delta.tolist(),flush=True)
         if accepted is None:raise RuntimeError('No interaction-valid boundary shooting candidate')
         padded_entry,reached=acquire(out/'fresh_exported_core')
-        core_entry,core_exit,_=execute_core(accepted);outgoing(core_exit,scene.out,False);scene.save()
+        core_entry,core_exit,_,_=execute_core(accepted,accepted_wrenches);outgoing(core_exit,scene.out,False);scene.save()
         validation=dict(success=True,padded_rollout_complete=True,core_replay_success=True,
             source_fps=schedule.fps,control_dt=scene.dt,
             embodiment=scene.embodiment,command_format='wrist_xyz_wxyz_hand12_twist6',
@@ -177,8 +200,10 @@ def main():
             state_resets_within_padded_rollout=0,state_resets_within_core_replay=0,handoff_verified=True,
             controller_handoff='measured_mass_inertia_gain_response',
             validation_scope='fresh initial-state prefix + local padded interaction and outgoing bridge; fresh exported-core replay',
-            boundary_refinement='actual_PhysX_terminal_velocity_shooting',padded_validation_trial=report['trials'][-1]['index'])
-        artifact=save_anchor(out/'anchors',anchor,core_entry,core_exit,accepted,validation,manifest['provenance'])
+            boundary_refinement='actual_PhysX_terminal_velocity_shooting',padded_validation_trial=report['trials'][-1]['index'],
+            physical_trace=str(scene.out/'actual_trace.json'))
+        artifact=save_anchor(out/'anchors',anchor,core_entry,core_exit,accepted,validation,manifest['provenance'],
+            controller_wrenches=accepted_wrenches)
         for other in schedule.anchors.values():
             if other.id!=anchor.id:shutil.copytree(args.validated_anchors/other.id,out/'anchors'/other.id,dirs_exist_ok=True)
         report.update(status='boundary_refined',success=artifact['local_rollout_success'],anchor=artifact)

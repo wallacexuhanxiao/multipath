@@ -90,13 +90,15 @@ def main():
         from multipath.anchors.compatibility import boundary_errors,compatible
         from multipath.anchors.floating import validate_commands,rebase_grasp_commands
         from multipath.execution.interaction_boundary import check_interaction_boundary
-        from multipath.execution.wrench_handoff import segment_wrenches
+        from multipath.execution.wrench_handoff import segment_wrenches,recorded_control_segment
         from multipath.anchors.mpc import WindowEvaluation
         from multipath.validation.physics import check_retention
         # Reproduce the passed free-hand preparation, not a newly constructed
         # source pose. Later boundaries still come from real predecessor steps.
         initial=np.asarray(base['initial_state']['command_wrist'])
         initial_hand=np.asarray(base['initial_state']['command_hand_q'])
+        program_path=(args.predecessor_run or args.baseline_run)/'executed_controls.npz'
+        predecessor_program=dict(np.load(program_path)) if program_path.exists() else None
         app=start_simulation(out)
         scene=FloatingScene(args,manifest,out,initial,initial_hand=initial_hand)
         initial_state=scene.snapshot()
@@ -135,10 +137,14 @@ def main():
                     w['mode']=='RELAXED' and bridges[w['start']].get('planning',{}).get('free_motion_dynamics_feedforward',False))
                 wrench=segment_wrenches(scene,scene.snapshot(),commands,transport=carry,baseline_commands=delta,free_motion=free_model) if (
                     w['start']>0 or delta is not None or free_model) else np.zeros((len(commands),6))
+                if predecessor_program is not None:
+                    commands,wrench=recorded_control_segment(predecessor_program,w['start'],w['end'],scene.tpf)
+                elif w['mode']=='ANCHOR' and canonical[w['anchor']].get('controller_wrenches') is not None:
+                    wrench=canonical[w['anchor']]['controller_wrenches']
                 for j,command in enumerate(commands):
                     scene.wrench_bias=wrench[j]
                     scene.step_control(command,w['mode'],w['start']+(j+1)/scene.tpf)
-            (scene.out/'actual_trace.json').write_text(json.dumps(scene.records))
+            scene.save()
             return scene.snapshot()
 
         for wi,w in enumerate(schedule.windows):
@@ -348,8 +354,12 @@ def main():
                             if anchor.entry_contact=='grasped':
                                 core=rebase_grasp_commands(core,artifact['entry'],exit_state,scene.dt)
                             handoff=artifact['report']['validation'].get('controller_handoff')
-                            wrenches=segment_wrenches(scene,exit_state,core,transport=bool(
-                                isinstance(handoff,dict) and handoff.get('carried_dynamics_feedforward')))
+                            wrenches=artifact.get('controller_wrenches')
+                            if wrenches is None:
+                                wrenches=segment_wrenches(scene,exit_state,core,transport=bool(
+                                    isinstance(handoff,dict) and handoff.get('carried_dynamics_feedforward')),
+                                    free_motion=bool(isinstance(handoff,dict) and handoff.get('free_motion_dynamics_feedforward')))
+                            stats['following_core_native_controller_program_replayed']=artifact.get('controller_wrenches') is not None
                             if not objective.observe(anchor.core_start,core[0]):raise RuntimeError(str(objective.failure))
                             for j,command in enumerate(core):
                                 scene.wrench_bias=wrenches[j]
@@ -381,7 +391,7 @@ def main():
                             handoff_failures+=1
                         print('DIVERSE_BRIDGE_REJECTED',item['window'],index,attempt,str(error)[:200],flush=True)
                     finally:
-                        (trial/'actual_trace.json').write_text(json.dumps(scene.records))
+                        scene.save()
                         (trial/'result.json').write_text(json.dumps(stats,indent=2));save()
                     if accepted:break
                 if not accepted:break

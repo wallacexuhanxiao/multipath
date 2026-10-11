@@ -1,0 +1,14 @@
+[
+  {
+    "schedule": "/scratch/e0985859/multipath_v0_fc2da7b/configs/oracle/taco_empty_20231027_149.json",
+    "triplet": "(empty, bowl, plate)",
+    "sequence": "20231027_149",
+    "solutions_per_interval": 3
+  },
+  {
+    "schedule": "/scratch/e0985859/multipath_v0_fc2da7b/configs/oracle/taco_empty_20230928_031.json",
+    "triplet": "(empty, cup, plate)",
+    "sequence": "20230928_031",
+    "solutions_per_interval": 3
+  }
+]

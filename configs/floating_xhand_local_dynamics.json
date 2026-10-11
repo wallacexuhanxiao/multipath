@@ -1,0 +1,52 @@
+{
+  "embodiment": "floating_xhand",
+  "physics": {
+    "fixed_environment_roles": [
+      "target"
+    ],
+    "environment_support_provenance": "Single controllable right hand: fixture supports the uncontrolled target in place of the omitted supporting hand. Fixed at task initialization; never reference-driven during rollout.",
+    "hand_tool_static_friction": 1.0,
+    "hand_tool_dynamic_friction": 1.0,
+    "provenance": "EgoEngine reproduction build_scene/build_scene_batched friction=1.0; explicit hand/tool collision material, preserve authored materials and table settings"
+  },
+  "controller_provenance": "previous EgoEngine XHand reproduction external-wrench PD gains, force clamps and gravity feedforward; source-clock world linear and angular velocity targets are both tracked",
+  "controller": {
+    "hand_velocity_feedforward": true,
+    "hand_gravity_moment_compensation": true,
+    "hand_stiffness": 50.0,
+    "hand_damping": 1.0,
+    "hand_max_effort": 3.0,
+    "wrist_kp": 300.0,
+    "wrist_kd": 12.0,
+    "wrist_kp_rot": 2.0,
+    "wrist_kd_rot": 0.12,
+    "wrist_max_force": 30.0,
+    "wrist_max_torque": 2.0,
+    "local_free_motion_dynamics_feedforward": true
+  },
+  "finger_drive_provenance": "Shared research gains: reduce observed 0.03-0.075 rad load deflection of a 0.5 mm geometric grasp; preserve 3 Nm effort limit; fresh physical validation required",
+  "planning": {
+    "velocity_limits": [
+      1.0,
+      1.0,
+      1.0,
+      3.0,
+      3.0,
+      3.0
+    ],
+    "acceleration_limits": [
+      5.0,
+      5.0,
+      5.0,
+      15.0,
+      15.0,
+      15.0
+    ],
+    "note": "Nominal floating-wrist planning budgets, not physical hardware ratings; actual contact and tracking are checked in PhysX."
+  },
+  "validation": {
+    "core_tracking_policy": "diagnostic",
+    "provenance": "Shared interaction acceptance: CORE reference error is recorded; source boundary, contact retention, limits, collision, timing and terminal task remain required."
+  },
+  "local_motion_feedforward_provenance": "Shared local acquisition model uses measured PhysX hand mass, COM and inertia; no assumed rigid object attachment before grasp. Actual controller program and fresh physical validation remain authoritative."
+}

@@ -1,0 +1,634 @@
+{
+  "source": "actual PhysX experiment reports",
+  "new_source": "20231024_258",
+  "results": {
+    "oracle_diversity_r323_20231024_258": {
+      "success": false,
+      "status": "failed",
+      "error": "Physical boundary refinement failed: No interaction-valid boundary shooting candidate",
+      "full_runs": [
+        {
+          "index": 0,
+          "run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_demo_expansion_r318_20231024_258/final",
+          "full_pipeline_success": true
+        },
+        {
+          "index": 1,
+          "run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r323_20231024_258/full_solution_1_attempt_0",
+          "full_pipeline_success": true,
+          "actual_duration_s": 4.266666666666667,
+          "state_resets_between_segments": 0,
+          "task": {
+            "success": true,
+            "final_errors": {
+              "position_m": 0.030950382614870278,
+              "rotation_rad": 0.21571553329487164
+            },
+            "final_speed_m_s": 0.00010393137528925023,
+            "released": true
+          },
+          "intervals": [
+            {
+              "window": [
+                0,
+                25
+              ],
+              "diversity": {
+                "actual_wrist_min_exclusion_clearance_m": 0.006013019495480701,
+                "actual_wrist_exclusion_pass": true,
+                "minimum_arc_distance_m": 0.0,
+                "actual_arc_pass": true,
+                "path_length_m": 0.2048946878884707,
+                "endpoint_distance_m": 0.19174074981611955,
+                "arc_reference_length_m": 0.19331797129839615,
+                "arc_length_ratio": 1.0598843269061897,
+                "backward_progress_fraction": 0.0,
+                "endpoint_overshoot_fraction": 0.0,
+                "smooth_arc_pass": true,
+                "comparisons": [
+                  {
+                    "source_run": "baseline",
+                    "mean_nearest_path_distance_m": 0.006412508512955314,
+                    "max_nearest_path_distance_m": 0.017711272882964358,
+                    "middle_median_path_distance_m": 0.006252318776279997,
+                    "symmetric_hausdorff_m": 0.017711272882964358
+                  }
+                ]
+              }
+            },
+            {
+              "window": [
+                59,
+                68
+              ],
+              "diversity": {
+                "actual_wrist_min_exclusion_clearance_m": 0.0007911835928004802,
+                "actual_wrist_exclusion_pass": true,
+                "minimum_arc_distance_m": 0.0,
+                "actual_arc_pass": true,
+                "path_length_m": 0.19309877946395806,
+                "endpoint_distance_m": 0.1816374743282069,
+                "arc_reference_length_m": 0.1828785164982243,
+                "arc_length_ratio": 1.0558855307962487,
+                "backward_progress_fraction": 0.0,
+                "endpoint_overshoot_fraction": 0.0,
+                "smooth_arc_pass": true,
+                "comparisons": [
+                  {
+                    "source_run": "baseline",
+                    "mean_nearest_path_distance_m": 0.008423531389553771,
+                    "max_nearest_path_distance_m": 0.014451227970041558,
+                    "middle_median_path_distance_m": 0.011275826307925918,
+                    "symmetric_hausdorff_m": 0.014451227970041558
+                  }
+                ]
+              }
+            },
+            {
+              "window": [
+                88,
+                96
+              ],
+              "diversity": {
+                "actual_wrist_min_exclusion_clearance_m": 0.005725611828744092,
+                "actual_wrist_exclusion_pass": true,
+                "minimum_arc_distance_m": 0.0,
+                "actual_arc_pass": true,
+                "path_length_m": 0.18909644454393507,
+                "endpoint_distance_m": 0.15890981664269876,
+                "arc_reference_length_m": 0.17018429029078233,
+                "arc_length_ratio": 1.1111274972609917,
+                "backward_progress_fraction": 0.0,
+                "endpoint_overshoot_fraction": 0.0,
+                "smooth_arc_pass": true,
+                "comparisons": [
+                  {
+                    "source_run": "baseline",
+                    "mean_nearest_path_distance_m": 0.01678704122502451,
+                    "max_nearest_path_distance_m": 0.025037418270498487,
+                    "middle_median_path_distance_m": 0.020658292807400454,
+                    "symmetric_hausdorff_m": 0.025037418270498487
+                  }
+                ]
+              }
+            },
+            {
+              "window": [
+                117,
+                128
+              ],
+              "diversity": {
+                "actual_wrist_min_exclusion_clearance_m": 0.044328395671425366,
+                "actual_wrist_exclusion_pass": true,
+                "minimum_arc_distance_m": 0.0,
+                "actual_arc_pass": true,
+                "path_length_m": 0.11131577757069974,
+                "endpoint_distance_m": 0.05378883194439161,
+                "arc_reference_length_m": 0.08489910486619232,
+                "arc_length_ratio": 1.3111537247199743,
+                "backward_progress_fraction": 0.1730203549406587,
+                "endpoint_overshoot_fraction": 0.0,
+                "smooth_arc_pass": true,
+                "comparisons": [
+                  {
+                    "source_run": "baseline",
+                    "mean_nearest_path_distance_m": 0.06667423882146911,
+                    "max_nearest_path_distance_m": 0.08419424845741606,
+                    "middle_median_path_distance_m": 0.07336493352597703,
+                    "symmetric_hausdorff_m": 0.08419424845741606
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "name": "bank_00",
+          "status": "finished",
+          "returncode": 0,
+          "elapsed_s": 39.782574113924056,
+          "success": true,
+          "result": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r323_20231024_258/bank_00/bridge_bank.json"
+        },
+        {
+          "name": "anchor_feedback_1",
+          "status": "finished",
+          "returncode": 0,
+          "elapsed_s": 86.14956758799963,
+          "success": true,
+          "result": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r323_20231024_258/anchor_feedback_1/development_result.json"
+        },
+        {
+          "name": "full_solution_1_attempt_0",
+          "status": "finished",
+          "returncode": 0,
+          "elapsed_s": 52.481316414894536,
+          "success": true,
+          "result": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r323_20231024_258/full_solution_1_attempt_0/pipeline_result.json"
+        },
+        {
+          "name": "full_solution_2_attempt_0",
+          "status": "finished",
+          "returncode": 0,
+          "elapsed_s": 37.97718643490225,
+          "success": false,
+          "result": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r323_20231024_258/full_solution_2_attempt_0/pipeline_result.json"
+        },
+        {
+          "name": "boundary_solution_2_0",
+          "status": "finished",
+          "returncode": 0,
+          "elapsed_s": 70.47498809709214,
+          "success": false,
+          "result": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r323_20231024_258/boundary_solution_2_0/development_result.json"
+        }
+      ],
+      "physical_anchor_repairs": [
+        {
+          "anchor": "anchor_2",
+          "entry_run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r320_20231024_258/full_solution_1_attempt_2",
+          "artifact": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r323_20231024_258/anchor_feedback_1/combined_anchors"
+        }
+      ],
+      "resumed_validated_anchors": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r320_20231024_258/boundary_solution_1_1/anchors"
+    },
+    "oracle_diversity_r325_20231024_258": {
+      "success": false,
+      "status": "failed",
+      "error": "Physical boundary refinement failed: No interaction-valid boundary shooting candidate",
+      "full_runs": [
+        {
+          "index": 0,
+          "run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_demo_expansion_r318_20231024_258/final",
+          "full_pipeline_success": true
+        },
+        {
+          "index": 1,
+          "run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r323_20231024_258/full_solution_1_attempt_0",
+          "full_pipeline_success": true,
+          "actual_duration_s": 4.266666666666667,
+          "state_resets_between_segments": 0,
+          "task": {
+            "success": true,
+            "final_errors": {
+              "position_m": 0.030950382614870278,
+              "rotation_rad": 0.21571553329487164
+            },
+            "final_speed_m_s": 0.00010393137528925023,
+            "released": true
+          },
+          "intervals": [
+            {
+              "window": [
+                0,
+                25
+              ],
+              "diversity": {
+                "actual_wrist_min_exclusion_clearance_m": 0.006013019495480701,
+                "actual_wrist_exclusion_pass": true,
+                "minimum_arc_distance_m": 0.0,
+                "actual_arc_pass": true,
+                "path_length_m": 0.2048946878884707,
+                "endpoint_distance_m": 0.19174074981611955,
+                "arc_reference_length_m": 0.19331797129839615,
+                "arc_length_ratio": 1.0598843269061897,
+                "backward_progress_fraction": 0.0,
+                "endpoint_overshoot_fraction": 0.0,
+                "smooth_arc_pass": true,
+                "comparisons": [
+                  {
+                    "source_run": "baseline",
+                    "mean_nearest_path_distance_m": 0.006412508512955314,
+                    "max_nearest_path_distance_m": 0.017711272882964358,
+                    "middle_median_path_distance_m": 0.006252318776279997,
+                    "symmetric_hausdorff_m": 0.017711272882964358
+                  }
+                ]
+              }
+            },
+            {
+              "window": [
+                59,
+                68
+              ],
+              "diversity": {
+                "actual_wrist_min_exclusion_clearance_m": 0.0007911835928004802,
+                "actual_wrist_exclusion_pass": true,
+                "minimum_arc_distance_m": 0.0,
+                "actual_arc_pass": true,
+                "path_length_m": 0.19309877946395806,
+                "endpoint_distance_m": 0.1816374743282069,
+                "arc_reference_length_m": 0.1828785164982243,
+                "arc_length_ratio": 1.0558855307962487,
+                "backward_progress_fraction": 0.0,
+                "endpoint_overshoot_fraction": 0.0,
+                "smooth_arc_pass": true,
+                "comparisons": [
+                  {
+                    "source_run": "baseline",
+                    "mean_nearest_path_distance_m": 0.008423531389553771,
+                    "max_nearest_path_distance_m": 0.014451227970041558,
+                    "middle_median_path_distance_m": 0.011275826307925918,
+                    "symmetric_hausdorff_m": 0.014451227970041558
+                  }
+                ]
+              }
+            },
+            {
+              "window": [
+                88,
+                96
+              ],
+              "diversity": {
+                "actual_wrist_min_exclusion_clearance_m": 0.005725611828744092,
+                "actual_wrist_exclusion_pass": true,
+                "minimum_arc_distance_m": 0.0,
+                "actual_arc_pass": true,
+                "path_length_m": 0.18909644454393507,
+                "endpoint_distance_m": 0.15890981664269876,
+                "arc_reference_length_m": 0.17018429029078233,
+                "arc_length_ratio": 1.1111274972609917,
+                "backward_progress_fraction": 0.0,
+                "endpoint_overshoot_fraction": 0.0,
+                "smooth_arc_pass": true,
+                "comparisons": [
+                  {
+                    "source_run": "baseline",
+                    "mean_nearest_path_distance_m": 0.01678704122502451,
+                    "max_nearest_path_distance_m": 0.025037418270498487,
+                    "middle_median_path_distance_m": 0.020658292807400454,
+                    "symmetric_hausdorff_m": 0.025037418270498487
+                  }
+                ]
+              }
+            },
+            {
+              "window": [
+                117,
+                128
+              ],
+              "diversity": {
+                "actual_wrist_min_exclusion_clearance_m": 0.044328395671425366,
+                "actual_wrist_exclusion_pass": true,
+                "minimum_arc_distance_m": 0.0,
+                "actual_arc_pass": true,
+                "path_length_m": 0.11131577757069974,
+                "endpoint_distance_m": 0.05378883194439161,
+                "arc_reference_length_m": 0.08489910486619232,
+                "arc_length_ratio": 1.3111537247199743,
+                "backward_progress_fraction": 0.1730203549406587,
+                "endpoint_overshoot_fraction": 0.0,
+                "smooth_arc_pass": true,
+                "comparisons": [
+                  {
+                    "source_run": "baseline",
+                    "mean_nearest_path_distance_m": 0.06667423882146911,
+                    "max_nearest_path_distance_m": 0.08419424845741606,
+                    "middle_median_path_distance_m": 0.07336493352597703,
+                    "symmetric_hausdorff_m": 0.08419424845741606
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "name": "bank_00",
+          "status": "finished",
+          "returncode": 0,
+          "elapsed_s": 27.601378347026184,
+          "success": true,
+          "result": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r325_20231024_258/bank_00/bridge_bank.json"
+        },
+        {
+          "name": "full_solution_2_attempt_0",
+          "status": "finished",
+          "returncode": 0,
+          "elapsed_s": 43.49611018109135,
+          "success": false,
+          "result": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r325_20231024_258/full_solution_2_attempt_0/pipeline_result.json"
+        },
+        {
+          "name": "boundary_solution_2_0",
+          "status": "finished",
+          "returncode": 0,
+          "elapsed_s": 69.43933742307127,
+          "success": false,
+          "result": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r325_20231024_258/boundary_solution_2_0/development_result.json"
+        }
+      ],
+      "physical_anchor_repairs": null,
+      "resumed_validated_anchors": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r323_20231024_258/anchor_feedback_1/combined_anchors"
+    }
+  },
+  "acquisition_experiment": [
+    {
+      "sequence": "20230928_031",
+      "triplet": "(empty, cup, plate)",
+      "success": false,
+      "status": "failed",
+      "full_successful_rollouts": 0,
+      "steps": [
+        {
+          "name": "prepare",
+          "status": "finished",
+          "success": true,
+          "elapsed_s": 0.0,
+          "cached_local_proposals": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_demo_expansion_r317_20230928_031/proposals",
+          "physical_acceptance": false
+        },
+        {
+          "name": "candidate_00",
+          "log": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_acquisition_context_r324_20230928_031/candidate_00.log",
+          "status": "finished",
+          "result_path": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_acquisition_context_r324_20230928_031/candidate_00/pipeline_result.json",
+          "returncode": 0,
+          "elapsed_s": 103.90280679985881,
+          "success": false
+        },
+        {
+          "name": "local_anchor_0_00",
+          "log": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_acquisition_context_r324_20230928_031/local_anchor_0_00.log",
+          "status": "finished",
+          "result_path": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_acquisition_context_r324_20230928_031/local_anchor_0_00/development_result.json",
+          "returncode": 0,
+          "elapsed_s": 305.35064345784485,
+          "success": false
+        }
+      ],
+      "local_anchor_result": {
+        "core_success": false,
+        "status": "failed",
+        "error": "Reached-entry local interaction failed",
+        "refinement_failure": "Floating Replay/MPPI/PPO failed at source frame 18.0"
+      },
+      "replay": {
+        "success": false,
+        "source_frame": 46.0,
+        "wrist_error": {
+          "position_m": 0.008642775011224249,
+          "rotation_rad": 0.06328070831979342
+        },
+        "object_boundary_error": {
+          "position_m": 0.15385777988873464,
+          "rotation_rad": 1.525393123161063
+        },
+        "opposition_contact": false,
+        "actual_wrist_twist": [
+          -0.001786991766143419,
+          0.004337884030706233,
+          0.0023607344440641515,
+          -0.01452347356826067,
+          0.015635177493095398,
+          -0.06244319677352905
+        ],
+        "report_path": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_acquisition_context_r324_20230928_031/local_anchor_0_00/development_result.json"
+      },
+      "local_replay": {
+        "success": false,
+        "source_frame": 46.0,
+        "wrist_error": {
+          "position_m": 0.008239934728095507,
+          "rotation_rad": 0.11799869582617155
+        },
+        "object_boundary_error": {
+          "position_m": 0.15403925946226135,
+          "rotation_rad": 1.5195133556695495
+        },
+        "opposition_contact": false,
+        "actual_wrist_twist": [
+          0.08250925254355859,
+          0.12942296274880627,
+          0.03110497441000641,
+          -1.4255932569503784,
+          0.4543954133987427,
+          1.133231520652771
+        ],
+        "report_path": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_acquisition_context_r324_20230928_031/local_anchor_0_00/development_result.json"
+      }
+    },
+    {
+      "sequence": "20231024_246",
+      "triplet": "(pour in some, bowl, plate)",
+      "success": false,
+      "status": "failed",
+      "full_successful_rollouts": 0,
+      "steps": [
+        {
+          "name": "prepare",
+          "status": "finished",
+          "success": true,
+          "elapsed_s": 0.0,
+          "cached_local_proposals": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_demo_expansion_r316_20231024_246/proposals",
+          "physical_acceptance": false
+        },
+        {
+          "name": "candidate_00",
+          "log": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_acquisition_context_r324_20231024_246/candidate_00.log",
+          "status": "finished",
+          "result_path": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_acquisition_context_r324_20231024_246/candidate_00/pipeline_result.json",
+          "returncode": 0,
+          "elapsed_s": 44.88215559301898,
+          "success": false
+        },
+        {
+          "name": "local_anchor_0_00",
+          "log": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_acquisition_context_r324_20231024_246/local_anchor_0_00.log",
+          "status": "finished",
+          "result_path": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_acquisition_context_r324_20231024_246/local_anchor_0_00/development_result.json",
+          "returncode": 0,
+          "elapsed_s": 285.1468744808808,
+          "success": false
+        }
+      ],
+      "local_anchor_result": {
+        "core_success": false,
+        "status": "failed",
+        "error": "Reached-entry local interaction failed",
+        "refinement_failure": "Floating Replay/MPPI/PPO failed at source frame 30.0"
+      },
+      "replay": {
+        "success": false,
+        "source_frame": 50.0,
+        "wrist_error": {
+          "position_m": 0.0073511099131732425,
+          "rotation_rad": 0.09003462136767164
+        },
+        "object_boundary_error": {
+          "position_m": 0.06713476381134544,
+          "rotation_rad": 0.6077706562319523
+        },
+        "opposition_contact": false,
+        "actual_wrist_twist": [
+          -0.00661692602541227,
+          -0.02290063482956452,
+          -0.023687880731887264,
+          -0.0062998076900839806,
+          -0.0014168753987178206,
+          0.027339713647961617
+        ],
+        "report_path": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_acquisition_context_r324_20231024_246/local_anchor_0_00/development_result.json"
+      },
+      "local_replay": {
+        "success": false,
+        "source_frame": 50.0,
+        "wrist_error": {
+          "position_m": 0.006008724348521323,
+          "rotation_rad": 0.05950264813315661
+        },
+        "object_boundary_error": {
+          "position_m": 0.05228482521371137,
+          "rotation_rad": 0.22797903468795022
+        },
+        "opposition_contact": false,
+        "actual_wrist_twist": [
+          0.0025503423608933262,
+          0.20856911617409737,
+          0.2053106556368204,
+          -0.22198337316513062,
+          -0.4732551574707031,
+          0.6286274790763855
+        ],
+        "report_path": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_acquisition_context_r324_20231024_246/local_anchor_0_00/development_result.json"
+      }
+    },
+    {
+      "sequence": "20231027_149",
+      "triplet": "(empty, bowl, plate)",
+      "success": false,
+      "status": "failed",
+      "full_successful_rollouts": 0,
+      "steps": [
+        {
+          "name": "prepare",
+          "status": "finished",
+          "success": true,
+          "elapsed_s": 0.0,
+          "cached_local_proposals": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_demo_expansion_r317_20231027_149/proposals",
+          "physical_acceptance": false
+        },
+        {
+          "name": "candidate_00",
+          "log": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_acquisition_context_r324_20231027_149/candidate_00.log",
+          "status": "finished",
+          "result_path": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_acquisition_context_r324_20231027_149/candidate_00/pipeline_result.json",
+          "returncode": 0,
+          "elapsed_s": 114.90236159600317,
+          "success": false
+        },
+        {
+          "name": "candidate_01",
+          "log": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_acquisition_context_r324_20231027_149/candidate_01.log",
+          "status": "finished",
+          "result_path": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_acquisition_context_r324_20231027_149/candidate_01/pipeline_result.json",
+          "returncode": 0,
+          "elapsed_s": 37.55914603197016,
+          "success": false
+        },
+        {
+          "name": "local_anchor_0_01",
+          "log": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_acquisition_context_r324_20231027_149/local_anchor_0_01.log",
+          "status": "finished",
+          "result_path": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_acquisition_context_r324_20231027_149/local_anchor_0_01/development_result.json",
+          "returncode": 0,
+          "elapsed_s": 288.0291447159834,
+          "success": false
+        }
+      ],
+      "local_anchor_result": {
+        "core_success": false,
+        "status": "failed",
+        "error": "Reached-entry local interaction failed",
+        "refinement_failure": "Floating Replay/MPPI/PPO failed at source frame 18.0"
+      },
+      "replay": {
+        "success": false,
+        "source_frame": 40.0,
+        "wrist_error": {
+          "position_m": 0.007079539445575491,
+          "rotation_rad": 0.036731257807259665
+        },
+        "object_boundary_error": {
+          "position_m": 0.09335644520061498,
+          "rotation_rad": 1.2652608694080152
+        },
+        "opposition_contact": false,
+        "actual_wrist_twist": [
+          0.007264852077501254,
+          0.0011882764035249897,
+          0.0021947018676203474,
+          0.07674074918031693,
+          0.11283838748931885,
+          0.3860110938549042
+        ],
+        "report_path": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_acquisition_context_r324_20231027_149/local_anchor_0_01/development_result.json"
+      },
+      "local_replay": {
+        "success": false,
+        "source_frame": 40.0,
+        "wrist_error": {
+          "position_m": 0.007930913386324562,
+          "rotation_rad": 0.06642572612556634
+        },
+        "object_boundary_error": {
+          "position_m": 0.09490857273378824,
+          "rotation_rad": 0.447333995475386
+        },
+        "opposition_contact": false,
+        "actual_wrist_twist": [
+          0.13809698129790848,
+          0.04679796043148908,
+          0.34925913734955516,
+          -0.49664434790611267,
+          -1.4863200187683105,
+          0.4217357635498047
+        ],
+        "report_path": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_acquisition_context_r324_20231027_149/local_anchor_0_01/development_result.json"
+      }
+    }
+  ]
+}

@@ -79,6 +79,11 @@ def main():
         report.setdefault('initialization_fallbacks',[]).append(dict(
             reason=reason,method='raw_local_oracle_retarget',physical_acceptance=False))
         save()
+        prepared=json.loads((out/'proposals'/'manifest.json').read_text())
+        if any(v.get('redundant_surface_IK_skipped') for v in prepared.get('retarget_details',{}).values()):
+            run('prepare_raw_fallback','prepare_oracle_anchors.py',['--schedule',args.schedule,
+                '--triplet',args.triplet,'--sequence',args.sequence,'--mount-report',args.mount_report,
+                '--object-cache',args.object_cache,'--output-dir',out/'proposals'])
     try:
         if args.prepared_proposals:
             import hashlib
@@ -92,8 +97,10 @@ def main():
                 cached_local_proposals=str(args.prepared_proposals),physical_acceptance=False))
             save()
         else:
-            run('prepare','prepare_oracle_anchors.py',['--schedule',args.schedule,'--triplet',args.triplet,
-                '--sequence',args.sequence,'--mount-report',args.mount_report,'--object-cache',args.object_cache,'--output-dir',out/'proposals'])
+            prepare_args=['--schedule',args.schedule,'--triplet',args.triplet,
+                '--sequence',args.sequence,'--mount-report',args.mount_report,'--object-cache',args.object_cache,'--output-dir',out/'proposals']
+            if template_active:prepare_args+=['--template-artifacts',args.template_artifacts,'--template-proposals',args.template_proposals]
+            run('prepare','prepare_oracle_anchors.py',prepare_args)
         # Acquire canonical entries through the same actual cuRobo predecessor
         # used in the final schedule. Its last padding frames provide physical
         # synthesis context; a separate synth_start bridge can create a CORE

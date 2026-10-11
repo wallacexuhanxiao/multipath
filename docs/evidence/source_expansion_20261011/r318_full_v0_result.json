@@ -1,0 +1,130 @@
+{
+  "full_pipeline_success": true,
+  "task_success": true,
+  "source_duration_s": 4.266666666666667,
+  "actual_duration_s": 4.266666666666667,
+  "state_resets_between_segments": 0,
+  "source_provenance": {
+    "triplet": "(put in, bowl, plate)",
+    "sequence": "20231024_258",
+    "input": "raw TACO MANO and object poses",
+    "source_video": "/scratch/e0985859/egoengine_baseline/data/taco_v1/Egocentric_RGB_Videos/(put in, bowl, plate)/20231024_258/color.mp4",
+    "schedule_sha256": "a8aca58533ea60402957ca6cd6f3dfaf2a1f74b6e989543f04f0203ebb1871a4",
+    "full_robot_reference_used": false,
+    "vlm_used": false,
+    "transform_world_to_robot": [
+      [
+        -0.40828712522914196,
+        0.912853503975095,
+        0.0,
+        0.5801715379134981
+      ],
+      [
+        -0.9128535512848791,
+        -0.4082871463891371,
+        -0.0,
+        -0.01896962132366683
+      ],
+      [
+        0.0,
+        0.0,
+        1.0,
+        -0.20422064304351806
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ]
+  },
+  "vlm_used": false,
+  "complete_robot_reference_required": false,
+  "relaxed_reference_tracking": false,
+  "segments": [
+    {
+      "mode": "RELAXED",
+      "anchor": null,
+      "start": 0,
+      "end": 25,
+      "budget_s": 0.8333333333333334,
+      "actual_end_s": 0.8333333333333334,
+      "success": true,
+      "native_controller_program_replayed": null
+    },
+    {
+      "mode": "ANCHOR",
+      "anchor": "anchor_0",
+      "start": 25,
+      "end": 59,
+      "budget_s": 1.1333333333333333,
+      "actual_end_s": 1.9666666666666666,
+      "success": true,
+      "native_controller_program_replayed": true
+    },
+    {
+      "mode": "RELAXED",
+      "anchor": null,
+      "start": 59,
+      "end": 68,
+      "budget_s": 0.3,
+      "actual_end_s": 2.2666666666666666,
+      "success": true,
+      "native_controller_program_replayed": null
+    },
+    {
+      "mode": "ANCHOR",
+      "anchor": "anchor_1",
+      "start": 68,
+      "end": 88,
+      "budget_s": 0.6666666666666666,
+      "actual_end_s": 2.933333333333333,
+      "success": true,
+      "native_controller_program_replayed": true
+    },
+    {
+      "mode": "RELAXED",
+      "anchor": null,
+      "start": 88,
+      "end": 96,
+      "budget_s": 0.26666666666666666,
+      "actual_end_s": 3.2,
+      "success": true,
+      "native_controller_program_replayed": null
+    },
+    {
+      "mode": "ANCHOR",
+      "anchor": "anchor_2",
+      "start": 96,
+      "end": 117,
+      "budget_s": 0.7,
+      "actual_end_s": 3.9,
+      "success": true,
+      "native_controller_program_replayed": true
+    },
+    {
+      "mode": "RELAXED",
+      "anchor": null,
+      "start": 117,
+      "end": 128,
+      "budget_s": 0.36666666666666664,
+      "actual_end_s": 4.266666666666667,
+      "success": true,
+      "native_controller_program_replayed": null
+    }
+  ],
+  "task": {
+    "success": true,
+    "final_errors": {
+      "position_m": 0.03271820810192805,
+      "rotation_rad": 0.30885460451875746
+    },
+    "final_speed_m_s": 3.3496546942737467e-06,
+    "released": true
+  },
+  "video": "/Users/apple/Desktop/semantic verifier/multipath/outputs/new_source_demos_20261011/20231024_258/final/complete_actual_h264.mp4",
+  "decoded_frames": 128,
+  "fps": 30.0,
+  "scope": "one complete V0 solution; path diversity not yet verified"
+}

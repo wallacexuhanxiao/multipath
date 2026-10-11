@@ -286,7 +286,7 @@ def validate_commands(scene,commands,start):
     return {'feasible':bool(in_bounds and ratio<=1.0001),'hand_velocity_ratio':ratio,'hand_joint_bounds':in_bounds}
 
 
-def rollout(scene,anchor,data,commands,start,out,mode='LOCAL_PADDED',core_only=False,mesh=True,collect_tracking_failures=False,continue_from_current=False,controller_handoff=False,synthesize_acquisition=False):
+def rollout(scene,anchor,data,commands,start,out,mode='LOCAL_PADDED',core_only=False,mesh=True,collect_tracking_failures=False,continue_from_current=False,controller_handoff=False,synthesize_acquisition=False,controller_wrenches=None):
     tpf=physics_ticks_per_frame(scene.manifest['fps'],scene.dt)
     start_frame=anchor.core_start if core_only else anchor.synth_start
     end_frame=anchor.core_end if core_only else anchor.synth_end
@@ -302,14 +302,19 @@ def rollout(scene,anchor,data,commands,start,out,mode='LOCAL_PADDED',core_only=F
         scene.begin_recording(out,mesh=mesh)
     else:scene.begin_trial(out,start,mesh=mesh)
     commands=np.asarray(commands).copy()
+    if controller_wrenches is not None:
+        controller_wrenches=np.asarray(controller_wrenches)
+        if controller_wrenches.shape!=(len(commands),6) or not np.isfinite(controller_wrenches).all():
+            raise ValueError('Native controller program does not match the local source clock')
     acquisition=(AcquiredGraspProposal(scene,anchor,data) if synthesize_acquisition and
                  anchor.entry_contact=='free' and anchor.exit_contact=='grasped' else None)
     objective=WindowEvaluation(scene,anchor,data,start);entry=None;exit_state=None;failure=None
     resets=scene.restore_count;failures=[];executed=0;post_contact_steps=None
     if controller_handoff:
-        from multipath.execution.wrench_handoff import segment_wrenches
+        from multipath.execution.wrench_handoff import segment_wrenches,local_anchor_wrenches
         stable_carry=anchor.entry_contact==anchor.exit_contact=='grasped'
-        handoff_wrenches=segment_wrenches(scene,start,commands,transport=stable_carry)
+        handoff_wrenches=(controller_wrenches if controller_wrenches is not None else
+                         local_anchor_wrenches(scene,start,commands,anchor))
         drive_bias=handoff_wrenches[0].copy()
     if start_frame==anchor.core_start:
         entry=scene.snapshot()
@@ -326,7 +331,9 @@ def rollout(scene,anchor,data,commands,start,out,mode='LOCAL_PADDED',core_only=F
                 if frame==anchor.core_end:
                     commands[k+1:]=project_hand_commands(scene,commands,start,anchor)[k+1:]
             if controller_handoff:
-                if getattr(scene,'post_context_commands',None) is not None and start_frame+(k/tpf)>=anchor.core_end:
+                if controller_wrenches is not None:
+                    scene.wrench_bias=controller_wrenches[k]
+                elif getattr(scene,'post_context_commands',None) is not None and start_frame+(k/tpf)>=anchor.core_end:
                     if start_frame+(k/tpf)==anchor.core_end:
                         from multipath.execution.wrench_handoff import segment_wrenches
                         post_wrenches=segment_wrenches(scene,scene.snapshot(),commands[k:],transport=True)
@@ -368,9 +375,16 @@ def rollout(scene,anchor,data,commands,start,out,mode='LOCAL_PADDED',core_only=F
         'tracking_failures_collected':collect_tracking_failures,'core_entry_acquired':entry is not None,'core_exit_acquired':exit_state is not None,
         'state_resets_within_rollout':scene.restore_count-resets,'source_fps':scene.manifest['fps'],'control_dt':scene.dt,
         'tracking_parameters':object_tracking_parameters(),
+        'executed_controller_program':str(Path(out)/'executed_controls.npz'),
+        'physical_trace':str(Path(out)/'actual_trace.json'),
+        'native_controller_program_replayed':controller_wrenches is not None,
+        'core_tracking_policy':objective.core_tracking_policy,
+        'core_tracking_diagnostics':objective.tracking_failures,
         'embodiment':scene.embodiment,'command_format':'wrist_xyz_wxyz_hand12_twist6','actual_end_frame':scene.ticks*scene.dt*scene.manifest['fps']}
     if controller_handoff:result['controller_handoff']=dict(initial_wrench_bias=drive_bias.tolist(),extra_time_s=0.,
-        profile='measured_mass_inertia_gain_response',carried_dynamics_feedforward=stable_carry)
+        profile='measured_mass_inertia_gain_response',carried_dynamics_feedforward=stable_carry,
+        free_motion_dynamics_feedforward=bool(scene.cfg['controller'].get('local_free_motion_dynamics_feedforward',False)
+            and start['contact']['mode']=='free'))
     if acquisition is not None:
         result['synthesis_controller']='measured_tool_acquisition_then_source_object_motion'
         result['executed_commands_path']=str(Path(out)/'executed_commands.npz')
@@ -602,7 +616,15 @@ class AcquiredGraspProposal:
                 source[:3,3]=(1-alpha)*source[:3,3]+alpha*self.data['tool_pose'][hi,:3,3]
                 source[:3,:3]=Slerp([0,1],Rotation.from_matrix(self.data['tool_pose'][[lo,hi],:3,:3]))([alpha])[0].as_matrix()
             reference=self.entry_tool@np.linalg.inv(self.source_entry)@source
-        actual=pose_matrix(measured['objects']['tool']['pose']);delta=actual@np.linalg.inv(reference)
+        actual=pose_matrix(measured['objects']['tool']['pose'])
+        if self.stationary_prior and not self.scene.cfg['controller'].get('acquisition_follow_ungrasped_rotation',True):
+            # A resting-object grasp is fitted against the fixed environment.
+            # One-sided contact can roll the ungrasped object; rigidly rotating
+            # the hand goal with it also rotates its table clearance away.
+            # Track displacement during acquisition. Full measured SE(3)
+            # conditioning starts only after native opposition is acquired.
+            actual[:3,:3]=reference[:3,:3]
+        delta=actual@np.linalg.inv(reference)
         matrix=delta@pose_matrix(baseline[:7]);command=np.asarray(baseline).copy()
         command[:3]=matrix[:3,3];command[3:7]=Rotation.from_matrix(matrix[:3,:3]).as_quat()[[3,0,1,2]]
         # PPO supplies the previous nominal drive so sampled pose residuals

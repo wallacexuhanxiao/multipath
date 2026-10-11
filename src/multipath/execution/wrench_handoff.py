@@ -3,6 +3,30 @@ import numpy as np
 from scipy.spatial.transform import Rotation
 
 
+def recorded_control_segment(program,start,end,tpf,side='right'):
+    """Read the executed drive/wrench pair on its original source clock."""
+    expected=start+np.arange(1,round((end-start)*tpf)+1)/tpf
+    if 'source_frame' in program:
+        frames=np.asarray(program['source_frame'])
+        take=np.flatnonzero((frames>start+1e-8)&(frames<=end+1e-8))
+        if len(take)!=len(expected) or not np.allclose(frames[take],expected,rtol=0,atol=1e-8):
+            raise ValueError('Recorded controller program does not cover the requested source interval')
+    else:
+        take=np.arange(round(start*tpf),round(end*tpf))
+    commands=np.asarray(program[side])[take]
+    wrenches=np.asarray(program[side+'_wrenches'])[take]
+    if commands.shape!=(len(expected),25) or wrenches.shape!=(len(expected),6):
+        raise ValueError('Recorded drive/wrench pair has an invalid shape')
+    return commands,wrenches
+
+
+def local_anchor_wrenches(scene,start,commands,anchor):
+    """Use the same physical hand model in Replay, MPPI and residual PPO."""
+    carry=anchor.entry_contact==anchor.exit_contact=='grasped'
+    free=scene.cfg['controller'].get('local_free_motion_dynamics_feedforward',False)
+    return segment_wrenches(scene,start,commands,transport=carry,free_motion=free)
+
+
 def feedback_wrench(pose,twist,actual,velocity,config):
     pose=np.asarray(pose);actual=np.asarray(actual)
     rotation=Rotation.from_quat(pose[[4,5,6,3]])*Rotation.from_quat(actual[[4,5,6,3]]).inv()
