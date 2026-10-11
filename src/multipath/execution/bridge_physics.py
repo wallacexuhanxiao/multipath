@@ -78,7 +78,7 @@ def _desired_motion(folder, commands, starts, dt, fps, window):
 
 
 def refine_bridge(scene, schedule, manifest, seed_run, replay, output,
-                  *, max_seconds=180., max_trials=12):
+                  *, max_seconds=180., max_trials=12, validated_program=None, next_entry_precheck=None):
     from multipath.anchors.boundary_feedback import same_source_seed
     from multipath.anchors.compatibility import boundary_errors, compatible
     from multipath.anchors.floating import controls_from_poses, validate_commands
@@ -122,6 +122,25 @@ def refine_bridge(scene, schedule, manifest, seed_run, replay, output,
             (path[-1]-path[-2])/scene.dt)
     boundaries = json.loads((folder/f'coordinated_{window["start"]}'/'fitted_boundary.json').read_text())
     goals = {side: boundaries['primary_goal' if side == 'right' else 'support_goal'] for side in hands}
+    if validated_program is not None:
+        cache = Path(validated_program)
+        program = json.loads((cache/'validated_bridge.json').read_text())
+        if (not program['physical_report']['success'] or program['window'] != window
+                or program['source_provenance'] != manifest['provenance']
+                or not compatible(boundary_errors(scene.snapshot(), program['entry']))):
+            raise ValueError('Cached physical bridge does not match its verified source/predecessor')
+        arrays = dict(np.load(cache/'validated_bridge.npz', allow_pickle=False))
+        for side in hands:
+            if not np.array_equal(arrays[side], commands[side]):
+                raise ValueError('Cached physical bridge changed the checked cuRobo command path')
+        program.update(commands=commands, drives={side: arrays[side+'_wrenches'] for side in hands})
+        if next_entry_precheck is None:
+            return program, dict(success=True, cached_physical_artifact=str(cache),
+                                 final_fresh_rollout_required=True, source_time_stretch=False)
+        # A bridge can retain grasp and satisfy object pose yet leave a
+        # velocity from which the next local Anchor cannot enter its budget.
+        # Reuse its controller as the next proposal, not as that missing proof.
+        base = program['drives']
     targets = _desired_motion(folder, commands, starts, scene.dt, schedule.fps, window)
     desired = {side: controls_from_poses(poses, np.vstack((starts[side]['command_hand_q'],
                     commands[side][:, 7:19])), scene.dt) for side, poses in targets.items()}
@@ -169,6 +188,8 @@ def refine_bridge(scene, schedule, manifest, seed_run, replay, output,
                 transitions[side] = hand.check_transition(goal['wrist_xyz_wxyz'], goal['contact']['mode'],
                                                           expected_object=np.asarray(goal['source_tool_boundary']))
                 if not transitions[side]['success']: raise RuntimeError(f'{side}: actual oracle entry not reached')
+            if next_entry_precheck is not None:
+                transitions['next_anchor_nominal_entry'] = next_entry_precheck()
         except RuntimeError as error: failure = str(error)
         if scene.restore_count != resets: raise RuntimeError('State reset inside physical bridge trial')
         scene.save()
@@ -203,6 +224,8 @@ def refine_bridge(scene, schedule, manifest, seed_run, replay, output,
             report.update(success=True, accepted_trial=trial, compute_seconds=time.monotonic()-started)
             np.savez_compressed(output/'validated_bridge.npz', **commands,
                 **{side+'_wrenches': values for side, values in program['drives'].items()})
+            (output/'validated_bridge.json').write_text(json.dumps(
+                {key:value for key,value in program.items() if key not in ('commands','drives')}, indent=2))
             (output/'bridge_physics_report.json').write_text(json.dumps(report, indent=2))
             return program, report
         score = (done, -sum(errors.values()))

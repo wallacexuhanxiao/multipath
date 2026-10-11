@@ -19,6 +19,7 @@ def main():
     p.add_argument('--bridge-feedback-run',type=Path,help='Rejected physical bridge; refine handoff or collision predictions from its measured tracking error')
     p.add_argument('--bridge-physical-seed',type=Path,help='Refine an existing cuRobo bridge with short fresh physical trials, preserving path and timing')
     p.add_argument('--bridge-physics-seconds',type=float,default=180.)
+    p.add_argument('--bridge-physical-program',type=Path,help='Reuse a physically compiled bridge; final continuous execution revalidates it')
     p.add_argument('--right-core-run',type=Path,help='Freeze a physically passed right core while repairing the other hand')
     p.add_argument('--carry-context-run',type=Path,help='Actual failed joint bridge whose planned controls provide outgoing synthesis context')
     p.add_argument('--left-ppo-checkpoint',type=Path,help='Continue a small PPO optimizer for the identical local residual reference')
@@ -129,12 +130,26 @@ def main():
             def replay(folder,mesh=False):
                 return replay_predecessor(scene,anchor,data,left_data,prefix,left_prefix,compiled,folder,mesh=mesh)
             replay(out/'bridge_initial_predecessor')
+            report['core_exit']=scene.snapshot()
+            np.savez_compressed(out/'joint_commands.npz',**compiled)
             report.update(padded_rollout=dict(success=True,cached_physical_artifact=str(args.right_core_run),
                                               fresh_revalidation=False),
                           core_replay=dict(success=True,entry_physically_reachable=True,
                                            state_resets_within_rollout=0),bimanual_anchor_success=True)
+            next_anchor=next((a for a in sorted(schedule.anchors.values(),key=lambda a:a.core_start)
+                              if a.core_start>anchor.core_end),None)
+            def next_entry_precheck():
+                if next_anchor is None or next_anchor.entry_contact!=next_anchor.exit_contact or next_anchor.entry_contact!='grasped':
+                    return dict(scope='no persistent-grasp core fit required')
+                from multipath.anchors.floating import source_grasp_core_controls
+                next_data=dict(np.load(args.proposals/manifest['anchors'][next_anchor.id],allow_pickle=False))
+                _,fit=source_grasp_core_controls(scene,next_anchor,next_data,scene.snapshot())
+                return dict(anchor=next_anchor.id,feasible=True,local_nominal_fit=fit,
+                            physically_validated_core=False)
             program,repair=refine_bridge(scene,schedule,manifest,args.bridge_physical_seed,replay,
-                                        out/'bridge_physics',max_seconds=args.bridge_physics_seconds)
+                                        out/'bridge_physics',max_seconds=args.bridge_physics_seconds,
+                                        validated_program=args.bridge_physical_program,
+                                        next_entry_precheck=next_entry_precheck)
             report['bridge_physical_refinement']=repair
             if program is None:raise RuntimeError('No physically feasible bridge candidate within the compute budget')
             # Candidate trials are local development. The exported final run

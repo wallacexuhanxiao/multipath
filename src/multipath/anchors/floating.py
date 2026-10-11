@@ -474,7 +474,7 @@ def source_grasp_core_controls(scene,anchor,data,start):
         raise ValueError('Carry core synthesis requires a physically reached persistent grasp')
     from multipath.planning.floating import pose_coordinates,coordinates_pose
     from multipath.planning.bridge import coordinate_velocity
-    from multipath.planning.timing import boundary_fitted_path
+    from multipath.planning.timing import boundary_fitted_path,fixed_budget_path
     tpf=physics_ticks_per_frame(scene.manifest['fps'],scene.dt)
     ticks=(anchor.core_end-anchor.core_start)*tpf
     held=np.asarray(start['hand_object_transform'])
@@ -487,11 +487,24 @@ def source_grasp_core_controls(scene,anchor,data,start):
         near=pose_coordinates(pose,near);raw.append(near.copy())
     raw=np.asarray(raw);limits=scene.cfg['planning']
     velocity=np.asarray(limits['velocity_limits']);acceleration=np.asarray(limits['acceleration_limits'])
-    first=coordinate_velocity(poses[0],start['wrist_twist'],raw[0])
+    measured_first=coordinate_velocity(poses[0],start['wrist_twist'],raw[0])
+    # The incoming physical derivative precedes the first discrete command.
+    # A small closed-loop overshoot can decelerate during this physics step;
+    # forcing its next average slope to equal the incoming velocity turns a
+    # feasible bounded transition into an infeasible LP. Keep measured dq as
+    # the initial acceleration boundary, never rewrite it in the snapshot.
+    first=np.clip(measured_first,-velocity,velocity)
+    if np.any(np.abs(first-measured_first)>acceleration*scene.dt+1e-9):
+        raise RuntimeError('Physical Anchor entry cannot enter nominal velocity budget within one physics step')
     # Source motion initializes the canonical exit velocity, but is not a
     # physical boundary invariant. Limit the proposal to the shared budgets.
     last=np.clip((raw[-1]-raw[-2])/scene.dt,-velocity,velocity)
     path,fit=boundary_fitted_path(raw,ticks,scene.dt,velocity,acceleration,first,last)
+    _,physical_start_fit=fixed_budget_path(path,scene.dt,ticks,scene.dt,velocity,acceleration,
+                                         measured_first,last)
+    fit.update(physical_start_fit,measured_initial_coordinate_velocity=measured_first.tolist(),
+               first_discrete_coordinate_velocity=first.tolist(),
+               incoming_velocity_transition='bounded acceleration in first physics step')
     fit.pop('curobo_duration_s',None)
     fitted_poses=np.asarray([coordinates_pose(q) for q in path])
     hands=np.repeat(hand_command_boundary(start)[None],ticks+1,axis=0)
