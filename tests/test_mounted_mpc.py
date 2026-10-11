@@ -33,6 +33,20 @@ def test_tracking_diagnostic_preserves_physical_and_boundary_gates(policy,frame,
         assert check.tracking_failures[0]['weighted_error'] == pytest.approx(1.2)
 
 
+@pytest.mark.parametrize('supported,contact,passed',[(True,'grasped',True),(False,'grasped',False),(True,'free',False)])
+def test_supported_contact_can_pivot_but_carry_or_contact_loss_still_fails(supported,contact,passed):
+    transform=np.eye(4);transform[:3,:3]=mpc.Rotation.from_rotvec([0.,0.,.36]).as_matrix()
+    start=dict(time_s=0.,contact={'mode':'grasped'},hand_object_transform=np.eye(4).tolist(),
+               objects={'tool':{'pose':[0.,0.,0.,1.,0.,0.,0.],'velocity':[0.]*6}})
+    measured=dict(start,contact={'mode':contact},hand_object_transform=transform.tolist())
+    scene=SimpleNamespace(manifest={'fps':30},surface_supported_object=supported)
+    check=mpc.WindowEvaluation(scene,InteractionAnchor('test',0,3,0,3,'grasped','grasped'),
+        {'tool_pose':np.tile(np.eye(4),(4,1,1))},start,core_tracking_policy='diagnostic')
+    assert check.observe(1,np.zeros(19),measured=measured) == passed
+    assert check.grasp_transform_deviations[0]['rotation_rad'] == pytest.approx(.36)
+    if not passed:assert check.failure['reason']=='core_grasp_retention'
+
+
 @pytest.mark.parametrize('object_error', [0., .06])
 def test_chunk_switching_never_commits_failed_interaction(monkeypatch, tmp_path, object_error):
     class Scene:

@@ -305,6 +305,9 @@ def continue_oracle(scene,schedule,manifest,proposals,output,*,boundary_feedback
                     checks[side]=check
                     info['hands'][side]['reference_tracking']=dict(policy=core_tracking_policy,
                         violations=check.tracking_failures)
+                    info['hands'][side]['grasp_transform_diagnostics']=check.grasp_transform_deviations
+                    info['hands'][side]['core_grasp_requirement']=('native opposition for surface-supported object'
+                        if core_tracking_policy=='diagnostic' and supported else 'native opposition and carried-object retention')
                     if not check.observe(anchor.core_start,controls[0],measured=start):
                         raise RuntimeError(f'{side}: {check.failure}')
                     folder=output/'cores'/anchor.id/side;folder.mkdir(parents=True,exist_ok=True)

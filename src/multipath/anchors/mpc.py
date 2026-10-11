@@ -96,6 +96,7 @@ class WindowEvaluation:
         self.failure = None
         self.continue_tracking_failures = continue_tracking_failures
         self.tracking_failures = []
+        self.grasp_transform_deviations = []
         self.initial_tool_height=float(start['objects']['tool']['pose'][2])
         core=np.asarray(data['tool_pose'])[anchor.core_start-anchor.synth_start:
                                           anchor.core_end-anchor.synth_start+1,2,3]
@@ -154,8 +155,17 @@ class WindowEvaluation:
             # interactions fail by construction. Stable grasp Anchors retain it.
             if self.held is not None and a.exit_contact == 'grasped':
                 r = retention_errors(measured, self.held)
-                if r['position_m'] > .05 or r['rotation_rad'] > .35 or not r['contact_retained']:
+                if not r['contact_retained']:
                     reason = 'core_grasp_retention'
+                if r['position_m'] > .05 or r['rotation_rad'] > .35:
+                    self.grasp_transform_deviations.append(dict(source_frame=float(frame),**r))
+                    # A hand stabilizing an environmentally supported object
+                    # can pivot at its contacts. This is not a rigid airborne
+                    # attachment. Diagnostic CORE execution still requires
+                    # actual thumb/non-thumb contact; carry remains unchanged.
+                    if (self.core_tracking_policy == 'strict' or
+                            not getattr(self.scene,'surface_supported_object',False)):
+                        reason = 'core_grasp_retention'
         if frame == a.core_end:
             contact_steps=measured.get('interaction_contacts',{}).get('tool_target_contact_steps',0)-self.core_contact_start
             if self.interaction_constraint.get('tool_target_contact') and contact_steps<=0:
