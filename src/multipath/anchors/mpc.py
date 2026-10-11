@@ -71,12 +71,17 @@ def fitted_cartesian_prior(scene, controls, ticks_per_frame):
 class WindowEvaluation:
     """Appendix C tracking score with project core/contact boundary checks.
 
-    Padding has no reference-fidelity gate. Auxiliary contact reward is
-    optimization-only; evaluation uses object tracking alone. A final release
-    may also check its existing task contract at the end of post-context.
+    Padding has no reference-fidelity gate. CORE tracking can be strict or
+    diagnostic; contact and entry/exit checks apply in either mode. Auxiliary
+    contact reward is optimization-only. A final release may also check its
+    existing task contract at the end of post-context.
     """
-    def __init__(self, scene, anchor, data, start, *, continue_tracking_failures=False):
+    def __init__(self, scene, anchor, data, start, *, continue_tracking_failures=False,
+                 core_tracking_policy='strict'):
+        if core_tracking_policy not in ('strict','diagnostic'):
+            raise ValueError('Unknown CORE reference tracking policy')
         self.scene, self.anchor, self.data = scene, anchor, data
+        self.core_tracking_policy = core_tracking_policy
         self.interaction_constraint=scene.manifest.get('interaction_constraints',{}).get(anchor.id,{})
         self.core_contact_start=start.get('interaction_contacts',{}).get('tool_target_contact_steps',0)
         frame = start['time_s'] * scene.manifest['fps']
@@ -138,7 +143,10 @@ class WindowEvaluation:
             score = object_tracking_score(error)
             reward = tracking_reward = score['reward']
             if not score['feasible']:
-                reason = 'core_object_fidelity'
+                self.tracking_failures.append(dict(source_frame=float(frame),
+                    reason='core_object_fidelity',**error,weighted_error=score['weighted_error']))
+                if self.core_tracking_policy == 'strict':
+                    reason = 'core_object_fidelity'
             # Native opposition, not proximity. No human-mimic or smoothness
             # reward; final release is checked explicitly below.
             # Release Anchors must be allowed to change contact inside CORE.
@@ -231,7 +239,6 @@ class WindowEvaluation:
                 # Search needs the remaining interaction's dense reward. A
                 # temporary tracking miss is recorded, never a successful
                 # candidate. Fresh padded/core Replay still uses hard gates.
-                self.tracking_failures.append({'source_frame': float(frame), 'reason': reason})
                 return True
             self.failure = {'source_frame': float(frame), 'reason': reason}
             if handoff_failure is not None:

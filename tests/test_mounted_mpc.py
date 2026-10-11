@@ -10,6 +10,29 @@ from multipath.anchors import mpc
 from multipath.anchors.schema import InteractionAnchor
 
 
+@pytest.mark.parametrize('policy,frame,contact,expected_reason', [
+    ('strict',1,'grasped','core_object_fidelity'),
+    ('diagnostic',1,'grasped',None),
+    ('diagnostic',1,'free','core_grasp_retention'),
+    ('diagnostic',0,'grasped','core_entry_source_boundary'),
+    ('diagnostic',3,'grasped','core_exit_handoff'),
+])
+def test_tracking_diagnostic_preserves_physical_and_boundary_gates(policy,frame,contact,expected_reason):
+    start=dict(time_s=0.,contact={'mode':'grasped'},hand_object_transform=np.eye(4).tolist(),
+               objects={'tool':{'pose':[0.,0.,0.,1.,0.,0.,0.],'velocity':[0.]*6}})
+    measured=dict(start,contact={'mode':contact},
+                  objects={'tool':{'pose':[.06,0.,0.,1.,0.,0.,0.],'velocity':[0.]*6}})
+    scene=SimpleNamespace(manifest={'fps':30},check_transition=lambda *a: {'success':False})
+    anchor=InteractionAnchor('test',0,3,0,3,'grasped','grasped')
+    check=mpc.WindowEvaluation(scene,anchor,{'tool_pose':np.tile(np.eye(4),(4,1,1))},start,
+                               core_tracking_policy=policy)
+    passed=check.observe(frame,np.array([0.,0.,0.,1.,0.,0.,0.]+[0.]*12),measured=measured)
+    assert passed == (expected_reason is None)
+    assert (check.failure or {}).get('reason') == expected_reason
+    if frame>0:
+        assert check.tracking_failures[0]['weighted_error'] == pytest.approx(1.2)
+
+
 @pytest.mark.parametrize('object_error', [0., .06])
 def test_chunk_switching_never_commits_failed_interaction(monkeypatch, tmp_path, object_error):
     class Scene:

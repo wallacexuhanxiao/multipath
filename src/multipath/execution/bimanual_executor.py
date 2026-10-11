@@ -22,7 +22,8 @@ def hand_data(data,side,role):
                 tool_pose=data[role+'_pose'])
 
 
-def continue_oracle(scene,schedule,manifest,proposals,output,*,boundary_feedback_run=None,bridge_programs=None):
+def continue_oracle(scene,schedule,manifest,proposals,output,*,boundary_feedback_run=None,bridge_programs=None,
+                    core_tracking_policy='strict'):
     from multipath.planning.floating import FloatingPlanner
     from multipath.planning.bridge import feedback_boundary_target,bridge_precheck,terminal_stop_target
     from multipath.execution.wrench_handoff import segment_wrenches,measured_force_balance,support_hold_commands
@@ -42,6 +43,7 @@ def continue_oracle(scene,schedule,manifest,proposals,output,*,boundary_feedback
         padded_artifacts_complete=False,vlm_used=False,complete_robot_reference_required=False,
         relaxed_reference_tracking=False,source_time_stretch=False,segments=[],anchors=[],
         initial_preparation_uses_synthesis_context=True)
+    report['core_reference_tracking_policy']=core_tracking_policy
     report['retention_sampling']=dict(relative_pose_and_native_touch_hz=1/scene.dt,
         thumb_and_non_thumb_opposition_hz=schedule.fps,native_dropouts_recorded=True)
     feedback=None
@@ -299,7 +301,10 @@ def continue_oracle(scene,schedule,manifest,proposals,output,*,boundary_feedback
                     retained=hand.last_support_hold_wrenches if keep_support else None
                     drives[side]=(retained if retained is not None else segment_wrenches(hand,start,controls,
                         transport=stable and not keep_support,supported_object=supported))
-                    check=WindowEvaluation(hand,anchor,data,start);checks[side]=check
+                    check=WindowEvaluation(hand,anchor,data,start,core_tracking_policy=core_tracking_policy)
+                    checks[side]=check
+                    info['hands'][side]['reference_tracking']=dict(policy=core_tracking_policy,
+                        violations=check.tracking_failures)
                     if not check.observe(anchor.core_start,controls[0],measured=start):
                         raise RuntimeError(f'{side}: {check.failure}')
                     folder=output/'cores'/anchor.id/side;folder.mkdir(parents=True,exist_ok=True)
@@ -383,6 +388,8 @@ def continue_oracle(scene,schedule,manifest,proposals,output,*,boundary_feedback
                 for side,transform in held.items()}
         (output/'failed_state.json').write_text(json.dumps(scene.snapshot(),indent=2))
     finally:
+        report['core_reference_tracking_violations']=sum(len(h.get('reference_tracking',{}).get('violations',[]))
+            for s in report['segments'] for h in s['hands'].values())
         scene.save();report.update(actual_duration_s=scene.ticks*scene.dt,
             state_resets_between_segments=scene.restore_count-resets,actual_trace=str(scene.out/'actual_trace.json'))
         (output/'continuous_result.json').write_text(json.dumps(report,indent=2))

@@ -25,6 +25,8 @@ def main():
     p.add_argument('--left-ppo-checkpoint',type=Path,help='Continue a small PPO optimizer for the identical local residual reference')
     p.add_argument('--left-ppo-seconds',type=float,default=240.,help='Bound the local PPO compute budget, independently of source time')
     p.add_argument('--continue-oracle',action='store_true',help='Continue the reached joint core exit with cuRobo and local oracle interactions')
+    p.add_argument('--core-tracking-policy',choices=('strict','diagnostic'),default='diagnostic',
+                   help='Record per-frame CORE reference deviations; keep physical and boundary checks')
     args=p.parse_args();out=args.output_dir;out.mkdir(parents=True,exist_ok=True)
     report=dict(bimanual_anchor_success=False,full_pipeline_success=False,task_success=False,
                 source='oracle',source_time_stretch=False,vlm_used=False,pbs_job_id=os.environ.get('PBS_JOBID'))
@@ -156,7 +158,7 @@ def main():
             # starts again at initial and performs every source step in order.
             report['core_exit']=replay(out/'exported_core',mesh=True)
             report['continuous_candidate']=continue_oracle(scene,schedule,manifest,args.proposals,out,
-                bridge_programs={anchor.core_end:program})
+                bridge_programs={anchor.core_end:program},core_tracking_policy=args.core_tracking_policy)
             return
         if args.right_boundary_feedback_run:
             from multipath.anchors.boundary_feedback import collision_exit_proposal,recorded_core_commands
@@ -446,7 +448,7 @@ def main():
             if left.surface_supported_object and len(left_padded[end:]):
                 left.support_hold_program=dict(commands=left_padded[end:].copy(),wrenches=left_drive[end:].copy())
             report['continuous_candidate']=continue_oracle(scene,schedule,manifest,args.proposals,out,
-                boundary_feedback_run=args.bridge_feedback_run)
+                boundary_feedback_run=args.bridge_feedback_run,core_tracking_policy=args.core_tracking_policy)
     except Exception as error:
         import traceback
         traceback.print_exc();report['error']=f'{type(error).__name__}: {error}'

@@ -41,6 +41,7 @@ MP_ENV=(--env "LD_LIBRARY_PATH=/scratch/e0985859/semantic_verifier/compat_libs/x
  --bind "$ROOT/hpc/container_env/92-env-torch-distributed.sh:/.singularity.d/env/92-env-torch-distributed.sh:ro")
 [[ -z "${CUDA_VISIBLE_DEVICES:-}" ]] || MP_ENV+=(--env "CUDA_VISIBLE_DEVICES=$CUDA_VISIBLE_DEVICES")
 EXTRA=()
+EXTRA+=(--core-tracking-policy "${MULTIPATH_CORE_TRACKING_POLICY:-diagnostic}")
 [[ -z "${MULTIPATH_LEFT_PADDED_CONTROLS:-}" ]] || EXTRA+=(--left-padded-controls "$MULTIPATH_LEFT_PADDED_CONTROLS")
 [[ -z "${MULTIPATH_LEFT_PREFIX_RUN:-}" ]] || EXTRA+=(--left-prefix-run "$MULTIPATH_LEFT_PREFIX_RUN")
 [[ -z "${MULTIPATH_RIGHT_BOUNDARY_FEEDBACK_RUN:-}" ]] || EXTRA+=(--right-boundary-feedback-run "$MULTIPATH_RIGHT_BOUNDARY_FEEDBACK_RUN")
