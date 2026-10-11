@@ -348,3 +348,43 @@ r306 / r307 的上下对比：
 最新 r309 实际状态视频：
 `outputs/oracle_action_types_20261008/r309_bimanual/exported_core/floating_xhand_actual.mp4`。
 已逐帧解码 38 帧、30 fps、1.266667 s，对应真实执行的 A0 + bridge 失败前缀。双方保持 grasp 到帧 38，不代表已通过碰撞检查或完整任务。
+
+### 30. 用短 PhysX 候选检验 cuRobo bridge 的执行可行性
+
+r310 表明更长的历史误差曲线仍不能替代物理验证。新增通用 `execution/bridge_physics.py`，复用已通过的 padded/core controller program 和既有 cuRobo 路线，冻结位置、速度、手指和 source clock；局部调整的是 external-wrench feedforward。每个候选都重新从 task initial state 物理执行 prefix 和 core，验证 core 后才尝试 bridge。没有从 reference 拼出 entry，也没有在 segment 间恢复 snapshot。
+
+物理候选逐步检查原 native tool/target contact、实际全手与 carried-object mesh、grasp retention 和原 source boundary。历史跟踪误差只初始化控制候选；滤波后的实测 pose/twist error 提出下一次 feedforward，接管淡入使用实际质量、惯量和已有 PD bandwidth。失败候选保留，不改摩擦、controller gains、几何或验收阈值。候选通过后再从 initial 执行同一个完整 controller program，正常 executor 重复实际 gates，随后继续后面的 oracle Anchor。
+
+这是物理 feasibility refinement，不是新的 RELAXED RL。没有 sample 名称、task 名称或 frame 专用调参分支。A0 从已验证 artifact 复用 padded 证据，同时每个新候选重跑 exported core；这轮不声称重新合成并验证全部 Anchors。
+
+复用 r309 路线的最小 precheck：预算 **0.233333 s / 28 physics ticks**；right velocity ratio 0.978596、left 0.640126；两手 nominal acceleration ratio 均约 1.000000；finger commands 全段冻结。语法检查和 diff 检查通过。r311 / **659112** 最初申请 interactive H200 **10 min**，H200 可用 NUS pool 全部占满后，仅在作业仍为 queued 时改为 H100；实际在 hopper-03 执行 **1 min 59 s**。物理搜索预算 180 s、至多 12 个候选，实际只用 **4 个候选 / 34.684 s**。代码提交 `f120789`。
+
+候选 0 准确复现 r309：physics step 24 / source 38 时 tool 与 left index mesh 相交。候选 1 到 step 27；候选 2 到 step 28 时仍相交；候选 3 **完成全部 28 steps**，native contact、实际 mesh、双手 grasp retention 和原 source boundary 全通过。重新从 task initial state 执行同一 controller program 后，bridge 再次通过，到 source 39 / **1.300000 s**，segment 间 **0 reset**。right source-object error 39.825 mm / 0.274147 rad，left 22.788 mm / 0.273089 rad，按原 weighted C.4 验收，两手均通过。保存的左右 wrist/finger commands 与 r309 逐元素完全相同，变动只有 feedforward，构成直接的执行接口归因。
+
+接着 A1 core command fitting 在 coordinate 1 报无解，尚未执行 A1 interaction。**完整 V0 仍未完成**。证据：[r311 物理结果](evidence/oracle_action_types_20261008/anchor_boundary_repair_20261011/r311_physical_bridge_result.json)。实际状态视频 `outputs/oracle_action_types_20261008/r311_bimanual/exported_core/floating_xhand_actual.mp4`：逐帧解码 **39 帧 / 30 fps / 1.3 s**，末帧已检查；这是 initial + A0 + 成功 bridge 的前缀，不是完整任务。上下对比 `outputs/oracle_action_types_20261008/anchor_boundary_repair_20261011/r309_vs_r311_actual_stacked.mp4`：38 帧、统一 source 1–38，上 r309 下 r311；不是多解视频。
+
+### 31. 物理桥段出口还必须允许下一段接管
+
+r311 的真实出口 linear Y velocity 为 **1.006961 m/s**，规划 nominal budget 为 1 m/s。旧 local core fitter 把下一离散步的速度固定为入口实测速度，再同时要求它不超过 nominal budget，因此在 coordinate 1 无解。
+
+修复没有裁剪实际 q/dq，也没有增大 limit：实际入口速度始终保留，下一离散目标速度在原 velocity budget 内选择，并把真实入口速度用于首步 acceleration precheck。这不是等候或 source-time 延长。r311 Y 方向减速只需要 0.835305 m/s²，在原 5 m/s² budget 内。但它的 world angular velocity 转为 ZYX planning coordinates 后，yaw rate 为 **3.161482 rad/s**；一 physics step 降到原 3 rad/s budget 需要 19.377797 rad/s²，超过原 15 rad/s² nominal budget，所以这条完整 Anchor 接管仍不可直接接受。这里的坐标预算不是机器人硬件额定值。
+
+因此把“下一 persistent-grasp Anchor 的 nominal trajectory 可由该真实出口拟合”接入已有短物理候选循环。复用 r311 通过的 bridge feedforward 作为下一条 proposal，再由同一实测 q/dq 驱动修正。该检查保护刚发生的失败，不是新增任务成功 gate；nominal fit 可行仍不代表 core interaction 物理成功。
+
+编译后的 bridge 保存 commands、wrenches、实际 entry、source/window 和物理候选结果，可重复使用；每次最终连续执行仍重新验证，不能用 cached success 替代新 rollout。代码提交 `e7344c7`，r312 / **659126** 为下一次 10 min interactive H100 验证。
+
+r312 实际完成 **1 min 28 s**。以 r311 的通过控制器为基线，候选 0 明确拒绝上述下一段速度接管；候选 1 在 **19.069 s** 搜索后通过 bridge + A1 nominal fitting。再次从初态连续执行，原 source budget、抓持、碰撞、边界均通过，A1 首次真正进入物理执行。它在 source **40 / 1.333333 s** 因 left `core_grasp_retention` 停止，0 segment reset；右手仍抓持工具。左手 finger command 全程没变，但 thumb force 从 6.458 N 变为 0，index force升到 25.6 N；root angular velocity 明显变化。证据：[r312 入口与首次交互](evidence/oracle_action_types_20261008/anchor_boundary_repair_20261011/r312_anchor_entry_result.json)。
+
+### 32. 位置在容忍范围内不等于有稳定保持控制器
+
+r312 左手实际带有 0.7195 m/s 的 wrist Y velocity。旧 `keep_support` 分支只因为 plate 当前 pose 落在整个 core 的 source 范围内，就使用全段缓停的 hold proposal，并取消该段 transport dynamics feedforward。这没有证明当前移动状态可由这个保持程序稳定接管。
+
+修复：只有已有实际编译/执行的 `support_hold_program` 才可复用保持分支；没有这个程序的移动入口走原来的局部 source-conditioned Anchor trajectory fitting 和 supported-load feedforward。实际 q/dq、手指 preload、source deadline 与 C.4 阈值不变，cuRobo 没进入 core。代码提交 `d1efa53`，没有 task/sample/frame 特例。
+
+r313 / **659134** 完成 **1 min 12 s**。复用 r312 的 bridge controller，baseline 再次通过 bridge + 下一段 nominal fit，然后 fresh initial → A0 → bridge → A1 无间断执行。双手 native thumb/non-thumb grasp 保持到 source **41 / 1.366667 s**，0 segment reset；r312 的 frame-40 thumb loss 没有复现。
+
+当前第一处失败变为 left **core_object_fidelity**：实际 plate source error 为 **37.952 mm / 0.445407 rad（25.52°）**。单项小于 5 cm / 30° 不等于通过原 weighted C.4，组合后超界。left wrist 跟踪误差为 5.247 mm；以入口真实 grasp transform 推算的 command-implied object error 为 46.836 mm / 0.363911 rad，它也超出组合范围。说明现在需要局部 interaction synthesis 的物理优化；不能把掉抓修复、LP 可行或单个阈值内当作 Anchor 成功，也不应再扩大容忍范围。该 command-implied 数值仅是归因，不是实际物理验收或新 gate。
+
+证据：[r313 局部交互结果](evidence/oracle_action_types_20261008/anchor_boundary_repair_20261011/r313_local_anchor_result.json)。后续应从这次真实 predecessor 获取 A1 padded synthesis 入口，接已有 Replay → MPC → small residual PPO，再验证 exported core；A1/A2 padded/core artifacts 仍未全部通过。首个双手 oracle Anchor 和第一个运动规划 bridge 已有重复物理证据，**完整 3.666667 s V0 仍未完成**。
+
+最新 actual-state video：`outputs/oracle_action_types_20261008/r313_bimanual/exported_core/floating_xhand_actual.mp4`，已逐帧解码 41 帧 / 30 fps / 1.366667 s，末帧已目视检查；只包含到 frame 41 的实际失败前缀，不作为 terminal task success。

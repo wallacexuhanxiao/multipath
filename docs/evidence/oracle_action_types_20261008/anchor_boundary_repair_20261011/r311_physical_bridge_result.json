@@ -1,0 +1,86 @@
+{
+  "experiment": "r311",
+  "pbs_job_id": "659112",
+  "code_commit": "f120789",
+  "gpu_model": "H100",
+  "pbs_walltime_s": 119,
+  "search_s": 34.68400533404201,
+  "accepted_trial": 3,
+  "bridge_passed": true,
+  "full_pipeline_success": false,
+  "actual_duration_s": 1.3,
+  "state_resets_between_segments": 0,
+  "trials": [
+    {
+      "trial": 0,
+      "success": false,
+      "physics_steps": 24,
+      "error": "right: actual RELAXED mesh collision: [{'mesh': 'tool', 'obstacle': 'peer_left_004', 'geometry': 'triangle_mesh'}]"
+    },
+    {
+      "trial": 1,
+      "success": false,
+      "physics_steps": 27,
+      "error": "right: actual RELAXED mesh collision: [{'mesh': 'tool', 'obstacle': 'peer_left_004', 'geometry': 'triangle_mesh'}]"
+    },
+    {
+      "trial": 2,
+      "success": false,
+      "physics_steps": 28,
+      "error": "right: actual RELAXED mesh collision: [{'mesh': 'tool', 'obstacle': 'peer_left_004', 'geometry': 'triangle_mesh'}]"
+    },
+    {
+      "trial": 3,
+      "success": true,
+      "physics_steps": 28,
+      "error": null
+    }
+  ],
+  "commands_identical_to_r309": {
+    "right": true,
+    "left": true
+  },
+  "transitions": {
+    "right": {
+      "wrist_error": {
+        "position_m": 0.00430430906747842,
+        "rotation_rad": 0.040184858079623194
+      },
+      "wrist_tracking_diagnostic_only": true,
+      "actual_wrist_twist": [
+        0.5958602877382897,
+        1.0069608758527204,
+        -0.4890701401471783,
+        -1.3213109970092773,
+        -1.533268690109253,
+        2.241626024246216
+      ],
+      "object_boundary_error": {
+        "position_m": 0.03982464007303659,
+        "rotation_rad": 0.2741468281143053
+      },
+      "success": true
+    },
+    "left": {
+      "wrist_error": {
+        "position_m": 0.004920831544929463,
+        "rotation_rad": 0.029477193096720727
+      },
+      "wrist_tracking_diagnostic_only": true,
+      "actual_wrist_twist": [
+        0.04064576660001584,
+        0.6914881847850335,
+        -0.016236319662165266,
+        0.7418851852416992,
+        -0.38501107692718506,
+        -1.287398099899292
+      ],
+      "object_boundary_error": {
+        "position_m": 0.022787532032441573,
+        "rotation_rad": 0.27308878108719536
+      },
+      "success": true
+    }
+  },
+  "next_failure": "RuntimeError: No fixed-time boundary trajectory in coordinate 1"
+}

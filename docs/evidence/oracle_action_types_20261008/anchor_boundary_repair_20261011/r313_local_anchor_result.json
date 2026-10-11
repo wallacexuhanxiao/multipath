@@ -1,0 +1,102 @@
+{
+  "experiment": "r313",
+  "pbs_job_id": "659134",
+  "code_commit": "d1efa53",
+  "pbs_walltime_s": 72,
+  "gpu_model": "H100",
+  "bridge_success": true,
+  "accepted_bridge_trial": 0,
+  "search_s": 9.578219888033345,
+  "actual_duration_s": 1.3666666666666667,
+  "state_resets_between_segments": 0,
+  "full_pipeline_success": false,
+  "failure": "RuntimeError: left: {'source_frame': 41.0, 'reason': 'core_object_fidelity'}",
+  "failure_source_frame": 41.0,
+  "grasp_at_failure": {
+    "right": "grasped",
+    "left": "grasped"
+  },
+  "actual_left_error": {
+    "position_m": 0.03795187100225149,
+    "rotation_rad": 0.44540657940470474
+  },
+  "actual_left_c4": {
+    "weighted_error": 1.140073192947112,
+    "reward": -0.14007319294711196,
+    "feasible": false
+  },
+  "physical_attribution": [
+    {
+      "source_frame": 39.0,
+      "actual_object_error": {
+        "position_m": 0.02710283459808352,
+        "rotation_rad": 0.29453726762689
+      },
+      "command_implied_object_error": {
+        "position_m": 0.03293001030288359,
+        "rotation_rad": 0.26646970910300194
+      },
+      "wrist_tracking_m": 0.0024652204184230394,
+      "grasp": "grasped"
+    },
+    {
+      "source_frame": 40.0,
+      "actual_object_error": {
+        "position_m": 0.031640551268872684,
+        "rotation_rad": 0.3757586490803757
+      },
+      "command_implied_object_error": {
+        "position_m": 0.0378596784556732,
+        "rotation_rad": 0.3362908300064112
+      },
+      "wrist_tracking_m": 0.004753523500215837,
+      "grasp": "grasped"
+    },
+    {
+      "source_frame": 41.0,
+      "actual_object_error": {
+        "position_m": 0.03795187100225149,
+        "rotation_rad": 0.44540657940470474
+      },
+      "command_implied_object_error": {
+        "position_m": 0.04683617941369942,
+        "rotation_rad": 0.36391123052068136
+      },
+      "wrist_tracking_m": 0.005246847890338199,
+      "grasp": "grasped"
+    }
+  ],
+  "left_core_mode": {
+    "budget_s": 1.5,
+    "time_scale": 1.0,
+    "command_velocity_ratio": 0.9055003575476017,
+    "command_acceleration_ratio": 1.0000000000001563,
+    "parameterization": "endpoint_constrained_geometric_fit",
+    "geometry_max_adjustment": 0.3733030299181326,
+    "boundary_velocities_preserved": true,
+    "measured_initial_coordinate_velocity": [
+      -0.0014871670040245456,
+      0.7194996424523921,
+      -0.004752067898382187,
+      -1.4413454531992742,
+      0.4195639690481868,
+      0.2857154414242343
+    ],
+    "first_discrete_coordinate_velocity": [
+      -0.0014871670040245456,
+      0.7194996424523921,
+      -0.004752067898382187,
+      -1.4413454531992742,
+      0.4195639690481868,
+      0.2857154414242343
+    ],
+    "incoming_velocity_transition": "bounded acceleration in first physics step",
+    "frame": 39,
+    "initial_boundary": "actual_measured_wrist_pose_and_twist",
+    "source_conditioning": "local_tool_pose_with_measured_hand_object_transform",
+    "command_target_continuity": "existing_wrench_takeover",
+    "curobo_used": false,
+    "local_fit_duration_s": 1.5,
+    "physical_validation_required": true
+  }
+}

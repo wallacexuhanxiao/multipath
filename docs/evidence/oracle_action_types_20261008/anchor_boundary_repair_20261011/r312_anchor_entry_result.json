@@ -1,0 +1,62 @@
+{
+  "experiment": "r312",
+  "pbs_job_id": "659126",
+  "code_commit": "e7344c7",
+  "pbs_walltime_s": 88,
+  "gpu_model": "H100",
+  "bridge_success": true,
+  "next_anchor_nominal_entry_passed": true,
+  "accepted_trial": 1,
+  "search_s": 19.06923221400939,
+  "actual_duration_s": 1.3333333333333333,
+  "failure_source_frame": 40.0,
+  "state_resets_between_segments": 0,
+  "full_pipeline_success": false,
+  "next_failure": "RuntimeError: left: {'source_frame': 40.0, 'reason': 'core_grasp_retention'}",
+  "first_physical_interaction_failure": {
+    "source_frame": 40.0,
+    "reason": "core_grasp_retention"
+  },
+  "left_core_mode": {
+    "curobo_used": false,
+    "persistent_constraint": "source-conditioned native support",
+    "controller_origin": "previously_executed_drive",
+    "original_core_acceptance_unchanged": true
+  },
+  "left_entry_twist": [
+    -0.0014871670040245456,
+    0.7194996424523921,
+    -0.004752067898382187,
+    0.44727590680122375,
+    -0.23326244950294495,
+    -1.3847757577896118
+  ],
+  "left_failure_twist": [
+    0.08540698788268501,
+    0.42723594872754234,
+    0.025795754402686395,
+    -2.2752294540405273,
+    -0.42109164595603943,
+    1.2125273942947388
+  ],
+  "left_entry_bias": [
+    3.921093601537035,
+    3.5866599513347186,
+    -7.352674458024917,
+    0.586332652579525,
+    0.723411289878222,
+    0.7317873698795061
+  ],
+  "left_failure_bias": [
+    2.358406157572201,
+    1.274066721585159,
+    -4.671588202918096,
+    0.027261789613970695,
+    0.5302325164566569,
+    0.5661876773702555
+  ],
+  "finger_command_change": {
+    "right": 0.0,
+    "left": 0.0
+  }
+}
