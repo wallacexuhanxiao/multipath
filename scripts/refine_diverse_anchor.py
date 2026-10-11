@@ -26,6 +26,7 @@ def main():
     from multipath.execution.wrench_handoff import segment_wrenches,recorded_control_segment
     from multipath.anchors.artifact import load_validated_anchor,save_anchor
     from multipath.anchors.floating import rebase_grasp_commands,validate_commands
+    from multipath.anchors.floating_search import carry_preload_candidates
     from multipath.anchors.mpc import WindowEvaluation
     from multipath.anchors.bridge_boundary import nearest_entry_velocity,terminal_velocity_residual
     from multipath.planning.floating import FloatingPlanner
@@ -78,6 +79,7 @@ def main():
         entry_run=str(args.entry_run),core_interval=[anchor.core_start,anchor.core_end],
         synthesis_interval=[anchor.synth_start,anchor.synth_end],trials=[],source_time_stretch=False)
     app=None;scene=None;delta=np.zeros(6);accepted=None
+    joint_proposals=[];joint_velocity_delta=None
     try:
         app=start_simulation(out)
         def acquire(folder):
@@ -166,6 +168,12 @@ def main():
             duration=(anchor.core_start-anchor.synth_start+anchor.synth_end-anchor.core_end)/schedule.fps
             candidate=terminal_velocity_residual(core,delta,duration,scene.dt)
             trial=dict(index=index,terminal_coordinate_velocity_residual=delta.tolist(),success=False)
+            joint_index=index-max(2,args.candidates//2)
+            if 0<=joint_index<len(joint_proposals):
+                preload,metadata=joint_proposals[joint_index]
+                candidate=terminal_velocity_residual(preload,joint_velocity_delta,duration,scene.dt)
+                trial.update(terminal_coordinate_velocity_residual=joint_velocity_delta.tolist(),
+                    finger_preload=metadata,proposal_family='joint_wrist_and_finger_physical_MPC')
             report['trials'].append(trial);exit_state=None
             try:
                 native=None
@@ -185,6 +193,13 @@ def main():
                     # velocity only; the original limits still decide acceptance.
                     correction=np.where(abs(correction)>1e-5,correction+
                         np.sign(correction)*.02*np.asarray(scene.cfg['planning']['velocity_limits']),0.)
+                    if not joint_proposals and index==0:
+                        # Wrist-only exit shaping can spoil an otherwise real
+                        # grasp. Reuse the existing contact-directed finger
+                        # proposals in the same trial budget, inside the Anchor.
+                        # Fingers remain frozen during the outgoing bridge.
+                        joint_proposals=list(carry_preload_candidates(scene,anchor,core,entry,exit_state))[-4:]
+                        joint_velocity_delta=2*correction
                     delta+=2*correction
                 else:delta*=.5
             (out/'development_result.json').write_text(json.dumps(report,indent=2))

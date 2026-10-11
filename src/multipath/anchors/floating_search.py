@@ -23,13 +23,12 @@ def carry_preload_candidates(scene,anchor,baseline,start,core_exit):
     """
     if anchor.exit_contact!='grasped' or core_exit['contact']['mode']!='grasped':return
     from multipath.anchors.mpc import MPCConfig
-    from multipath.anchors.pinch import contact_linearization
-    from multipath.anchors.grasp_retarget import tool_surface_distance
+    from multipath.anchors.pinch import contact_linearization,mesh_surface_distance
     contact=core_exit['contact'];groups=('thumb','index','mid','ring','pinky')
     loads={group:sum(force for path,force in zip(contact['link_paths'],contact['force_norms_n'])
                     if group in path.rsplit('/',1)[-1]) for group in groups[1:]}
     opposing=max(loads,key=loads.get)
-    distance=tool_surface_distance(scene.meshes['tool'],cache=scene.args.proposals/'geometry_cache')
+    distance=mesh_surface_distance(scene.meshes['tool'])
     pinch=contact_linearization(scene.args.xhand_urdf,distance,np.linalg.inv(core_exit['hand_object_transform']),
         core_exit['hand_q'],opposing,side=getattr(scene,'side','right'))
     gradient=np.asarray(pinch['gap_gradient_m_per_rad'])
@@ -58,6 +57,44 @@ def carry_preload_candidates(scene,anchor,baseline,start,core_exit):
                 native_contact_band_m=contact_band,proposal_radius_rad=float(radius),
                 contact_linearization=pinch,
                 wrist_program_unchanged=True,source_time_stretch=False,physical_acceptance=False)
+
+
+def acquisition_surface_residual(scene,anchor,measured,scales):
+    """A coordinated wrist/finger MPC seed from a real missed pinch.
+
+    A nominal-load preload cannot close millimetres of measured empty space.
+    Actual skin gaps guide this proposal; native contact still decides success.
+    """
+    detail=scene.manifest.get('retarget_details',{}).get(anchor.id,{})
+    opposing=detail.get('opposition_finger')
+    if not opposing or not measured.get('physically_acquired_state'):return None
+    contact=measured['contact']
+    loads={group:sum(force for path,force in zip(contact['link_paths'],contact['force_norms_n'])
+                    if group in path.rsplit('/',1)[-1]) for group in ('index','mid','ring','pinky')}
+    if max(loads.values())>0:opposing=max(loads,key=loads.get)
+    from multipath.anchors.pinch import contact_linearization,mesh_surface_distance
+    from multipath.execution.mounted_scene import pose_matrix
+    distance=mesh_surface_distance(scene.meshes['tool'])
+    rotation=pose_matrix(measured['objects']['tool']['pose'])[:3,:3]
+    pinch=contact_linearization(scene.args.xhand_urdf,distance,np.linalg.inv(measured['hand_object_transform']),
+        measured['hand_q'],opposing,side=getattr(scene,'side','right'))
+    gaps=np.asarray(pinch['surface_gap_m']);pose=np.asarray(pinch['wrist_gap_gradient_object_frame'])
+    jacobian=np.c_[pose[:,:3]@rotation.T,pose[:,3:]@rotation.T,np.asarray(pinch['gap_gradient_m_per_rad'])]
+    scaled=jacobian*np.asarray(scales)
+    target=np.full(2,-.0005)
+    # A geometric proxy must not open a real loaded contact merely to move
+    # its skin gap toward the nominal zero. Close the missing contact while
+    # keeping observed contacts at their current measured geometry.
+    if contact['thumb_contact']:target[0]=gaps[0]
+    if loads[opposing]>0:target[1]=gaps[1]
+    residual=np.asarray(scales)*(np.linalg.pinv(scaled,rcond=1e-4)@(target-gaps))
+    residual/=max(1.,float(np.max(np.abs(residual)/scales)))
+    return residual,dict(method='actual_skin_gap_coordinated_wrist_finger_MPC',
+        contact_linearization=pinch,residual_world_xyz_rotvec_hand=residual.tolist(),
+        measured_feedback_frame=float(measured['time_s']*scene.manifest['fps']),
+        nominal_opposition_finger=detail.get('opposition_finger'),measured_opposition_finger=opposing,
+        target_surface_gap_m=target.tolist(),preserve_observed_contact_geometry=True,
+        physical_acceptance=False)
 
 
 def apply_residual(scene,baseline,start,residual,tpf,envelope,anchor=None):
@@ -434,6 +471,14 @@ def refine(scene,anchor,data,baseline,start,out,candidates=64,iterations=3,use_p
         best_state=retain_prefix(prefix,replay,begin) if valid else None
         seed=replay.copy();seed_score=score;prior_origin.clear();prior_origin.update(proposal='local_replay',score=float(score),failure=info.get('failure'))
         mean=np.zeros((len(replay)//tpf,18));scale=np.r_[np.full(3,.02),np.full(3,.2),np.full(12,.25)]
+        acquisition_seed=None
+        if not valid and anchor.entry_contact=='free' and anchor.exit_contact=='grasped':
+            # Correct the real missed pinch before one-sided contact has
+            # pushed/rotated the object away. The failed prediction's final
+            # geometry can give a correction in the wrong acquisition frame.
+            missed=next((s for s in scene.records if s['source_frame']>=anchor.core_start
+                and s['contact']['touching_links']>0 and not s['contact']['opposition_contact']),scene.snapshot())
+            acquisition_seed=acquisition_surface_residual(scene,anchor,missed,scale)
         phase=np.clip((begin+np.arange(len(replay)+1))/max(1,(anchor.core_start-anchor.synth_start)*tpf),0,1);envelope=phase**2*(3-2*phase)
         if not valid and anchor.exit_contact=='grasped' and anchor.entry_contact!='free':
             # First test the existing observed grasp-transform constraint as a
@@ -475,6 +520,10 @@ def refine(scene,anchor,data,baseline,start,out,candidates=64,iterations=3,use_p
                             if candidate>=candidates:break
                             samples[candidate]=mean
                             samples[candidate,:,6:]+=factor*offset
+                    if acquisition_seed is not None:
+                        for candidate,factor in [(5,.5),(6,1.)]:
+                            if candidate>=candidates:break
+                            samples[candidate]=mean+factor*acquisition_seed[0]
                 returns=np.full(candidates,-np.inf)
                 for i,residual in enumerate(samples):
                     control=replay.copy() if not np.any(residual) else apply_residual(scene,replay,state,residual,tpf,envelope,anchor)
@@ -483,6 +532,8 @@ def refine(scene,anchor,data,baseline,start,out,candidates=64,iterations=3,use_p
                     folder=out/f'contact_preload_{begin}_{i}' if contact_proposal else out/'candidate'
                     returns[i],ok,info,prefix=evaluate(control,state,begin,'LOCAL_MPPI',folder,prefix_ticks=commit,acquisition_reference=replay)
                     if contact_proposal:info['initialization']='surface_Jacobian_finger_drive_preload'
+                    if acquisition_seed is not None and iteration==0 and i in (5,6):
+                        info['initialization']=acquisition_seed[1]
                     history.append(dict(begin_tick=begin,iteration=iteration,candidate=i,success=ok,**info))
                     if ok and returns[i]>best_score:
                         best,best_score=control.copy(),returns[i];best_state=retain_prefix(prefix,best,begin)

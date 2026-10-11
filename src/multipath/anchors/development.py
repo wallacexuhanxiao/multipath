@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 import numpy as np
 from multipath.execution.mounted_scene import MountedScene
-from multipath.validation.physics import core_pose_errors, retention_errors
+from multipath.validation.physics import core_pose_errors, retention_errors, OBJECT_POSITION_TOLERANCE_M, OBJECT_ROTATION_TOLERANCE_RAD
 from multipath.execution.transition import check_transition
 from multipath.anchors.artifact import save_anchor
 
@@ -143,7 +143,7 @@ def replay_padded(scene,anchor,data,controls,start,folder,method,core_only=False
                 if not object_tracking_score(error)['feasible']:validation['failures'].append('core_object_fidelity')
                 if held is not None:
                     r=retention_errors(measured,held)
-                    if r['position_m']>.05 or r['rotation_rad']>.35 or not r['contact_retained']:
+                    if r['position_m']>OBJECT_POSITION_TOLERANCE_M or r['rotation_rad']>OBJECT_ROTATION_TOLERANCE_RAD or not r['contact_retained']:
                         validation['failures'].append('core_grasp_retention')
             if frame==anchor.core_end:
                 exit_state=boundary()
@@ -154,7 +154,7 @@ def replay_padded(scene,anchor,data,controls,start,folder,method,core_only=False
                 else:held=None
             if frame>anchor.core_end and held is not None:
                 r=retention_errors(measured,held);validation['post_context_retention'].append(r)
-                if r['position_m']>.05 or r['rotation_rad']>.35 or not r['contact_retained']:
+                if r['position_m']>OBJECT_POSITION_TOLERANCE_M or r['rotation_rad']>OBJECT_ROTATION_TOLERANCE_RAD or not r['contact_retained']:
                     validation['failures'].append('post_context_grasp_retention')
         validation['rollout_complete']=abs(scene.ticks*scene.dt*fps-last)<1e-8
         validation['padded_rollout_complete']=validation['rollout_complete'] and not core_only

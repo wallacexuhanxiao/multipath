@@ -182,7 +182,9 @@ def main():
                         validation_scope='successful_complete_PhysX_rollout',incumbent_full_run=str(directory))
                     index=len(item['solutions']);stem=interval/f'solution_{index}'
                     stem.with_suffix('.json').write_text(json.dumps(artifact,indent=2))
-                    np.savez_compressed(stem.with_suffix('.npz'),commands=recorded['commands'],actual_wrist_path=recorded['actual_wrist_path'])
+                    native={k:recorded[k] for k in ('controller_wrenches',) if k in recorded}
+                    np.savez_compressed(stem.with_suffix('.npz'),commands=recorded['commands'],
+                        actual_wrist_path=recorded['actual_wrist_path'],**native)
                     item['solutions'].append(dict(index=index,baseline=False,artifact=str(stem.relative_to(out)),
                         local_physical_success=True,diversity=segment['diversity'],actual_trace=str(directory/'actual_trace.json')))
                     paths.append(dict(id=str(directory),points=recorded['actual_wrist_path'],
@@ -324,11 +326,14 @@ def main():
                         np.savez_compressed(trial/'commands.npz',commands=commands)
                         if base_bridge.get('planning',{}).get('free_motion_dynamics_feedforward'):
                             timing['free_motion_dynamics_feedforward']=True
+                        if stats.get('terminal_target_origin'):
+                            timing['terminal_target_origin']=stats['terminal_target_origin']
                         (trial/'planning.json').write_text(json.dumps(timing,indent=2))
                         held=np.asarray(start['hand_object_transform'])
                         wrench=segment_wrenches(scene,start,commands,transport=w['contact']=='grasped',
                             baseline_commands=base_bridge['commands'] if w['contact']=='free' else None,
                             free_motion=base_bridge.get('planning',{}).get('free_motion_dynamics_feedforward',False))
+                        np.savez_compressed(trial/'commands.npz',commands=commands,controller_wrenches=wrench)
                         actual=[start['wrist_xyz_wxyz'][:3]]
                         needs_reach=True
                         for j,command in enumerate(commands):
@@ -377,7 +382,8 @@ def main():
                             source_provenance=manifest['provenance'],validation_scope='reached_predecessor_bridge_and_next_core',
                             state_resets_within_validation=0,fresh_initial_world_before_trial=True)
                         stem=interval/f'solution_{index}'
-                        np.savez_compressed(str(stem)+'.npz',commands=commands,actual_wrist_path=np.asarray(actual))
+                        np.savez_compressed(str(stem)+'.npz',commands=commands,controller_wrenches=wrench,
+                            actual_wrist_path=np.asarray(actual))
                         Path(str(stem)+'.json').write_text(json.dumps(artifact,indent=2))
                         paths.append(dict(id=f'solution_{index}',points=np.asarray(actual),
                                           command_points=np.vstack((start['wrist_xyz_wxyz'][:3],commands[:,:3]))))

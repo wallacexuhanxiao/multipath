@@ -4,7 +4,7 @@ from pathlib import Path
 import numpy as np
 from scipy.spatial.transform import Rotation,Slerp
 from multipath.anchors.mpc import WindowEvaluation
-from multipath.validation.physics import object_tracking_parameters
+from multipath.validation.physics import object_tracking_parameters, OBJECT_POSITION_TOLERANCE_M, OBJECT_ROTATION_TOLERANCE_RAD
 from multipath.planning.timing import physics_ticks_per_frame
 
 
@@ -650,7 +650,7 @@ class AcquiredGraspProposal:
             # return a lifting hand to the stationary acquisition target.
             # Discard the proposal only after actual hand/tool separation;
             # native contact and final retention acceptance stay unchanged.
-            if error['position_m']>.05 or error['rotation_rad']>.35:
+            if error['position_m']>OBJECT_POSITION_TOLERANCE_M or error['rotation_rad']>OBJECT_ROTATION_TOLERANCE_RAD:
                 self.held=None;self.drive_held=None;self.handoff=None;self.preload_bounds=None
         # Static surface pressure can initialize a stabilizer. A successor
         # that actually transports it needs the same opposing-force

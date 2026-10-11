@@ -12,6 +12,30 @@ import time
 from pathlib import Path
 
 
+def resumed_anchor_artifacts(directory,source_provenance,anchor_ids):
+    """Retain physical repairs through any number of failed resume attempts."""
+    visited=set()
+    while directory is not None:
+        directory=Path(directory).resolve()
+        if directory in visited:raise ValueError('Cyclic diversity resume provenance')
+        visited.add(directory)
+        previous=json.loads((directory/'diversity_result.json').read_text())
+        if previous['source_provenance']!=source_provenance:
+            raise ValueError('Resumed Anchor source differs')
+        roots=[]
+        for step in reversed(previous.get('steps',[])):
+            if step.get('success') and step.get('result'):
+                folder=Path(step['result']).parent
+                roots.extend((folder/'combined_anchors',folder/'anchors'))
+        roots.extend(Path(previous[key]) for key in ('validated_anchors','resumed_validated_anchors')
+                     if previous.get(key))
+        for root in roots:
+            if all((root/anchor_id/'commands.npz').exists() for anchor_id in anchor_ids):
+                return root
+        directory=previous.get('resumed_from')
+    return None
+
+
 def main():
     p=argparse.ArgumentParser()
     for name in ('v0-run','schedule','floating-config','xhand-urdf','object-cache','output-dir'):
@@ -43,6 +67,7 @@ def main():
     started=time.monotonic()
     def save():
         report['elapsed_s']=time.monotonic()-started
+        report['validated_anchors']=str(common[common.index('--validated-anchors')+1])
         (out/'diversity_result.json').write_text(json.dumps(report,indent=2))
     def run(name,script,params,result,key):
         step=dict(name=name,status='running');report['steps'].append(step);save()
@@ -114,16 +139,11 @@ def main():
                     if w['mode']=='ANCHOR']
                 # Keep the latest physically validated canonical refinements.
                 # Starting again from the original V0 discards repaired exits.
-                for step in reversed(resumed.get('steps',[])):
-                    if not step.get('success') or not step.get('result'):continue
-                    folder=Path(step['result']).parent
-                    roots=[folder/'combined_anchors',folder/'anchors']
-                    latest=next((r for r in roots if all((r/anchor_id/'commands.npz').exists()
-                        for anchor_id in anchor_ids)),None)
-                    if latest is not None:
-                        common[common.index('--validated-anchors')+1]=latest
-                        report['resumed_validated_anchors']=str(latest)
-                        break
+                latest=resumed_anchor_artifacts(args.resume_diversity_run,
+                    passed['source_provenance'],anchor_ids)
+                if latest is not None:
+                    common[common.index('--validated-anchors')+1]=latest
+                    report['resumed_validated_anchors']=str(latest)
             for entry in resumed['full_runs'][1:]:
                 actual=json.loads((Path(entry['run'])/'pipeline_result.json').read_text())
                 if not (actual.get('full_pipeline_success') and actual.get('diverse_solution_success') and
@@ -138,6 +158,20 @@ def main():
         bank=out/'bank_00'
         params=[*bank_params(),'--output-dir',bank]
         if args.resume_bank:params+=['--resume-bank',args.resume_bank]
+        if resumed:
+            index=len(report['full_runs'])
+            prior_attempts=[Path(s['result']).parent for s in resumed.get('steps',[])
+                if s['name'].startswith(f'full_solution_{index}_attempt_') and s.get('result')]
+            if prior_attempts:
+                previous=prior_attempts[-1]
+                actual=json.loads((previous/'pipeline_result.json').read_text())
+                failed=next((s for s in actual.get('segments',[]) if not s.get('success')),None)
+                if failed and failed['mode']=='RELAXED' and 'interval exclusion' in actual.get('error',''):
+                    # This failure is already physically observed. Repair its
+                    # bridge before replaying the unchanged rejected full run.
+                    params+=['--predecessor-run',previous,'--repair-window-start',failed['start']]
+                    for entry in report['full_runs'][1:]:params+=['--exclude-actual-run',entry['run']]
+                    report['resumed_bridge_repair']=dict(entry_run=str(previous),window=[failed['start'],failed['end']])
         local=run('bank_00','explore_oracle_bridges.py',params,
             bank/'bridge_bank.json','status')
         available=min((len(i['solutions']) for i in local['intervals']),default=0)
@@ -181,7 +215,8 @@ def main():
                 if failed['mode']!='RELAXED':raise RuntimeError(f'Unsupported failed segment: {failed}')
                 if failed.get('contact')=='free' and 'Actual mesh intersects a planning obstacle at entry' in actual.get('error',''):
                     refine_anchor(folder,f'free_exit_solution_{index}_{attempt}');prefix=folder;continue
-                if failed.get('contact')=='grasped' and 'fixed-time boundary trajectory' in actual.get('error',''):
+                if failed.get('contact')=='grasped' and any(message in actual.get('error','')
+                        for message in ('fixed-time boundary trajectory','fixed-time terminal tangent')):
                     refine_boundary(folder,bank,f'boundary_solution_{index}_{attempt}')
                     prefix=None
                     continue

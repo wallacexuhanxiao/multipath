@@ -134,6 +134,37 @@ def parameterize_path(raw,ticks,dt,velocity_limits,acceleration_limits,
     return path,check
 
 
+def fitted_terminal_velocity(raw,ticks,dt,velocity_limits,acceleration_limits,
+                             initial_velocity,preferred_final_velocity):
+    """Nearest feasible terminal tangent with immutable poses and source time.
+
+    This is a command proposal, not an acquired Anchor entry. The caller must
+    physically validate the handoff and the next interaction from actual dq.
+    """
+    from scipy.optimize import linprog
+    raw=np.asarray(raw);n=ticks+1
+    first=np.asarray(initial_velocity);last=np.asarray(preferred_final_velocity)
+    d1=np.diff(np.eye(n),axis=0);d2=np.diff(np.eye(n),n=2,axis=0)
+    matrix=np.c_[np.vstack((d1,-d1,d2,-d2)),np.zeros(2*len(d1)+2*len(d2))]
+    slope=np.zeros(n);slope[-2:]=[-1/dt,1/dt]
+    matrix=np.vstack((matrix,np.r_[slope,-1],np.r_[-slope,-1]))
+    selected=last.copy()
+    for j in range(raw.shape[1]):
+        rhs=np.r_[np.full(2*len(d1),velocity_limits[j]*dt),
+            np.full(2*len(d2),acceleration_limits[j]*dt**2),last[j],-last[j]]
+        bounds=[(None,None)]*n+[(0,None)]
+        for k,value in [(0,raw[0,j]),(1,raw[0,j]+first[j]*dt),(n-1,raw[-1,j])]:
+            bounds[k]=(value,value)
+        result=linprog(np.r_[np.zeros(n),1.],A_ub=matrix,b_ub=rhs,bounds=bounds,method='highs')
+        if not result.success:raise RuntimeError(f'No fixed-time terminal tangent in coordinate {j}')
+        selected[j]=slope@result.x[:n]
+    path,check=boundary_fitted_path(raw,ticks,dt,velocity_limits,acceleration_limits,first,selected)
+    check.update(terminal_velocity_proposal=selected.tolist(),
+        preferred_terminal_velocity=last.tolist(),terminal_pose_changed=False,
+        actual_next_anchor_validation_required=True)
+    return path,check
+
+
 def collision_fitted_path(path,dt,velocity_limits,acceleration_limits,
                           initial_velocity,final_velocity,clearance_gradient,
                           boundary_condition=None,preserved_coordinates=None,

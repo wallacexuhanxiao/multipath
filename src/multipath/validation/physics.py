@@ -56,7 +56,8 @@ def check_retention(state,held_transform,*,require_opposition=True):
         errors['opposition_observed']=errors['contact_retained']
         errors['contact_retained']=bool(state['contact'].get('touching_links',0)>0)
         errors['contact_requirement']='native_touch_between_source_control_boundaries'
-    if errors['position_m']>.05 or errors['rotation_rad']>.35 or not errors['contact_retained']:
+    if (errors['position_m']>OBJECT_POSITION_TOLERANCE_M or
+            errors['rotation_rad']>OBJECT_ROTATION_TOLERANCE_RAD or not errors['contact_retained']):
         raise RuntimeError(f'Persistent grasp constraint failed: {errors}')
     return errors
 

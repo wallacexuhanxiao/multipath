@@ -18,7 +18,7 @@ from multipath.anchors.synthesis import (
     hand_limits_from_urdf,
 )
 from multipath.execution.transition import check_transition
-from multipath.validation.physics import core_pose_errors, retention_errors
+from multipath.validation.physics import core_pose_errors, retention_errors, OBJECT_POSITION_TOLERANCE_M, OBJECT_ROTATION_TOLERANCE_RAD
 
 
 @dataclass(frozen=True)
@@ -122,7 +122,7 @@ class WindowEvaluation:
         index = min(max(round(frame) - a.synth_start, 0), len(self.data['tool_pose']) - 1)
         if frame < a.core_start and self.held is not None:
             r=retention_errors(measured,self.held)
-            if r['position_m']>.05 or r['rotation_rad']>.35 or not r['contact_retained']:
+            if r['position_m']>OBJECT_POSITION_TOLERANCE_M or r['rotation_rad']>OBJECT_ROTATION_TOLERANCE_RAD or not r['contact_retained']:
                 reason='pre_context_grasp_retention'
         if frame == a.core_start:
             self.core_contact_start=measured.get('interaction_contacts',{}).get('tool_target_contact_steps',0)
@@ -163,7 +163,7 @@ class WindowEvaluation:
                 r = retention_errors(measured, self.held)
                 if not r['contact_retained']:
                     reason = 'core_grasp_retention'
-                if r['position_m'] > .05 or r['rotation_rad'] > .35:
+                if r['position_m'] > OBJECT_POSITION_TOLERANCE_M or r['rotation_rad'] > OBJECT_ROTATION_TOLERANCE_RAD:
                     self.grasp_transform_deviations.append(dict(source_frame=float(frame),**r))
                     # A hand stabilizing an environmentally supported object
                     # can pivot at its contacts. This is not a rigid airborne
@@ -221,7 +221,7 @@ class WindowEvaluation:
             self.held = np.asarray(measured['hand_object_transform']) if a.exit_contact == 'grasped' else None
         if frame > a.core_end and self.held is not None:
             r = retention_errors(measured, self.held)
-            if r['position_m'] > .05 or r['rotation_rad'] > .35 or not r['contact_retained']:
+            if r['position_m'] > OBJECT_POSITION_TOLERANCE_M or r['rotation_rad'] > OBJECT_ROTATION_TOLERANCE_RAD or not r['contact_retained']:
                 reason = 'post_context_grasp_retention'
         contract=getattr(self.scene,'terminal_task_contract',None)
         if contract and frame==a.synth_end and a.synth_end==self.scene.manifest['num_frames'] and a.exit_contact=='free':

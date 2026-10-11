@@ -7,7 +7,7 @@ import json
 from pathlib import Path
 import numpy as np
 from scipy.spatial.transform import Rotation
-from multipath.validation.physics import retention_errors
+from multipath.validation.physics import retention_errors, OBJECT_POSITION_TOLERANCE_M, OBJECT_ROTATION_TOLERANCE_RAD
 from multipath.execution.wrench_handoff import takeover_bias,balanced_force_profile,carried_gravity_wrench
 
 
@@ -49,7 +49,7 @@ def run(scene,start,commands,planner,goal,target,out,components=False,balanced=F
             frame=begin+(k+1)*scene.dt*fps
             try:
                 scene.step_control(c,'RELAXED_DIAGNOSTIC',frame);s=scene.state();r=retention_errors(s,start['hand_object_transform'])
-                violation=r['position_m']>.05 or r['rotation_rad']>.35 or not r['contact_retained']
+                violation=r['position_m']>OBJECT_POSITION_TOLERANCE_M or r['rotation_rad']>OBJECT_ROTATION_TOLERANCE_RAD or not r['contact_retained']
                 failed|=violation;clearance=planner.measured_clearance()
                 collisions=planner.measured_mesh_collisions() if min(clearance.values())<0 else []
                 rows.append(dict(source_frame=frame,retention=r,retention_violation=violation,

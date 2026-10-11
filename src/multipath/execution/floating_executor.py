@@ -168,13 +168,15 @@ def execute(scene,schedule,manifest,proposal_dir,report):
                         goal['wrist_xyz_wxyz']=target;break
                 else:raise RuntimeError('No collision-free development entry')
             if diverse:
-                from multipath.planning.floating_diversity import plan_detour,DETOUR_DIRECTION_COUNT,boundary_history_ticks,set_arc_reference
+                from multipath.planning.floating_diversity import plan_detour,DETOUR_DIRECTION_COUNT,boundary_history_ticks,set_arc_reference,reached_carry_timing
                 from multipath.anchors.floating import rebase_grasp_commands
                 from multipath.execution.interaction_boundary import grasp_conditioned_boundary
                 baseline_commands=np.load(baseline_command_path)['commands']
                 if carry:
                     baseline_commands=rebase_grasp_commands(baseline_commands,base_bridge['entry'],scene.snapshot(),scene.dt)
                     goal=grasp_conditioned_boundary(goal,start)
+                    baseline_commands,terminal_refit=reached_carry_timing(scene,start,baseline_commands)
+                    if terminal_refit is not None:info['terminal_velocity_refit']=terminal_refit
                 elif not later:
                     from multipath.planning.floating_diversity import free_terminal_nominal
                     baseline_commands,goal=free_terminal_nominal(scene,start,(terminal_frame-window['start'])*tpf)
@@ -190,7 +192,6 @@ def execute(scene,schedule,manifest,proposal_dir,report):
                 # entry and controller memory match. This avoids changing a
                 # proved upstream path solely because the fitter improved.
                 entry=bridge['entry'];same_entry=measured_drive_matches(start,entry)
-                if not later and not carry:same_entry=False
                 if (same_entry and not carry and later and not info.get('physically_verified_prefix_drive_reused') and
                     bridge['planning'].get('common_terminal_history_ticks',0)<boundary_history_ticks(scene,False,
                         (terminal_frame-window['start'])*tpf,True)):
@@ -239,8 +240,16 @@ def execute(scene,schedule,manifest,proposal_dir,report):
             np.savez_compressed(scene.out/f'relaxed_{window["start"]}_{window["end"]}.npz',commands=commands)
             from multipath.execution.wrench_handoff import segment_wrenches
             delta_baseline=np.load(baseline_command_path)['commands'] if timing.get('delta_dynamics_feedforward') else None
-            wrenches=segment_wrenches(scene,scene.snapshot(),commands,transport=carry,
-                baseline_commands=delta_baseline,free_motion=free_model) if cache and (carry or window['start']>0 or delta_baseline is not None or free_model) else np.zeros((len(commands),6))
+            native=None
+            if timing.get('validated_drive_reused'):
+                with np.load(command_path) as program:
+                    if 'controller_wrenches' in program:native=program['controller_wrenches']
+            wrenches=(native if native is not None else
+                segment_wrenches(scene,scene.snapshot(),commands,transport=carry,
+                    baseline_commands=delta_baseline,free_motion=free_model)
+                if cache and (carry or window['start']>0 or delta_baseline is not None or free_model)
+                else np.zeros((len(commands),6)))
+            if native is not None:info['native_controller_program_replayed']=True
             if info.get('physically_verified_prefix_drive_reused') and prefix_program is not None:
                 from multipath.execution.wrench_handoff import recorded_control_segment
                 commands,wrenches=recorded_control_segment(prefix_program,window['start'],window['end'],tpf)
@@ -277,7 +286,7 @@ def execute(scene,schedule,manifest,proposal_dir,report):
                 if accepted_exclusion is not exclusion:
                     exclusion.clear();exclusion.update(accepted_exclusion)
                 np.savez_compressed(scene.out/f'relaxed_{window["start"]}_{window["end"]}.npz',
-                                    commands=commands,actual_wrist_path=np.asarray(actual_wrist))
+                                    commands=commands,controller_wrenches=wrenches,actual_wrist_path=np.asarray(actual_wrist))
                 if not info['diversity']['actual_wrist_exclusion_pass'] or not info['diversity']['smooth_arc_pass']:
                     raise RuntimeError('Continuous measured wrist path failed its interval exclusion')
             if diverse:

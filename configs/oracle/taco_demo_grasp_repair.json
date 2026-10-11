@@ -14,13 +14,15 @@
     "triplet": "(empty, bowl, plate)",
     "sequence": "20231027_149",
     "solutions_per_interval": 3,
-    "prepared_proposals": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_demo_expansion_r317_20231027_149/proposals"
+    "prepared_proposals": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_demo_expansion_r317_20231027_149/proposals",
+    "initial_bridge_run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_acquisition_context_r324_20231027_149/candidate_01"
   },
   {
     "schedule": "/scratch/e0985859/multipath_v0_fc2da7b/configs/oracle/taco_empty_20230928_031.json",
     "triplet": "(empty, cup, plate)",
     "sequence": "20230928_031",
     "solutions_per_interval": 3,
-    "prepared_proposals": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_demo_expansion_r317_20230928_031/proposals"
+    "prepared_proposals": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_demo_expansion_r317_20230928_031/proposals",
+    "initial_bridge_run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_acquisition_context_r324_20230928_031/candidate_00"
   }
 ]

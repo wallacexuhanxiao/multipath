@@ -1,0 +1,1566 @@
+{
+  "source": "actual PhysX and recorded controller reports",
+  "embodiment": "floating XHand; no mounted arm success claimed",
+  "runs": {
+    "333": {
+      "status": "failed",
+      "success": false,
+      "elapsed_s": 85.69270689995028,
+      "error": "Physical boundary refinement failed: No interaction-valid boundary shooting candidate",
+      "validated_anchors": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r323_20231024_258/anchor_feedback_1/combined_anchors",
+      "resumed_from": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r326_20231024_258",
+      "complete_rollout_count": null,
+      "run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r333_20231024_258",
+      "successful_full_indices": [
+        0,
+        1
+      ],
+      "steps": [
+        {
+          "name": "boundary_feedback",
+          "returncode": 0,
+          "elapsed_s": 85.65647559217177,
+          "success": false,
+          "result": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r333_20231024_258/boundary_feedback/development_result.json"
+        }
+      ]
+    },
+    "335": {
+      "status": "failed",
+      "success": false,
+      "elapsed_s": 359.9231510378886,
+      "error": "Continuous solution 2 failed: RuntimeError: Continuous measured wrist path failed its interval exclusion",
+      "validated_anchors": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r335_20231024_258/anchor_solution_2_0/combined_anchors",
+      "resumed_from": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r326_20231024_258",
+      "complete_rollout_count": null,
+      "run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r335_20231024_258",
+      "successful_full_indices": [
+        0,
+        1
+      ],
+      "steps": [
+        {
+          "name": "boundary_feedback",
+          "returncode": 0,
+          "elapsed_s": 130.09236971614882,
+          "success": true,
+          "result": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r335_20231024_258/boundary_feedback/development_result.json"
+        },
+        {
+          "name": "bank_00",
+          "returncode": 0,
+          "elapsed_s": 25.581304459134117,
+          "success": true,
+          "result": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r335_20231024_258/bank_00/bridge_bank.json"
+        },
+        {
+          "name": "full_solution_2_attempt_0",
+          "returncode": 0,
+          "elapsed_s": 83.59299699100666,
+          "success": false,
+          "result": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r335_20231024_258/full_solution_2_attempt_0/pipeline_result.json"
+        },
+        {
+          "name": "anchor_solution_2_0",
+          "returncode": 0,
+          "elapsed_s": 56.45407690200955,
+          "success": true,
+          "result": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r335_20231024_258/anchor_solution_2_0/development_result.json"
+        },
+        {
+          "name": "full_solution_2_attempt_1",
+          "returncode": -11,
+          "elapsed_s": 64.00620834389701,
+          "success": false,
+          "result": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r335_20231024_258/full_solution_2_attempt_1/pipeline_result.json"
+        }
+      ],
+      "last_full_attempt": {
+        "status": "failed",
+        "actual_duration_s": 4.266666666666667,
+        "source_duration_s": 4.266666666666667,
+        "state_resets_between_segments": 0,
+        "task_success": false,
+        "full_pipeline_success": false,
+        "error": "RuntimeError: Continuous measured wrist path failed its interval exclusion",
+        "task": null,
+        "report": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r335_20231024_258/full_solution_2_attempt_1/pipeline_result.json",
+        "segments": [
+          {
+            "start": 0,
+            "end": 25,
+            "mode": "RELAXED",
+            "success": true,
+            "diversity": {
+              "actual_wrist_min_exclusion_clearance_m": 0.007495234798589301,
+              "actual_wrist_exclusion_pass": true,
+              "minimum_arc_distance_m": 0.0,
+              "actual_arc_pass": true,
+              "path_length_m": 0.21087537456755953,
+              "endpoint_distance_m": 0.19165520243633707,
+              "arc_reference_length_m": 0.19331797129839615,
+              "arc_length_ratio": 1.090821371397813,
+              "backward_progress_fraction": 0.0,
+              "endpoint_overshoot_fraction": 0.0,
+              "smooth_arc_pass": true,
+              "comparisons": [
+                {
+                  "source_run": "baseline",
+                  "mean_nearest_path_distance_m": 0.008378873687691987,
+                  "max_nearest_path_distance_m": 0.023249585238540794,
+                  "middle_median_path_distance_m": 0.011602542765621556,
+                  "symmetric_hausdorff_m": 0.023249585238540794
+                },
+                {
+                  "source_run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r323_20231024_258/full_solution_1_attempt_0",
+                  "mean_nearest_path_distance_m": 0.010133105582561431,
+                  "max_nearest_path_distance_m": 0.027224902446981412,
+                  "middle_median_path_distance_m": 0.012727090205626672,
+                  "symmetric_hausdorff_m": 0.027224902446981412
+                }
+              ]
+            },
+            "validated_drive_reused": true,
+            "native_controller_program_replayed": true
+          },
+          {
+            "start": 25,
+            "end": 59,
+            "mode": "ANCHOR",
+            "success": true,
+            "diversity": null,
+            "validated_drive_reused": null,
+            "native_controller_program_replayed": true
+          },
+          {
+            "start": 59,
+            "end": 68,
+            "mode": "RELAXED",
+            "success": true,
+            "diversity": {
+              "actual_wrist_min_exclusion_clearance_m": 0.0026359530706304883,
+              "actual_wrist_exclusion_pass": true,
+              "minimum_arc_distance_m": 0.0,
+              "actual_arc_pass": true,
+              "path_length_m": 0.18676868494866178,
+              "endpoint_distance_m": 0.1791187004371002,
+              "arc_reference_length_m": 0.1805547829345668,
+              "arc_length_ratio": 1.0344156045777357,
+              "backward_progress_fraction": 0.0,
+              "endpoint_overshoot_fraction": 0.0,
+              "smooth_arc_pass": true,
+              "comparisons": [
+                {
+                  "source_run": "baseline",
+                  "mean_nearest_path_distance_m": 0.0042388391124849765,
+                  "max_nearest_path_distance_m": 0.006084888549706141,
+                  "middle_median_path_distance_m": 0.004509905174476747,
+                  "symmetric_hausdorff_m": 0.006084888549706141
+                },
+                {
+                  "source_run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r323_20231024_258/full_solution_1_attempt_0",
+                  "mean_nearest_path_distance_m": 0.010439769683326477,
+                  "max_nearest_path_distance_m": 0.015654532109461775,
+                  "middle_median_path_distance_m": 0.013338285469880513,
+                  "symmetric_hausdorff_m": 0.015654532109461775
+                }
+              ]
+            },
+            "validated_drive_reused": true,
+            "native_controller_program_replayed": true
+          },
+          {
+            "start": 68,
+            "end": 88,
+            "mode": "ANCHOR",
+            "success": true,
+            "diversity": null,
+            "validated_drive_reused": null,
+            "native_controller_program_replayed": true
+          },
+          {
+            "start": 88,
+            "end": 96,
+            "mode": "RELAXED",
+            "success": true,
+            "diversity": {
+              "actual_wrist_min_exclusion_clearance_m": 0.003691633058625722,
+              "actual_wrist_exclusion_pass": true,
+              "minimum_arc_distance_m": 0.0,
+              "actual_arc_pass": true,
+              "path_length_m": 0.16037826673144082,
+              "endpoint_distance_m": 0.13374547696754693,
+              "arc_reference_length_m": 0.14952582479513743,
+              "arc_length_ratio": 1.0725790474733854,
+              "backward_progress_fraction": 0.0,
+              "endpoint_overshoot_fraction": 0.0,
+              "smooth_arc_pass": true,
+              "comparisons": [
+                {
+                  "source_run": "baseline",
+                  "mean_nearest_path_distance_m": 0.009658819963109239,
+                  "max_nearest_path_distance_m": 0.01755523476179851,
+                  "middle_median_path_distance_m": 0.009894392906112694,
+                  "symmetric_hausdorff_m": 0.01908747664096072
+                },
+                {
+                  "source_run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r323_20231024_258/full_solution_1_attempt_0",
+                  "mean_nearest_path_distance_m": 0.0215722413900921,
+                  "max_nearest_path_distance_m": 0.03296450597954006,
+                  "middle_median_path_distance_m": 0.025165218123630255,
+                  "symmetric_hausdorff_m": 0.034263419204783825
+                }
+              ]
+            },
+            "validated_drive_reused": true,
+            "native_controller_program_replayed": true
+          },
+          {
+            "start": 96,
+            "end": 117,
+            "mode": "ANCHOR",
+            "success": true,
+            "diversity": null,
+            "validated_drive_reused": null,
+            "native_controller_program_replayed": true
+          },
+          {
+            "start": 117,
+            "end": 128,
+            "mode": "RELAXED",
+            "success": false,
+            "diversity": {
+              "actual_wrist_min_exclusion_clearance_m": -0.0008847924960201257,
+              "actual_wrist_exclusion_pass": false,
+              "minimum_arc_distance_m": 0.0,
+              "actual_arc_pass": true,
+              "path_length_m": 0.12149263825807986,
+              "endpoint_distance_m": 0.04786593685143472,
+              "arc_reference_length_m": 0.0777525333301007,
+              "arc_length_ratio": 1.5625553670679675,
+              "backward_progress_fraction": 0.01260782755874823,
+              "endpoint_overshoot_fraction": 0.002409981118236537,
+              "smooth_arc_pass": true,
+              "comparisons": [
+                {
+                  "source_run": "baseline",
+                  "mean_nearest_path_distance_m": 0.08264484670891456,
+                  "max_nearest_path_distance_m": 0.10783893075929439,
+                  "middle_median_path_distance_m": 0.09200363772166212,
+                  "symmetric_hausdorff_m": 0.10783893075929439
+                },
+                {
+                  "source_run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r323_20231024_258/full_solution_1_attempt_0",
+                  "mean_nearest_path_distance_m": 0.016219476231529393,
+                  "max_nearest_path_distance_m": 0.029906172909994512,
+                  "middle_median_path_distance_m": 0.019479882513048632,
+                  "symmetric_hausdorff_m": 0.029906172909994512
+                }
+              ]
+            },
+            "validated_drive_reused": null,
+            "native_controller_program_replayed": null
+          }
+        ]
+      }
+    },
+    "336": {
+      "status": "failed",
+      "success": false,
+      "elapsed_s": 360.3494680749718,
+      "error": "Continuous solution 2 failed: RuntimeError: Continuous measured wrist path failed its interval exclusion",
+      "validated_anchors": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r335_20231024_258/anchor_solution_2_0/combined_anchors",
+      "resumed_from": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r335_20231024_258",
+      "complete_rollout_count": null,
+      "run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r336_20231024_258",
+      "successful_full_indices": [
+        0,
+        1
+      ],
+      "steps": [
+        {
+          "name": "bank_00",
+          "returncode": 0,
+          "elapsed_s": 51.711211276007816,
+          "success": true,
+          "result": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r336_20231024_258/bank_00/bridge_bank.json"
+        },
+        {
+          "name": "full_solution_2_attempt_0",
+          "returncode": 0,
+          "elapsed_s": 78.95356157701463,
+          "success": false,
+          "result": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r336_20231024_258/full_solution_2_attempt_0/pipeline_result.json"
+        },
+        {
+          "name": "bank_solution_2_repair_0",
+          "returncode": 0,
+          "elapsed_s": 42.406097650993615,
+          "success": true,
+          "result": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r336_20231024_258/bank_solution_2_repair_0/bridge_bank.json"
+        },
+        {
+          "name": "full_solution_2_attempt_1",
+          "returncode": 0,
+          "elapsed_s": 72.29080345388502,
+          "success": false,
+          "result": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r336_20231024_258/full_solution_2_attempt_1/pipeline_result.json"
+        },
+        {
+          "name": "bank_solution_2_repair_1",
+          "returncode": -11,
+          "elapsed_s": 43.051006051013246,
+          "success": true,
+          "result": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r336_20231024_258/bank_solution_2_repair_1/bridge_bank.json"
+        },
+        {
+          "name": "full_solution_2_attempt_2",
+          "returncode": 0,
+          "elapsed_s": 71.84729203092866,
+          "success": false,
+          "result": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r336_20231024_258/full_solution_2_attempt_2/pipeline_result.json"
+        }
+      ],
+      "last_full_attempt": {
+        "status": "failed",
+        "actual_duration_s": 4.266666666666667,
+        "source_duration_s": 4.266666666666667,
+        "state_resets_between_segments": 0,
+        "task_success": false,
+        "full_pipeline_success": false,
+        "error": "RuntimeError: Continuous measured wrist path failed its interval exclusion",
+        "task": null,
+        "report": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r336_20231024_258/full_solution_2_attempt_2/pipeline_result.json",
+        "segments": [
+          {
+            "start": 0,
+            "end": 25,
+            "mode": "RELAXED",
+            "success": true,
+            "diversity": {
+              "actual_wrist_min_exclusion_clearance_m": 0.007495234798589301,
+              "actual_wrist_exclusion_pass": true,
+              "minimum_arc_distance_m": 0.0,
+              "actual_arc_pass": true,
+              "path_length_m": 0.21087537456755953,
+              "endpoint_distance_m": 0.19165520243633707,
+              "arc_reference_length_m": 0.19331797129839615,
+              "arc_length_ratio": 1.090821371397813,
+              "backward_progress_fraction": 0.0,
+              "endpoint_overshoot_fraction": 0.0,
+              "smooth_arc_pass": true,
+              "comparisons": [
+                {
+                  "source_run": "baseline",
+                  "mean_nearest_path_distance_m": 0.008378873687691987,
+                  "max_nearest_path_distance_m": 0.023249585238540794,
+                  "middle_median_path_distance_m": 0.011602542765621556,
+                  "symmetric_hausdorff_m": 0.023249585238540794
+                },
+                {
+                  "source_run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r323_20231024_258/full_solution_1_attempt_0",
+                  "mean_nearest_path_distance_m": 0.010133105582561431,
+                  "max_nearest_path_distance_m": 0.027224902446981412,
+                  "middle_median_path_distance_m": 0.012727090205626672,
+                  "symmetric_hausdorff_m": 0.027224902446981412
+                }
+              ]
+            },
+            "validated_drive_reused": true,
+            "native_controller_program_replayed": true
+          },
+          {
+            "start": 25,
+            "end": 59,
+            "mode": "ANCHOR",
+            "success": true,
+            "diversity": null,
+            "validated_drive_reused": null,
+            "native_controller_program_replayed": true
+          },
+          {
+            "start": 59,
+            "end": 68,
+            "mode": "RELAXED",
+            "success": true,
+            "diversity": {
+              "actual_wrist_min_exclusion_clearance_m": 0.0026359530706304883,
+              "actual_wrist_exclusion_pass": true,
+              "minimum_arc_distance_m": 0.0,
+              "actual_arc_pass": true,
+              "path_length_m": 0.18676868494866178,
+              "endpoint_distance_m": 0.1791187004371002,
+              "arc_reference_length_m": 0.1805547829345668,
+              "arc_length_ratio": 1.0344156045777357,
+              "backward_progress_fraction": 0.0,
+              "endpoint_overshoot_fraction": 0.0,
+              "smooth_arc_pass": true,
+              "comparisons": [
+                {
+                  "source_run": "baseline",
+                  "mean_nearest_path_distance_m": 0.0042388391124849765,
+                  "max_nearest_path_distance_m": 0.006084888549706141,
+                  "middle_median_path_distance_m": 0.004509905174476747,
+                  "symmetric_hausdorff_m": 0.006084888549706141
+                },
+                {
+                  "source_run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r323_20231024_258/full_solution_1_attempt_0",
+                  "mean_nearest_path_distance_m": 0.010439769683326477,
+                  "max_nearest_path_distance_m": 0.015654532109461775,
+                  "middle_median_path_distance_m": 0.013338285469880513,
+                  "symmetric_hausdorff_m": 0.015654532109461775
+                }
+              ]
+            },
+            "validated_drive_reused": true,
+            "native_controller_program_replayed": true
+          },
+          {
+            "start": 68,
+            "end": 88,
+            "mode": "ANCHOR",
+            "success": true,
+            "diversity": null,
+            "validated_drive_reused": null,
+            "native_controller_program_replayed": true
+          },
+          {
+            "start": 88,
+            "end": 96,
+            "mode": "RELAXED",
+            "success": true,
+            "diversity": {
+              "actual_wrist_min_exclusion_clearance_m": 0.003691633058625722,
+              "actual_wrist_exclusion_pass": true,
+              "minimum_arc_distance_m": 0.0,
+              "actual_arc_pass": true,
+              "path_length_m": 0.16037826673144082,
+              "endpoint_distance_m": 0.13374547696754693,
+              "arc_reference_length_m": 0.14952582479513743,
+              "arc_length_ratio": 1.0725790474733854,
+              "backward_progress_fraction": 0.0,
+              "endpoint_overshoot_fraction": 0.0,
+              "smooth_arc_pass": true,
+              "comparisons": [
+                {
+                  "source_run": "baseline",
+                  "mean_nearest_path_distance_m": 0.009658819963109239,
+                  "max_nearest_path_distance_m": 0.01755523476179851,
+                  "middle_median_path_distance_m": 0.009894392906112694,
+                  "symmetric_hausdorff_m": 0.01908747664096072
+                },
+                {
+                  "source_run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r323_20231024_258/full_solution_1_attempt_0",
+                  "mean_nearest_path_distance_m": 0.0215722413900921,
+                  "max_nearest_path_distance_m": 0.03296450597954006,
+                  "middle_median_path_distance_m": 0.025165218123630255,
+                  "symmetric_hausdorff_m": 0.034263419204783825
+                }
+              ]
+            },
+            "validated_drive_reused": true,
+            "native_controller_program_replayed": true
+          },
+          {
+            "start": 96,
+            "end": 117,
+            "mode": "ANCHOR",
+            "success": true,
+            "diversity": null,
+            "validated_drive_reused": null,
+            "native_controller_program_replayed": true
+          },
+          {
+            "start": 117,
+            "end": 128,
+            "mode": "RELAXED",
+            "success": false,
+            "diversity": {
+              "actual_wrist_min_exclusion_clearance_m": -0.0008756862005743122,
+              "actual_wrist_exclusion_pass": false,
+              "minimum_arc_distance_m": 0.0,
+              "actual_arc_pass": true,
+              "path_length_m": 0.11283593911675863,
+              "endpoint_distance_m": 0.04836948381123644,
+              "arc_reference_length_m": 0.0777525333301007,
+              "arc_length_ratio": 1.451218812867618,
+              "backward_progress_fraction": 0.11452135717750633,
+              "endpoint_overshoot_fraction": 0.001297564638791604,
+              "smooth_arc_pass": true,
+              "comparisons": [
+                {
+                  "source_run": "baseline",
+                  "mean_nearest_path_distance_m": 0.0763221221959961,
+                  "max_nearest_path_distance_m": 0.0974121340267021,
+                  "middle_median_path_distance_m": 0.08358837776721617,
+                  "symmetric_hausdorff_m": 0.0974121340267021
+                },
+                {
+                  "source_run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r323_20231024_258/full_solution_1_attempt_0",
+                  "mean_nearest_path_distance_m": 0.01220102159659327,
+                  "max_nearest_path_distance_m": 0.024156635565711862,
+                  "middle_median_path_distance_m": 0.010967365647849813,
+                  "symmetric_hausdorff_m": 0.029225934640358497
+                }
+              ]
+            },
+            "validated_drive_reused": null,
+            "native_controller_program_replayed": null
+          }
+        ]
+      }
+    },
+    "338": {
+      "status": "failed",
+      "success": false,
+      "elapsed_s": 45.95714863296598,
+      "error": "No alternative solution available in every interval",
+      "validated_anchors": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r335_20231024_258/anchor_solution_2_0/combined_anchors",
+      "resumed_from": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r336_20231024_258",
+      "complete_rollout_count": null,
+      "run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r338_20231024_258",
+      "successful_full_indices": [
+        0,
+        1
+      ],
+      "steps": [
+        {
+          "name": "bank_00",
+          "returncode": 0,
+          "elapsed_s": 45.89888783590868,
+          "success": false,
+          "result": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r338_20231024_258/bank_00/bridge_bank.json"
+        }
+      ]
+    },
+    "339": {
+      "status": "complete",
+      "success": true,
+      "elapsed_s": 102.19558059517294,
+      "error": null,
+      "validated_anchors": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r335_20231024_258/anchor_solution_2_0/combined_anchors",
+      "resumed_from": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r336_20231024_258",
+      "complete_rollout_count": 3,
+      "run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r339_20231024_258",
+      "successful_full_indices": [
+        0,
+        1,
+        2
+      ],
+      "steps": [
+        {
+          "name": "bank_00",
+          "status": "finished",
+          "returncode": 0,
+          "elapsed_s": 50.030544406035915,
+          "success": true,
+          "result": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r339_20231024_258/bank_00/bridge_bank.json"
+        },
+        {
+          "name": "full_solution_2_attempt_0",
+          "status": "finished",
+          "returncode": 0,
+          "elapsed_s": 52.084224201971665,
+          "success": true,
+          "result": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r339_20231024_258/full_solution_2_attempt_0/pipeline_result.json"
+        }
+      ],
+      "last_full_attempt": {
+        "status": "complete",
+        "actual_duration_s": 4.266666666666667,
+        "source_duration_s": 4.266666666666667,
+        "state_resets_between_segments": 0,
+        "task_success": true,
+        "full_pipeline_success": true,
+        "task": {
+          "success": true,
+          "final_errors": {
+            "position_m": 0.023863324285918048,
+            "rotation_rad": 0.3263978893491606
+          },
+          "final_speed_m_s": 4.065914448190752e-05,
+          "released": true
+        },
+        "error": null,
+        "report": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r339_20231024_258/full_solution_2_attempt_0/pipeline_result.json",
+        "segments": [
+          {
+            "start": 0,
+            "end": 25,
+            "mode": "RELAXED",
+            "success": true,
+            "diversity": {
+              "actual_wrist_min_exclusion_clearance_m": 0.007495234798589301,
+              "actual_wrist_exclusion_pass": true,
+              "minimum_arc_distance_m": 0.0,
+              "actual_arc_pass": true,
+              "path_length_m": 0.21087537456755953,
+              "endpoint_distance_m": 0.19165520243633707,
+              "arc_reference_length_m": 0.19331797129839615,
+              "arc_length_ratio": 1.090821371397813,
+              "backward_progress_fraction": 0.0,
+              "endpoint_overshoot_fraction": 0.0,
+              "smooth_arc_pass": true,
+              "comparisons": [
+                {
+                  "source_run": "baseline",
+                  "mean_nearest_path_distance_m": 0.008378873687691987,
+                  "max_nearest_path_distance_m": 0.023249585238540794,
+                  "middle_median_path_distance_m": 0.011602542765621556,
+                  "symmetric_hausdorff_m": 0.023249585238540794
+                },
+                {
+                  "source_run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r323_20231024_258/full_solution_1_attempt_0",
+                  "mean_nearest_path_distance_m": 0.010133105582561431,
+                  "max_nearest_path_distance_m": 0.027224902446981412,
+                  "middle_median_path_distance_m": 0.012727090205626672,
+                  "symmetric_hausdorff_m": 0.027224902446981412
+                }
+              ]
+            },
+            "validated_drive_reused": true,
+            "native_controller_program_replayed": true
+          },
+          {
+            "start": 25,
+            "end": 59,
+            "mode": "ANCHOR",
+            "success": true,
+            "diversity": null,
+            "validated_drive_reused": null,
+            "native_controller_program_replayed": true
+          },
+          {
+            "start": 59,
+            "end": 68,
+            "mode": "RELAXED",
+            "success": true,
+            "diversity": {
+              "actual_wrist_min_exclusion_clearance_m": 0.0026359530706304883,
+              "actual_wrist_exclusion_pass": true,
+              "minimum_arc_distance_m": 0.0,
+              "actual_arc_pass": true,
+              "path_length_m": 0.18676868494866178,
+              "endpoint_distance_m": 0.1791187004371002,
+              "arc_reference_length_m": 0.1805547829345668,
+              "arc_length_ratio": 1.0344156045777357,
+              "backward_progress_fraction": 0.0,
+              "endpoint_overshoot_fraction": 0.0,
+              "smooth_arc_pass": true,
+              "comparisons": [
+                {
+                  "source_run": "baseline",
+                  "mean_nearest_path_distance_m": 0.0042388391124849765,
+                  "max_nearest_path_distance_m": 0.006084888549706141,
+                  "middle_median_path_distance_m": 0.004509905174476747,
+                  "symmetric_hausdorff_m": 0.006084888549706141
+                },
+                {
+                  "source_run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r323_20231024_258/full_solution_1_attempt_0",
+                  "mean_nearest_path_distance_m": 0.010439769683326477,
+                  "max_nearest_path_distance_m": 0.015654532109461775,
+                  "middle_median_path_distance_m": 0.013338285469880513,
+                  "symmetric_hausdorff_m": 0.015654532109461775
+                }
+              ]
+            },
+            "validated_drive_reused": true,
+            "native_controller_program_replayed": true
+          },
+          {
+            "start": 68,
+            "end": 88,
+            "mode": "ANCHOR",
+            "success": true,
+            "diversity": null,
+            "validated_drive_reused": null,
+            "native_controller_program_replayed": true
+          },
+          {
+            "start": 88,
+            "end": 96,
+            "mode": "RELAXED",
+            "success": true,
+            "diversity": {
+              "actual_wrist_min_exclusion_clearance_m": 0.003691633058625722,
+              "actual_wrist_exclusion_pass": true,
+              "minimum_arc_distance_m": 0.0,
+              "actual_arc_pass": true,
+              "path_length_m": 0.16037826673144082,
+              "endpoint_distance_m": 0.13374547696754693,
+              "arc_reference_length_m": 0.14952582479513743,
+              "arc_length_ratio": 1.0725790474733854,
+              "backward_progress_fraction": 0.0,
+              "endpoint_overshoot_fraction": 0.0,
+              "smooth_arc_pass": true,
+              "comparisons": [
+                {
+                  "source_run": "baseline",
+                  "mean_nearest_path_distance_m": 0.009658819963109239,
+                  "max_nearest_path_distance_m": 0.01755523476179851,
+                  "middle_median_path_distance_m": 0.009894392906112694,
+                  "symmetric_hausdorff_m": 0.01908747664096072
+                },
+                {
+                  "source_run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r323_20231024_258/full_solution_1_attempt_0",
+                  "mean_nearest_path_distance_m": 0.0215722413900921,
+                  "max_nearest_path_distance_m": 0.03296450597954006,
+                  "middle_median_path_distance_m": 0.025165218123630255,
+                  "symmetric_hausdorff_m": 0.034263419204783825
+                }
+              ]
+            },
+            "validated_drive_reused": true,
+            "native_controller_program_replayed": true
+          },
+          {
+            "start": 96,
+            "end": 117,
+            "mode": "ANCHOR",
+            "success": true,
+            "diversity": null,
+            "validated_drive_reused": null,
+            "native_controller_program_replayed": true
+          },
+          {
+            "start": 117,
+            "end": 128,
+            "mode": "RELAXED",
+            "success": true,
+            "diversity": {
+              "actual_wrist_min_exclusion_clearance_m": 0.0038528130995835433,
+              "actual_wrist_exclusion_pass": true,
+              "minimum_arc_distance_m": 0.0,
+              "actual_arc_pass": true,
+              "path_length_m": 0.12023223494847157,
+              "endpoint_distance_m": 0.047421553937235184,
+              "arc_reference_length_m": 0.0777525333301007,
+              "arc_length_ratio": 1.5463449202101498,
+              "backward_progress_fraction": 0.18109719177659656,
+              "endpoint_overshoot_fraction": 0.004536681091488415,
+              "smooth_arc_pass": true,
+              "comparisons": [
+                {
+                  "source_run": "baseline",
+                  "mean_nearest_path_distance_m": 0.06468693061644198,
+                  "max_nearest_path_distance_m": 0.07873681572323535,
+                  "middle_median_path_distance_m": 0.06977466088389842,
+                  "symmetric_hausdorff_m": 0.07873681572323535
+                },
+                {
+                  "source_run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r323_20231024_258/full_solution_1_attempt_0",
+                  "mean_nearest_path_distance_m": 0.01849589157439531,
+                  "max_nearest_path_distance_m": 0.03269352766792217,
+                  "middle_median_path_distance_m": 0.022133194070924202,
+                  "symmetric_hausdorff_m": 0.03269352766792217
+                }
+              ]
+            },
+            "validated_drive_reused": true,
+            "native_controller_program_replayed": true
+          }
+        ]
+      }
+    }
+  },
+  "new_types": {
+    "20231024_246": {
+      "run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_surface_acquisition_r337_20231024_246",
+      "success": false,
+      "mpc_candidates_evaluated": 32,
+      "best_mpc": {
+        "iteration": 1,
+        "candidate": 13,
+        "score": 13.996242476001742,
+        "grasp_acquired_frame": null,
+        "reason": "core_exit_handoff",
+        "frame": 50.0,
+        "object_error": {
+          "position_m": 0.0592617178275846,
+          "rotation_rad": 0.15491485340533462
+        },
+        "native_opposition": false
+      },
+      "surface_candidates": [
+        {
+          "iteration": 0,
+          "candidate": 5,
+          "score": -2.6233556755681446,
+          "grasp_acquired_frame": null,
+          "reason": "core_exit_handoff",
+          "frame": 50.0,
+          "object_error": {
+            "position_m": 0.06842199215846963,
+            "rotation_rad": 0.7016853105641174
+          },
+          "native_opposition": false
+        },
+        {
+          "iteration": 0,
+          "candidate": 6,
+          "score": -9.284876138929084,
+          "grasp_acquired_frame": null,
+          "reason": "core_exit_handoff",
+          "frame": 50.0,
+          "object_error": {
+            "position_m": 0.07970403716563561,
+            "rotation_rad": 0.9192226337958731
+          },
+          "native_opposition": false
+        }
+      ],
+      "skin_proposal": {
+        "method": "actual_skin_gap_coordinated_wrist_finger_MPC",
+        "nominal_opposition_finger": "mid",
+        "measured_opposition_finger": "pinky",
+        "measured_feedback_frame": 34.0,
+        "target_surface_gap_m": [
+          -0.0005,
+          0.002933044121482128
+        ],
+        "preserve_observed_contact_geometry": true,
+        "physical_acceptance": false,
+        "surface_gap_m": [
+          0.04360513264603676,
+          0.002933044121482128
+        ]
+      },
+      "ppo": {
+        "status": "budget_exhausted",
+        "success": false,
+        "iterations": 20,
+        "episodes": 85,
+        "elapsed_s": 198.86326514813118,
+        "network_hidden": [
+          64,
+          64
+        ],
+        "parameters": 24293,
+        "objective": "Appendix C.3+C.7+C.8",
+        "lifting_reward_enabled": true,
+        "clock_stretched": false,
+        "state_resets_within_episode": 0,
+        "residual_definition": "a_ref + delta; no contact-conditioned wrist target rewrite",
+        "best_evaluation": {
+          "success": false,
+          "failure": {
+            "source_frame": 50.0,
+            "reason": "core_exit_handoff",
+            "handoff": {
+              "wrist_error": {
+                "position_m": 0.014887752454564447,
+                "rotation_rad": 0.17366682192000715
+              },
+              "wrist_tracking_diagnostic_only": true,
+              "actual_contact": {
+                "mode": "free",
+                "thumb_contact": false,
+                "other_finger_contact": true,
+                "opposition_contact": false,
+                "touching_links": 1,
+                "link_paths": [
+                  "/xhand_right/right_hand_link",
+                  "/xhand_right/right_hand_ee_link",
+                  "/xhand_right/right_hand_index_bend_link",
+                  "/xhand_right/right_hand_index_rota_link1",
+                  "/xhand_right/right_hand_index_rota_link2",
+                  "/xhand_right/right_hand_index_rota_tip",
+                  "/xhand_right/right_hand_mid_link1",
+                  "/xhand_right/right_hand_mid_link2",
+                  "/xhand_right/right_hand_mid_tip",
+                  "/xhand_right/right_hand_pinky_link1",
+                  "/xhand_right/right_hand_pinky_link2",
+                  "/xhand_right/right_hand_pinky_tip",
+                  "/xhand_right/right_hand_ring_link1",
+                  "/xhand_right/right_hand_ring_link2",
+                  "/xhand_right/right_hand_ring_tip",
+                  "/xhand_right/right_hand_thumb_bend_link",
+                  "/xhand_right/right_hand_thumb_rota_link1",
+                  "/xhand_right/right_hand_thumb_rota_link2",
+                  "/xhand_right/right_hand_thumb_rota_tip"
+                ],
+                "force_norms_n": [
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  1.043908953666687,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                "force_vectors_n": [
+                  [
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  [
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  [
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  [
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  [
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  [
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  [
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  [
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  [
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  [
+                    -0.37087246775627136,
+                    -0.5586965084075928,
+                    0.8000360727310181
+                  ],
+                  [
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  [
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  [
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  [
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  [
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  [
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  [
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  [
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  [
+                    0.0,
+                    0.0,
+                    0.0
+                  ]
+                ],
+                "evidence": "PhysX thumb AND non-thumb finger/tool contact; retention checked separately"
+              },
+              "actual_wrist_twist": [
+                0.04393473557748476,
+                0.08382397825872774,
+                0.2508748351159046,
+                0.6915772557258606,
+                0.6998636722564697,
+                1.636223316192627
+              ],
+              "object_boundary_error": {
+                "position_m": 0.056066571172784525,
+                "rotation_rad": 0.131694243160316
+              },
+              "success": false,
+              "preceding_failure": null
+            }
+          },
+          "tracking_failure_count": 10,
+          "source_steps": 20,
+          "evaluation_return": 0.3653592443318513,
+          "reward_terms": {
+            "object_tracking": -0.14919328340397486,
+            "contact": 0.0,
+            "lifting": 0.010485351085662842,
+            "total": -0.13870793231831202
+          },
+          "return_value": 2.2711855745167884,
+          "deterministic": true
+        },
+        "report": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_surface_acquisition_r337_20231024_246/local_anchor_0_00/whole_local_ppo/chunk_0000_attempt_00/training_result.json"
+      }
+    },
+    "20231027_149": {
+      "run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_surface_acquisition_r337_20231027_149",
+      "success": false,
+      "mpc_candidates_evaluated": 32,
+      "best_mpc": {
+        "iteration": 1,
+        "candidate": 0,
+        "score": 37.175455322998246,
+        "grasp_acquired_frame": null,
+        "reason": "core_exit_handoff",
+        "frame": 40.0,
+        "object_error": {
+          "position_m": 0.08939527205943847,
+          "rotation_rad": 0.6562122902250793
+        },
+        "native_opposition": true
+      },
+      "surface_candidates": [
+        {
+          "iteration": 0,
+          "candidate": 5,
+          "score": -5.740836676650299,
+          "grasp_acquired_frame": null,
+          "reason": "core_exit_handoff",
+          "frame": 40.0,
+          "object_error": {
+            "position_m": 0.0949817806414667,
+            "rotation_rad": 1.261118450908709
+          },
+          "native_opposition": false
+        },
+        {
+          "iteration": 0,
+          "candidate": 6,
+          "score": 37.146030958215206,
+          "grasp_acquired_frame": null,
+          "reason": "core_exit_handoff",
+          "frame": 40.0,
+          "object_error": {
+            "position_m": 0.08947831604137914,
+            "rotation_rad": 0.653246254026514
+          },
+          "native_opposition": true
+        }
+      ],
+      "skin_proposal": {
+        "method": "actual_skin_gap_coordinated_wrist_finger_MPC",
+        "nominal_opposition_finger": "index",
+        "measured_opposition_finger": "pinky",
+        "measured_feedback_frame": 23.0,
+        "target_surface_gap_m": [
+          -0.0005,
+          0.0016272315807834385
+        ],
+        "preserve_observed_contact_geometry": true,
+        "physical_acceptance": false,
+        "surface_gap_m": [
+          0.025057362647901118,
+          0.0016272315807834385
+        ]
+      },
+      "ppo": {
+        "status": "budget_exhausted",
+        "success": false,
+        "iterations": 20,
+        "episodes": 85,
+        "elapsed_s": 166.37672394514084,
+        "network_hidden": [
+          64,
+          64
+        ],
+        "parameters": 24293,
+        "objective": "Appendix C.3+C.7+C.8",
+        "lifting_reward_enabled": true,
+        "clock_stretched": false,
+        "state_resets_within_episode": 0,
+        "residual_definition": "a_ref + delta; no contact-conditioned wrist target rewrite",
+        "best_evaluation": {
+          "success": false,
+          "failure": {
+            "source_frame": 40.0,
+            "reason": "core_exit_handoff",
+            "handoff": {
+              "wrist_error": {
+                "position_m": 0.0023428102948532766,
+                "rotation_rad": 0.01739360963731485
+              },
+              "wrist_tracking_diagnostic_only": true,
+              "actual_contact": {
+                "mode": "free",
+                "thumb_contact": false,
+                "other_finger_contact": false,
+                "opposition_contact": false,
+                "touching_links": 0,
+                "link_paths": [
+                  "/xhand_right/right_hand_link",
+                  "/xhand_right/right_hand_ee_link",
+                  "/xhand_right/right_hand_index_bend_link",
+                  "/xhand_right/right_hand_index_rota_link1",
+                  "/xhand_right/right_hand_index_rota_link2",
+                  "/xhand_right/right_hand_index_rota_tip",
+                  "/xhand_right/right_hand_mid_link1",
+                  "/xhand_right/right_hand_mid_link2",
+                  "/xhand_right/right_hand_mid_tip",
+                  "/xhand_right/right_hand_pinky_link1",
+                  "/xhand_right/right_hand_pinky_link2",
+                  "/xhand_right/right_hand_pinky_tip",
+                  "/xhand_right/right_hand_ring_link1",
+                  "/xhand_right/right_hand_ring_link2",
+                  "/xhand_right/right_hand_ring_tip",
+                  "/xhand_right/right_hand_thumb_bend_link",
+                  "/xhand_right/right_hand_thumb_rota_link1",
+                  "/xhand_right/right_hand_thumb_rota_link2",
+                  "/xhand_right/right_hand_thumb_rota_tip"
+                ],
+                "force_norms_n": [
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                "force_vectors_n": [
+                  [
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  [
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  [
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  [
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  [
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  [
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  [
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  [
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  [
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  [
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  [
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  [
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  [
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  [
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  [
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  [
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  [
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  [
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  [
+                    0.0,
+                    0.0,
+                    0.0
+                  ]
+                ],
+                "evidence": "PhysX thumb AND non-thumb finger/tool contact; retention checked separately"
+              },
+              "actual_wrist_twist": [
+                0.10429158430116356,
+                0.08742668269206608,
+                0.330041425223891,
+                -1.0990285873413086,
+                -1.553774118423462,
+                0.20141944289207458
+              ],
+              "object_boundary_error": {
+                "position_m": 0.09636426686416945,
+                "rotation_rad": 0.4515727927676806
+              },
+              "success": false,
+              "preceding_failure": null
+            }
+          },
+          "tracking_failure_count": 5,
+          "source_steps": 22,
+          "evaluation_return": 5.499761676883814,
+          "reward_terms": {
+            "object_tracking": -1.1114526745909434,
+            "contact": 0.0,
+            "lifting": 2.682209014892578e-06,
+            "total": -1.1114499923819285
+          },
+          "return_value": 6.0867568613053535,
+          "deterministic": true
+        },
+        "report": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_surface_acquisition_r337_20231027_149/local_anchor_0_01/whole_local_ppo/chunk_0000_attempt_00/training_result.json"
+      }
+    },
+    "20230928_031": {
+      "run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_surface_acquisition_r337_20230928_031",
+      "success": false,
+      "mpc_candidates_evaluated": 32,
+      "best_mpc": {
+        "iteration": 0,
+        "candidate": 5,
+        "score": -12.447301925545954,
+        "grasp_acquired_frame": null,
+        "reason": "core_exit_handoff",
+        "frame": 46.0,
+        "object_error": {
+          "position_m": 0.15596015020752996,
+          "rotation_rad": 1.6516968520996713
+        },
+        "native_opposition": true
+      },
+      "surface_candidates": [
+        {
+          "iteration": 0,
+          "candidate": 5,
+          "score": -12.447301925545954,
+          "grasp_acquired_frame": null,
+          "reason": "core_exit_handoff",
+          "frame": 46.0,
+          "object_error": {
+            "position_m": 0.15596015020752996,
+            "rotation_rad": 1.6516968520996713
+          },
+          "native_opposition": true
+        },
+        {
+          "iteration": 0,
+          "candidate": 6,
+          "score": -34.41385925975672,
+          "grasp_acquired_frame": null,
+          "reason": "core_exit_handoff",
+          "frame": 46.0,
+          "object_error": {
+            "position_m": 0.1541007990063758,
+            "rotation_rad": 1.5991034078211053
+          },
+          "native_opposition": false
+        }
+      ],
+      "skin_proposal": {
+        "method": "actual_skin_gap_coordinated_wrist_finger_MPC",
+        "nominal_opposition_finger": "mid",
+        "measured_opposition_finger": "ring",
+        "measured_feedback_frame": 24.0,
+        "target_surface_gap_m": [
+          -0.0005,
+          0.0006067031259298261
+        ],
+        "preserve_observed_contact_geometry": true,
+        "physical_acceptance": false,
+        "surface_gap_m": [
+          0.027680494937497094,
+          0.0006067031259298261
+        ]
+      },
+      "ppo": {
+        "status": "budget_exhausted",
+        "success": false,
+        "iterations": 20,
+        "episodes": 85,
+        "elapsed_s": 193.24103308911435,
+        "network_hidden": [
+          64,
+          64
+        ],
+        "parameters": 24293,
+        "objective": "Appendix C.3+C.7+C.8",
+        "lifting_reward_enabled": true,
+        "clock_stretched": false,
+        "state_resets_within_episode": 0,
+        "residual_definition": "a_ref + delta; no contact-conditioned wrist target rewrite",
+        "best_evaluation": {
+          "success": false,
+          "failure": {
+            "source_frame": 46.0,
+            "reason": "core_exit_handoff",
+            "handoff": {
+              "wrist_error": {
+                "position_m": 0.0035896914182509893,
+                "rotation_rad": 0.009789273200247799
+              },
+              "wrist_tracking_diagnostic_only": true,
+              "actual_contact": {
+                "mode": "free",
+                "thumb_contact": false,
+                "other_finger_contact": false,
+                "opposition_contact": false,
+                "touching_links": 0,
+                "link_paths": [
+                  "/xhand_right/right_hand_link",
+                  "/xhand_right/right_hand_ee_link",
+                  "/xhand_right/right_hand_index_bend_link",
+                  "/xhand_right/right_hand_index_rota_link1",
+                  "/xhand_right/right_hand_index_rota_link2",
+                  "/xhand_right/right_hand_index_rota_tip",
+                  "/xhand_right/right_hand_mid_link1",
+                  "/xhand_right/right_hand_mid_link2",
+                  "/xhand_right/right_hand_mid_tip",
+                  "/xhand_right/right_hand_pinky_link1",
+                  "/xhand_right/right_hand_pinky_link2",
+                  "/xhand_right/right_hand_pinky_tip",
+                  "/xhand_right/right_hand_ring_link1",
+                  "/xhand_right/right_hand_ring_link2",
+                  "/xhand_right/right_hand_ring_tip",
+                  "/xhand_right/right_hand_thumb_bend_link",
+                  "/xhand_right/right_hand_thumb_rota_link1",
+                  "/xhand_right/right_hand_thumb_rota_link2",
+                  "/xhand_right/right_hand_thumb_rota_tip"
+                ],
+                "force_norms_n": [
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                "force_vectors_n": [
+                  [
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  [
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  [
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  [
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  [
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  [
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  [
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  [
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  [
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  [
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  [
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  [
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  [
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  [
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  [
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  [
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  [
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  [
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  [
+                    0.0,
+                    0.0,
+                    0.0
+                  ]
+                ],
+                "evidence": "PhysX thumb AND non-thumb finger/tool contact; retention checked separately"
+              },
+              "actual_wrist_twist": [
+                -0.005862323443137333,
+                0.17238920974981162,
+                -0.034414846768262286,
+                -0.9646756649017334,
+                -0.1401272565126419,
+                -0.25196459889411926
+              ],
+              "object_boundary_error": {
+                "position_m": 0.15437821168459256,
+                "rotation_rad": 1.5367422068648808
+              },
+              "success": false,
+              "preceding_failure": null
+            }
+          },
+          "tracking_failure_count": 21,
+          "source_steps": 28,
+          "evaluation_return": -37.67779830455456,
+          "reward_terms": {
+            "object_tracking": -3.2599356150565715,
+            "contact": 0.0,
+            "lifting": 2.980232238769531e-07,
+            "total": -3.2599353170333476
+          },
+          "return_value": -37.6777801251379,
+          "deterministic": true
+        },
+        "report": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_surface_acquisition_r337_20230928_031/local_anchor_0_00/whole_local_ppo/chunk_0000_attempt_00/training_result.json"
+      }
+    }
+  }
+}

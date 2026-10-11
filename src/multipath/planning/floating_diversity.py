@@ -192,6 +192,34 @@ def set_arc_reference(exclusions,start,goal_command,ticks,dt,limits):
         arc_reference_method='fixed_time_straight_bridge_with_actual_boundary_velocities')
 
 
+def reached_carry_timing(scene,start,commands):
+    """Refit a carry seed only when its legacy terminal drive is unreachable.
+
+    The next Anchor's actual pose/contact conditions remain unchanged. Its
+    execution, rather than an old drive tangent, verifies the reached velocity.
+    """
+    from multipath.planning.timing import fitted_terminal_velocity
+    controls=np.asarray(commands);q0=pose_coordinates(start['wrist_xyz_wxyz'])
+    poses=np.vstack((start['wrist_xyz_wxyz'],controls[:,:7]))
+    raw=np.asarray([pose_coordinates(p,q0) for p in poses])
+    first=pose_velocity(poses[0],start['wrist_twist'],q0)
+    last=pose_velocity(poses[-1],controls[-1,19:25],raw[-1])
+    limits=scene.cfg['planning'];ticks=len(controls)
+    try:
+        boundary_fitted_path(np.vstack((raw[0],raw[-1])),ticks,scene.dt,
+            np.asarray(limits['velocity_limits']),np.asarray(limits['acceleration_limits']),first,last)
+        return controls,None
+    except RuntimeError as error:
+        rejection=str(error)
+    path,fit=fitted_terminal_velocity(raw,ticks,scene.dt,np.asarray(limits['velocity_limits']),
+        np.asarray(limits['acceleration_limits']),first,last)
+    fitted=controls_from_poses(np.asarray([coordinates_pose(q) for q in path]),
+        np.vstack((start['command_hand_q'],controls[:,7:19])),scene.dt)
+    fit.update(reason=rejection,source_time_stretch=False,terminal_velocity_policy='physical_continuation',
+        terminal_pose_changed=False,finger_drive_changed=False)
+    return fitted,fit
+
+
 def free_terminal_nominal(scene,start,ticks):
     """No next Anchor: derive a feasible braking target from the real release.
 
@@ -393,6 +421,10 @@ def plan_detour(planner,start,goal_command,ticks,exclusions,goal_state,seed_inde
     """
     from curobo.wrap.reacher.motion_gen import MotionGenPlanConfig
     scene=planner.scene;dt=scene.dt;limits=scene.cfg['planning']
+    terminal_refit=None
+    if planner.carry and baseline_commands is not None:
+        baseline_commands,terminal_refit=reached_carry_timing(scene,start,baseline_commands)
+        goal_command=baseline_commands[-1]
     pose=np.asarray(start['wrist_xyz_wxyz']);goal=np.asarray(goal_command[:7])
     q0=pose_coordinates(pose);q1=pose_coordinates(goal,q0)
     dq0=pose_velocity(pose,start['wrist_twist'],q0)
@@ -548,4 +580,5 @@ def plan_detour(planner,start,goal_command,ticks,exclusions,goal_state,seed_inde
         reference_tracking=False,source_time_stretch=False,arm_model_used=False,
         curobo_optimize_dt=False,hand_boundary_motion=bool(np.any(abs(hands-hands[0])>1e-8)),
         planned_hand_geometry='entry_posture',hand_boundary_collision_validation='measured_geometry_each_physics_step')
+    if terminal_refit is not None:timing['terminal_velocity_refit']=terminal_refit
     return commands,timing

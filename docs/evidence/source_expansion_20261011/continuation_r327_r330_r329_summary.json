@@ -1,0 +1,1103 @@
+{
+  "source": "actual PhysX reports",
+  "runs": {
+    "326": {
+      "status": "failed",
+      "error": "Physical boundary refinement failed: No interaction-valid boundary shooting candidate",
+      "full_runs": [
+        {
+          "index": 0,
+          "run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_demo_expansion_r318_20231024_258/final",
+          "full_pipeline_success": true
+        },
+        {
+          "index": 1,
+          "run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r323_20231024_258/full_solution_1_attempt_0",
+          "full_pipeline_success": true,
+          "actual_duration_s": 4.266666666666667,
+          "state_resets_between_segments": 0,
+          "task": {
+            "success": true,
+            "final_errors": {
+              "position_m": 0.030950382614870278,
+              "rotation_rad": 0.21571553329487164
+            },
+            "final_speed_m_s": 0.00010393137528925023,
+            "released": true
+          },
+          "intervals": [
+            {
+              "window": [
+                0,
+                25
+              ],
+              "diversity": {
+                "actual_wrist_min_exclusion_clearance_m": 0.006013019495480701,
+                "actual_wrist_exclusion_pass": true,
+                "minimum_arc_distance_m": 0.0,
+                "actual_arc_pass": true,
+                "path_length_m": 0.2048946878884707,
+                "endpoint_distance_m": 0.19174074981611955,
+                "arc_reference_length_m": 0.19331797129839615,
+                "arc_length_ratio": 1.0598843269061897,
+                "backward_progress_fraction": 0.0,
+                "endpoint_overshoot_fraction": 0.0,
+                "smooth_arc_pass": true,
+                "comparisons": [
+                  {
+                    "source_run": "baseline",
+                    "mean_nearest_path_distance_m": 0.006412508512955314,
+                    "max_nearest_path_distance_m": 0.017711272882964358,
+                    "middle_median_path_distance_m": 0.006252318776279997,
+                    "symmetric_hausdorff_m": 0.017711272882964358
+                  }
+                ]
+              }
+            },
+            {
+              "window": [
+                59,
+                68
+              ],
+              "diversity": {
+                "actual_wrist_min_exclusion_clearance_m": 0.0007911835928004802,
+                "actual_wrist_exclusion_pass": true,
+                "minimum_arc_distance_m": 0.0,
+                "actual_arc_pass": true,
+                "path_length_m": 0.19309877946395806,
+                "endpoint_distance_m": 0.1816374743282069,
+                "arc_reference_length_m": 0.1828785164982243,
+                "arc_length_ratio": 1.0558855307962487,
+                "backward_progress_fraction": 0.0,
+                "endpoint_overshoot_fraction": 0.0,
+                "smooth_arc_pass": true,
+                "comparisons": [
+                  {
+                    "source_run": "baseline",
+                    "mean_nearest_path_distance_m": 0.008423531389553771,
+                    "max_nearest_path_distance_m": 0.014451227970041558,
+                    "middle_median_path_distance_m": 0.011275826307925918,
+                    "symmetric_hausdorff_m": 0.014451227970041558
+                  }
+                ]
+              }
+            },
+            {
+              "window": [
+                88,
+                96
+              ],
+              "diversity": {
+                "actual_wrist_min_exclusion_clearance_m": 0.005725611828744092,
+                "actual_wrist_exclusion_pass": true,
+                "minimum_arc_distance_m": 0.0,
+                "actual_arc_pass": true,
+                "path_length_m": 0.18909644454393507,
+                "endpoint_distance_m": 0.15890981664269876,
+                "arc_reference_length_m": 0.17018429029078233,
+                "arc_length_ratio": 1.1111274972609917,
+                "backward_progress_fraction": 0.0,
+                "endpoint_overshoot_fraction": 0.0,
+                "smooth_arc_pass": true,
+                "comparisons": [
+                  {
+                    "source_run": "baseline",
+                    "mean_nearest_path_distance_m": 0.01678704122502451,
+                    "max_nearest_path_distance_m": 0.025037418270498487,
+                    "middle_median_path_distance_m": 0.020658292807400454,
+                    "symmetric_hausdorff_m": 0.025037418270498487
+                  }
+                ]
+              }
+            },
+            {
+              "window": [
+                117,
+                128
+              ],
+              "diversity": {
+                "actual_wrist_min_exclusion_clearance_m": 0.044328395671425366,
+                "actual_wrist_exclusion_pass": true,
+                "minimum_arc_distance_m": 0.0,
+                "actual_arc_pass": true,
+                "path_length_m": 0.11131577757069974,
+                "endpoint_distance_m": 0.05378883194439161,
+                "arc_reference_length_m": 0.08489910486619232,
+                "arc_length_ratio": 1.3111537247199743,
+                "backward_progress_fraction": 0.1730203549406587,
+                "endpoint_overshoot_fraction": 0.0,
+                "smooth_arc_pass": true,
+                "comparisons": [
+                  {
+                    "source_run": "baseline",
+                    "mean_nearest_path_distance_m": 0.06667423882146911,
+                    "max_nearest_path_distance_m": 0.08419424845741606,
+                    "middle_median_path_distance_m": 0.07336493352597703,
+                    "symmetric_hausdorff_m": 0.08419424845741606
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "validated_anchors": null,
+      "resumed_validated_anchors": null,
+      "source_duration_s": 4.266666666666667,
+      "elapsed_s": 136.33884061407298
+    },
+    "327": {
+      "status": "failed",
+      "error": "Local interaction repair failed: Reached-entry local interaction failed",
+      "full_runs": [
+        {
+          "index": 0,
+          "run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_demo_expansion_r318_20231024_258/final",
+          "full_pipeline_success": true
+        },
+        {
+          "index": 1,
+          "run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r323_20231024_258/full_solution_1_attempt_0",
+          "full_pipeline_success": true,
+          "actual_duration_s": 4.266666666666667,
+          "state_resets_between_segments": 0,
+          "task": {
+            "success": true,
+            "final_errors": {
+              "position_m": 0.030950382614870278,
+              "rotation_rad": 0.21571553329487164
+            },
+            "final_speed_m_s": 0.00010393137528925023,
+            "released": true
+          },
+          "intervals": [
+            {
+              "window": [
+                0,
+                25
+              ],
+              "diversity": {
+                "actual_wrist_min_exclusion_clearance_m": 0.006013019495480701,
+                "actual_wrist_exclusion_pass": true,
+                "minimum_arc_distance_m": 0.0,
+                "actual_arc_pass": true,
+                "path_length_m": 0.2048946878884707,
+                "endpoint_distance_m": 0.19174074981611955,
+                "arc_reference_length_m": 0.19331797129839615,
+                "arc_length_ratio": 1.0598843269061897,
+                "backward_progress_fraction": 0.0,
+                "endpoint_overshoot_fraction": 0.0,
+                "smooth_arc_pass": true,
+                "comparisons": [
+                  {
+                    "source_run": "baseline",
+                    "mean_nearest_path_distance_m": 0.006412508512955314,
+                    "max_nearest_path_distance_m": 0.017711272882964358,
+                    "middle_median_path_distance_m": 0.006252318776279997,
+                    "symmetric_hausdorff_m": 0.017711272882964358
+                  }
+                ]
+              }
+            },
+            {
+              "window": [
+                59,
+                68
+              ],
+              "diversity": {
+                "actual_wrist_min_exclusion_clearance_m": 0.0007911835928004802,
+                "actual_wrist_exclusion_pass": true,
+                "minimum_arc_distance_m": 0.0,
+                "actual_arc_pass": true,
+                "path_length_m": 0.19309877946395806,
+                "endpoint_distance_m": 0.1816374743282069,
+                "arc_reference_length_m": 0.1828785164982243,
+                "arc_length_ratio": 1.0558855307962487,
+                "backward_progress_fraction": 0.0,
+                "endpoint_overshoot_fraction": 0.0,
+                "smooth_arc_pass": true,
+                "comparisons": [
+                  {
+                    "source_run": "baseline",
+                    "mean_nearest_path_distance_m": 0.008423531389553771,
+                    "max_nearest_path_distance_m": 0.014451227970041558,
+                    "middle_median_path_distance_m": 0.011275826307925918,
+                    "symmetric_hausdorff_m": 0.014451227970041558
+                  }
+                ]
+              }
+            },
+            {
+              "window": [
+                88,
+                96
+              ],
+              "diversity": {
+                "actual_wrist_min_exclusion_clearance_m": 0.005725611828744092,
+                "actual_wrist_exclusion_pass": true,
+                "minimum_arc_distance_m": 0.0,
+                "actual_arc_pass": true,
+                "path_length_m": 0.18909644454393507,
+                "endpoint_distance_m": 0.15890981664269876,
+                "arc_reference_length_m": 0.17018429029078233,
+                "arc_length_ratio": 1.1111274972609917,
+                "backward_progress_fraction": 0.0,
+                "endpoint_overshoot_fraction": 0.0,
+                "smooth_arc_pass": true,
+                "comparisons": [
+                  {
+                    "source_run": "baseline",
+                    "mean_nearest_path_distance_m": 0.01678704122502451,
+                    "max_nearest_path_distance_m": 0.025037418270498487,
+                    "middle_median_path_distance_m": 0.020658292807400454,
+                    "symmetric_hausdorff_m": 0.025037418270498487
+                  }
+                ]
+              }
+            },
+            {
+              "window": [
+                117,
+                128
+              ],
+              "diversity": {
+                "actual_wrist_min_exclusion_clearance_m": 0.044328395671425366,
+                "actual_wrist_exclusion_pass": true,
+                "minimum_arc_distance_m": 0.0,
+                "actual_arc_pass": true,
+                "path_length_m": 0.11131577757069974,
+                "endpoint_distance_m": 0.05378883194439161,
+                "arc_reference_length_m": 0.08489910486619232,
+                "arc_length_ratio": 1.3111537247199743,
+                "backward_progress_fraction": 0.1730203549406587,
+                "endpoint_overshoot_fraction": 0.0,
+                "smooth_arc_pass": true,
+                "comparisons": [
+                  {
+                    "source_run": "baseline",
+                    "mean_nearest_path_distance_m": 0.06667423882146911,
+                    "max_nearest_path_distance_m": 0.08419424845741606,
+                    "middle_median_path_distance_m": 0.07336493352597703,
+                    "symmetric_hausdorff_m": 0.08419424845741606
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "validated_anchors": null,
+      "resumed_validated_anchors": null,
+      "source_duration_s": 4.266666666666667,
+      "elapsed_s": 414.9339959472418,
+      "attempt": {
+        "error": "RuntimeError: Continuous Anchor failed: {'source_frame': 59.0, 'reason': 'core_exit_handoff', 'handoff': {'wrist_error': {'position_m': 0.019152416399120888, 'rotation_rad': 0.2577314693237023}, 'wrist_tracking_diagnostic_only': True, 'actual_contact': {'mode': 'grasped', 'thumb_contact': True, 'other_finger_contact': True, 'opposition_contact': True, 'touching_links': 3, 'link_paths': ['/xhand_right/right_hand_link', '/xhand_right/right_hand_ee_link', '/xhand_right/right_hand_index_bend_link', '/xhand_right/right_hand_index_rota_link1', '/xhand_right/right_hand_index_rota_link2', '/xhand_right/right_hand_index_rota_tip', '/xhand_right/right_hand_mid_link1', '/xhand_right/right_hand_mid_link2', '/xhand_right/right_hand_mid_tip', '/xhand_right/right_hand_pinky_link1', '/xhand_right/right_hand_pinky_link2', '/xhand_right/right_hand_pinky_tip', '/xhand_right/right_hand_ring_link1', '/xhand_right/right_hand_ring_link2', '/xhand_right/right_hand_ring_tip', '/xhand_right/right_hand_thumb_bend_link', '/xhand_right/right_hand_thumb_rota_link1', '/xhand_right/right_hand_thumb_rota_link2', '/xhand_right/right_hand_thumb_rota_tip'], 'force_norms_n': [0.0, 0.0, 0.0, 0.0, 7.345616340637207, 0.0, 0.0, 3.0080506801605225, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 6.085789680480957, 0.0], 'force_vectors_n': [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [2.8597514629364014, -2.8181047439575195, 6.151275157928467], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [-0.45057007670402527, 0.3466516137123108, 2.953842878341675], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [1.6598806381225586, 5.853610992431641, -0.12989579141139984], [0.0, 0.0, 0.0]], 'evidence': 'PhysX thumb AND non-thumb finger/tool contact; retention checked separately'}, 'actual_wrist_twist': [0.07943661963960076, 0.08662782477580419, -0.03179481818290224, 0.2368352860212326, 0.09142272919416428, 1.032410979270935], 'object_boundary_error': {'position_m': 0.1359647623992046, 'rotation_rad': 1.658105008394598}, 'success': False, 'preceding_failure': None}}",
+        "actual_duration_s": 1.9666666666666666,
+        "state_resets_between_segments": 0,
+        "task_success": false,
+        "segments": [
+          {
+            "mode": "RELAXED",
+            "start": 0,
+            "end": 25,
+            "success": true,
+            "budget_s": 0.8333333333333334,
+            "terminal_velocity_refit": null,
+            "prefix_anchor_artifact_matches": null,
+            "failure": null
+          },
+          {
+            "mode": "ANCHOR",
+            "start": 25,
+            "end": 59,
+            "success": false,
+            "budget_s": 1.1333333333333333,
+            "terminal_velocity_refit": null,
+            "prefix_anchor_artifact_matches": false,
+            "failure": {
+              "source_frame": 59.0,
+              "reason": "core_exit_handoff",
+              "handoff": {
+                "wrist_error": {
+                  "position_m": 0.019152416399120888,
+                  "rotation_rad": 0.2577314693237023
+                },
+                "wrist_tracking_diagnostic_only": true,
+                "actual_contact": {
+                  "mode": "grasped",
+                  "thumb_contact": true,
+                  "other_finger_contact": true,
+                  "opposition_contact": true,
+                  "touching_links": 3,
+                  "link_paths": [
+                    "/xhand_right/right_hand_link",
+                    "/xhand_right/right_hand_ee_link",
+                    "/xhand_right/right_hand_index_bend_link",
+                    "/xhand_right/right_hand_index_rota_link1",
+                    "/xhand_right/right_hand_index_rota_link2",
+                    "/xhand_right/right_hand_index_rota_tip",
+                    "/xhand_right/right_hand_mid_link1",
+                    "/xhand_right/right_hand_mid_link2",
+                    "/xhand_right/right_hand_mid_tip",
+                    "/xhand_right/right_hand_pinky_link1",
+                    "/xhand_right/right_hand_pinky_link2",
+                    "/xhand_right/right_hand_pinky_tip",
+                    "/xhand_right/right_hand_ring_link1",
+                    "/xhand_right/right_hand_ring_link2",
+                    "/xhand_right/right_hand_ring_tip",
+                    "/xhand_right/right_hand_thumb_bend_link",
+                    "/xhand_right/right_hand_thumb_rota_link1",
+                    "/xhand_right/right_hand_thumb_rota_link2",
+                    "/xhand_right/right_hand_thumb_rota_tip"
+                  ],
+                  "force_norms_n": [
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    7.345616340637207,
+                    0.0,
+                    0.0,
+                    3.0080506801605225,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    6.085789680480957,
+                    0.0
+                  ],
+                  "force_vectors_n": [
+                    [
+                      0.0,
+                      0.0,
+                      0.0
+                    ],
+                    [
+                      0.0,
+                      0.0,
+                      0.0
+                    ],
+                    [
+                      0.0,
+                      0.0,
+                      0.0
+                    ],
+                    [
+                      0.0,
+                      0.0,
+                      0.0
+                    ],
+                    [
+                      2.8597514629364014,
+                      -2.8181047439575195,
+                      6.151275157928467
+                    ],
+                    [
+                      0.0,
+                      0.0,
+                      0.0
+                    ],
+                    [
+                      0.0,
+                      0.0,
+                      0.0
+                    ],
+                    [
+                      -0.45057007670402527,
+                      0.3466516137123108,
+                      2.953842878341675
+                    ],
+                    [
+                      0.0,
+                      0.0,
+                      0.0
+                    ],
+                    [
+                      0.0,
+                      0.0,
+                      0.0
+                    ],
+                    [
+                      0.0,
+                      0.0,
+                      0.0
+                    ],
+                    [
+                      0.0,
+                      0.0,
+                      0.0
+                    ],
+                    [
+                      0.0,
+                      0.0,
+                      0.0
+                    ],
+                    [
+                      0.0,
+                      0.0,
+                      0.0
+                    ],
+                    [
+                      0.0,
+                      0.0,
+                      0.0
+                    ],
+                    [
+                      0.0,
+                      0.0,
+                      0.0
+                    ],
+                    [
+                      0.0,
+                      0.0,
+                      0.0
+                    ],
+                    [
+                      1.6598806381225586,
+                      5.853610992431641,
+                      -0.12989579141139984
+                    ],
+                    [
+                      0.0,
+                      0.0,
+                      0.0
+                    ]
+                  ],
+                  "evidence": "PhysX thumb AND non-thumb finger/tool contact; retention checked separately"
+                },
+                "actual_wrist_twist": [
+                  0.07943661963960076,
+                  0.08662782477580419,
+                  -0.03179481818290224,
+                  0.2368352860212326,
+                  0.09142272919416428,
+                  1.032410979270935
+                ],
+                "object_boundary_error": {
+                  "position_m": 0.1359647623992046,
+                  "rotation_rad": 1.658105008394598
+                },
+                "success": false,
+                "preceding_failure": null
+              }
+            }
+          }
+        ]
+      }
+    },
+    "328": {
+      "status": "failed",
+      "error": "Local interaction repair failed: Reached-entry local interaction failed",
+      "full_runs": [
+        {
+          "index": 0,
+          "run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_demo_expansion_r318_20231024_258/final",
+          "full_pipeline_success": true
+        },
+        {
+          "index": 1,
+          "run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r323_20231024_258/full_solution_1_attempt_0",
+          "full_pipeline_success": true,
+          "actual_duration_s": 4.266666666666667,
+          "state_resets_between_segments": 0,
+          "task": {
+            "success": true,
+            "final_errors": {
+              "position_m": 0.030950382614870278,
+              "rotation_rad": 0.21571553329487164
+            },
+            "final_speed_m_s": 0.00010393137528925023,
+            "released": true
+          },
+          "intervals": [
+            {
+              "window": [
+                0,
+                25
+              ],
+              "diversity": {
+                "actual_wrist_min_exclusion_clearance_m": 0.006013019495480701,
+                "actual_wrist_exclusion_pass": true,
+                "minimum_arc_distance_m": 0.0,
+                "actual_arc_pass": true,
+                "path_length_m": 0.2048946878884707,
+                "endpoint_distance_m": 0.19174074981611955,
+                "arc_reference_length_m": 0.19331797129839615,
+                "arc_length_ratio": 1.0598843269061897,
+                "backward_progress_fraction": 0.0,
+                "endpoint_overshoot_fraction": 0.0,
+                "smooth_arc_pass": true,
+                "comparisons": [
+                  {
+                    "source_run": "baseline",
+                    "mean_nearest_path_distance_m": 0.006412508512955314,
+                    "max_nearest_path_distance_m": 0.017711272882964358,
+                    "middle_median_path_distance_m": 0.006252318776279997,
+                    "symmetric_hausdorff_m": 0.017711272882964358
+                  }
+                ]
+              }
+            },
+            {
+              "window": [
+                59,
+                68
+              ],
+              "diversity": {
+                "actual_wrist_min_exclusion_clearance_m": 0.0007911835928004802,
+                "actual_wrist_exclusion_pass": true,
+                "minimum_arc_distance_m": 0.0,
+                "actual_arc_pass": true,
+                "path_length_m": 0.19309877946395806,
+                "endpoint_distance_m": 0.1816374743282069,
+                "arc_reference_length_m": 0.1828785164982243,
+                "arc_length_ratio": 1.0558855307962487,
+                "backward_progress_fraction": 0.0,
+                "endpoint_overshoot_fraction": 0.0,
+                "smooth_arc_pass": true,
+                "comparisons": [
+                  {
+                    "source_run": "baseline",
+                    "mean_nearest_path_distance_m": 0.008423531389553771,
+                    "max_nearest_path_distance_m": 0.014451227970041558,
+                    "middle_median_path_distance_m": 0.011275826307925918,
+                    "symmetric_hausdorff_m": 0.014451227970041558
+                  }
+                ]
+              }
+            },
+            {
+              "window": [
+                88,
+                96
+              ],
+              "diversity": {
+                "actual_wrist_min_exclusion_clearance_m": 0.005725611828744092,
+                "actual_wrist_exclusion_pass": true,
+                "minimum_arc_distance_m": 0.0,
+                "actual_arc_pass": true,
+                "path_length_m": 0.18909644454393507,
+                "endpoint_distance_m": 0.15890981664269876,
+                "arc_reference_length_m": 0.17018429029078233,
+                "arc_length_ratio": 1.1111274972609917,
+                "backward_progress_fraction": 0.0,
+                "endpoint_overshoot_fraction": 0.0,
+                "smooth_arc_pass": true,
+                "comparisons": [
+                  {
+                    "source_run": "baseline",
+                    "mean_nearest_path_distance_m": 0.01678704122502451,
+                    "max_nearest_path_distance_m": 0.025037418270498487,
+                    "middle_median_path_distance_m": 0.020658292807400454,
+                    "symmetric_hausdorff_m": 0.025037418270498487
+                  }
+                ]
+              }
+            },
+            {
+              "window": [
+                117,
+                128
+              ],
+              "diversity": {
+                "actual_wrist_min_exclusion_clearance_m": 0.044328395671425366,
+                "actual_wrist_exclusion_pass": true,
+                "minimum_arc_distance_m": 0.0,
+                "actual_arc_pass": true,
+                "path_length_m": 0.11131577757069974,
+                "endpoint_distance_m": 0.05378883194439161,
+                "arc_reference_length_m": 0.08489910486619232,
+                "arc_length_ratio": 1.3111537247199743,
+                "backward_progress_fraction": 0.1730203549406587,
+                "endpoint_overshoot_fraction": 0.0,
+                "smooth_arc_pass": true,
+                "comparisons": [
+                  {
+                    "source_run": "baseline",
+                    "mean_nearest_path_distance_m": 0.06667423882146911,
+                    "max_nearest_path_distance_m": 0.08419424845741606,
+                    "middle_median_path_distance_m": 0.07336493352597703,
+                    "symmetric_hausdorff_m": 0.08419424845741606
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "validated_anchors": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r323_20231024_258/anchor_feedback_1/combined_anchors",
+      "resumed_validated_anchors": null,
+      "source_duration_s": 4.266666666666667,
+      "elapsed_s": 477.0397912655026,
+      "attempt": {
+        "error": "RuntimeError: Continuous Anchor failed: {'source_frame': 88.0, 'reason': 'core_grasp_retention'}",
+        "actual_duration_s": 2.933333333333333,
+        "state_resets_between_segments": 0,
+        "task_success": false,
+        "segments": [
+          {
+            "mode": "RELAXED",
+            "start": 0,
+            "end": 25,
+            "success": true,
+            "budget_s": 0.8333333333333334,
+            "terminal_velocity_refit": null,
+            "prefix_anchor_artifact_matches": null,
+            "failure": null
+          },
+          {
+            "mode": "ANCHOR",
+            "start": 25,
+            "end": 59,
+            "success": true,
+            "budget_s": 1.1333333333333333,
+            "terminal_velocity_refit": null,
+            "prefix_anchor_artifact_matches": true,
+            "failure": null
+          },
+          {
+            "mode": "RELAXED",
+            "start": 59,
+            "end": 68,
+            "success": true,
+            "budget_s": 0.3,
+            "terminal_velocity_refit": {
+              "budget_s": 0.3,
+              "curobo_duration_s": 0.3,
+              "time_scale": 1.0,
+              "command_velocity_ratio": 0.8311085642405924,
+              "command_acceleration_ratio": 1.000000000000476,
+              "parameterization": "endpoint_constrained_geometric_fit",
+              "geometry_max_adjustment": 0.046107718697014355,
+              "boundary_velocities_preserved": true,
+              "terminal_velocity_proposal": [
+                -0.14924573034203226,
+                0.41676666521189887,
+                0.1227752309072585,
+                0.29699253829341554,
+                1.2246107578084384,
+                -1.324516239338264
+              ],
+              "preferred_terminal_velocity": [
+                -0.14924573034202915,
+                0.4167666652118984,
+                0.11346788198696167,
+                0.2969925382934058,
+                1.224610757808442,
+                -1.3245162393382692
+              ],
+              "terminal_pose_changed": false,
+              "actual_next_anchor_validation_required": true,
+              "reason": "No fixed-time boundary trajectory in coordinate 2",
+              "source_time_stretch": false,
+              "terminal_velocity_policy": "physical_continuation",
+              "finger_drive_changed": false
+            },
+            "prefix_anchor_artifact_matches": null,
+            "failure": null
+          },
+          {
+            "mode": "ANCHOR",
+            "start": 68,
+            "end": 88,
+            "success": false,
+            "budget_s": 0.6666666666666666,
+            "terminal_velocity_refit": null,
+            "prefix_anchor_artifact_matches": null,
+            "failure": {
+              "source_frame": 88.0,
+              "reason": "core_grasp_retention"
+            }
+          }
+        ]
+      },
+      "anchor_1_retention": {
+        "position_m": 0.028899901003062306,
+        "rotation_rad": 0.4117830036558664,
+        "contact_retained": true
+      },
+      "measured_exit_velocity_ratio": 1.0292037936462013
+    },
+    "330": {
+      "status": "failed",
+      "error": "Continuous solution 2 failed: RuntimeError: No fixed-time terminal tangent in coordinate 4",
+      "full_runs": [
+        {
+          "index": 0,
+          "run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_demo_expansion_r318_20231024_258/final",
+          "full_pipeline_success": true
+        },
+        {
+          "index": 1,
+          "run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r323_20231024_258/full_solution_1_attempt_0",
+          "full_pipeline_success": true,
+          "actual_duration_s": 4.266666666666667,
+          "state_resets_between_segments": 0,
+          "task": {
+            "success": true,
+            "final_errors": {
+              "position_m": 0.030950382614870278,
+              "rotation_rad": 0.21571553329487164
+            },
+            "final_speed_m_s": 0.00010393137528925023,
+            "released": true
+          },
+          "intervals": [
+            {
+              "window": [
+                0,
+                25
+              ],
+              "diversity": {
+                "actual_wrist_min_exclusion_clearance_m": 0.006013019495480701,
+                "actual_wrist_exclusion_pass": true,
+                "minimum_arc_distance_m": 0.0,
+                "actual_arc_pass": true,
+                "path_length_m": 0.2048946878884707,
+                "endpoint_distance_m": 0.19174074981611955,
+                "arc_reference_length_m": 0.19331797129839615,
+                "arc_length_ratio": 1.0598843269061897,
+                "backward_progress_fraction": 0.0,
+                "endpoint_overshoot_fraction": 0.0,
+                "smooth_arc_pass": true,
+                "comparisons": [
+                  {
+                    "source_run": "baseline",
+                    "mean_nearest_path_distance_m": 0.006412508512955314,
+                    "max_nearest_path_distance_m": 0.017711272882964358,
+                    "middle_median_path_distance_m": 0.006252318776279997,
+                    "symmetric_hausdorff_m": 0.017711272882964358
+                  }
+                ]
+              }
+            },
+            {
+              "window": [
+                59,
+                68
+              ],
+              "diversity": {
+                "actual_wrist_min_exclusion_clearance_m": 0.0007911835928004802,
+                "actual_wrist_exclusion_pass": true,
+                "minimum_arc_distance_m": 0.0,
+                "actual_arc_pass": true,
+                "path_length_m": 0.19309877946395806,
+                "endpoint_distance_m": 0.1816374743282069,
+                "arc_reference_length_m": 0.1828785164982243,
+                "arc_length_ratio": 1.0558855307962487,
+                "backward_progress_fraction": 0.0,
+                "endpoint_overshoot_fraction": 0.0,
+                "smooth_arc_pass": true,
+                "comparisons": [
+                  {
+                    "source_run": "baseline",
+                    "mean_nearest_path_distance_m": 0.008423531389553771,
+                    "max_nearest_path_distance_m": 0.014451227970041558,
+                    "middle_median_path_distance_m": 0.011275826307925918,
+                    "symmetric_hausdorff_m": 0.014451227970041558
+                  }
+                ]
+              }
+            },
+            {
+              "window": [
+                88,
+                96
+              ],
+              "diversity": {
+                "actual_wrist_min_exclusion_clearance_m": 0.005725611828744092,
+                "actual_wrist_exclusion_pass": true,
+                "minimum_arc_distance_m": 0.0,
+                "actual_arc_pass": true,
+                "path_length_m": 0.18909644454393507,
+                "endpoint_distance_m": 0.15890981664269876,
+                "arc_reference_length_m": 0.17018429029078233,
+                "arc_length_ratio": 1.1111274972609917,
+                "backward_progress_fraction": 0.0,
+                "endpoint_overshoot_fraction": 0.0,
+                "smooth_arc_pass": true,
+                "comparisons": [
+                  {
+                    "source_run": "baseline",
+                    "mean_nearest_path_distance_m": 0.01678704122502451,
+                    "max_nearest_path_distance_m": 0.025037418270498487,
+                    "middle_median_path_distance_m": 0.020658292807400454,
+                    "symmetric_hausdorff_m": 0.025037418270498487
+                  }
+                ]
+              }
+            },
+            {
+              "window": [
+                117,
+                128
+              ],
+              "diversity": {
+                "actual_wrist_min_exclusion_clearance_m": 0.044328395671425366,
+                "actual_wrist_exclusion_pass": true,
+                "minimum_arc_distance_m": 0.0,
+                "actual_arc_pass": true,
+                "path_length_m": 0.11131577757069974,
+                "endpoint_distance_m": 0.05378883194439161,
+                "arc_reference_length_m": 0.08489910486619232,
+                "arc_length_ratio": 1.3111537247199743,
+                "backward_progress_fraction": 0.1730203549406587,
+                "endpoint_overshoot_fraction": 0.0,
+                "smooth_arc_pass": true,
+                "comparisons": [
+                  {
+                    "source_run": "baseline",
+                    "mean_nearest_path_distance_m": 0.06667423882146911,
+                    "max_nearest_path_distance_m": 0.08419424845741606,
+                    "middle_median_path_distance_m": 0.07336493352597703,
+                    "symmetric_hausdorff_m": 0.08419424845741606
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "validated_anchors": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_diversity_r323_20231024_258/anchor_feedback_1/combined_anchors",
+      "resumed_validated_anchors": null,
+      "source_duration_s": 4.266666666666667,
+      "elapsed_s": 110.00717549584806,
+      "attempt": {
+        "error": "RuntimeError: No fixed-time terminal tangent in coordinate 4",
+        "actual_duration_s": 2.933333333333333,
+        "state_resets_between_segments": 0,
+        "task_success": false,
+        "segments": [
+          {
+            "mode": "RELAXED",
+            "start": 0,
+            "end": 25,
+            "success": true,
+            "budget_s": 0.8333333333333334,
+            "terminal_velocity_refit": null,
+            "prefix_anchor_artifact_matches": null,
+            "failure": null
+          },
+          {
+            "mode": "ANCHOR",
+            "start": 25,
+            "end": 59,
+            "success": true,
+            "budget_s": 1.1333333333333333,
+            "terminal_velocity_refit": null,
+            "prefix_anchor_artifact_matches": true,
+            "failure": null
+          },
+          {
+            "mode": "RELAXED",
+            "start": 59,
+            "end": 68,
+            "success": true,
+            "budget_s": 0.3,
+            "terminal_velocity_refit": {
+              "budget_s": 0.3,
+              "curobo_duration_s": 0.3,
+              "time_scale": 1.0,
+              "command_velocity_ratio": 0.8311085642405924,
+              "command_acceleration_ratio": 1.000000000000476,
+              "parameterization": "endpoint_constrained_geometric_fit",
+              "geometry_max_adjustment": 0.046107718697014355,
+              "boundary_velocities_preserved": true,
+              "terminal_velocity_proposal": [
+                -0.14924573034203226,
+                0.41676666521189887,
+                0.1227752309072585,
+                0.29699253829341554,
+                1.2246107578084384,
+                -1.324516239338264
+              ],
+              "preferred_terminal_velocity": [
+                -0.14924573034202915,
+                0.4167666652118984,
+                0.11346788198696167,
+                0.2969925382934058,
+                1.224610757808442,
+                -1.3245162393382692
+              ],
+              "terminal_pose_changed": false,
+              "actual_next_anchor_validation_required": true,
+              "reason": "No fixed-time boundary trajectory in coordinate 2",
+              "source_time_stretch": false,
+              "terminal_velocity_policy": "physical_continuation",
+              "finger_drive_changed": false
+            },
+            "prefix_anchor_artifact_matches": null,
+            "failure": null
+          },
+          {
+            "mode": "ANCHOR",
+            "start": 68,
+            "end": 88,
+            "success": true,
+            "budget_s": 0.6666666666666666,
+            "terminal_velocity_refit": null,
+            "prefix_anchor_artifact_matches": null,
+            "failure": null
+          },
+          {
+            "mode": "RELAXED",
+            "start": 88,
+            "end": 96,
+            "success": false,
+            "budget_s": 0.26666666666666666,
+            "terminal_velocity_refit": null,
+            "prefix_anchor_artifact_matches": null,
+            "failure": null
+          }
+        ]
+      },
+      "anchor_1_retention": {
+        "position_m": 0.028899901003062306,
+        "rotation_rad": 0.4117830036558664,
+        "contact_retained": true
+      },
+      "measured_exit_velocity_ratio": 1.0292037936462013
+    }
+  },
+  "new_types": {
+    "20231024_246": {
+      "status": "failed",
+      "success": false,
+      "error": "Local anchor_0 failed: Reached-entry local interaction failed",
+      "first_contact_frame": 35.0,
+      "failed_end_frame": 50.0,
+      "first_contact_native_opposition": false,
+      "failed_end_native_opposition": false,
+      "one_sided_tool_rotation_deg": 29.463959768900587
+    },
+    "20231027_149": {
+      "status": "failed",
+      "success": false,
+      "error": "Local anchor_0 failed: Reached-entry local interaction failed",
+      "first_contact_frame": 23.0,
+      "failed_end_frame": 40.0,
+      "first_contact_native_opposition": false,
+      "failed_end_native_opposition": false,
+      "one_sided_tool_rotation_deg": 55.04603070951494
+    },
+    "20230928_031": {
+      "status": "failed",
+      "success": false,
+      "error": "Local anchor_0 failed: Reached-entry local interaction failed",
+      "first_contact_frame": 24.0,
+      "failed_end_frame": 46.0,
+      "first_contact_native_opposition": false,
+      "failed_end_native_opposition": false,
+      "one_sided_tool_rotation_deg": 0.9304900359161256
+    }
+  },
+  "local_geometry_proposal": {
+    "sequence": "20230928_031",
+    "query_seconds": 28.3174784258008,
+    "proposal": {
+      "method": "actual_skin_gap_coordinated_wrist_finger_MPC",
+      "contact_linearization": {
+        "contact_fingers": [
+          "thumb",
+          "mid"
+        ],
+        "surface_gap_m": [
+          0.005420921857591547,
+          0.0013836177835757078
+        ],
+        "gap_gradient_m_per_rad": [
+          [
+            -0.06768573838090249,
+            -0.04324239731227225,
+            -0.019070659723115484,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -0.06783642748124478,
+            -0.014935632253921735,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        ],
+        "wrist_gap_gradient_object_frame": [
+          [
+            -0.03241211468600971,
+            0.3912759640639458,
+            0.924049331269842,
+            -0.08527600718580448,
+            -0.10603040850780703,
+            0.03905030448046482
+          ],
+          [
+            -0.3640072135926713,
+            -0.9225009989567028,
+            0.23325116140797797,
+            -0.0267724938117094,
+            -0.018710079866013776,
+            -0.1278653919435398
+          ]
+        ],
+        "physical_acceptance": false,
+        "local_skin_witnesses_per_finger": 8,
+        "skin_sample_resolution_m": 0.001,
+        "role": "local finger-drive initialization; native physics required"
+      },
+      "residual_world_xyz_rotvec_hand": [
+        0.00033561252878671336,
+        3.398795524227882e-05,
+        -0.0015026924989025095,
+        0.01022109311028362,
+        0.019610925997795865,
+        0.0023677792945588005,
+        0.015691458867287823,
+        0.010024804559713371,
+        0.004421115581738878,
+        -0.0,
+        -0.0,
+        -0.0,
+        0.006568343298310916,
+        0.001446160472530872,
+        -0.0,
+        -0.0,
+        -0.0,
+        -0.0
+      ],
+      "physical_acceptance": false
+    },
+    "physical_success": false
+  },
+  "shared_tracking_parameters": {
+    "C": 1.0,
+    "lambda_p": 399.99999999999994,
+    "lambda_R": 3.6475626111241604,
+    "position_tolerance_m": 0.05,
+    "rotation_tolerance_rad": 0.5235987755982988,
+    "acceptance": "Appendix_C.4_weighted_error_le_C",
+    "parameter_provenance": "shared project tolerances; numeric TACO weights not specified in the paper"
+  },
+  "pending_jobs": {
+    "boundary": "659852.hopper-m-02",
+    "new_types": "659853.hopper-m-02"
+  }
+}

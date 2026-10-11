@@ -1,5 +1,27 @@
 # New source expansion: execution repairs
 
+## Latest result: r339
+
+Put-In 258 has **three complete successful continuous PhysX trajectories**.
+The newly accepted third rollout passes all three Anchors and four cuRobo
+intervals in 128/30 = 4.2666666667 s, with zero intersegment resets. Final
+measured task success is true: released object, 23.86 mm position error,
+0.32640 rad rotation error and 0.00004066 m/s speed.
+
+The last repair addresses a reusable execution bug: despite an identical
+measured entry and controller memory, the executor discarded a physically
+validated terminal bridge and generated a different program. Reusing the
+validated drive/wrench pair passes the full rollout; the last interval's
+measured exclusion margin is exactly the locally validated 3.85281 mm.
+No timing, contact, collision, task or exclusion acceptance was waived.
+
+Local presentation: `outputs/new_source_demos_20261011/20231024_258/presentation/showcase_overlay.mp4`.
+The rendering uses measured trajectories; RELAXED is played at 0.25× and
+Anchors at 1×. This is a single controllable floating XHand experiment.
+It does not establish mounted-arm or bimanual success. Pour and both Empty
+sources still need local acquisition/lift repair; they are excluded from the
+successful-demo count. Current evidence is in `continuation_r333_r339_summary.json`.
+
 ## Goal
 
 Add new TACO sources to the actual-state three-solution overlay demo. Existing
@@ -152,8 +174,9 @@ and the overlay preview was visually inspected.
    The r326 repair preserves the recorded prefix and force program; at the
    actually reached residual onset, it adds only the modeled response
    difference between new and original commands. Fresh physical interaction,
-   outgoing bridge and exported CORE checks remain necessary. This last
-   change is under physical verification, not yet a successful third rollout.
+   outgoing bridge and exported CORE checks remain necessary. r326 retained
+   native opposition in the nonzero trials, but none passed the complete
+   boundary conditions. It did not produce a third successful rollout.
 6. Development restores wrote dynamic velocities to fixed kinematic target
    objects, producing repeated invalid PhysX API errors. Fixed environment
    roles now skip those velocity calls. This preserves their authored fixture
@@ -192,3 +215,117 @@ reports in this evidence directory. r326 uses H200 interactive job 659580,
 20-minute wall time, reusing the two complete successful rollouts. The
 remaining physical gate is the third continuous trajectory; broader task
 expansion still requires successful acquisition on a different source type.
+
+## 本轮续工：r327–r335
+
+### 已经有的新物理证据
+
+r328 保留已验证的真实控制前缀，通过第一处 0.3 秒携物桥段 `[59,68)`。
+首个抓握 Anchor 及桥段都保持 PhysX 拇指与非拇指对握；没有状态重置或时间延长。
+旧终点 z 速度从 0.113468 调整为 0.122775 m/s，其余终点速度分量基本不变。
+终点位置与手指指令不变。拟合的速度比为 0.83111，加速度比为 1.00000。
+这只是可执行命令提案；后续 Anchor 仍必须从实测入口通过物理验收。
+
+r330 使用统一的 30° 标准，连续通过前两个 Anchor。第二个 Anchor 的出口
+仍有真实对握，相对平移为 28.90 mm，相对旋转为 23.59°。
+下一处 `[88,96)` 桥段因实测入口速度比 1.02920 而不满足严格拟合预算。
+不能瞬间修改这个速度；r333 因此尝试通过前一个 Anchor 的物理执行来修正出口。
+腕部单独修正会损害握持或物体边界条件，8 个候选全部失败，未生成第三条完整解。
+
+### 本轮修复及其可复用范围
+
+| 修复 | 原因 | 验证范围 |
+| --- | --- | --- |
+| 多次续跑继承 Anchor | r326/r327 没有自己的成功修复步骤，就丢失父运行已修好的 artifacts，退回原始版本 | 用真实 r326 续跑链恢复到 r323 的完整验证集合；r328 复用了通过的原生抓握 |
+| 携物桥段终点速度拟合 | 旧控制终点速度不能从新实测出口在固定预算内达到 | 第一处短桥段已实际通过；下一 Anchor 从实测速度执行 |
+| 统一 30° 容忍度 | 多处握持检查仍使用 0.35 rad，约 20°，与项目已采用的 30° 不一致 | r330 第二个 Anchor 实际通过；接触、碰撞、源时间和最终任务检查继续执行 |
+| 局部接触几何计算 | 全物体距离场和高密度手部网格重复查询耗时过长 | 同一实测杯子状态，原查询超过 6 分钟未结束；修后 28.32 秒，提案有限且在既有 MPC 半径内 |
+| 从真实首次单侧接触生成提案 | 失败结束时，物体已被单侧接触推歪；该姿态的修正方向不适合初次抓取 | 已接入下一批实际搜索；尚未证明新类型抓握成功 |
+| 联合腕部与手指的边界 MPC | 单独调整腕部出口会使已有握持发生内部滑移 | r335 第 7 个候选通过真实 padded/core 验证及其后桥段；仍使用原 8 候选预算 |
+
+几何提案保留真实网格表面点，按 1 mm 去重，并在实测最近表面点附近求导；
+最近三角形查询分批以限制临时内存。它们只用于初始化 MPC，不能替代原生接触证据。
+终点速度拟合只改变命令，不给 simulator 赋状态。手指调整仅发生在 Anchor 内，
+后续携物桥段继续冻结手指指令。
+
+这些机制依赖实际状态、物体几何、共享误差标准和 artifact provenance，
+没有动作名称或 sample 名称分支，也没有 Pour 专用控制配置。
+既有 V0 桥段求解器保持原样，新增拟合仅用于 diversity 携物入口适配。
+
+### 不同类型 source 的反馈
+
+r329 的 Pour bowl 246、Empty bowl 149、Empty cup 031 均未通过首个抓握，
+本批次没有新类型的完整成功视频。Replay 中首次单侧接触到失败结束，物体分别
+被转动约 29.46°、55.05°、0.93°；均未形成原生拇指对握。
+这支持把几何修正的反馈点提前到真实首次接触，而非使用已经推歪的结束状态。
+r334 已完成，三种新类型均未通过；后续 r337 使用实际承载的对侧手指，并保留已有真实接触。
+保留 Appendix C.3/C.7/C.8 奖励；未加入新任务专用 reward。
+
+### 可交付结果与当前边界
+
+完整成功数量仍为 Put-In 258 的两条，均为 128 帧、4.26667 秒连续 PhysX。
+本地叠加视频已保留：
+`outputs/new_source_demos_20261011/20231024_258/presentation/showcase_overlay.mp4`。
+RELAXED 播放为 0.25×，Anchor 为 1×；视频慢放不改变模拟时间。
+三条局部桥段解不等于三条完整任务解，尚未通过的轨迹不混入成功 demo。
+
+本轮机器可读证据：`continuation_r327_r330_r329_summary.json`。
+后续 r334、r335 均已完成，使用 interactive H200；按依赖串行分配，源之间在同一分配内并行。
+
+## 最新续工：r335–r339
+
+### 真正推进了什么
+
+r333 腕部单独修正的 8 个候选全部失败。r335 在同样 8 个候选的预算里，
+将后半组改成联合腕部速度与真实接触手指 preload 的物理 MPC。
+第 7 个候选通过，修复后的交互能继续执行下一处固定时间携物桥段。
+手指修正发生在 Anchor 内，RELAXED 携物桥段继续冻结手指指令。
+后续 release Anchor 也从真实前驱入口重新合成，通过本地物理验收。
+
+r335 第三条完整尝试已执行全部 128 帧、4.26667 秒，无段间状态重置。
+三个 Anchor 和前面三个 RELAXED 区间都通过；最后 `[117,128)` 自由运动
+的实测 wrist 曲线违反虚拟排除约束，因此仍不能计为完整成功第三解。
+r336 反复重建最后局部桥段后，完整执行仍失败在相同位置。
+
+### 定位到的执行错误与修复
+
+最后自由区间在 bank 中已经物理通过：实测排除余量 3.85281 mm。
+其完整运行入口的 wrist pose/twist、hand q/dq、drive targets、controller
+wrench memory、object pose/velocity 与本地验证入口的最大差异均为 0。
+但 executor 无条件禁止复用最后自由区间，重新规划后命令最大差异变为
+0.36509（25 维控制向量的混合单位），实测排除余量变为负值。
+这说明成功局部证据对应的控制程序没有被真正执行。
+
+通用修复：取消这个仅因“末段自由运动”触发的强制重新规划。
+实际入口与控制记忆匹配、当前区间排除约束仍满足时，复用已验证 drive。
+新 bank artifact 同时保存其实际使用的 `controller_wrenches`，连续执行复用
+同一 drive/wrench 对；入口不匹配时仍从实际前驱重新规划。
+保持源时间、接触、真实碰撞、物体边界、最终任务及实测排除检查。
+此修复不依赖 source 名称或动作类别。
+
+r338 因启动时漏传已有 interaction 物理配置，在初态校验即被拒绝，
+不属于轨迹实验结果。r339 已恢复既有配置，使用 interactive H200
+作业 `660031.hopper-m-02`，申请 8 分钟。bank 复验用时 50.03 秒，完整初态
+连续验证用时 52.08 秒，首次完整尝试即成功；源动作本身仍为 4.26667 秒。
+
+四个 RELAXED 区间的实测排除余量分别为 7.49523、2.63595、3.69163、
+3.85281 mm；全部源时间预算不变，三个 Anchor 通过，无段间重置。
+末段 drive/wrench 与局部验证程序一致，实测排除余量也完全一致。
+这给出干净的修复归因：执行了已经验证的控制程序，验收标准保持不变。
+
+### 不同类型 source 的最新实测结果
+
+r337 的三种类型均执行了 32 个 MPC 候选，随后运行 64×64、24,293 参数
+的 residual PPO，20 轮、85 个 episode；lifting reward 均已启用。
+
+| 类型 | 新证据 | 仍未通过的条件 |
+| --- | --- | --- |
+| Pour bowl 246 | 使用真实承载的 pinky 替代名义 mid 来初始化接触修正 | 仍未形成拇指对握；最佳 MPC 出口物体误差 59.26 mm |
+| Empty bowl 149 | 几何修正候选在出口形成原生拇指对握 | 出口物体误差 89.48 mm、旋转 0.65325 rad，交接失败 |
+| Empty cup 031 | 半量接触修正候选在出口形成原生拇指对握 | 出口物体误差 155.96 mm、旋转 1.65170 rad，交接失败 |
+
+“碰到或夹到物体”与“完成抬升并达到下一交互边界”仍有区别。
+这些结果没有证明新类型成功，也没有证明缺少 lifting reward。
+下一轮应针对实际抬升与载荷保持修复局部合成，而非继续追加奖励项。
+
+机器可读证据：`continuation_r333_r339_summary.json`。
