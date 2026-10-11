@@ -1,5 +1,7 @@
 # 双手 Anchor 出口与桥段修复（2026-10-11）
 
+**最新状态（r315）：双手 A0 与 `[32,39)` 物理 bridge 已通过；A1 在 source 46 因左拇指实际失去接触终止。完整 V0 未完成。下文按实验时间记录，前面的排队和未完成描述属于历史状态。**
+
 ## 目标与当前状态
 
 保持 `oracle → local padded Anchor → exported core → cuRobo RELAXED → continuous PhysX`。
@@ -388,3 +390,31 @@ r313 / **659134** 完成 **1 min 12 s**。复用 r312 的 bridge controller，ba
 证据：[r313 局部交互结果](evidence/oracle_action_types_20261008/anchor_boundary_repair_20261011/r313_local_anchor_result.json)。后续应从这次真实 predecessor 获取 A1 padded synthesis 入口，接已有 Replay → MPC → small residual PPO，再验证 exported core；A1/A2 padded/core artifacts 仍未全部通过。首个双手 oracle Anchor 和第一个运动规划 bridge 已有重复物理证据，**完整 3.666667 s V0 仍未完成**。
 
 最新 actual-state video：`outputs/oracle_action_types_20261008/r313_bimanual/exported_core/floating_xhand_actual.mp4`，已逐帧解码 41 帧 / 30 fps / 1.366667 s，末帧已目视检查；只包含到 frame 41 的实际失败前缀，不作为 terminal task success。
+
+### 33. 用户授权：CORE 内参考偏差改为诊断，继续真实交互
+
+用户看过视频后要求放松参考跟踪标准并继续。代码 `0afb897` 给 `WindowEvaluation` 增加通用 `strict / diagnostic` 策略；双手开发入口默认使用 diagnostic。只放开 CORE 内逐帧 `core_object_fidelity` 的提前停止，源对象位姿、跟踪 reward、5 cm / 30° 的原组合分数继续记录。没有增大数字阈值，没有 source/task/frame 特例。
+
+真实 grasp/contact、物体相对手的保持、入口 source boundary、出口 handoff、已有 command/collision checks 和固定 source clock 继续生效。报告按每个 Anchor、每只手保存超限帧及位置、旋转和组合误差，避免把“允许继续执行”写成“严格参考跟踪通过”。现有 padded/core artifact 完整性要求保持。
+
+只做一个针对本次改动的回归检查：同样的参考偏差在 diagnostic 下可以继续，但掉抓、入口边界和出口 handoff 失败仍拒绝；连同既有 MPC 检查共 7 项通过。语法和 diff 检查通过。r314 / **659260** 提交 interactive H200 / 10 min，复用 r313 的已编译物理 bridge 和 r307 的已验证 A0 artifact；最终仍从真实 initial state 连续执行。
+
+### 34. r314：参考偏差与桌面支撑接触转动需要分开报告
+
+r314 / **659260** 完成，H200 实际作业约 88 s。原 bridge 再次通过，source 41 的参考组合误差只作诊断，实际执行继续到 source **45 / 1.5 s**，段间 0 reset。与 r313 的 bridge 和 A1 commands/wrenches 逐元素相同；改变的是验收策略，没有证明控制行为得到改善。
+
+帧 45 的两手仍具有 native thumb + non-thumb opposition。停止原因是左手相对盘子的旋转变化 **0.355830 rad / 20.39°**，超过固定 0.35 rad 的 grasp-transform gate；相对平移 **46.249 mm**。不能把这一结果写成接触已经丢失。工具/盘子累计实际接触 8 个 physics steps，impulse **0.077129 N·s**。
+
+通用修正：对明确声明为 `surface_supported_object` 的物体，在 diagnostic CORE 中记录相对变换偏差，仍要求真实 opposition contact。strict 模式、空中携带、RELAXED retention 与入口/出口检查保留原要求。不是按 Brush/source 名称放开判断；不是从物体 reference 自动发现新的 Anchor。针对支撑物体转动、空中携带偏差和真实掉抓的既有检查共 **10 passed**，不增加其他验收层。
+
+证据：[r314 机器报告](evidence/oracle_action_types_20261008/anchor_boundary_repair_20261011/r314_relaxed_tracking_result.json)。实际状态视频已逐帧解码 **45 帧 / 30 fps / 1.5 s**，末帧已检查：`outputs/oracle_action_types_20261008/r314_bimanual/exported_core/floating_xhand_actual.mp4`。
+
+### 35. r315：排除判据误报后，首处真实失败是左拇指接触丢失
+
+r315 / **659317**，代码 `dc3643c`，interactive H200 / 10 min，实际作业约 **89 s**。从 initial 连续执行已验证 A0 与 bridge，原 **0.233333 s / 28 ticks** bridge 再次通过，段间 **0 reset**。与 r314 的 bridge 和 A1 commands/wrenches 全部逐元素相同。
+
+实际执行到 source **46 / 1.533333 s**，左侧 `core_grasp_retention` 失败。这次是原生接触事实：左手 thumb_contact=false、other_finger_contact=true，右手两侧 contact 仍有效。工具/盘子累计接触 **12 physics steps**，impulse **0.096533 N·s**；有交互接触不等于已完成整个擦刷 Anchor。
+
+参考跟踪超限累计 8 条，保留为诊断；`full_pipeline_success=false`、`task_success=false`、`padded_artifacts_complete=false`。A1 padded/core 尚未通过，A2 与完整双手任务仍未通过。现有 continuation 仍主要执行 CORE 拟合，不能声称后继 A1 的完整 padded Replay→MPC→PPO 已接通；这正是下一步局部交互修复的入口。
+
+证据：[r315 原生接触与控制程序对照](evidence/oracle_action_types_20261008/anchor_boundary_repair_20261011/r315_native_contact_result.json)。实际状态视频已逐帧解码 **46 帧 / 30 fps / 1.533333 s**，末帧已检查：`outputs/oracle_action_types_20261008/r315_bimanual/exported_core/floating_xhand_actual.mp4`。短前缀不作为完整任务视频。

@@ -1,0 +1,39 @@
+{
+  "experiment": "r314",
+  "pbs_job_id": "659260",
+  "code_commit": "0afb897",
+  "gpu_model": "H200",
+  "pbs_walltime_s": 88,
+  "core_reference_tracking_policy": "diagnostic",
+  "bridge_success": true,
+  "source_duration_s": 3.6666666666666665,
+  "actual_duration_s": 1.5,
+  "failure": "RuntimeError: left: {'source_frame': 45.0, 'reason': 'core_grasp_retention'}",
+  "failure_source_frame": 45.0,
+  "state_resets_between_segments": 0,
+  "full_pipeline_success": false,
+  "core_reference_tracking_violations": 6,
+  "contact_at_failure": {
+    "right": {
+      "mode": "grasped",
+      "thumb_contact": true,
+      "other_finger_contact": true
+    },
+    "left": {
+      "mode": "grasped",
+      "thumb_contact": true,
+      "other_finger_contact": true
+    }
+  },
+  "left_relative_transform_drift": {
+    "position_m": 0.0462491101751121,
+    "rotation_rad": 0.3558304864790353,
+    "rotation_degrees": 20.387585097335627
+  },
+  "native_tool_target_contact": {
+    "tool_target_contact_steps": 8,
+    "tool_target_impulse_n_s": 0.07712945410360891
+  },
+  "attribution": "Contact was retained; rejection was the rigid hand-object transform rotation tolerance 0.35 rad. Original source fidelity deviations were recorded, not stopping execution.",
+  "commands_and_wrenches_identical_to_r313": true
+}
