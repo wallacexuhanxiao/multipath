@@ -1,0 +1,9 @@
+{
+  "video": "/Users/apple/Desktop/semantic verifier/multipath/outputs/oracle_action_types_20261008/r294_bimanual/exported_core/floating_xhand_actual.mp4",
+  "decoded_frames": 37,
+  "fps": 30.0,
+  "duration_s": 1.2333333333333334,
+  "source": "measured PhysX mesh world transforms",
+  "full_task": false,
+  "failure_source_frame": 37
+}

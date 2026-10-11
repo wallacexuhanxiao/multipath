@@ -383,10 +383,13 @@ class FloatingPlanner:
                         else source_ticks*scene.dt/(steps-1))
                 options={} if source_ticks is None else dict(trajopt_tsteps=steps,
                     minimum_trajectory_dt=scene.dt)
-                return MotionGen(MotionGenConfig.load_from_robot_config(cfg,live,tensor_args=self.tensor,interpolation_dt=scene.dt,
+                model=MotionGen(MotionGenConfig.load_from_robot_config(cfg,live,tensor_args=self.tensor,interpolation_dt=scene.dt,
                     optimize_dt=False,trajopt_dt=opt_dt,js_trajopt_dt=opt_dt,
                     self_collision_check=False,self_collision_opt=False,
                     collision_checker_type=CollisionCheckerType.MESH if live.get('mesh') else CollisionCheckerType.PRIMITIVE,use_cuda_graph=False,**options))
+                if getattr(self,'coordinated_proposal_mode',False):
+                    for name in self.dynamic_peer_obstacles():model.world_coll_checker.enable_obstacle(name,False)
+                return model
             finally:faulthandler.cancel_dump_traceback_later()
         self.robot_config=cfg;self.build_planner=build_planner
         self.planner=build_planner()
@@ -458,6 +461,19 @@ class FloatingPlanner:
     def js(self,q):
         from curobo.types.robot import JointState
         return JointState.from_position(self.tensor.to_device(np.asarray(q).copy())[None],joint_names=self.planner.joint_names)
+
+    def dynamic_peer_obstacles(self):
+        return [name for name in self.live.get('mesh',{}) if name in self.peer_meshes
+                or self.object_meshes.get(name,{}).get('role')=='target']
+
+    def coordinated_proposal(self,enabled):
+        """Propose a component path; the caller must certify both moving hands.
+
+        A static peer can reject a trajectory that needs concurrent movement.
+        This mode is never used during joint geometry validation or PhysX.
+        """
+        self.coordinated_proposal_mode=bool(enabled)
+        for name in self.dynamic_peer_obstacles():self.planner.world_coll_checker.enable_obstacle(name,not enabled)
 
     def valid(self,q):
         try:
@@ -554,7 +570,9 @@ class FloatingPlanner:
         for role in names:checker.enable_obstacle(role,False)
         try:return self._world_clearance(centers,radii,gradient,per_sphere)
         finally:
-            for role in names:checker.enable_obstacle(role,True)
+            for role in names:
+                enabled=not (getattr(self,'coordinated_proposal_mode',False) and role in self.dynamic_peer_obstacles())
+                checker.enable_obstacle(role,enabled)
 
     def _world_clearance(self,centers,radii,gradient=False,per_sphere=False):
         from curobo.geom.sdf.world import CollisionQueryBuffer
@@ -568,6 +586,7 @@ class FloatingPlanner:
         if self.live.get('mesh'):
             from curobo.types.math import Pose
             for role in self.live['mesh']:
+                if getattr(self,'coordinated_proposal_mode',False) and role in self.dynamic_peer_obstacles():continue
                 p,q=self.mesh_obstacle_pose(role)
                 checker.update_mesh_pose(w_obj_pose=Pose.from_list(np.r_[p,q].tolist(),self.tensor),name=role)
         buffer=CollisionQueryBuffer.initialize_from_shape(query.shape,self.tensor,checker.collision_types)
@@ -582,7 +601,7 @@ class FloatingPlanner:
             if norm>1e-12:direction/=norm
         return float(-penetration.detach().cpu()),direction,'world'
 
-    def refine_path_cover(self,path,invalid):
+    def refine_path_cover(self,path,invalid,peer_prediction=None):
         """Refine conservative spheres when exact carried meshes clear a fit.
 
         Refine against the fit's mesh-safe configurations. Real colliding
@@ -594,6 +613,7 @@ class FloatingPlanner:
         print('PATH_COVER_REFINE_BEGIN',len(path),len(invalid),flush=True)
         poses=np.asarray([coordinates_pose(q) for q in path]);blocked=[]
         for tick in invalid:
+            if peer_prediction is not None:peer_prediction(tick)
             collision=self.measured_mesh_collisions(poses[tick])
             if collision:
                 blocked.append(dict(tick=tick,collisions=collision))
@@ -604,12 +624,20 @@ class FloatingPlanner:
         start,_=self.scene.root_motion();start=np.asarray(start)
         r0=Rotation.from_quat(start[[4,5,6,3]])
         rotations=Rotation.from_quat(poses[:,[4,5,6,3]]).as_matrix()
-        def clearance(world,radius):
+        def clearance(world,radius,ignored=()):
             local=r0.inv().apply(np.asarray(world)-start[:3])
             centers=np.einsum('nij,pj->npi',rotations,local)+poses[:,None,:3]
-            distances=self.world_clearance(centers.reshape(-1,3),
-                np.tile(radius,len(poses)),per_sphere=True)
-            return distances.reshape(len(poses),len(local)).min(0)
+            if peer_prediction is None:
+                distances=self.world_clearance(centers.reshape(-1,3),
+                    np.tile(radius,len(poses)),per_sphere=True,ignored=ignored)
+                return distances.reshape(len(poses),len(local)).min(0)
+            # Each sample has a different peer pose. A batched query against
+            # one final peer pose cannot certify this moving geometry.
+            distances=[]
+            for tick,points in zip(safe,centers):
+                peer_prediction(tick)
+                distances.append(self.world_clearance(points,radius,per_sphere=True,ignored=ignored))
+            return np.asarray(distances).min(0)
         cache=UsdGeom.XformCache();refined=[]
         for prim,_,_ in self.scene.measured_hand_collision_meshes:
             vertices,faces=self.scene.measured_hand_mesh_data[str(prim.GetPath())]
@@ -620,6 +648,13 @@ class FloatingPlanner:
             p,q=self.scene.objects['tool'].get_world_pose();mesh=planning_object_mesh(self.scene,'tool')
             refined+=boundary_collision_cover(Rotation.from_quat(np.asarray(q)[[1,2,3,0]]).apply(mesh.vertices)+p,
                 mesh.faces,start,self.live['cuboid'],clearance=clearance)
+        else:
+            p,q=self.scene.objects['tool'].get_world_pose();mesh=planning_object_mesh(self.scene,'tool')
+            object_clearance=lambda points,radius:clearance(points,radius,ignored=self.allowed_object_contacts)
+            boxes={name:box for name,box in self.live['cuboid'].items() if name not in self.allowed_object_contacts}
+            vertices=Rotation.from_quat(np.asarray(q)[[1,2,3,0]]).apply(mesh.vertices)+p
+            object_cover=boundary_collision_cover(vertices,mesh.faces,start,boxes,clearance=object_clearance)
+            self.object_spheres=compact_collision_cover(object_cover,start,boxes,clearance=object_clearance)
         refined=compact_collision_cover(refined,start,self.live['cuboid'],clearance=clearance)
         self.robot_config['kinematics']['collision_spheres']['wrist']=refined
         self.nominal_spheres=refined;self.sphere_count=len(refined)
@@ -628,10 +663,12 @@ class FloatingPlanner:
         print('PATH_COVER_REFINE_END',self.sphere_count,flush=True)
         geometry=json.loads((self.out/'collision_geometry.json').read_text())
         geometry.update(spheres=refined,proxy='full surfaces refined over fixed-time fitted path')
+        if self.separate_object:geometry['attached_object_spheres']=self.object_spheres
         (self.out/'collision_geometry.json').write_text(json.dumps(geometry,indent=2))
         (self.out/'fitted_path_geometry.json').write_text(json.dumps(dict(
             refined=True,physics_samples=len(path),safe_samples_used=len(safe),sphere_count=len(refined),
             colliding_fit_samples=blocked,conservative_surface_coverage=True,
+            moving_peer_prediction=peer_prediction is not None,
             source_time_stretch=False,simulator_state_assignment=False),indent=2))
         return True
 
@@ -677,6 +714,71 @@ class FloatingPlanner:
                     derivative[:,joint]=(self.object_path_clearance(shifted)-object_values)/epsilon
                 gradient[active]=derivative[active];values=np.minimum(values,object_values)
         return values,gradient
+
+    def coordinated_clearance_gradient(self,path,peer_path,peer_initial_pose):
+        """Batched moving-peer distance and gradients on a paused actual scene.
+
+        Keep the actual meshes in their acquired poses. For peer collisions,
+        transform query spheres into that peer's acquired frame instead of
+        uploading every collider for every finite-difference hypothesis.
+        The same world field and full sphere covers remain in use.
+        """
+        import torch
+        from curobo.geom.sdf.world import CollisionQueryBuffer
+        from curobo.types.math import Pose
+        if not getattr(self,'planning_peer_states',None):
+            raise RuntimeError('Moving-peer batch requires a paused physical predecessor')
+        path=np.asarray(path);peer_path=np.asarray(peer_path)
+        if path.shape!=peer_path.shape or path.ndim!=2 or path.shape[1]!=6:
+            raise ValueError('Moving-peer paths must share the same wrist clock')
+        # Match the existing numpy FK's double precision. Only the ESDF query
+        # itself is float32; chained frame transforms must not round earlier.
+        paired=torch.as_tensor(np.c_[path,peer_path],device=self.tensor.device,
+            dtype=torch.float64).requires_grad_(True)
+        def geometry(value):return torch.as_tensor(value,device=paired.device,dtype=paired.dtype)
+        def rotation(angles):
+            cy,cp,cr=torch.cos(angles).unbind(-1);sy,sp,sr=torch.sin(angles).unbind(-1)
+            return torch.stack((cy*cp,cy*sp*sr-sy*cr,cy*sp*cr+sy*sr,
+                sy*cp,sy*sp*sr+cy*cr,sy*sp*cr-cy*sr,
+                -sp,cp*sr,cp*cr),dim=-1).reshape(-1,3,3)
+        own_rotation=rotation(paired[:,3:6]);peer_rotation=rotation(paired[:,9:12])
+        initial=np.asarray(peer_initial_pose)
+        peer_rotation0=geometry(Rotation.from_quat(initial[[4,5,6,3]]).as_matrix())
+        peer_position0=geometry(initial[:3])
+        checker=self.planner.world_coll_checker
+        dynamic=set(self.dynamic_peer_obstacles());names=(*self.live['cuboid'],*self.live.get('mesh',{}))
+        # Restore the acquired mesh poses once per entire path query. Other
+        # planner queries may have left hypothetical poses in the checker.
+        for role,value in self.live.get('mesh',{}).items():
+            checker.update_mesh_pose(w_obj_pose=Pose.from_list(value['pose'],self.tensor),name=role)
+        def query(points,radius,peer_only,ignored):
+            for role in names:
+                excluded=role in ignored or self.object_meshes.get(role,{}).get('role') in ignored
+                checker.enable_obstacle(role,(role in dynamic)==peer_only and not excluded)
+            if peer_only:
+                # R_initial R_peer^T (sphere_world - p_peer) + p_initial.
+                points=torch.einsum('nij,npj->npi',peer_rotation.transpose(1,2),
+                    points-paired[:,None,6:9])
+                points=torch.einsum('ij,npj->npi',peer_rotation0,points)+peer_position0
+            spheres=torch.cat((points,torch.zeros_like(points[:,:,:1])),dim=-1)[None].to(self.tensor.dtype)
+            buffer=CollisionQueryBuffer.initialize_from_shape(spheres.shape,self.tensor,checker.collision_types)
+            distance=checker.get_sphere_distance(spheres,buffer,self.tensor.to_device([1.]),
+                self.tensor.to_device([0.]),compute_esdf=True,return_loss=True)
+            return -(distance+self.tensor.to_device(radius.copy())[None,None]).max(dim=-1).values[0]
+        try:
+            clearances=[]
+            groups=[(self.nominal_spheres,())]
+            if self.separate_object:groups.append((self.object_spheres,self.allowed_object_contacts))
+            for cover,ignored in groups:
+                local=geometry(np.asarray([s['center'] for s in cover]))
+                radius=np.asarray([s['radius'] for s in cover])
+                points=torch.einsum('nij,pj->npi',own_rotation,local)+paired[:,None,:3]
+                clearances.extend((query(points,radius,False,ignored),query(points,radius,True,ignored)))
+            values=torch.stack(clearances).min(dim=0).values
+            values.sum().backward()
+            return values.detach().cpu().numpy(),paired.grad.detach().cpu().numpy()
+        finally:
+            for role in names:checker.enable_obstacle(role,True)
 
     def object_path_clearance(self,path):
         poses=np.asarray([coordinates_pose(q) for q in path])
@@ -738,10 +840,29 @@ class FloatingPlanner:
 
     def mesh_obstacle_pose(self,role):
         if role not in self.peer_meshes:
+            override=getattr(self,'proposed_object_poses',{}).get(self.object_meshes.get(role,{}).get('role',role))
+            if override is not None:return np.asarray(override)[:3],np.asarray(override)[3:]
+            if getattr(self,'planning_peer_states',None):
+                pose=np.asarray(self.live['mesh'][role]['pose']);return pose[:3],pose[3:]
             return self.scene.objects[self.object_meshes.get(role,{}).get('role',role)].get_world_pose()
+        if getattr(self,'planning_peer_states',None):
+            from multipath.execution.mounted_scene import pose_matrix
+            value=self.peer_meshes[role];baseline=np.asarray(self.live['mesh'][role]['pose'])
+            matrix=pose_matrix(baseline)
+            proposed=getattr(self,'proposed_peer_poses',{}).get(value['side'])
+            if proposed is not None:
+                matrix=pose_matrix(proposed)@self.planning_peer_root_inverse[value['side']]@matrix
+            return matrix[:3,3],Rotation.from_matrix(matrix[:3,:3]).as_quat()[[3,0,1,2]]
         from pxr import UsdGeom
         value=self.peer_meshes[role]
         matrix=np.asarray(UsdGeom.XformCache().GetLocalToWorldTransform(value['prim'])).T
+        proposed=getattr(self,'proposed_peer_poses',{}).get(value['side'])
+        if proposed is not None:
+            from multipath.execution.mounted_scene import pose_matrix
+            world=getattr(self.scene,'scene',self.scene)
+            peer=world if value['side']=='right' else world.supporting_hands[value['side']]
+            measured,_=peer.root_motion()
+            matrix=pose_matrix(proposed)@np.linalg.inv(pose_matrix(measured))@matrix
         quaternion=Rotation.from_matrix(matrix[:3,:3]/value['scale']).as_quat()[[3,0,1,2]]
         return matrix[:3,3],quaternion
 
@@ -783,6 +904,7 @@ class FloatingPlanner:
                     model=fcl.BVHModel();model.beginModel(len(mesh.vertices),len(mesh.faces))
                     model.addSubModel(mesh.vertices,mesh.faces);model.endModel();self.fcl_objects[role]=model
             for role in self.live['mesh']:
+                if getattr(self,'coordinated_proposal_mode',False) and role in self.dynamic_peer_obstacles():continue
                 p,q=self.mesh_obstacle_pose(role)
                 obstacle=fcl.CollisionObject(self.fcl_objects[role],fcl.Transform(Rotation.from_quat(np.asarray(q)[[1,2,3,0]]).as_matrix(),p))
                 bodies=[]
@@ -797,8 +919,41 @@ class FloatingPlanner:
                 for name,body in bodies:
                     if name=='tool' and self.object_meshes.get(role,{}).get('role',role) in self.allowed_object_contacts:continue
                     if fcl.collide(body,obstacle,fcl.CollisionRequest(),fcl.CollisionResult()):
-                        collisions.append(dict(mesh=name,obstacle=role,geometry='triangle_mesh'))
+                        collision=dict(mesh=name,obstacle=role,geometry='triangle_mesh')
+                        if name=='tool' and role in self.object_meshes:
+                            collision['object_separation_contacts']=self.object_collision_contacts(role,delta)
+                        collisions.append(collision)
         return collisions
+
+    def object_collision_contacts(self,role,delta):
+        """Convex-piece separation feedback for an observed mesh intersection.
+
+        Triangle-face depths are not solid-body penetration depths. Keep the
+        triangle gate and query the exported individual convex pieces only
+        to propose a boundary correction, never as physical acceptance.
+        """
+        import fcl
+        from multipath.execution.mounted_scene import pose_matrix
+        if not hasattr(self,'convex_feedback_models'):self.convex_feedback_models={}
+        def model(key,mesh):
+            if key not in self.convex_feedback_models:
+                mesh=mesh.convex_hull
+                faces=np.c_[np.full(len(mesh.faces),3),mesh.faces].reshape(-1)
+                self.convex_feedback_models[key]=fcl.Convex(np.asarray(mesh.vertices),len(mesh.faces),faces)
+            return self.convex_feedback_models[key]
+        p,q=self.scene.objects['tool'].get_world_pose();own=delta@pose_matrix(np.r_[p,q])
+        p,q=self.mesh_obstacle_pose(role);peer=pose_matrix(np.r_[p,q])
+        obstacle=fcl.CollisionObject(model(role,self.mesh_obstacle(role)),fcl.Transform(peer[:3,:3],peer[:3,3]))
+        planning_object_mesh(self.scene,'tool');contacts=[]
+        for index,mesh in enumerate(self.scene.planning_object_parts['tool']):
+            body=fcl.CollisionObject(model(('tool',index),mesh),fcl.Transform(own[:3,:3],own[:3,3]))
+            result=fcl.CollisionResult()
+            fcl.collide(body,obstacle,fcl.CollisionRequest(num_max_contacts=1,enable_contact=True),result)
+            for contact in result.contacts:
+                contacts.append(dict(normal_outward_world=(-np.asarray(contact.normal)).tolist(),
+                    penetration_depth_m=float(contact.penetration_depth),position_world=contact.pos.tolist(),
+                    origin='exported_convex_piece_prediction',physical_contact_evidence=False))
+        return contacts
 
     def measured_valid(self):
         return min(self.measured_clearance().values())>=0.
@@ -811,16 +966,11 @@ class FloatingPlanner:
         # current measured state. No solver contact state is fabricated.
         scene=self.scene;start=scene.snapshot();q0=pose_coordinates(start['wrist_xyz_wxyz']);q1=pose_coordinates(goal,q0)
         # Joint parameterization derivatives are obtained from the measured spatial twist.
-        twist=np.asarray(start['wrist_twist']);eps=1e-4
-        pose=np.asarray(start['wrist_xyz_wxyz']);advanced=pose.copy();advanced[:3]+=eps*twist[:3]
-        advanced[3:]=(Rotation.from_rotvec(eps*twist[3:])*Rotation.from_quat(pose[[4,5,6,3]])).as_quat()[[3,0,1,2]]
-        dq0=(pose_coordinates(advanced,q0)-q0)/eps
+        from multipath.planning.bridge import coordinate_velocity
+        dq0=coordinate_velocity(start['wrist_xyz_wxyz'],start['wrist_twist'],q0)
         dq1=None
         if goal_twist is not None:
-            terminal=np.asarray(goal).copy();target_twist=np.asarray(goal_twist)
-            terminal[:3]+=eps*target_twist[:3]
-            terminal[3:]=(Rotation.from_rotvec(eps*target_twist[3:])*Rotation.from_quat(terminal[[4,5,6,3]])).as_quat()[[3,0,1,2]]
-            dq1=(pose_coordinates(terminal,q1)-q1)/eps
+            dq1=coordinate_velocity(goal,goal_twist,q1)
         if self.carry and getattr(self,'source_time_trajopt_ticks',None)!=ticks:
             self.planner=self.build_planner(source_ticks=ticks)
             self.source_time_trajopt_ticks=ticks
@@ -854,7 +1004,7 @@ class FloatingPlanner:
             (self.out/'planner_failure.json').write_text(json.dumps(dict(status=str(result.status),
                 entry_coordinates=q0.tolist(),goal_coordinates=q1.tolist(),constraints=details),indent=2))
             raise RuntimeError(f'Floating cuRobo failed: {result.status}')
-        raw=result.get_interpolated_plan().position.detach().cpu().numpy().reshape(-1,6).copy()
+        raw=result.get_interpolated_plan().position.detach().cpu().numpy().reshape(-1,6).astype(np.float64)
         limits=scene.cfg['planning'];dt=scene.dt
         # Impose command boundaries before time fitting and collision checks;
         # these are planned targets, never assignments to simulator state.

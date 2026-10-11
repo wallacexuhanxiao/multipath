@@ -157,6 +157,23 @@ class WindowEvaluation:
             if not handoff['success']:
                 reason = 'core_exit_handoff'
             full_bridge_constraints=getattr(self.scene,'bridge_exit_constraints',False)
+            outgoing=getattr(self.scene,'outgoing_oracle_boundary',None)
+            if outgoing and outgoing['core_end']==a.core_end and a.exit_contact=='grasped' and reason is None:
+                # A locally valid grasp can leave no time-feasible next entry.
+                # Feed that observed failure back into local synthesis, without
+                # constraining the RELAXED path to the human trajectory.
+                from multipath.planning.bridge import feedback_boundary_target
+                source=np.asarray(outgoing['source_target'])
+                wrist=source@np.linalg.inv(measured['hand_object_transform'])
+                pose=np.r_[wrist[:3,3],Rotation.from_matrix(wrist[:3,:3]).as_quat()[[3,0,1,2]]]
+                goal=dict(wrist_xyz_wxyz=pose.tolist(),wrist_twist=np.zeros(6).tolist())
+                try:
+                    _,check=feedback_boundary_target(measured,goal,measured['wrist_xyz_wxyz'],measured,
+                        source,outgoing['budget_s'],self.scene.dt,self.scene.cfg['planning'],interior_scales=(1.,1.,1.))
+                    self.scene.last_outgoing_boundary_precheck=dict(feasible=True,fit=check,collision_verified=False)
+                except RuntimeError as error:
+                    self.scene.last_outgoing_boundary_precheck=dict(feasible=False,error=str(error))
+                    reason='core_exit_next_boundary_unreachable'
             if full_bridge_constraints or getattr(self.scene,'bridge_exit_velocity_constraints',False):
                 from multipath.planning.bridge import coordinate_velocity,carried_object_clearance
                 velocity=coordinate_velocity(measured['wrist_xyz_wxyz'],measured['wrist_twist'])

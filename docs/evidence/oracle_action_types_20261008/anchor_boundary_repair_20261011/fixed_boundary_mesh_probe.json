@@ -1,0 +1,40 @@
+{
+  "samples": [
+    {
+      "physics_tick": 0,
+      "intersecting_exported_mesh_pairs": []
+    },
+    {
+      "physics_tick": 1,
+      "intersecting_exported_mesh_pairs": []
+    },
+    {
+      "physics_tick": 14,
+      "intersecting_exported_mesh_pairs": [
+        [
+          "target",
+          "peer_left_003"
+        ],
+        [
+          "target",
+          "peer_left_004"
+        ],
+        [
+          "peer_right_017",
+          "peer_left_000"
+        ]
+      ]
+    },
+    {
+      "physics_tick": 27,
+      "intersecting_exported_mesh_pairs": []
+    },
+    {
+      "physics_tick": 28,
+      "intersecting_exported_mesh_pairs": []
+    }
+  ],
+  "physics_dt": 0.008333333333333333,
+  "physical_validation": false,
+  "origin": "saved cuRobo paths and exported collision meshes"
+}

@@ -106,11 +106,27 @@ def discrete_displacement_bounds(v0,v1,budget,dt,velocity_limits,acceleration_li
 
 
 def coordinate_velocity(pose, twist, near=None):
-    pose=np.asarray(pose,dtype=float);twist=np.asarray(twist,dtype=float)
-    q=pose_coordinates(pose,near);eps=1e-5;next_pose=pose.copy()
-    next_pose[:3]+=eps*twist[:3]
-    next_pose[3:]=(Rotation.from_rotvec(eps*twist[3:])*Rotation.from_quat(pose[[4,5,6,3]])).as_quat()[[3,0,1,2]]
-    return (pose_coordinates(next_pose,q)-q)/eps
+    """Measured world twist in the planner's ZYX coordinate chart.
+
+    Use the same analytic Jacobian for boundary fitting and execution. Unequal
+    finite-difference steps rejected feasible acceleration-envelope boundaries.
+    """
+    q=pose_coordinates(np.asarray(pose,dtype=float),near);twist=np.asarray(twist,dtype=float)
+    jac=coordinate_angular_jacobian(q)
+    angular=np.linalg.solve(jac,twist[3:]) if abs(np.cos(q[4]))>1e-8 else np.linalg.lstsq(jac,twist[3:],rcond=1e-8)[0]
+    return np.r_[twist[:3],angular]
+
+
+def coordinate_angular_jacobian(q):
+    yaw,pitch=np.asarray(q)[3:5]
+    return np.array([[0.,-np.sin(yaw),np.cos(yaw)*np.cos(pitch)],
+                     [0.,np.cos(yaw),np.sin(yaw)*np.cos(pitch)],
+                     [1.,0.,-np.sin(pitch)]])
+
+
+def coordinates_twist(q,velocity):
+    velocity=np.asarray(velocity,dtype=float)
+    return np.r_[velocity[:3],coordinate_angular_jacobian(q)@velocity[3:]]
 
 
 def bridge_precheck(start,goal,budget,planning):
@@ -219,7 +235,7 @@ def free_exit_clearance_offset(scene,actual,geometry,obstacle_roles=None):
         obstacle_roles=sorted(roles),physically_acquired_feedback=True,physics_acceptance=False,source_time_stretch=False)
 
 
-def feedback_boundary_target(start,goal,planned_pose,actual_state,source_target,budget,dt,planning,*,clearance=None,clearance_gradient=None,final_coordinate_velocity=None,interior_scales=(.98,.95,.98)):
+def feedback_boundary_target(start,goal,planned_pose,actual_state,source_target,budget,dt,planning,*,clearance=None,clearance_gradient=None,final_coordinate_velocity=None,interior_scales=(.98,.95,.98),max_collision_seeds=7):
     """Develop one canonical boundary using a preceding physical rollout.
 
     Only the next oracle boundary conditions this fit. No relaxed reference
@@ -261,12 +277,14 @@ def feedback_boundary_target(start,goal,planned_pose,actual_state,source_target,
         # transform of the tool also rotates that deflection when the new goal
         # changes orientation, causing successive feedback fits to oscillate.
         return tracking@pose_matrix(coordinates_pose(x))@measured_held
+    displacement_scale=np.maximum(vmax*budget,1e-6)
     def nominal_constraints(x):
         q,v1=x[:6],x[6:]
         low,high=discrete_displacement_bounds(v0,v1,budget,dt,vmax,amax);m=tool(q)
         position=np.sum((m[:3,3]-source_target[:3,3])**2)/OBJECT_POSITION_TOLERANCE_M**2
         rotation=Rotation.from_matrix(source_target[:3,:3].T@m[:3,:3]).magnitude()**2/OBJECT_ROTATION_TOLERANCE_RAD**2
-        return np.r_[q-q0-low,q0+high-q,scales[2]**2-position-rotation]
+        return np.r_[(q-q0-low)/displacement_scale,(q0+high-q)/displacement_scale,
+                     scales[2]**2-position-rotation]
     geometry_cache={}
     def geometry(q):
         # Geometry depends on pose, not terminal velocity. Cache the paired
@@ -281,7 +299,7 @@ def feedback_boundary_target(start,goal,planned_pose,actual_state,source_target,
         return geometry_cache[key]
     def constraints(x):
         values=nominal_constraints(x)
-        if clearance is not None:values=np.r_[values,geometry(x[:6])[0]-1e-4]
+        if clearance is not None:values=np.r_[values,(geometry(x[:6])[0]-1e-4)/OBJECT_POSITION_TOLERANCE_M]
         return values
     def constraint_jacobian(x):
         # Source pose and discrete time envelopes are float64. Only the GPU
@@ -291,7 +309,7 @@ def feedback_boundary_target(start,goal,planned_pose,actual_state,source_target,
         for i in range(len(x)):
             step=np.zeros_like(x);step[i]=epsilon
             jacobian[:,i]=(nominal_constraints(x+step)-nominal_constraints(x-step))/(2*epsilon)
-        return np.vstack((jacobian,np.r_[geometry(x[:6])[1],np.zeros(6)]))
+        return np.vstack((jacobian,np.r_[geometry(x[:6])[1],np.zeros(6)]/OBJECT_POSITION_TOLERANCE_M))
     def objective(x):
         predicted=predicted_tool(x[:6])
         position=np.sum((predicted[:3,3]-source_target[:3,3])**2)/OBJECT_POSITION_TOLERANCE_M**2
@@ -325,29 +343,40 @@ def feedback_boundary_target(start,goal,planned_pose,actual_state,source_target,
     condition=dict(type='ineq',fun=constraints)
     if clearance is not None and clearance_gradient is not None:
         condition['jac']=constraint_jacobian
-    for candidate in seeds:
+    for candidate in seeds[:max_collision_seeds]:
         result=minimize(objective,np.r_[candidate,np.clip(v1_seed,-vmax,vmax)],method='SLSQP',
                         bounds=[(None,None)]*6+velocity_bounds,
                         constraints=[condition],options=options)
         minimum=float(min(constraints(result.x)))
         feasible=minimum>=-1e-8 and (result.success or clearance is not None)
+        q,v=result.x[:6],result.x[6:]
+        m=tool(q);low,high=discrete_displacement_bounds(v0,v,budget,dt,vmax,amax)
+        details=dict(wrist_xyz_wxyz=coordinates_pose(q).tolist(),coordinate_velocity=v.tolist(),
+            source_position_error_m=float(np.linalg.norm(m[:3,3]-source_target[:3,3])),
+            source_rotation_error_rad=float(Rotation.from_matrix(source_target[:3,:3].T@m[:3,:3]).magnitude()),
+            displacement_below_lower=np.maximum(0,low-(q-q0)).tolist(),
+            displacement_above_upper=np.maximum(0,q-q0-high).tolist(),
+            source_condition_margin=float(nominal_constraints(result.x)[-1]),
+            collision_gradient=None if clearance_gradient is None else geometry(q)[1].tolist())
         attempts.append(dict(solver_success=bool(result.success),solver_message=str(result.message),
             minimum_constraint=minimum,feasible=bool(feasible),
-            clearance_m=None if clearance is None else geometry(result.x[:6])[0]))
+            clearance_m=None if clearance is None else geometry(result.x[:6])[0],candidate=details))
         if clearance is not None:
             print('BOUNDARY_FIT_ATTEMPT',len(attempts),attempts[-1],
                   'elapsed_s',round(monotonic()-fit_begin,3),flush=True)
         if feasible:break
     if not feasible:
+        best=max(range(len(attempts)),key=lambda i:attempts[i]['minimum_constraint'])
         error=RuntimeError('No canonical boundary found within source/time/collision conditions')
         error.boundary_fit_report=dict(attempts=attempts,source_time_stretch=False,physics_acceptance=False,
-            collision_gradient_used=clearance_gradient is not None,collision_queries=len(geometry_cache))
+            collision_gradient_used=clearance_gradient is not None,collision_queries=len(geometry_cache),
+            best_candidate=attempts[best]['candidate'],source_target=source_target.tolist(),
+            source_budget_s=float(budget),entry_pose=start['wrist_xyz_wxyz'],entry_twist=start['wrist_twist'],
+            constraint_scaling='positive normalization only; original feasible set retained')
         error.boundary_fit_report['elapsed_s']=monotonic()-fit_begin
         raise error
-    q,v1=result.x[:6],result.x[6:];pose=coordinates_pose(q);eps=1e-5
-    advanced=coordinates_pose(q+eps*v1)
-    twist=np.r_[v1[:3],(Rotation.from_quat(advanced[[4,5,6,3]])*
-        Rotation.from_quat(pose[[4,5,6,3]]).inv()).as_rotvec()/eps]
+    q,v1=result.x[:6],result.x[6:];pose=coordinates_pose(q)
+    twist=coordinates_twist(q,v1)
     proposal=dict(goal,wrist_xyz_wxyz=pose.tolist(),wrist_twist=twist.tolist(),
                   physically_acquired_state=False,state_origin='unvalidated_physical_feedback_boundary_proposal')
     predicted=predicted_tool(q)
@@ -363,6 +392,71 @@ def feedback_boundary_target(start,goal,planned_pose,actual_state,source_target,
         collision_boundary_fitted=clearance is not None,boundary_fit_attempts=attempts,
         collision_gradient_used=clearance_gradient is not None,collision_queries=len(geometry_cache),
         boundary_fit_elapsed_s=monotonic()-fit_begin)
+
+
+def lookahead_grasp_boundary(start,previous_exit,source_exit,source_entry,tail_budget,bridge_budget,dt,planning,*,exit_condition=None):
+    """Choose an Anchor exit together with its next oracle entry.
+
+    These are command proposals from an acquired grasp, not physical states.
+    Both intervals retain their original source budgets and object conditions.
+    Unlike a quiet exit, the intermediate velocity is selected for both sides.
+    Collision and closed-loop acceptance still require fresh real execution.
+    """
+    from scipy.optimize import minimize
+    from multipath.planning.floating import coordinates_pose
+    from multipath.execution.mounted_scene import pose_matrix
+    from multipath.validation.physics import OBJECT_POSITION_TOLERANCE_M,OBJECT_ROTATION_TOLERANCE_RAD
+    if not start.get('physically_acquired_state'):
+        raise ValueError('Lookahead exit requires a physically acquired grasp')
+    held=np.asarray(start['hand_object_transform'])
+    q0=pose_coordinates(start['wrist_xyz_wxyz'])
+    v0=coordinate_velocity(start['wrist_xyz_wxyz'],start['wrist_twist'],q0)
+    vmax=np.asarray(planning['velocity_limits']);amax=np.asarray(planning['acceleration_limits'])
+    sources=[np.asarray(source_exit),np.asarray(source_entry)];desired=[]
+    for source in sources:
+        wrist=source@np.linalg.inv(held)
+        desired.append(pose_coordinates(np.r_[wrist[:3,3],Rotation.from_matrix(wrist[:3,:3]).as_quat()[[3,0,1,2]]],q0))
+    def source_score(q,source):
+        tool=pose_matrix(coordinates_pose(q))@held
+        return (np.sum((tool[:3,3]-source[:3,3])**2)/OBJECT_POSITION_TOLERANCE_M**2+
+            Rotation.from_matrix(source[:3,:3].T@tool[:3,:3]).magnitude()**2/OBJECT_ROTATION_TOLERANCE_RAD**2)
+    def conditions(x):
+        qout,vout,qin,vin=x.reshape(4,6)
+        result=[]
+        for a,b,va,vb,budget in ((q0,qout,v0,vout,tail_budget),(qout,qin,vout,vin,bridge_budget)):
+            low,high=discrete_displacement_bounds(va,vb,budget,dt,vmax,amax)
+            scale=np.maximum(vmax*budget,1e-6)
+            result.extend(((b-a-low)/scale,(a+high-b)/scale))
+        return np.r_[*result,1-source_score(qout,sources[0]),1-source_score(qin,sources[1]),
+            [] if exit_condition is None else [exit_condition(qout)/OBJECT_POSITION_TOLERANCE_M]]
+    # A source pose specifies interaction semantics; its velocity is not a
+    # required human command. Fit the shared intermediate velocity freely.
+    def objective(x):
+        qout,vout,qin,vin=x.reshape(4,6)
+        return (source_score(qout,sources[0])+source_score(qin,sources[1])+
+                .01*np.sum((vout/vmax)**2)+.02*np.sum((vin/vmax)**2))
+    old=pose_coordinates(previous_exit['wrist_xyz_wxyz'],q0)
+    old_v=coordinate_velocity(previous_exit['wrist_xyz_wxyz'],previous_exit['wrist_twist'],q0)
+    through=np.clip((desired[1]-desired[0])/bridge_budget,-vmax,vmax)
+    bounds=[(None,None)]*6+list(zip(-vmax,vmax))+[(None,None)]*6+list(zip(-vmax,vmax))
+    attempts=[]
+    for velocity in (through,old_v,np.clip((desired[1]-q0)/(tail_budget+bridge_budget),-vmax,vmax)):
+        seed=np.r_[old,np.clip(velocity,-vmax,vmax),desired[1],through]
+        fit=minimize(objective,seed,method='SLSQP',bounds=bounds,
+            constraints=[dict(type='ineq',fun=conditions)],options={'maxiter':180,'ftol':1e-10})
+        minimum=float(conditions(fit.x).min())
+        attempts.append(dict(solver_success=bool(fit.success),message=str(fit.message),minimum_constraint=minimum))
+        if minimum>=-1e-8:break
+    else:raise RuntimeError(f'No nominal two-interval grasp boundary within source time: {attempts}')
+    qout,vout,qin,vin=fit.x.reshape(4,6)
+    return coordinates_pose(qout),vout,dict(method='joint_anchor_exit_and_next_oracle_entry',
+        anchor_tail_budget_s=float(tail_budget),relaxed_budget_s=float(bridge_budget),
+        exit_source_score=float(source_score(qout,sources[0])),entry_source_score=float(source_score(qin,sources[1])),
+        proposed_next_wrist=coordinates_pose(qin).tolist(),proposed_next_coordinate_velocity=vin.tolist(),
+        next_source_object_boundary=sources[1].tolist(),
+        proposed_exit_coordinate_velocity=vout.tolist(),attempts=attempts,
+        original_source_conditions=True,source_time_stretch=False,physical_acceptance=False,
+        collision_acceptance=False,state_assignment=False,exit_separation_condition=exit_condition is not None)
 
 
 def quiet_boundary_target(start,goal,source_target,budget,dt,planning):

@@ -66,22 +66,75 @@ def measured_peer_meshes(scene,output):
 
     Use actual rigid-body ownership rather than an ancestor path. Per-mesh
     poses are refreshed during execution, so peer finger motion is measured.
-    Native contact offsets and a convex envelope conservatively cover cooking.
+    Native convex pieces, or authored collider hulls when cooking export fails,
+    retain the physical geometry and nonnegative rest-offset envelope.
     """
     import json
     from pathlib import Path
     import trimesh
-    from pxr import Usd,UsdGeom
+    from pxr import Usd,UsdGeom,UsdPhysics
     from multipath.planning.floating import usd_mesh_faces
-    from multipath.planning.object_geometry import convex_contact_envelope
+    from multipath.planning.object_geometry import convex_contact_envelope,native_convex_meshes
     world=getattr(scene,'scene',scene);out=Path(output);result={};report=[]
     hands={'right':world,**getattr(world,'supporting_hands',{})}
-    cache=UsdGeom.XformCache()
+    cache=UsdGeom.XformCache();colliders=[]
+    for prim in Usd.PrimRange.Stage(world.world.stage,Usd.TraverseInstanceProxies()):
+        if not prim.HasAPI(UsdPhysics.CollisionAPI):continue
+        if str(prim.GetPath()).startswith('/World/'):continue
+        colliders.append(dict(path=str(prim.GetPath()),type=prim.GetTypeName(),
+            approximation=UsdPhysics.MeshCollisionAPI(prim).GetApproximationAttr().Get(),
+            mesh_descendants=[str(p.GetPath()) for p in Usd.PrimRange(prim,Usd.TraverseInstanceProxies())
+                              if p.IsA(UsdGeom.Mesh)],
+            properties={str(a.GetName()):str(a.Get()) for a in prim.GetAttributes()
+                        if 'physics' in str(a.GetName()).lower()},
+            references=[str(p) for p in prim.GetPrimStack()]))
+    (out/'hand_collider_inventory.json').write_text(json.dumps(colliders,indent=2))
     for side,peer in hands.items():
         if peer is scene:continue
         links=tuple(str(p) for p in peer.contacts.prim_paths)
         offsets=np.asarray(peer.contacts._physics_view.get_contact_offsets())
-        offset=float(np.max(offsets[np.isfinite(offsets)],initial=0.))
+        contact_offset=float(np.max(offsets[np.isfinite(offsets)],initial=0.))
+        rest=np.asarray(peer.contacts._physics_view.get_rest_offsets())
+        offset=float(np.max(rest[np.isfinite(rest)],initial=0.))
+        native=[]
+        for prim in Usd.PrimRange.Stage(world.world.stage,Usd.TraverseInstanceProxies()):
+            path=str(prim.GetPath())
+            if (not prim.HasAPI(UsdPhysics.CollisionAPI)
+                    or not any(path.startswith(link+'/') for link in links)
+                    or UsdPhysics.CollisionAPI(prim).GetCollisionEnabledAttr().Get() is False):continue
+            native.append(prim)
+        if native:
+            for prim in native:
+                matrix=np.asarray(cache.GetLocalToWorldTransform(prim)).T
+                scale=np.linalg.norm(matrix[:3,:3],axis=0)
+                native_error=None
+                try:pieces=native_convex_meshes(world.world.stage,prim)
+                except RuntimeError as error:
+                    # URDF imports can apply CollisionAPI to an instanced
+                    # Xform rather than its child Mesh. If this PhysX version
+                    # cannot export that wrapper, keep its authored collider
+                    # hull explicitly conservative; never drop the geometry.
+                    native_error=str(error);pieces=[]
+                    for child in Usd.PrimRange(prim,Usd.TraverseInstanceProxies()):
+                        if not child.IsA(UsdGeom.Mesh):continue
+                        source=UsdGeom.Mesh(child)
+                        transform=np.linalg.inv(matrix)@np.asarray(cache.GetLocalToWorldTransform(child)).T
+                        mesh=trimesh.Trimesh(vertices=np.asarray(source.GetPointsAttr().Get()),
+                            faces=usd_mesh_faces(source),process=False)
+                        mesh.apply_transform(transform);pieces.append(mesh.convex_hull)
+                    if not pieces:raise RuntimeError(f'No owned collision mesh under {prim.GetPath()}') from error
+                for piece in pieces:
+                    piece.vertices*=scale
+                    mesh=convex_contact_envelope(piece,offset)
+                    name=f'peer_{side}_{len(result):03d}';file=out/(name+'.obj');mesh.export(file)
+                    result[name]=dict(mesh=mesh,prim=prim,scale=scale,file_path=str(file),side=side)
+                    report.append(dict(name=name,side=side,source_mesh=str(prim.GetPath()),
+                        native_contact_offset_m=contact_offset,native_rest_offset_m=offset,
+                        representation='native_convex_piece_rest_envelope' if native_error is None
+                        else 'authored_collision_convex_rest_envelope',native_export_error=native_error,
+                        pose_origin='actual_PhysX_collider_transform',
+                        collision_api_on_xform=prim.IsA(UsdGeom.Xform)))
+            continue
         for prim in Usd.PrimRange.Stage(world.world.stage,Usd.TraverseInstanceProxies()):
             path=str(prim.GetPath())
             if not prim.IsA(UsdGeom.Mesh) or 'collision' in path.lower():continue
@@ -92,9 +145,9 @@ def measured_peer_meshes(scene,output):
                 faces=usd_mesh_faces(source),process=False).convex_hull
             mesh=convex_contact_envelope(mesh,offset)
             name=f'peer_{side}_{len(result):03d}';file=out/(name+'.obj');mesh.export(file)
-            result[name]=dict(mesh=mesh,prim=prim,scale=scale,file_path=str(file))
+            result[name]=dict(mesh=mesh,prim=prim,scale=scale,file_path=str(file),side=side)
             report.append(dict(name=name,side=side,source_mesh=path,
-                native_contact_offset_m=offset,representation='convex_contact_envelope',
+                native_contact_offset_m=contact_offset,native_rest_offset_m=offset,representation='convex_rest_envelope',
                 pose_origin='actual_PhysX_mesh_transform'))
     (out/'peer_hand_geometry.json').write_text(json.dumps(report,indent=2))
     return result

@@ -1,0 +1,21 @@
+{
+  "source_run": "r283",
+  "physics_dt": 0.008333333333333333,
+  "physics_ticks": 28,
+  "source_budget_s": 0.23333333333333334,
+  "velocity_roundtrip_max_error": 3.3306690738754696e-16,
+  "boundary_reselection_max_coordinate_change": 4.43530936089509e-06,
+  "nominal_fit": {
+    "budget_s": 0.23333333333333334,
+    "curobo_duration_s": 0.23333333333333334,
+    "time_scale": 1.0,
+    "command_velocity_ratio": 0.9999999999999964,
+    "command_acceleration_ratio": 1.0000000000834497,
+    "parameterization": "endpoint_constrained_geometric_fit",
+    "geometry_max_adjustment": 0.1017898395793897,
+    "boundary_velocities_preserved": true
+  },
+  "physical_validation": false,
+  "collision_validation": false,
+  "original_candidate_unchanged": false
+}

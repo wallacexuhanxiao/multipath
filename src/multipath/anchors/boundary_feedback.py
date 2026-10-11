@@ -97,13 +97,20 @@ def collision_exit_proposal(scene,anchor,seed,feedback_run,*,side='right',source
     continuous_path=folder/'continuous_result.json'
     continuous=json.loads(continuous_path.read_text()) if continuous_path.exists() else {}
     native=continuous.get('native_contact_failure')
+    coordinated=continuous.get('coordinated_collision_failure')
+    posthoc=folder/'predicted_start_collision_feedback.json'
+    if coordinated is None and posthoc.exists():
+        measured=json.loads(posthoc.read_text())
+        if not same_source_seed(measured['source_provenance'],report['source_provenance']):
+            raise ValueError('Saved geometry feedback belongs to a different source')
+        coordinated=measured['collision']
     segments=continuous.get('segments',[])
     last=segments[-1] if segments else {}
     transition=last.get('hands',{}).get(side,{}).get('transition',{})
     if (report.get('bimanual_anchor_success') and continuous.get('boundary_fit_failure')
             and last.get('mode')=='RELAXED' and last.get('start')==anchor.core_end):
         if source_boundary is None:raise ValueError('Quiet exit requires its unchanged oracle object boundary')
-        return quiet_grasp_exit_proposal(scene,anchor,seed,folder,core,side,source_boundary)
+        return quiet_grasp_exit_proposal(scene,anchor,seed,folder,core,side,source_boundary,lookahead=True)
     center_for_bridge=bool(report.get('bimanual_anchor_success') and source_boundary is not None and not native
         and last.get('mode')=='RELAXED' and last.get('start')==anchor.core_end
         and transition.get('success') is False and transition.get('object_boundary_error')
@@ -131,6 +138,26 @@ def collision_exit_proposal(scene,anchor,seed,feedback_run,*,side='right',source
         feedback=dict(method='measured_local_boundary_translation_refinement',
             normal_world=normal.tolist(),rejected_core_used_as_proposal=True,
             physical_acceptance_reused=False)
+    elif coordinated and coordinated['physics_tick']<=1:
+        # A collision at the fixed first slope cannot be repaired by moving
+        # later path points. Refine the acquired predecessor's command exit,
+        # then require fresh padded/core physics and a newly planned bridge.
+        rows=coordinated['primary_collisions' if side=='right' else 'support_collisions']
+        contacts=[c for row in rows if row['mesh']=='tool' for c in row.get('object_separation_contacts',[])]
+        if not contacts:raise RuntimeError('Fixed-start collision has no solid-body separation feedback')
+        geometry=json.loads((folder/f'planner_{anchor.core_end}_{side}'/'object_collision_model.json').read_text())
+        band=sum(float(np.max(g['native_contact_offsets_m'])) for g in geometry.values())
+        normals=np.asarray([c['normal_outward_world'] for c in contacts])
+        required=np.asarray([c['penetration_depth_m'] for c in contacts])+band+1e-4
+        from scipy.optimize import minimize
+        result=minimize(lambda x:(.5*x@x,x),np.zeros(3),jac=True,method='SLSQP',
+            constraints=[dict(type='ineq',fun=lambda x:normals@x-required,jac=lambda x:normals)],
+            options={'ftol':1e-12,'maxiter':30})
+        if np.min(normals@result.x-required)<-1e-8:raise RuntimeError('No translation resolves the fixed-start object collision')
+        delta=result.x;normal=delta/np.linalg.norm(delta)
+        feedback=dict(method='physically_acquired_exit_plus_predicted_fixed_start_collision',
+            predicted_contacts=contacts,native_contact_band_m=band,normal_world=normal.tolist(),
+            collision_physically_executed=False,fresh_bridge_validation_required=True)
     elif native:
         from multipath.execution.mounted_scene import pose_matrix
         failed=json.loads((folder/'failed_state.json').read_text())
@@ -175,6 +202,11 @@ def collision_exit_proposal(scene,anchor,seed,feedback_run,*,side='right',source
         actual=pose_matrix(entry['objects'][role]['pose'])
         delta,condition=source_conditioned_translation(delta,normal,actual,np.asarray(source_boundary))
         feedback.update(condition)
+    if coordinated and coordinated['physics_tick']<=1:
+        commands,refit=quiet_grasp_exit_proposal(scene,anchor,seed,folder,core,side,source_boundary,
+            lookahead=True,exit_separation=dict(normal_world=normal.tolist(),outward_displacement_m=float(normal@delta)))
+        refit['predicted_start_collision_feedback']=feedback
+        return commands,refit
     def grasped(state):return state['hands'][side]['contact']['mode']=='grasped'
     acquired=next((s['source_frame'] for i,s in enumerate(core) if all(grasped(v) for v in core[i:])),None)
     if acquired is None or acquired>=anchor.core_end:
@@ -203,7 +235,7 @@ def collision_exit_proposal(scene,anchor,seed,feedback_run,*,side='right',source
         source_time_stretch=False,state_assignment=False,physical_validation_required=True)
 
 
-def quiet_grasp_exit_proposal(scene,anchor,seed,folder,core,side,source_boundary):
+def quiet_grasp_exit_proposal(scene,anchor,seed,folder,core,side,source_boundary,*,lookahead=False,exit_separation=None):
     """Refit only the physically acquired grasp tail inside the original core.
 
     A local grasp can pass while its outgoing momentum blocks a short bridge.
@@ -229,8 +261,35 @@ def quiet_grasp_exit_proposal(scene,anchor,seed,folder,core,side,source_boundary
     wrist=np.asarray(source_boundary)@np.linalg.inv(start['hand_object_transform'])
     pose=np.r_[wrist[:3,3],Rotation.from_matrix(wrist[:3,:3]).as_quat()[[3,0,1,2]]]
     goal=dict(wrist_xyz_wxyz=pose.tolist(),wrist_twist=np.zeros(6).tolist())
-    goal,condition=feedback_boundary_target(start,goal,start['wrist_xyz_wxyz'],start,
-        source_boundary,budget,scene.dt,scene.cfg['planning'],final_coordinate_velocity=np.zeros(6))
+    terminal=np.zeros(6)
+    if lookahead:
+        from multipath.oracle_schedule import OracleSchedule
+        from multipath.planning.bridge import lookahead_grasp_boundary
+        schedule=OracleSchedule.load(world.args.schedule)
+        next_window=next((w for w in schedule.windows if w['start']==anchor.core_end and w['mode']=='RELAXED'),None)
+        next_core=next((w for w in schedule.windows if next_window and w['start']==next_window['end'] and w['mode']=='ANCHOR'),None)
+        if next_core is None:raise ValueError('Outgoing compatibility requires a following oracle Anchor')
+        next_anchor=schedule.anchors[next_core['anchor']]
+        local=np.load(world.args.proposals/world.manifest['anchors'][next_anchor.id],allow_pickle=False)
+        role='tool' if side=='right' else world.supporting_hands[side].object_role
+        source_entry=local[role+'_pose'][next_anchor.core_start-next_anchor.synth_start]
+        previous=dict(core[-1],**core[-1]['hands'][side])
+        exit_condition=None
+        if exit_separation is not None:
+            from multipath.execution.mounted_scene import pose_matrix
+            tracking=pose_matrix(previous['wrist_xyz_wxyz'])@np.linalg.inv(pose_matrix(old[-1,:7]))
+            held=np.asarray(previous['hand_object_transform']);origin=pose_matrix(previous['objects']['tool']['pose'])[:3,3]
+            normal=np.asarray(exit_separation['normal_world']);required=exit_separation['outward_displacement_m']
+            def exit_condition(q):
+                predicted=tracking@pose_matrix(coordinates_pose(q))@held
+                return float(normal@(predicted[:3,3]-origin)-required)
+        pose,terminal,condition=lookahead_grasp_boundary(start,previous,source_boundary,source_entry,
+            budget,(next_window['end']-next_window['start'])/schedule.fps,scene.dt,scene.cfg['planning'],exit_condition=exit_condition)
+        if exit_separation is not None:condition['predicted_exit_separation']=exit_separation
+        goal['wrist_xyz_wxyz']=pose.tolist()
+    else:
+        goal,condition=feedback_boundary_target(start,goal,start['wrist_xyz_wxyz'],start,
+            source_boundary,budget,scene.dt,scene.cfg['planning'],final_coordinate_velocity=terminal)
     near=pose_coordinates(start['wrist_xyz_wxyz']);raw=[near.copy()]
     for command in old[cut:]:
         near=pose_coordinates(command[:7],near);raw.append(near.copy())
@@ -238,14 +297,15 @@ def quiet_grasp_exit_proposal(scene,anchor,seed,folder,core,side,source_boundary
     limits=scene.cfg['planning']
     path,fit=boundary_fitted_path(raw,ticks,scene.dt,np.asarray(limits['velocity_limits']),
         np.asarray(limits['acceleration_limits']),coordinate_velocity(start['wrist_xyz_wxyz'],
-        start['wrist_twist'],raw[0]),np.zeros(6))
+        start['wrist_twist'],raw[0]),terminal)
     from multipath.anchors.floating import controls_from_poses
     hands=np.vstack((start['command_hand_q'],old[cut:,7:19]))
     commands=old.copy()
     commands[cut:]=controls_from_poses(np.asarray([coordinates_pose(q) for q in path]),hands,scene.dt)
-    return commands,dict(method='physically_acquired_grasp_quiet_exit_refit',feedback_run=str(folder),
+    return commands,dict(method='physically_acquired_grasp_lookahead_exit_refit' if lookahead else
+        'physically_acquired_grasp_quiet_exit_refit',feedback_run=str(folder),
         physical_grasp_frame=float(acquired['source_frame']),available_grasped_duration_s=budget,
         original_core_duration_s=(anchor.core_end-anchor.core_start)/world.manifest['fps'],
-        canonical_terminal_coordinate_velocity=np.zeros(6).tolist(),source_boundary_fit=condition,
+        canonical_terminal_coordinate_velocity=terminal.tolist(),source_boundary_fit=condition,
         nominal_tail_fit=fit,original_finger_commands_retained=True,source_time_stretch=False,
         state_assignment=False,physical_validation_required=True)

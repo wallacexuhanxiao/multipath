@@ -1,0 +1,78 @@
+{
+  "source_provenance": {
+    "triplet": "(brush, eraser, plate)",
+    "sequence": "20231103_057",
+    "input": "raw TACO MANO and object poses",
+    "source_video": "/scratch/e0985859/egoengine_baseline/data/taco_v1/Egocentric_RGB_Videos/(brush, eraser, plate)/20231103_057/color.mp4",
+    "schedule_sha256": "4f1e00a466cf9e9185af33070750852ed62cc0dd5a842583ec3ce9fe2521ec60",
+    "full_robot_reference_used": false,
+    "vlm_used": false,
+    "transform_world_to_robot": [
+      [
+        -0.3564076659688237,
+        0.9343305848933204,
+        0.0,
+        0.5962575927013769
+      ],
+      [
+        -0.9343305539536939,
+        -0.3564076541666626,
+        -0.0,
+        -0.02380021369492084
+      ],
+      [
+        0.0,
+        0.0,
+        1.0,
+        -0.1766161823272705
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "hand_assignments": {
+      "right": {
+        "object_role": "tool"
+      },
+      "left": {
+        "object_role": "target"
+      }
+    },
+    "local_supporting_retarget": true
+  },
+  "collision": {
+    "physics_tick": 1,
+    "physics_dt": 0.008333333333333333,
+    "primary_collisions": [
+      {
+        "mesh": "tool",
+        "obstacle": "target_part_006",
+        "geometry": "triangle_mesh",
+        "object_separation_contacts": [
+          {
+            "normal_outward_world": [
+              -0.4063985212215853,
+              -0.44031566532735394,
+              0.8006012470738715
+            ],
+            "penetration_depth_m": 0.0022243540444799783,
+            "position_world": [
+              0.5116076158025037,
+              -0.10572259918658677,
+              0.40015186908665257
+            ],
+            "origin": "posthoc_exported_convex_piece_prediction",
+            "physical_contact_evidence": false
+          }
+        ]
+      }
+    ],
+    "support_collisions": [],
+    "fixed_initial_slope": true,
+    "physical_validation": false,
+    "origin": "posthoc_geometry_of_saved_curobo_proposal"
+  }
+}

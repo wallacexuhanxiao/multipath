@@ -1,0 +1,29 @@
+{
+  "run": "r290",
+  "pbs_job_id": "658798.hopper-m-02",
+  "status": "stopped_after_unchanged_collision_iterations",
+  "bridge_physically_executed": false,
+  "planning_cache_checks": [
+    {
+      "planner": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_bimanual_r290/physical/planner_32_right",
+      "clearance_difference_m": 0.0,
+      "actual_predecessor_cached_only_while_physics_paused": true
+    },
+    {
+      "planner": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_bimanual_r290/physical/coordinated_32/support",
+      "clearance_difference_m": 0.0,
+      "actual_predecessor_cached_only_while_physics_paused": true
+    }
+  ],
+  "optimizer_progress": {
+    "iteration": 4,
+    "elapsed_s": 175.92555967718363,
+    "field_queries": 35,
+    "field_query_seconds": 171.96325632184744,
+    "clearance_residual_m": -0.04369693080186844,
+    "source_condition": -0.03960008899867318,
+    "nominal_dynamics_ratio": 1.0000000030780143,
+    "physical_validation": false,
+    "source_time_stretch": false
+  }
+}

@@ -2,6 +2,9 @@
 
 ## Latest correction — 2026-10-11
 
+后续 r279–r283 的出口联合拟合、碰撞几何语义与同步双手规划修复见
+[双手 Anchor 出口与桥段报告](ANCHOR_BOUNDARY_REPAIR_20261011.md)。
+
 Current bimanual source is Brush `(brush, eraser, plate)`, `20231103_057`,
 110 frames at 30 fps (3.666667 s). r275 passes both A0 padded synthesis and
 fresh exported-core execution from the actual initial predecessor. Preserving

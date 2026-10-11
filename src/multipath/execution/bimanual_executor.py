@@ -66,6 +66,7 @@ def continue_oracle(scene,schedule,manifest,proposals,output,*,boundary_feedback
             if window['mode']=='RELAXED':
                 later=next((w for w in schedule.windows[wi+1:] if w['mode']=='ANCHOR'),None)
                 for side,hand in hands.items():
+                    if side in commands:continue
                     start=starts[side];carry=start['contact']['mode']=='grasped'
                     if carry:held[side]=np.asarray(start['hand_object_transform']);check_retention(start,held[side])
                     if later:
@@ -149,18 +150,52 @@ def continue_oracle(scene,schedule,manifest,proposals,output,*,boundary_feedback
                     # then let the fixed-time/source-condition fit and actual
                     # execution decide whether it is a reachable entry.
                     if later:
+                        coordinated=None
                         if planner.goal_clearance(goal['wrist_xyz_wxyz'])[0]<1e-4-1e-8:
-                            goal,fit=feedback_boundary_target(start,goal,*calibration,boundaries[1],
-                                info['budget_s'],scene.dt,scene.cfg['planning'],
-                                clearance=lambda pose:planner.goal_clearance(pose)[0],
-                                clearance_gradient=planner.path_clearance_gradient,interior_scales=(1.,1.,1.))
-                            info['hands'][side]['collision_time_source_boundary_fit']=fit
+                            peers=[(name,peer) for name,peer in hands.items() if name!=side
+                                and schedule.metadata.get('object_support',{}).get(getattr(peer,'object_role','tool'))=='table'
+                                and 'table' in schedule.metadata.get('allowed_object_environment_contacts',{}).get(getattr(peer,'object_role','tool'),[])
+                                and starts[name]['contact']['mode']=='grasped']
+                            try:
+                                goal,fit=feedback_boundary_target(start,goal,*calibration,boundaries[1],
+                                    info['budget_s'],scene.dt,scene.cfg['planning'],
+                                    clearance=lambda pose:planner.goal_clearance(pose)[0],
+                                    clearance_gradient=planner.path_clearance_gradient,interior_scales=(1.,1.,1.),
+                                    max_collision_seeds=1 if len(peers)==1 else 7)
+                                info['hands'][side]['collision_time_source_boundary_fit']=fit
+                            except RuntimeError as error:
+                                if not hasattr(error,'boundary_fit_report') or len(peers)!=1:raise
+                                peer_side,peer=peers[0]
+                                from multipath.planning.bimanual import coordinated_support_bridge
+                                peer_anchor=hand_anchor(schedule,schedule.anchors[later['anchor']],peer_side)
+                                peer_data=hand_data(local[peer_anchor.id],peer_side,peer.object_role)
+                                peer_target=peer_data['tool_pose'][peer_anchor.core_start-peer_anchor.synth_start]
+                                info['hands'][side]['static_peer_fit_failure']=error.boundary_fit_report
+                                coordinated=coordinated_support_bridge(hand,peer,planner,goal,boundaries[1],
+                                    peer_target,(window['end']-window['start'])*tpf,output/f'coordinated_{window["start"]}')
+                                goal=coordinated['primary_goal']
+                                peer_controls=coordinated['support_commands'];peer_start=starts[peer_side]
+                                if not validate_commands(peer,peer_controls,peer_start)['feasible']:
+                                    raise RuntimeError('Coordinated supporting command infeasible')
+                                held[peer_side]=np.asarray(peer_start['hand_object_transform']);check_retention(peer_start,held[peer_side])
+                                commands[peer_side]=peer_controls
+                                drives[peer_side]=segment_wrenches(peer,peer_start,peer_controls,transport=True,supported_object=True)
+                                planners[peer_side]=coordinated['support_planner']
+                                goals[peer_side]=(coordinated['support_goal'],peer_target)
+                                info['hands'][peer_side]=dict(spatial_motion_required=True,curobo_used=True,
+                                    surface_supported_payload=True,source_time_stretch=False,
+                                    allowed_object_environment_contacts=['table'],timing=coordinated['support_timing'])
+                                info['hands'][peer_side]['drive_memory_profile']=peer.last_drive_memory_profile
+                                info['coordinated_planning']=coordinated['report']
                         info['hands'][side]['boundary_clearance_m']=1e-4
                     check=bridge_precheck(start,goal,info['budget_s'],scene.cfg['planning'])
                     info['hands'][side]['boundary_precheck']=check
                     if not check['feasible']:raise RuntimeError(f'{side}: fixed-time boundary failed {check}')
-                    controls,timing=planner.plan(np.asarray(goal['wrist_xyz_wxyz']),
-                        (window['end']-window['start'])*tpf,np.asarray(goal['wrist_twist']),goal_state=goal if later else None)
+                    if later and coordinated is not None:
+                        controls,timing=coordinated['primary_commands'],coordinated['primary_timing']
+                    else:
+                        controls,timing=planner.plan(np.asarray(goal['wrist_xyz_wxyz']),
+                            (window['end']-window['start'])*tpf,np.asarray(goal['wrist_twist']),goal_state=goal if later else None)
                     if not validate_commands(hand,controls,start)['feasible']:
                         raise RuntimeError(f'{side}: bridge finger command infeasible')
                     supported=schedule.metadata.get('object_support',{}).get(role) in permitted
@@ -260,6 +295,9 @@ def continue_oracle(scene,schedule,manifest,proposals,output,*,boundary_feedback
                     transition=hand.check_transition(goal['wrist_xyz_wxyz'],goal['contact']['mode'],expected_object=target)
                     info['hands'][side]['transition']=transition
                     if not transition['success']:raise RuntimeError(f'{side}: actual oracle entry not reached')
+                    if target is not None:
+                        info['hands'][side].update(source_entry_physically_verified=True,
+                            entry_origin='predecessor_rollout')
             else:
                 for side,hand in hands.items():
                     folder=output/'cores'/window['anchor']/side
@@ -278,6 +316,7 @@ def continue_oracle(scene,schedule,manifest,proposals,output,*,boundary_feedback
         import traceback;traceback.print_exc()
         report.update(status='failed',error=f'{type(error).__name__}: {error}',failure_source_frame=scene.ticks/tpf)
         if hasattr(error,'boundary_fit_report'):report['boundary_fit_failure']=error.boundary_fit_report
+        if hasattr(error,'coordinated_collision_failure'):report['coordinated_collision_failure']=error.coordinated_collision_failure
         if hasattr(scene,'relaxed_contact_failure'):report['native_contact_failure']=scene.relaxed_contact_failure
         if window['mode']=='RELAXED':
             from multipath.validation.physics import retention_errors

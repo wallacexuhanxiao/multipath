@@ -1,0 +1,10 @@
+{
+  "old_seconds_per_path_query": 4.913235894909927,
+  "new_seconds_per_path_query": 0.04025302956027812,
+  "ratio": 122.05878535309877,
+  "geometry_difference_m": 3.296881914138794e-07,
+  "same_full_geometry": true,
+  "bridge_physically_executed": false,
+  "candidate_accepted": false,
+  "source_time_stretch": false
+}

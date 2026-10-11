@@ -136,7 +136,8 @@ def parameterize_path(raw,ticks,dt,velocity_limits,acceleration_limits,
 
 def collision_fitted_path(path,dt,velocity_limits,acceleration_limits,
                           initial_velocity,final_velocity,clearance_gradient,
-                          boundary_condition=None):
+                          boundary_condition=None,preserved_coordinates=None,
+                          progress_callback=None):
     """Couple wrist position and orientation to fixed-time collision fitting.
 
     The physical entry remains fixed. A verified exit remains fixed too; an
@@ -169,6 +170,14 @@ def collision_fitted_path(path,dt,velocity_limits,acceleration_limits,
     fixed=[0,1,n-2,n-1] if boundary_condition is None else [0,1]
     for j in range(dimension):
         for k in fixed:bounds[j*n+k]=(path[k,j],path[k,j])
+    equality=None;equality_rhs=None
+    if preserved_coordinates is not None:
+        # Preserve linear coordinates of the cuRobo proposal, e.g. a table
+        # supporter's height/orientation while its in-plane route is fitted.
+        preserved=np.asarray(preserved_coordinates)
+        equality=hstack((csr_matrix(np.kron(preserved,np.eye(n))),
+            csr_matrix((len(preserved)*n,dimension*n+n+end_count))),format='csr')
+        equality_rhs=(path@preserved.T).T.reshape(-1)
     # A trust step is two physics intervals of coordinate travel, not an
     # execution delay. Keep the nonlinear distance approximation local.
     trust=2*dt*np.asarray(velocity_limits)
@@ -184,14 +193,15 @@ def collision_fitted_path(path,dt,velocity_limits,acceleration_limits,
         if boundary_condition is None:raise RuntimeError(reason)
         return nonlinear_collision_fit(path,desired.reshape(dimension,n).T,dt,
             velocity_limits,acceleration_limits,initial_velocity,final_velocity,
-            clearance_gradient,boundary_condition,required,reason)
+            clearance_gradient,boundary_condition,required,reason,
+            preserved_coordinates=preserved_coordinates,progress_callback=progress_callback)
     for iteration in range(20):
         clearance,normal=clearance_gradient(path)
         print('COLLISION_TIME_FIT',iteration,float(np.min(clearance)),
               float(np.max(np.linalg.norm(normal[:,:3],axis=1))),
               'fixed',clearance[[0,1,n-2,n-1]].tolist(),flush=True)
         if np.min(clearance-required)>=-1e-7:
-            if boundary_condition is not None and boundary_condition(path[-1]) < -1e-7:
+            if boundary_condition is not None and np.min(boundary_condition(path[-1])) < -1e-7:
                 raise RuntimeError('Collision fit violates unchanged oracle boundary condition')
             end_velocity=final_velocity if boundary_condition is None else (path[-1]-path[-2])/dt
             _,check=fixed_budget_path(path,dt,n-1,dt,velocity_limits,acceleration_limits,initial_velocity,end_velocity)
@@ -205,26 +215,28 @@ def collision_fitted_path(path,dt,velocity_limits,acceleration_limits,
         geometry=hstack((geometry,csr_matrix((n,dimension*n)),-csr_matrix(eye),csr_matrix((n,end_count))),format='csr')
         geometric_rhs=clearance-required-np.sum(normal*path,axis=1)
         if boundary_condition is not None:
-            value=boundary_condition(path[-1]);derivative=np.empty(dimension);epsilon=1e-5
+            value=np.atleast_1d(boundary_condition(path[-1]));derivative=np.empty((len(value),dimension));epsilon=1e-5
             for j in range(dimension):
                 offset=np.zeros(dimension);offset[j]=epsilon
-                derivative[j]=(boundary_condition(path[-1]+offset)-boundary_condition(path[-1]-offset))/(2*epsilon)
-            row=np.zeros(2*dimension*n+n+end_count);row[np.arange(dimension)*n+n-1]=-derivative
-            geometry=vstack((geometry,csr_matrix(row[None])),format='csr')
-            geometric_rhs=np.r_[geometric_rhs,value-np.dot(derivative,path[-1])]
+                derivative[:,j]=(np.asarray(boundary_condition(path[-1]+offset))-
+                    np.asarray(boundary_condition(path[-1]-offset)))/(2*epsilon)
+            row=np.zeros((len(value),2*dimension*n+n+end_count))
+            row[:,np.arange(dimension)*n+n-1]=-derivative
+            geometry=vstack((geometry,csr_matrix(row)),format='csr')
+            geometric_rhs=np.r_[geometric_rhs,value-derivative@path[-1]]
         local_bounds=bounds.copy()
         for j in range(dimension):
             for k in range(2,n if boundary_condition is not None else n-2):
                 local_bounds[j*n+k]=(path[k,j]-trust[j],path[k,j]+trust[j])
         result=linprog(objective,
             A_ub=vstack((matrix,geometry),format='csr'),b_ub=np.r_[rhs,geometric_rhs],
-            bounds=local_bounds,method='highs')
+            A_eq=equality,b_eq=equality_rhs,bounds=local_bounds,method='highs')
         if not result.success:return nonlinear_fallback('Source-time collision fit lost nominal boundary feasibility')
         proposed=result.x[:dimension*n].reshape(dimension,n).T
         violation=float(np.maximum(required-clearance,0).sum())
         for fraction in [1.,.5,.25,.125]:
             trial=path+fraction*(proposed-path);trial_clearance,_=clearance_gradient(trial)
-            source_ok=boundary_condition is None or boundary_condition(trial[-1])>=-1e-7
+            source_ok=boundary_condition is None or np.min(boundary_condition(trial[-1]))>=-1e-7
             if source_ok and np.maximum(required-trial_clearance,0).sum()<violation-1e-8:
                 path=trial;break
         else:return nonlinear_fallback('Source-time collision fit cannot reduce physical clearance violation')
@@ -232,7 +244,8 @@ def collision_fitted_path(path,dt,velocity_limits,acceleration_limits,
 
 
 def nonlinear_collision_fit(seed,desired,dt,velocity_limits,acceleration_limits,
-                            initial_velocity,final_velocity,field,condition,required,reason):
+                            initial_velocity,final_velocity,field,condition,required,reason,
+                            preserved_coordinates=None,progress_callback=None):
     """Resolve an observed SCP dead end with the actual nonlinear constraints.
 
     A tangent-plane endpoint approximation can propose a point outside the
@@ -241,57 +254,128 @@ def nonlinear_collision_fit(seed,desired,dt,velocity_limits,acceleration_limits,
     This is fixed-time fitting of the cuRobo proposal, not simulator execution.
     """
     from scipy.optimize import minimize,LinearConstraint
+    from scipy.linalg import null_space
+    from time import monotonic
     seed=np.asarray(seed);n,d=seed.shape;velocity=np.asarray(velocity_limits)
-    scale=np.tile(dt*velocity,n);center=seed.reshape(-1);cache={}
-    def unpack(x):return (center+scale*x).reshape(n,d)
+    started=monotonic();query_count=0;query_seconds=0.;iterations=0;phase='elastic_collision_search'
+    center=seed.reshape(-1);cache={}
+    # Parameterize only legal movement. Entry and table-support coordinates
+    # remain invariant by construction, rather than dense redundant equalities.
+    basis=np.eye(d) if preserved_coordinates is None else null_space(np.asarray(preserved_coordinates))
+    if preserved_coordinates is not None and np.max(np.abs(
+            (seed-desired)@np.asarray(preserved_coordinates).T))>1e-8:
+        raise RuntimeError('Physical entry/path violates preserved coordinates')
+    width=basis.shape[1]
+    steps=basis*(dt/np.linalg.norm(basis/velocity[:,None],axis=0))
+    mapping=np.zeros((n*d,(n-2)*width))
+    for k in range(2,n):mapping[k*d:(k+1)*d,(k-2)*width:(k-1)*width]=steps
+    def unpack(x):return (center+mapping@x).reshape(n,d)
     def query(x):
+        nonlocal query_count,query_seconds
         if 'x' not in cache or not np.array_equal(x,cache['x']):
+            before=monotonic()
             c,g=field(unpack(x));cache.update(x=x.copy(),clearance=c,gradient=g)
+            query_count+=1;query_seconds+=monotonic()-before
         return cache['clearance'],cache['gradient']
     unit=np.eye(n);v=np.kron(np.diff(unit,axis=0),np.eye(d));a=np.kron(np.diff(unit,n=2,axis=0),np.eye(d))
     dynamics=np.vstack((v,a));limit=np.r_[np.tile(velocity*dt,n-1),np.tile(np.asarray(acceleration_limits)*dt**2,n-2)]
-    linear=LinearConstraint(dynamics*scale[None]/limit[:,None],
-        -1-dynamics@center/limit,1-dynamics@center/limit)
-    bounds=[(0.,0.) if k<2*d else (None,None) for k in range(n*d)]
+    coefficients=(dynamics@mapping)/limit[:,None];constant=dynamics@center/limit
+    variable_rows=np.max(np.abs(coefficients),axis=1)>1e-12
+    if np.max(np.abs(constant[~variable_rows]),initial=0)>1.0001:
+        raise RuntimeError('Immutable physical entry/support coordinates violate nominal dynamics')
+    linear=LinearConstraint(coefficients[variable_rows],
+        -1-constant[variable_rows],1-constant[variable_rows])
     def objective(x):
         p=unpack(x);delta=(p-desired)/velocity
         terminal=((p[-1]-p[-2])/dt-final_velocity)/velocity
         value=.5*np.sum(delta**2)/n+.5*np.sum(terminal**2)
         gradient=(p-desired)/(velocity**2*n)
         gradient[-1]+=terminal/(velocity*dt);gradient[-2]-=terminal/(velocity*dt)
-        return value,gradient.reshape(-1)*scale
+        return value,gradient.reshape(-1)@mapping
     clearance_scale=dt*float(np.max(velocity[:3]))
     def collision(x):return (query(x)[0]-required)/clearance_scale
     def collision_jac(x):
         gradient=query(x)[1];matrix=np.zeros((n,n*d))
         for k in range(n):matrix[k,k*d:(k+1)*d]=gradient[k]
-        return matrix*scale[None]/clearance_scale
-    def boundary(x):return condition(unpack(x)[-1])
+        return matrix@mapping/clearance_scale
+    def feasibility_objective(x):
+        value,gradient=objective(x);residual=np.minimum(collision(x),0.)
+        # As in the elastic SCP, allow an infeasible collision linearization
+        # during search. Exact nonpenetration remains mandatory at acceptance.
+        # Hard collision rows can give SLSQP no step at the colliding seed.
+        penalty=1e3
+        # Rescale the entire objective, preserving the penalty ratio while
+        # preventing enormous first QP steps from a colliding initialization.
+        return (value/penalty+.5*np.dot(residual,residual),
+                gradient/penalty+residual@collision_jac(x))
+    def boundary(x):return np.atleast_1d(condition(unpack(x)[-1]))
     def boundary_jac(x):
-        p=unpack(x)[-1];gradient=np.zeros(n*d);epsilon=1e-5
+        p=unpack(x)[-1];gradient=np.zeros((len(boundary(x)),n*d));epsilon=1e-5
         for j in range(d):
             offset=np.zeros(d);offset[j]=epsilon
-            gradient[-d+j]=(condition(p+offset)-condition(p-offset))/(2*epsilon)
-        return gradient*scale
+            gradient[:,-d+j]=(np.asarray(condition(p+offset))-np.asarray(condition(p-offset)))/(2*epsilon)
+        return gradient@mapping
     print('NONLINEAR_COLLISION_FIT_BEGIN',reason,flush=True)
-    result=minimize(objective,np.zeros(n*d),jac=True,method='SLSQP',bounds=bounds,
-        constraints=[linear,{'type':'ineq','fun':collision,'jac':collision_jac},
-                     {'type':'ineq','fun':boundary,'jac':boundary_jac}],
-        options={'maxiter':80,'ftol':1e-9})
-    path=unpack(result.x);clearance,_=field(path);source_value=condition(path[-1])
-    print('NONLINEAR_COLLISION_FIT_END',result.message,'iterations',result.nit,
+    constraints=[linear,{'type':'ineq','fun':boundary,'jac':boundary_jac}]
+    class FeasiblePath(Exception):
+        def __init__(self,x):self.x=x.copy()
+    def progress(x):
+        nonlocal iterations
+        iterations+=1;p=unpack(x);clearance=query(x)[0]
+        source_values=np.atleast_1d(condition(p[-1]));source_value=float(source_values.min())
+        ratios=np.abs(dynamics@p.reshape(-1))/limit
+        report=dict(iteration=iterations,phase=phase,elapsed_s=monotonic()-started,
+            field_queries=query_count,field_query_seconds=query_seconds,
+            clearance_residual_m=float(np.min(clearance-required)),
+            source_condition=source_value,nominal_dynamics_ratio=float(ratios.max()))
+        report['source_conditions']=source_values.tolist()
+        preserved_error=0. if preserved_coordinates is None else float(np.max(np.abs(
+            (p-desired)@np.asarray(preserved_coordinates).T)))
+        report['preserved_coordinate_error']=preserved_error
+        print('NONLINEAR_COLLISION_FIT_PROGRESS',report,flush=True)
+        if progress_callback is not None:progress_callback(p,report)
+        if (report['clearance_residual_m']>=-1e-7 and source_value>=-1e-6
+                and ratios.max()<=1.0001 and preserved_error<=1e-8):
+            raise FeasiblePath(x)
+    try:
+        result=minimize(feasibility_objective,np.zeros(mapping.shape[1]),jac=True,method='SLSQP',
+            constraints=constraints,callback=progress,options={'maxiter':80,'ftol':1e-9})
+        solution=result.x;message=str(result.message);iterations=int(result.nit)
+    except FeasiblePath as result:
+        solution=result.x;message='Feasible path reached; geometric polishing stopped'
+    # The elastic objective can balance a tiny violation against its reference
+    # regularizer. Restore exact feasibility around the resulting candidate,
+    # without pulling it back toward the rejected original geometry/velocity.
+    candidate=unpack(solution);clearance=query(solution)[0]
+    ratios=np.abs(dynamics@candidate.reshape(-1))/limit
+    if (np.min(clearance-required)<-1e-7 or np.min(condition(candidate[-1]))<-1e-6
+            or ratios.max()>1.0001):
+        phase='collision_feasibility_restoration';origin=solution.copy()
+        def proximal(x):return .5*np.sum((x-origin)**2),x-origin
+        try:
+            restored=minimize(proximal,origin,jac=True,method='SLSQP',constraints=[*constraints,
+                {'type':'ineq','fun':collision,'jac':collision_jac}],callback=progress,
+                options={'maxiter':40,'ftol':1e-10})
+            solution=restored.x;message='Feasibility restoration: '+str(restored.message)
+        except FeasiblePath as restored:
+            solution=restored.x;message='Feasible path restored; geometric polishing stopped'
+    path=unpack(solution);clearance=query(solution)[0];source_value=float(np.min(condition(path[-1])))
+    preserved_error=0. if preserved_coordinates is None else float(np.max(np.abs(
+        (path-desired)@np.asarray(preserved_coordinates).T)))
+    print('NONLINEAR_COLLISION_FIT_END',message,'iterations',iterations,
           'clearance',float(np.min(clearance)),'source_condition',float(source_value),flush=True)
     # The CUDA distance field and optimizer use finite precision. This is a
     # normalized numerical residual, not a wider source-pose acceptance gate;
     # the actual Anchor boundary retains the unchanged physical C.4 check.
     source_solver_tolerance=1e-6
-    if (not np.isfinite(path).all() or np.min(clearance-required)<-1e-7 or source_value<-source_solver_tolerance):
-        raise RuntimeError(f'Nonlinear source-time collision fit rejected: {result.message}; '
+    if (not np.isfinite(path).all() or np.min(clearance-required)<-1e-7
+            or source_value<-source_solver_tolerance or preserved_error>1e-8):
+        raise RuntimeError(f'Nonlinear source-time collision fit rejected: {message}; '
                            f'clearance_residual={float(np.min(clearance-required))}; source_condition={source_value}')
     _,check=fixed_budget_path(path,dt,n-1,dt,velocity_limits,acceleration_limits,
         initial_velocity,(path[-1]-path[-2])/dt)
     check.update(parameterization='nonlinear_collision_constrained_source_time_fit',
-        collision_fit_iterations=int(result.nit),minimum_planning_clearance_m=float(np.min(clearance)),
+        collision_fit_iterations=iterations,minimum_planning_clearance_m=float(np.min(clearance)),
         canonical_boundary_jointly_fitted=True,physical_entry_velocity_preserved=True,
         boundary_velocities_preserved=False,source_condition=float(source_value),
         source_solver_residual_tolerance=source_solver_tolerance,

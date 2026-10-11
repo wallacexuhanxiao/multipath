@@ -10,13 +10,23 @@ def native_convex_meshes(stage,prim):
     """
     import numpy as np
     import trimesh
-    from pxr import UsdUtils,PhysicsSchemaTools
+    from pxr import Usd,UsdGeom,UsdUtils,PhysicsSchemaTools
     from omni.physx import get_physx_cooking_interface
     from omni.physx.bindings._physx import PhysxCollisionRepresentationResult
-    result=[]
+    if not prim.IsA(UsdGeom.Mesh):
+        cache=UsdGeom.XformCache();inverse=np.linalg.inv(np.asarray(cache.GetLocalToWorldTransform(prim)).T)
+        result=[]
+        for child in Usd.PrimRange(prim,Usd.TraverseInstanceProxies()):
+            if not child.IsA(UsdGeom.Mesh):continue
+            matrix=inverse@np.asarray(cache.GetLocalToWorldTransform(child)).T
+            for piece in native_convex_meshes(stage,child):
+                piece.apply_transform(matrix);result.append(piece)
+        if not result:raise RuntimeError(f'No collider mesh under {prim.GetPath()}')
+        return result
+    result=[];errors=[]
     def receive(status,convexes):
         if status!=PhysxCollisionRepresentationResult.RESULT_VALID:
-            raise RuntimeError(f'Native collision geometry unavailable for {prim.GetPath()}: {status}')
+            errors.append(str(status));return
         for convex in convexes:
             indices=np.asarray(convex.indices,dtype=int);faces=[]
             for polygon in convex.polygons:
@@ -28,7 +38,7 @@ def native_convex_meshes(stage,prim):
         stage_id=UsdUtils.StageCache.Get().GetId(stage).ToLongInt(),
         collision_prim_id=PhysicsSchemaTools.sdfPathToInt(str(prim.GetPath())),
         run_asynchronously=False,on_result=receive)
-    if not result:raise RuntimeError(f'No native convex pieces for {prim.GetPath()}')
+    if errors or not result:raise RuntimeError(f'Native convex export failed for {prim.GetPath()}: {errors}')
     return result
 
 
@@ -65,7 +75,10 @@ def planning_object_mesh(scene,role):
         import numpy as np
         view=scene.objects[role]._rigid_prim_view._physics_view
         contact=np.asarray(view.get_contact_offsets());rest=np.asarray(view.get_rest_offsets())
-        offset=float(np.max(contact[np.isfinite(contact)],initial=0.)) if convex else 0.
+        # contactOffset starts predictive contact generation; it is not the
+        # occupied solid. Match restOffset for the collision envelope and keep
+        # native contact/force checks on the actual rollout independently.
+        offset=float(np.max(rest[np.isfinite(rest)],initial=0.)) if convex else 0.
         mesh=scene.meshes[role]
         parts=[mesh]
         if convex:
@@ -82,14 +95,15 @@ def planning_object_mesh(scene,role):
         scene.planning_object_parts[role]=parts
         scene.planning_object_meshes[role]=mesh
         scene.planning_object_geometry[role]=dict(physx_approximation=sorted(str(x) for x in approximate),
-            kinematic=kinematic,planning_representation='native_convex_pieces_with_contact_offset' if convex else 'source_triangle_mesh',
+            kinematic=kinematic,planning_representation='native_convex_pieces_with_rest_offset' if convex else 'source_triangle_mesh',
             native_physics_unchanged=True,exact_native_cooked_geometry=False if convex else None,
             geometry_origin='PhysX cooking representation of authored collider; not active actor shape introspection',
             native_piece_count=len(parts),authored_collision_prims=[str(p.GetPath()) for p in colliders],
             native_contact_offset_tensor_shape_slots=int(contact.shape[-1]),
             source_mesh_bounds_m=scene.meshes[role].bounds.tolist(),planning_mesh_bounds_m=mesh.bounds.tolist(),
             native_contact_offsets_m=contact.tolist(),native_rest_offsets_m=rest.tolist(),
-            contact_envelope_inflation_m=offset)
+            contact_envelope_inflation_m=0.,rest_envelope_inflation_m=offset,
+            contact_offset_role='predictive contact generation; not solid collision geometry')
         print('NATIVE_OBJECT_COLLISION_GEOMETRY',role,len(parts),mesh.bounds.tolist(),flush=True)
     return scene.planning_object_meshes[role]
 

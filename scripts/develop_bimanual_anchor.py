@@ -119,6 +119,10 @@ def main():
             right_core,report['right_exit_resynthesis']=collision_exit_proposal(
                 scene,anchor,right_core,args.right_boundary_feedback_run,
                 source_boundary=data['tool_pose'][anchor.core_end-anchor.synth_start])
+            condition=report['right_exit_resynthesis'].get('source_boundary_fit',{})
+            if condition.get('method')=='joint_anchor_exit_and_next_oracle_entry':
+                scene.outgoing_oracle_boundary=dict(source_target=condition['next_source_object_boundary'],
+                    budget_s=condition['relaxed_budget_s'],core_end=anchor.core_end)
         right_post=stopping_context(right_core[-1],(anchor.synth_end-anchor.core_end)*tpf,scene.dt)
         right_baseline_padded=(None if right_baseline is None else np.vstack((right_baseline,
             stopping_context(right_baseline[-1],len(right_post),scene.dt))))
@@ -381,6 +385,8 @@ def main():
                                    failure=core_failure,entry_physically_reachable=True,state_resets_within_rollout=0)
         report['core_entry']=reached;report['core_exit']=scene.snapshot()
         report['bimanual_anchor_success']=bool(report['padded_rollout']['success'] and report['core_replay']['success'])
+        if hasattr(scene,'last_outgoing_boundary_precheck'):
+            report['outgoing_nominal_precheck']=scene.last_outgoing_boundary_precheck
         if not report['core_replay']['success']:raise RuntimeError(f'Joint exported core failed: {core_failure}')
         if args.continue_oracle:
             from multipath.execution.bimanual_executor import continue_oracle

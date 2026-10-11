@@ -1,0 +1,146 @@
+{
+  "method": "physically_acquired_grasp_lookahead_exit_refit",
+  "feedback_run": "outputs/oracle_action_types_20261008/r284_bimanual",
+  "physical_grasp_frame": 25.0,
+  "available_grasped_duration_s": 0.23333333333333334,
+  "original_core_duration_s": 0.4,
+  "canonical_terminal_coordinate_velocity": [
+    -0.09948851083024837,
+    0.25369522361634383,
+    2.6309223325669384e-06,
+    1.4335349582191748,
+    -0.8056470128946168,
+    0.00015838420784502566
+  ],
+  "source_boundary_fit": {
+    "method": "joint_anchor_exit_and_next_oracle_entry",
+    "anchor_tail_budget_s": 0.23333333333333334,
+    "relaxed_budget_s": 0.23333333333333334,
+    "exit_source_score": 0.07159867759840417,
+    "entry_source_score": 0.0009241925187813104,
+    "proposed_next_wrist": [
+      0.37155022212804734,
+      -0.047563252215732106,
+      0.5185705636504331,
+      0.6364779775830137,
+      -0.3424339670206855,
+      -0.4924528697749168,
+      0.4848968275136078
+    ],
+    "proposed_next_coordinate_velocity": [
+      5.655159580297514e-06,
+      0.14636281896597828,
+      -7.647965954008856e-06,
+      0.7970792362143378,
+      1.227316069876036,
+      9.013040677167658e-05
+    ],
+    "next_source_object_boundary": [
+      [
+        0.5284370820011592,
+        -0.8488591949185017,
+        -0.013868681077302306,
+        0.4934794353211065
+      ],
+      [
+        0.8483393782308281,
+        0.5273418396417348,
+        0.047231251500862305,
+        0.019652142848470413
+      ],
+      [
+        -0.03277914971113205,
+        -0.036724090576171875,
+        0.9987877011299133,
+        0.41357524156570435
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "proposed_exit_coordinate_velocity": [
+      -0.09948851083024837,
+      0.25369522361634383,
+      2.6309223325669384e-06,
+      1.4335349582191748,
+      -0.8056470128946168,
+      0.00015838420784502566
+    ],
+    "attempts": [
+      {
+        "solver_success": true,
+        "message": "Optimization terminated successfully",
+        "minimum_constraint": -1.538769112130467e-12
+      }
+    ],
+    "original_source_conditions": true,
+    "source_time_stretch": false,
+    "physical_acceptance": false,
+    "collision_acceptance": false,
+    "state_assignment": false,
+    "exit_separation_condition": true,
+    "predicted_exit_separation": {
+      "normal_world": [
+        -0.4063985212215853,
+        -0.44031566532735394,
+        0.8006012470738715
+      ],
+      "outward_displacement_m": 0.005049354537708415
+    }
+  },
+  "nominal_tail_fit": {
+    "budget_s": 0.23333333333333334,
+    "curobo_duration_s": 0.23333333333333334,
+    "time_scale": 1.0,
+    "command_velocity_ratio": 0.8743199036773053,
+    "command_acceleration_ratio": 1.000000000007617,
+    "parameterization": "endpoint_constrained_geometric_fit",
+    "geometry_max_adjustment": 0.1554416583672752,
+    "boundary_velocities_preserved": true
+  },
+  "original_finger_commands_retained": true,
+  "source_time_stretch": false,
+  "state_assignment": false,
+  "physical_validation_required": true,
+  "predicted_start_collision_feedback": {
+    "method": "physically_acquired_exit_plus_predicted_fixed_start_collision",
+    "predicted_contacts": [
+      {
+        "normal_outward_world": [
+          -0.4063985212215853,
+          -0.44031566532735394,
+          0.8006012470738715
+        ],
+        "penetration_depth_m": 0.0022243540444799783,
+        "position_world": [
+          0.5116076158025037,
+          -0.10572259918658677,
+          0.40015186908665257
+        ],
+        "origin": "posthoc_exported_convex_piece_prediction",
+        "physical_contact_evidence": false
+      }
+    ],
+    "native_contact_band_m": 0.0027250004932284355,
+    "normal_world": [
+      -0.4063985212215853,
+      -0.44031566532735394,
+      0.8006012470738715
+    ],
+    "collision_physically_executed": false,
+    "fresh_bridge_validation_required": true,
+    "source_condition_unchanged": true,
+    "source_conditioned_translation": true,
+    "required_outward_displacement_m": 0.005049354537708413,
+    "predicted_object_boundary_score": 0.7845623104127535,
+    "tangential_correction_m": [
+      -8.673617379884035e-19,
+      -4.336808689942018e-19,
+      8.673617379884035e-19
+    ],
+    "physical_acceptance": false
+  }
+}
