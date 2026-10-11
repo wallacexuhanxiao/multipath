@@ -1,0 +1,359 @@
+{
+  "status": "successful_actual_rollout_demo_ready",
+  "actual_PhysX_reexecuted": false,
+  "physics_or_controls_modified": false,
+  "presentation_only_slow_motion": true,
+  "planning_obstacle_graphics_hidden": true,
+  "recorded_source_boundary_alignment": 0,
+  "width": 1920,
+  "height": 1080,
+  "cases": [
+    {
+      "source": {
+        "triplet": "(put in, bowl, plate)",
+        "sequence": "20231024_253",
+        "input": "raw TACO MANO and object poses",
+        "source_video": "/scratch/e0985859/egoengine_baseline/data/taco_v1/Egocentric_RGB_Videos/(put in, bowl, plate)/20231024_253/color.mp4",
+        "schedule_sha256": "111733961ac0ad03d95087435de751c2bdf27db6f375fe153bd6f5f78283adc2",
+        "full_robot_reference_used": false,
+        "vlm_used": false,
+        "transform_world_to_robot": [
+          [
+            -0.36959298057517503,
+            0.929193775162176,
+            0.0,
+            0.574305986267124
+          ],
+          [
+            -0.9291937551424282,
+            -0.36959297261218765,
+            -0.0,
+            0.005429607853050099
+          ],
+          [
+            0.0,
+            0.0,
+            1.0,
+            -0.1883068585395813
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      "actual_source_duration_s": 4.8,
+      "input_runs": [
+        {
+          "path": "/Users/apple/Desktop/semantic verifier/multipath/docs/evidence/oracle_v0_20261006",
+          "video_path": "/Users/apple/Desktop/semantic verifier/multipath/outputs/presentation_demos_20261011/input_actual/20231024_253_solution_1.mp4",
+          "frames": 144,
+          "fps": 30.0,
+          "size": [
+            960,
+            720
+          ],
+          "actual_trace_sha256": "0d32f046e8c4ac8f447d1916e80b3d53c9c38a938955839bc6f8eaa254071808"
+        },
+        {
+          "path": "/Users/apple/Desktop/semantic verifier/multipath/docs/evidence/oracle_diversity_20261007/solution_2",
+          "video_path": "/Users/apple/Desktop/semantic verifier/multipath/outputs/presentation_demos_20261011/input_actual/20231024_253_solution_2.mp4",
+          "frames": 144,
+          "fps": 30.0,
+          "size": [
+            960,
+            720
+          ],
+          "actual_trace_sha256": "9e98e7b3184dddc8fd690ccaf88a557cff5c7f9329f4b9fc3fe6ad461f205e2b"
+        },
+        {
+          "path": "/Users/apple/Desktop/semantic verifier/multipath/docs/evidence/oracle_diversity_20261007/solution_3",
+          "video_path": "/Users/apple/Desktop/semantic verifier/multipath/outputs/presentation_demos_20261011/input_actual/20231024_253_solution_3.mp4",
+          "frames": 144,
+          "fps": 30.0,
+          "size": [
+            960,
+            720
+          ],
+          "actual_trace_sha256": "f264a447fd2f81d7064b8594ef778ff4e462293bcbf7e30f26fdfe8b1fa45ec4"
+        }
+      ],
+      "recorded_video_boundary_offset": 0,
+      "physics_retimed": false,
+      "relaxed_playback_speed": 0.25,
+      "anchor_playback_speed": 1.0,
+      "windows": [
+        [
+          0,
+          35
+        ],
+        [
+          76,
+          82
+        ],
+        [
+          101,
+          111
+        ],
+        [
+          128,
+          144
+        ]
+      ],
+      "videos": {
+        "overlay": {
+          "path": "/Users/apple/Desktop/semantic verifier/multipath/outputs/presentation_demos_20261011/20231024_253/overlay_slow_paths.mp4",
+          "frames": 345,
+          "fps": 30.0,
+          "duration_s": 11.5
+        },
+        "stacked": {
+          "path": "/Users/apple/Desktop/semantic verifier/multipath/outputs/presentation_demos_20261011/20231024_253/stacked_slow_paths.mp4",
+          "frames": 345,
+          "fps": 30.0,
+          "duration_s": 11.5
+        }
+      }
+    },
+    {
+      "source": {
+        "triplet": "(put in, bowl, plate)",
+        "sequence": "20231024_248",
+        "input": "raw TACO MANO and object poses",
+        "source_video": "/scratch/e0985859/egoengine_baseline/data/taco_v1/Egocentric_RGB_Videos/(put in, bowl, plate)/20231024_248/color.mp4",
+        "schedule_sha256": "f3bc463017238ac180caed8fd1f3b5225a224959ec4d60cabce314e67f88492a",
+        "full_robot_reference_used": false,
+        "vlm_used": false,
+        "transform_world_to_robot": [
+          [
+            -0.29857514301489907,
+            0.954386146813969,
+            0.0,
+            0.5912632672955277
+          ],
+          [
+            -0.9543861309440634,
+            -0.29857513805007496,
+            -0.0,
+            0.03228619171994321
+          ],
+          [
+            0.0,
+            0.0,
+            1.0,
+            -0.19556914806365966
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      "actual_source_duration_s": 4.2,
+      "input_runs": [
+        {
+          "path": "/Users/apple/Desktop/semantic verifier/multipath/docs/evidence/oracle_multisource_20261008/20231024_248/solution_0",
+          "video_path": "/Users/apple/Desktop/semantic verifier/multipath/outputs/presentation_demos_20261011/input_actual/20231024_248_solution_1.mp4",
+          "frames": 126,
+          "fps": 30.0,
+          "size": [
+            960,
+            720
+          ],
+          "actual_trace_sha256": "21935883beda521fa648d2336e478c044e2a99469e4401ad9cbc5318f29bcce4"
+        },
+        {
+          "path": "/Users/apple/Desktop/semantic verifier/multipath/docs/evidence/oracle_multisource_20261008/20231024_248/solution_1",
+          "video_path": "/Users/apple/Desktop/semantic verifier/multipath/outputs/presentation_demos_20261011/input_actual/20231024_248_solution_2.mp4",
+          "frames": 126,
+          "fps": 30.0,
+          "size": [
+            960,
+            720
+          ],
+          "actual_trace_sha256": "876e3a5dce303f45a0f5146291da384a75c89c16768eada58339c74adac638bf"
+        },
+        {
+          "path": "/Users/apple/Desktop/semantic verifier/multipath/docs/evidence/oracle_multisource_20261008/20231024_248/solution_2",
+          "video_path": "/Users/apple/Desktop/semantic verifier/multipath/outputs/presentation_demos_20261011/input_actual/20231024_248_solution_3.mp4",
+          "frames": 126,
+          "fps": 30.0,
+          "size": [
+            960,
+            720
+          ],
+          "actual_trace_sha256": "a093ee631b4f0c2037a7f0a3e007537aea8277d24c24e8fb087bb6c724a9b4f0"
+        }
+      ],
+      "recorded_video_boundary_offset": 0,
+      "physics_retimed": false,
+      "relaxed_playback_speed": 0.25,
+      "anchor_playback_speed": 1.0,
+      "windows": [
+        [
+          0,
+          26
+        ],
+        [
+          65,
+          74
+        ],
+        [
+          89,
+          96
+        ],
+        [
+          120,
+          126
+        ]
+      ],
+      "videos": {
+        "overlay": {
+          "path": "/Users/apple/Desktop/semantic verifier/multipath/outputs/presentation_demos_20261011/20231024_248/overlay_slow_paths.mp4",
+          "frames": 270,
+          "fps": 30.0,
+          "duration_s": 9.0
+        },
+        "stacked": {
+          "path": "/Users/apple/Desktop/semantic verifier/multipath/outputs/presentation_demos_20261011/20231024_248/stacked_slow_paths.mp4",
+          "frames": 270,
+          "fps": 30.0,
+          "duration_s": 9.0
+        }
+      }
+    },
+    {
+      "source": {
+        "triplet": "(put in, bowl, plate)",
+        "sequence": "20231024_243",
+        "input": "raw TACO MANO and object poses",
+        "source_video": "/scratch/e0985859/egoengine_baseline/data/taco_v1/Egocentric_RGB_Videos/(put in, bowl, plate)/20231024_243/color.mp4",
+        "schedule_sha256": "5b22609b9a2e2d96d06b2f814a2e8a8487dc8c0d34e361f40fbc0234a106076f",
+        "full_robot_reference_used": false,
+        "vlm_used": false,
+        "transform_world_to_robot": [
+          [
+            -0.2810599251746801,
+            0.9596902281825671,
+            0.0,
+            0.5879876838264226
+          ],
+          [
+            -0.9596902206929987,
+            -0.28105992298124566,
+            -0.0,
+            0.022208397868123134
+          ],
+          [
+            0.0,
+            0.0,
+            1.0,
+            -0.20252405643463134
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      "actual_source_duration_s": 4.3,
+      "input_runs": [
+        {
+          "path": "/Users/apple/Desktop/semantic verifier/multipath/docs/evidence/oracle_multisource_20261008/20231024_243/solution_0",
+          "video_path": "/Users/apple/Desktop/semantic verifier/multipath/outputs/presentation_demos_20261011/input_actual/20231024_243_solution_1.mp4",
+          "frames": 129,
+          "fps": 30.0,
+          "size": [
+            960,
+            720
+          ],
+          "actual_trace_sha256": "00000cb160db844d1aa37c89789c0c59f9b16537e7398d1ee67674078b56e7b3"
+        },
+        {
+          "path": "/Users/apple/Desktop/semantic verifier/multipath/docs/evidence/oracle_multisource_20261008/20231024_243/solution_1",
+          "video_path": "/Users/apple/Desktop/semantic verifier/multipath/outputs/presentation_demos_20261011/input_actual/20231024_243_solution_2.mp4",
+          "frames": 129,
+          "fps": 30.0,
+          "size": [
+            960,
+            720
+          ],
+          "actual_trace_sha256": "6620281893695b4344f628e7ab223d5d696d42d5b534c7255cd8073215e63de8"
+        },
+        {
+          "path": "/Users/apple/Desktop/semantic verifier/multipath/docs/evidence/oracle_multisource_20261008/20231024_243/solution_2",
+          "video_path": "/Users/apple/Desktop/semantic verifier/multipath/outputs/presentation_demos_20261011/input_actual/20231024_243_solution_3.mp4",
+          "frames": 129,
+          "fps": 30.0,
+          "size": [
+            960,
+            720
+          ],
+          "actual_trace_sha256": "9756c927af9f011e30993bafd53c9d99b686f992cfacdcd12ada3091bc9987fa"
+        }
+      ],
+      "recorded_video_boundary_offset": 0,
+      "physics_retimed": false,
+      "relaxed_playback_speed": 0.25,
+      "anchor_playback_speed": 1.0,
+      "windows": [
+        [
+          0,
+          23
+        ],
+        [
+          61,
+          70
+        ],
+        [
+          97,
+          105
+        ],
+        [
+          123,
+          129
+        ]
+      ],
+      "videos": {
+        "overlay": {
+          "path": "/Users/apple/Desktop/semantic verifier/multipath/outputs/presentation_demos_20261011/20231024_243/overlay_slow_paths.mp4",
+          "frames": 267,
+          "fps": 30.0,
+          "duration_s": 8.9
+        },
+        "stacked": {
+          "path": "/Users/apple/Desktop/semantic verifier/multipath/outputs/presentation_demos_20261011/20231024_243/stacked_slow_paths.mp4",
+          "frames": 267,
+          "fps": 30.0,
+          "duration_s": 8.9
+        }
+      }
+    }
+  ],
+  "combined_videos": {
+    "overlay": {
+      "path": "/Users/apple/Desktop/semantic verifier/multipath/outputs/presentation_demos_20261011/showcase_overlay.mp4",
+      "frames": 882,
+      "fps": 30.0,
+      "duration_s": 29.4,
+      "codec": "h264",
+      "size_bytes": 3314341
+    },
+    "stacked": {
+      "path": "/Users/apple/Desktop/semantic verifier/multipath/outputs/presentation_demos_20261011/showcase_stacked.mp4",
+      "frames": 882,
+      "fps": 30.0,
+      "duration_s": 29.4,
+      "codec": "h264",
+      "size_bytes": 2062330
+    }
+  },
+  "successful_case_figure": "/Users/apple/Desktop/semantic verifier/multipath/outputs/presentation_demos_20261011/successful_cases.png",
+  "validation": "Input task/full-pipeline reports passed with zero segment resets; clean rendering requires identical actual trace hashes; complete decode of all final clips passed; approach/carry/terminal images visually inspected."
+}

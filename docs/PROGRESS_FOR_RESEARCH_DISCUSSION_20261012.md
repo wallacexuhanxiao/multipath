@@ -106,3 +106,9 @@
 - [同源三解同步视频](/Users/apple/Desktop/semantic verifier/multipath/docs/evidence/oracle_diversity_20261007/three_solutions_stacked.mp4)
 
 以上历史材料按各轮当时状态记录；最新双手状态以本页和 r315 实测报告为准。
+
+## 7. 汇报可用的成功案例 demo
+
+[同场景三解叠加合辑，29.4 s](/Users/apple/Desktop/semantic verifier/multipath/outputs/presentation_demos_20261011/showcase_overlay.mp4)。RELAXED 播放 0.25×、Anchor 播放 1×，显示原 source time、彩色实测 wrist 轨迹及分区间的共同空间投影。三个成功 Put-In source 依次展示，各 source 内三条成功解同步叠加；不是双手 Brush 的完整成功。
+
+[演示说明、单案例和三栏对照](/Users/apple/Desktop/semantic verifier/multipath/docs/SUCCESS_DEMOS_20261011.md)。

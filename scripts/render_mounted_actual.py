@@ -5,7 +5,10 @@ import numpy as np
 
 
 def main():
-    p=argparse.ArgumentParser();p.add_argument('--run-dir',type=Path,required=True);p.add_argument('--stride',type=int,default=1);args=p.parse_args()
+    p=argparse.ArgumentParser();p.add_argument('--run-dir',type=Path,required=True);p.add_argument('--stride',type=int,default=1)
+    p.add_argument('--hide-planning-overlays',action='store_true')
+    p.add_argument('--output',type=Path,help='Render to a separate video without overwriting the original evidence')
+    args=p.parse_args()
     import mujoco,cv2,trimesh
     from scipy.spatial.transform import Rotation
     out=args.run_dir
@@ -23,7 +26,7 @@ def main():
     if endpoint_samples:
         # Initial plus N endpoint samples describe N source-time intervals.
         video_frames=min(video_frames,len(trace)-1)
-    exclusions=report.get('path_exclusions')
+    exclusions=None if args.hide_planning_overlays else report.get('path_exclusions')
     overlays=[];overlay_names=[]
     if exclusions:
         for wi,segment in enumerate(exclusions.get('segments',[exclusions])):
@@ -67,7 +70,8 @@ def main():
     cam=mujoco.MjvCamera();cam.lookat[:]=[.4,-.03,.4];cam.distance=1.65;cam.azimuth=135;cam.elevation=-25
     positions=np.stack(positions,axis=1);rotations=np.stack(rotations,axis=1)
     floating=report.get('embodiment','').startswith('floating_xhand')
-    video=out/('floating_xhand_actual.mp4' if floating else 'mounted_xhand_bc_curobo_actual.mp4')
+    video=args.output or out/('floating_xhand_actual.mp4' if floating else 'mounted_xhand_bc_curobo_actual.mp4')
+    video.parent.mkdir(parents=True,exist_ok=True)
     writer=cv2.VideoWriter(str(video),cv2.VideoWriter_fourcc(*'mp4v'),fps/args.stride,(960,720))
     if not writer.isOpened():raise RuntimeError('VideoWriter failed')
     for frame in range(0,video_frames,args.stride):
@@ -96,7 +100,9 @@ def main():
         if exclusions and active:
             cv2.putText(bgr,'Pink: virtual planning obstacles | Cyan: prior measured wrist path',(15,53),cv2.FONT_HERSHEY_SIMPLEX,.5,(245,200,235),1,cv2.LINE_AA)
         writer.write(bgr)
-        if frame==0 or frame==video_frames-1:cv2.imwrite(str(out/f'actual_frame_{frame:05d}.png'),bgr)
+        if frame==0 or frame==video_frames-1:
+            preview=(video.parent/f'{video.stem}_frame_{frame:05d}.png') if args.output else out/f'actual_frame_{frame:05d}.png'
+            cv2.imwrite(str(preview),bgr)
     writer.release();renderer.close()
     cap=cv2.VideoCapture(str(video));count=int(cap.get(cv2.CAP_PROP_FRAME_COUNT));ok,_=cap.read();cap.release()
     if not ok or count!=len(range(0,video_frames,args.stride)):raise RuntimeError('Video verification failed')

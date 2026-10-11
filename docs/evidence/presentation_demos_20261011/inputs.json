@@ -1,0 +1,56 @@
+{
+  "render_camera": {
+    "lookat": [
+      0.4,
+      -0.03,
+      0.4
+    ],
+    "distance": 1.65,
+    "azimuth": 135,
+    "elevation": -25
+  },
+  "cases": [
+    {
+      "label": "20231024_253",
+      "recorded_video_boundary_offset": 0,
+      "run_dirs": [
+        "docs/evidence/oracle_v0_20261006",
+        "docs/evidence/oracle_diversity_20261007/solution_2",
+        "docs/evidence/oracle_diversity_20261007/solution_3"
+      ],
+      "clean_render_runs": [
+        "outputs/oracle_connected_r110/final",
+        "docs/evidence/oracle_diversity_20261007/solution_2",
+        "docs/evidence/oracle_diversity_20261007/solution_3"
+      ]
+    },
+    {
+      "label": "20231024_248",
+      "recorded_video_boundary_offset": 0,
+      "run_dirs": [
+        "docs/evidence/oracle_multisource_20261008/20231024_248/solution_0",
+        "docs/evidence/oracle_multisource_20261008/20231024_248/solution_1",
+        "docs/evidence/oracle_multisource_20261008/20231024_248/solution_2"
+      ],
+      "clean_render_runs": [
+        "outputs/oracle_diversity_20261008/20231024_248/solution_0",
+        "outputs/oracle_multisource_20261008/oracle_e2e_multisource_r166_20231024_248/diversity/solution_1",
+        "outputs/oracle_multisource_20261008/oracle_e2e_multisource_r166_20231024_248/diversity/solution_2"
+      ]
+    },
+    {
+      "label": "20231024_243",
+      "recorded_video_boundary_offset": 0,
+      "run_dirs": [
+        "docs/evidence/oracle_multisource_20261008/20231024_243/solution_0",
+        "docs/evidence/oracle_multisource_20261008/20231024_243/solution_1",
+        "docs/evidence/oracle_multisource_20261008/20231024_243/solution_2"
+      ],
+      "clean_render_runs": [
+        "outputs/oracle_multisource_20261008/oracle_e2e_multisource_r166_20231024_243/final",
+        "outputs/oracle_multisource_20261008/oracle_e2e_multisource_r166_20231024_243/diversity/solution_1",
+        "outputs/oracle_multisource_20261008/oracle_diversity_r170_20231024_243/solution_2"
+      ]
+    }
+  ]
+}
