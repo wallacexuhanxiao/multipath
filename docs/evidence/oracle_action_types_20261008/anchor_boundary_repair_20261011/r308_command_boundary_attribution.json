@@ -1,0 +1,108 @@
+{
+  "run": "r308",
+  "source_budget_s": 0.23333333333333334,
+  "original_predicted_state_precheck": {
+    "feasible": false,
+    "reasons": [
+      "displacement_exceeds_acceleration_reachability"
+    ],
+    "budget_s": 0.23333333333333334,
+    "boundary_checked": "trajectory_boundary",
+    "minimum_duration_velocity_only_s": 0.11006656344983415,
+    "minimum_duration_velocity_change_only_s": 0.17668642922079178,
+    "coordinate_displacement": [
+      0.0008749675934300871,
+      0.11006656344983415,
+      -0.020463675179269836,
+      0.2822158588783885,
+      -0.06551273523374124,
+      -0.15336391135654082
+    ],
+    "initial_coordinate_velocity": [
+      -0.3408100856356594,
+      0.27532192567520375,
+      -0.01565651185246316,
+      1.0711655539207725,
+      -1.2678538872595708,
+      0.7555113148473234
+    ],
+    "terminal_coordinate_velocity": [
+      0.503435088127584,
+      0.9785959873024328,
+      -0.47743556319502556,
+      2.8986324542650266,
+      1.2583510247468381,
+      -1.894785123464553
+    ],
+    "hand_q_max_difference_rad": 0.0,
+    "reachable_displacement_lower": [
+      -0.013445142927037919,
+      0.10296458791305167,
+      -0.11492096969815407,
+      0.31463702215257383,
+      -0.09891347966906366,
+      -0.22001409082319984
+    ],
+    "reachable_displacement_upper": [
+      0.051390976841820306,
+      0.18077168901666807,
+      -0.0001338478129266265,
+      0.5756440766763303,
+      0.09669614508275937,
+      -0.0458164645208204
+    ],
+    "limits_provenance": "configured nominal planning budget; not hardware ratings"
+  },
+  "command_precheck": {
+    "feasible": true,
+    "reasons": [],
+    "budget_s": 0.23333333333333334,
+    "boundary_checked": "compensating_command",
+    "minimum_duration_velocity_only_s": 0.10980045987313895,
+    "minimum_duration_velocity_change_only_s": 0.17668642922079,
+    "coordinate_displacement": [
+      -0.008589985229004782,
+      0.10775869395587281,
+      -0.011906474747446105,
+      0.32940137961941685,
+      -0.08434159129261731,
+      -0.20318474249723573
+    ],
+    "initial_coordinate_velocity": [
+      -0.3408100856356594,
+      0.27532192567520375,
+      -0.01565651185246316,
+      1.0711655539207725,
+      -1.2678538872595708,
+      0.7555113148473234
+    ],
+    "terminal_coordinate_velocity": [
+      0.503435088127584,
+      0.9785959873024328,
+      -0.47743556319502556,
+      2.8986324542650266,
+      1.258351024746851,
+      -1.8947851234645263
+    ],
+    "hand_q_max_difference_rad": 0.0,
+    "reachable_displacement_lower": [
+      -0.013445142927037919,
+      0.10296458791305167,
+      -0.11492096969815407,
+      0.31463702215257383,
+      -0.09891347966906108,
+      -0.22001409082319906
+    ],
+    "reachable_displacement_upper": [
+      0.051390976841820306,
+      0.18077168901666807,
+      -0.0001338478129266265,
+      0.5756440766763303,
+      0.09669614508275978,
+      -0.045816464520814934
+    ],
+    "limits_provenance": "configured nominal planning budget; not hardware ratings"
+  },
+  "command_source": "saved paired_command_fit.npz",
+  "physical_validation": false
+}

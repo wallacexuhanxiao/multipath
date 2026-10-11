@@ -1,0 +1,112 @@
+{
+  "experiment": "r299",
+  "job": "658867.hopper-m-02",
+  "core_interval": [
+    20,
+    32
+  ],
+  "synthesis_interval": [
+    14,
+    38
+  ],
+  "source_provenance": {
+    "triplet": "(brush, eraser, plate)",
+    "sequence": "20231103_057",
+    "input": "raw TACO MANO and object poses",
+    "source_video": "/scratch/e0985859/egoengine_baseline/data/taco_v1/Egocentric_RGB_Videos/(brush, eraser, plate)/20231103_057/color.mp4",
+    "schedule_sha256": "4f1e00a466cf9e9185af33070750852ed62cc0dd5a842583ec3ce9fe2521ec60",
+    "full_robot_reference_used": false,
+    "vlm_used": false,
+    "transform_world_to_robot": [
+      [
+        -0.3564076659688237,
+        0.9343305848933204,
+        0.0,
+        0.5962575927013769
+      ],
+      [
+        -0.9343305539536939,
+        -0.3564076541666626,
+        -0.0,
+        -0.02380021369492084
+      ],
+      [
+        0.0,
+        0.0,
+        1.0,
+        -0.1766161823272705
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "hand_assignments": {
+      "right": {
+        "object_role": "tool"
+      },
+      "left": {
+        "object_role": "target"
+      }
+    },
+    "local_supporting_retarget": true
+  },
+  "padded_rollout": {
+    "success": true,
+    "failure": null,
+    "actual_end_frame": 38.0,
+    "state_resets_within_rollout": 0
+  },
+  "core_replay": {
+    "success": true,
+    "failure": null,
+    "entry_physically_reachable": true,
+    "state_resets_within_rollout": 0
+  },
+  "bimanual_anchor_success": true,
+  "right_tool_core_lift_m": 0.04142177104949951,
+  "left_PPO": {
+    "status": "sampled_controls_passed",
+    "iterations": 4,
+    "episodes": 15,
+    "elapsed_s": 45.0574993994087,
+    "parameters": 24293,
+    "success": true,
+    "policy_deterministic_success": false,
+    "selection": "measured_sampled_commands; fresh_Replay_required"
+  },
+  "continuous_result": {
+    "full_pipeline_success": false,
+    "status": "failed",
+    "failure_source_frame": 35.25,
+    "error": "RuntimeError: right: actual RELAXED mesh collision",
+    "actual_duration_s": 1.175,
+    "source_time_stretch": false,
+    "state_resets_between_segments": 0
+  },
+  "retention_at_failure": {
+    "right": {
+      "position_m": 0.0013697785798426998,
+      "rotation_rad": 0.05264822869293333,
+      "contact_retained": true
+    },
+    "left": {
+      "position_m": 0.005620041425888103,
+      "rotation_rad": 0.06817289120438468,
+      "contact_retained": true
+    }
+  },
+  "collision_at_failure": {
+    "source_frame": 35.25,
+    "meshes": [
+      {
+        "mesh": "tool",
+        "obstacle": "peer_left_004",
+        "geometry": "triangle_mesh"
+      }
+    ]
+  },
+  "artifact_scope": "successful local padded/core interaction under prior outgoing load; current continuous bridge failed"
+}

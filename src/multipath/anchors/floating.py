@@ -617,10 +617,14 @@ class AcquiredGraspProposal:
             # native contact and final retention acceptance stay unchanged.
             if error['position_m']>.05 or error['rotation_rad']>.35:
                 self.held=None;self.drive_held=None;self.handoff=None;self.preload_bounds=None
-        # A supported stabilizer may press on the surface. An unsupported
-        # payload must continue its acquisition until opposing forces form.
+        # Static surface pressure can initialize a stabilizer. A successor
+        # that actually transports it needs the same opposing-force
+        # acquisition as an airborne payload; otherwise top pressure latches
+        # a transform before the fitted pinch is established. This selects
+        # an acquisition proposal, not an additional physical acceptance gate.
         contact_ready=acquisition_opposition_observed(measured['contact'],
-            surface_supported=getattr(self.scene,'surface_supported_object',False))
+            surface_supported=(getattr(self.scene,'surface_supported_object',False)
+                and not getattr(self.scene,'require_transport_opposition',False)))
         self.contact_run=self.contact_run+1 if contact_ready else 0
         if self.held is None and self.contact_run>=tpf:
             self.held=np.asarray(measured['hand_object_transform'])

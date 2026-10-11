@@ -166,13 +166,38 @@ def continue_oracle(scene,schedule,manifest,proposals,output,*,boundary_feedback
                             except RuntimeError as error:
                                 if not hasattr(error,'boundary_fit_report') or len(peers)!=1:raise
                                 peer_side,peer=peers[0]
-                                from multipath.planning.bimanual import coordinated_support_bridge
+                                from multipath.planning.bimanual import coordinated_support_bridge,measured_bridge_tracking
                                 peer_anchor=hand_anchor(schedule,schedule.anchors[later['anchor']],peer_side)
                                 peer_data=hand_data(local[peer_anchor.id],peer_side,peer.object_role)
                                 peer_target=peer_data['tool_pose'][peer_anchor.core_start-peer_anchor.synth_start]
                                 info['hands'][side]['static_peer_fit_failure']=error.boundary_fit_report
+                                tracking_feedback=None
+                                if feedback is not None:
+                                    folder,prior,measured=feedback
+                                    previous_segment=next((s for s in prior['segments'] if
+                                        s['start']==window['start'] and s['end']==window['end']),None)
+                                    native_failure=(prior.get('native_contact_failure') and
+                                        window['start']<prior.get('failure_source_frame',-1)<=window['end'])
+                                    if previous_segment and (native_failure or any(h.get('collision_failure') for
+                                            h in previous_segment.get('hands',{}).values())):
+                                        from multipath.anchors.compatibility import boundary_errors,compatible
+                                        old_entry=measured.get(window['start'])
+                                        same_entry=old_entry is not None and compatible(boundary_errors(starts[side],
+                                            old_entry if side=='right' else old_entry['hands'][side]))
+                                        if same_entry:
+                                            same_entry=compatible(boundary_errors(starts[peer_side],
+                                                old_entry if peer_side=='right' else old_entry['hands'][peer_side]))
+                                        if same_entry:
+                                            tracking_feedback=measured_bridge_tracking(folder,window,
+                                                {side:starts[side],peer_side:starts[peer_side]},
+                                                (window['end']-window['start'])*tpf,scene.dt,schedule.fps)
+                                        else:
+                                            info['hands'][side]['tracking_feedback_discarded']=dict(
+                                                physical_rollout=str(folder),reason='actual predecessor changed',
+                                                fresh_plan_from_actual_state=True,acceptance_reused=False)
                                 coordinated=coordinated_support_bridge(hand,peer,planner,goal,boundaries[1],
-                                    peer_target,(window['end']-window['start'])*tpf,output/f'coordinated_{window["start"]}')
+                                    peer_target,(window['end']-window['start'])*tpf,output/f'coordinated_{window["start"]}',
+                                    tracking_feedback=tracking_feedback)
                                 goal=coordinated['primary_goal']
                                 peer_controls=coordinated['support_commands'];peer_start=starts[peer_side]
                                 if not validate_commands(peer,peer_controls,peer_start)['feasible']:

@@ -1,0 +1,43 @@
+{
+  "experiment": "r298",
+  "job": "658857.hopper-m-02",
+  "full_pipeline_success": false,
+  "physical_repair_success": false,
+  "compute_budget_s": 240.0,
+  "PPO": {
+    "status": "budget_exhausted",
+    "iterations": 22,
+    "episodes": 91,
+    "elapsed_s": 239.18816532939672
+  },
+  "exploration_noise_multipliers": [
+    0.973933318007039,
+    0.9410373616323341,
+    0.9080119976599235,
+    0.8752071457449346,
+    0.8427790092828218,
+    0.8011067529441789,
+    0.7682805365649983,
+    0.735267629934242,
+    0.7020757083082572,
+    0.6693615876778495,
+    0.6286407366977073,
+    0.5959371112519876,
+    0.5634856047050563,
+    0.5305521231377497,
+    0.4977385879610665,
+    0.4568227705080061,
+    0.42393118230393156,
+    0.39115875598508865,
+    0.35839451487991025,
+    0.32550280808354726,
+    0.2846947184356394,
+    0.2519256746571046
+  ],
+  "final_multiplier": 0.2519256746571046,
+  "previous_r297_final_multiplier": 0.7330508474576272,
+  "intended_final_multiplier": 0.25,
+  "reward_unchanged": true,
+  "physical_acceptance_unchanged": true,
+  "max_training_source_steps": 20
+}

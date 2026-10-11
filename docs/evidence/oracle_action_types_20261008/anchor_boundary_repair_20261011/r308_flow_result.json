@@ -1,0 +1,46 @@
+{
+  "run": "r308",
+  "job_id": "658986.hopper-m-02",
+  "bimanual_anchor_success": true,
+  "padded_rollout": {
+    "success": true,
+    "failure": null,
+    "actual_end_frame": 38.0,
+    "state_resets_within_rollout": 0
+  },
+  "core_replay": {
+    "success": true,
+    "failure": null,
+    "entry_physically_reachable": true,
+    "state_resets_within_rollout": 0
+  },
+  "full_pipeline_success": false,
+  "task_success": false,
+  "failure": "RuntimeError: right: fixed-time boundary failed {'feasible': False, 'reasons': ['displacement_exceeds_acceleration_reachability'], 'budget_s': 0.23333333333333334, 'minimum_duration_velocity_only_s': 0.11006656344983415, 'minimum_duration_velocity_change_only_s': 0.17668642922079172, 'coordinate_displacement': [0.0008749675934300871, 0.11006656344983415, -0.020463675179269836, 0.2822158588783885, -0.06551273523374124, -0.15336391135654082], 'initial_coordinate_velocity': [-0.3408100856356594, 0.27532192567520375, -0.01565651185246316, 1.0711655539207727, -1.2678538872595708, 0.7555113148473231], 'terminal_coordinate_velocity': [0.503435088127584, 0.9785959873024328, -0.47743556319502556, 2.8986324542650266, 1.2583510247468381, -1.8947851234645527], 'hand_q_max_difference_rad': 0.0, 'reachable_displacement_lower': [-0.013445142927037919, 0.10296458791305167, -0.11492096969815407, 0.31463702215257383, -0.09891347966906366, -0.2200140908231999], 'reachable_displacement_upper': [0.051390976841820306, 0.18077168901666807, -0.0001338478129266265, 0.5756440766763303, 0.09669614508275937, -0.04581646452082036], 'limits_provenance': 'configured nominal planning budget; not hardware ratings'}",
+  "failure_source_frame": 32.0,
+  "actual_duration_s": 1.0666666666666667,
+  "source_duration_s": 3.6666666666666665,
+  "state_resets_between_segments": 0,
+  "source_time_stretch": false,
+  "tracking_feedback_run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_bimanual_r307/physical",
+  "joint_timing": {
+    "budget_s": 0.23333333333333334,
+    "curobo_duration_s": 0.23333333333333334,
+    "time_scale": 1.0,
+    "command_velocity_ratio": 0.9785959873024328,
+    "command_acceleration_ratio": 1.0000000000059117,
+    "parameterization": "nonlinear_collision_constrained_source_time_fit",
+    "collision_fit_iterations": 1,
+    "minimum_planning_clearance_m": 0.0001252889633178711,
+    "canonical_boundary_jointly_fitted": true,
+    "physical_entry_velocity_preserved": true,
+    "boundary_velocities_preserved": false,
+    "source_condition": -3.6890659416144445e-09,
+    "source_solver_residual_tolerance": 1e-06,
+    "fixed_boundary_clearance_requirement_m": 0.0,
+    "interior_clearance_requirement_m": 0.0001,
+    "preceding_scp_failure": "Clear route requires unchanged oracle boundary refit",
+    "exact_mesh_verified_cover_retry": true
+  },
+  "bridge_physically_executed": false
+}

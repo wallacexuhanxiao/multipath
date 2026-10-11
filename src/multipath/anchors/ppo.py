@@ -200,6 +200,7 @@ class LocalPPOSolver:
             commit_requires_full_prediction=not self.allow_physical_prefix,
             residual_noise_schedule={'kind':'linear_multiplier_of_learned_Gaussian_std','initial':1.,
                 'final':cfg.exploration_final_scale,'shared_across_sources':True,
+                'progress':'maximum of update fraction and consumed compute-budget fraction; fixed within each PPO batch',
                 'numeric_provenance':'engineering choice; Appendix specifies shared schedule, not its values'})
         self.reports.append(report)
         (folder/'entry.json').write_text(json.dumps(start,indent=2))
@@ -295,7 +296,13 @@ class LocalPPOSolver:
         try:
             for iteration in range(cfg.iterations):
                 if time.monotonic()>=self.deadline:break
-                noise_scale=1.-(1.-cfg.exploration_final_scale)*min(learner.updates,cfg.iterations-1)/max(1,cfg.iterations-1)
+                # Slow physical episodes may exhaust the compute budget long
+                # before the configured update count. Still reach the shared
+                # low-noise refinement phase, keeping one distribution for
+                # every rollout and likelihood update in this PPO batch.
+                update_fraction=min(learner.updates,cfg.iterations-1)/max(1,cfg.iterations-1)
+                budget_fraction=np.clip(1.-(self.deadline-time.monotonic())/cfg.max_seconds,0.,1.)
+                noise_scale=1.-(1.-cfg.exploration_final_scale)*max(update_fraction,budget_fraction)
                 learner.set_exploration_scale(noise_scale)
                 episodes=[];results=[]
                 for _ in range(cfg.episodes_per_update):

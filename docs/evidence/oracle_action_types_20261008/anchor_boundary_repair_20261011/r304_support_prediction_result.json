@@ -1,0 +1,30 @@
+{
+  "experiment": "r304",
+  "pbs_job_id": "658936.hopper-m-02",
+  "support_prediction": {
+    "kind": "declared table tangent translation and normal-axis rotation",
+    "omitted_normal_position_error_m": 0.005543529987335205,
+    "omitted_tilt_coordinate_error_rad": 0.029954160456057442,
+    "approximation_only": true,
+    "actual_physics_and_collision_validation_unprojected": true
+  },
+  "fit_result": {
+    "phase": "collision_feasibility_restoration",
+    "clearance_residual_m": -0.004316382279992104,
+    "source_condition": -5.4154251463156555e-06,
+    "source_conditions": [
+      -5.4154251463156555e-06,
+      0.18916567161662057
+    ],
+    "nominal_dynamics_ratio": 1.0000000000078302
+  },
+  "continuous_result": {
+    "full_pipeline_success": false,
+    "status": "failed",
+    "error": "RuntimeError: Nonlinear source-time collision fit rejected: Feasibility restoration: Positive directional derivative for linesearch; clearance_residual=-0.004316382279992104; source_condition=-5.4154251463156555e-06",
+    "failure_source_frame": 32.0,
+    "actual_duration_s": 1.0666666666666667,
+    "state_resets_between_segments": 0
+  },
+  "conclusion": "Planning rejection remains; no bridge physics executed. r305 checks rejected proposal against full meshes before any cover refinement retry."
+}

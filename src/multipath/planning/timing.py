@@ -202,7 +202,7 @@ def collision_fitted_path(path,dt,velocity_limits,acceleration_limits,
               'fixed',clearance[[0,1,n-2,n-1]].tolist(),flush=True)
         if np.min(clearance-required)>=-1e-7:
             if boundary_condition is not None and np.min(boundary_condition(path[-1])) < -1e-7:
-                raise RuntimeError('Collision fit violates unchanged oracle boundary condition')
+                return nonlinear_fallback('Clear route requires unchanged oracle boundary refit')
             end_velocity=final_velocity if boundary_condition is None else (path[-1]-path[-2])/dt
             _,check=fixed_budget_path(path,dt,n-1,dt,velocity_limits,acceleration_limits,initial_velocity,end_velocity)
             check.update(parameterization='collision_constrained_source_time_fit',
@@ -370,8 +370,14 @@ def nonlinear_collision_fit(seed,desired,dt,velocity_limits,acceleration_limits,
     source_solver_tolerance=1e-6
     if (not np.isfinite(path).all() or np.min(clearance-required)<-1e-7
             or source_value<-source_solver_tolerance or preserved_error>1e-8):
-        raise RuntimeError(f'Nonlinear source-time collision fit rejected: {message}; '
+        error=RuntimeError(f'Nonlinear source-time collision fit rejected: {message}; '
                            f'clearance_residual={float(np.min(clearance-required))}; source_condition={source_value}')
+        # This remains a rejected proposal. The caller may refine conservative
+        # covers against exact meshes, then rerun the same feasibility checks.
+        error.collision_candidate_path=path.copy()
+        error.collision_fit_diagnostic=dict(clearance_residual_m=float(np.min(clearance-required)),
+            source_condition=float(source_value),preserved_coordinate_error=float(preserved_error))
+        raise error
     _,check=fixed_budget_path(path,dt,n-1,dt,velocity_limits,acceleration_limits,
         initial_velocity,(path[-1]-path[-2])/dt)
     check.update(parameterization='nonlinear_collision_constrained_source_time_fit',

@@ -1,0 +1,35 @@
+{
+  "experiment": "r301",
+  "pbs_job_id": "658891.hopper-m-02",
+  "planning_margin": {
+    "native_max_contact_offsets_m": [
+      0.0013625002466142178,
+      0.0013625002466142178,
+      0.0013625002466142178,
+      0.0013625002466142178
+    ],
+    "interior_clearance_m": 0.0027250004932284355,
+    "occupied_geometry": "native rest envelope; unchanged",
+    "physical_acceptance_unchanged": true,
+    "immutable_physical_entry_ticks": [
+      0,
+      1
+    ]
+  },
+  "fit_result": {
+    "phase": "collision_feasibility_restoration",
+    "clearance_residual_m": -0.002268195152282715,
+    "source_condition": 0.15888782314983607,
+    "nominal_ratio": null
+  },
+  "continuous_result": {
+    "full_pipeline_success": false,
+    "status": "failed",
+    "error": "RuntimeError: Nonlinear source-time collision fit rejected: Feasibility restoration: Positive directional derivative for linesearch; clearance_residual=-0.002268195152282715; source_condition=0.15888782314983607",
+    "failure_source_frame": 32.0,
+    "actual_duration_s": 1.0666666666666667,
+    "state_resets_between_segments": 0
+  },
+  "conclusion": "Uniform contact-band margin did not yield a feasible route in this search; no bridge physics executed; default margin code reverted",
+  "reproduction_patch": "r301_uniform_contact_margin.patch"
+}

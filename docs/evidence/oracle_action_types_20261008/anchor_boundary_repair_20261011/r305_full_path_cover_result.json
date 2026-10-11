@@ -1,0 +1,33 @@
+{
+  "experiment": "r305",
+  "pbs_job_id": "658943.hopper-m-02",
+  "rejected_fit_mesh_check": {
+    "preceding_fit": {
+      "clearance_residual_m": -0.004316382279992104,
+      "source_condition": -5.4154251463156555e-06,
+      "preserved_coordinate_error": 8.412298218329155e-15
+    },
+    "exact_mesh_failure": null,
+    "physical_validation": false
+  },
+  "after_full_path_cover_retry": {
+    "phase": "collision_feasibility_restoration",
+    "clearance_residual_m": -3.342347443103791e-05,
+    "source_condition": 8.424338597556869e-05,
+    "source_conditions": [
+      8.424338597556869e-05,
+      0.4106080744251632
+    ],
+    "nominal_dynamics_ratio": 1.0000000000078302
+  },
+  "minimum_cover_clearance_m": 6.65765255689621e-05,
+  "continuous_result": {
+    "full_pipeline_success": false,
+    "status": "failed",
+    "error": "RuntimeError: Nonlinear source-time collision fit rejected: Feasibility restoration: Positive directional derivative for linesearch; clearance_residual=-3.342347443103791e-05; source_condition=8.424338597556869e-05",
+    "failure_source_frame": 32.0,
+    "actual_duration_s": 1.0666666666666667,
+    "state_resets_between_segments": 0
+  },
+  "conclusion": "Exact meshes clear; full cover refinement reduces 4.316 mm rejection to 33.4 micrometres of the extra 0.1 mm target. Actual covers have positive clearance and source is feasible; no bridge physics executed yet."
+}

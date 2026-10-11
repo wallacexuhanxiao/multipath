@@ -1,0 +1,65 @@
+{
+  "experiment": "r297",
+  "job": "658851.hopper-m-02",
+  "right_core_compiled_program_difference": {
+    "right": 0.0,
+    "right_wrenches": 0.0
+  },
+  "compared_core_ticks": 48,
+  "fresh_candidate_terminal_source_frame": 32.0,
+  "terminal_right_contact": {
+    "mode": "grasped",
+    "thumb_contact": true,
+    "other_finger_contact": true
+  },
+  "terminal_left_contact": {
+    "mode": "free",
+    "thumb_contact": false,
+    "other_finger_contact": true
+  },
+  "padded_repair_success": false,
+  "PPO": {
+    "status": "budget_exhausted",
+    "iterations": 22,
+    "episodes": 91,
+    "success": false,
+    "elapsed_s": 236.03327219793573
+  },
+  "final_exploration_scale": 0.7330508474576272,
+  "max_training_source_steps": 22,
+  "full_pipeline_success": false,
+  "source_time_stretch": false,
+  "initial_core_exit_dynamics": {
+    "wrist_twist": [
+      0.0362061759950492,
+      -0.030153852280585085,
+      -0.008060992985092434,
+      -0.9897361993789673,
+      -0.0854862853884697,
+      -0.6292353868484497
+    ],
+    "hand_dq": [
+      0.7413629293441772,
+      0.5388610363006592,
+      1.0967254638671875e-05,
+      0.36059391498565674,
+      -0.16558262705802917,
+      0.2851523756980896,
+      -0.4597223997116089,
+      -0.10589791089296341,
+      3.3739233016967773,
+      -0.18823015689849854,
+      0.06827598810195923,
+      -1.282820224761963
+    ],
+    "command_twist": [
+      -0.0008849488307016706,
+      0.0009315379538506197,
+      -0.0010926681703837815,
+      -0.004905192706706004,
+      -0.00758541880695644,
+      -0.0023510346437746236
+    ],
+    "diagnostic_only": true
+  }
+}

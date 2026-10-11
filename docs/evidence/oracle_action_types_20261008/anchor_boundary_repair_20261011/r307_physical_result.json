@@ -1,0 +1,113 @@
+{
+  "run": "r307",
+  "job_id": "658976.hopper-m-02",
+  "core_interval": [
+    20,
+    32
+  ],
+  "synthesis_interval": [
+    14,
+    38
+  ],
+  "bimanual_anchor_success": true,
+  "padded_rollout": {
+    "success": true,
+    "failure": null,
+    "actual_end_frame": 38.0,
+    "state_resets_within_rollout": 0
+  },
+  "core_replay": {
+    "success": true,
+    "failure": null,
+    "entry_physically_reachable": true,
+    "state_resets_within_rollout": 0
+  },
+  "right_tool_core_lift_m": 0.04098862409591675,
+  "supporting_refinement": "contact-directed MPC; fresh joint outgoing-load Replay",
+  "full_pipeline_success": false,
+  "task_success": false,
+  "source_duration_s": 3.6666666666666665,
+  "actual_duration_s": 1.125,
+  "failure_source_frame": 33.75,
+  "failure": "RuntimeError: Actual RELAXED native tool-target contact",
+  "native_contact_failure": {
+    "forces_n": [
+      0.0,
+      0.8507261872291565
+    ],
+    "points_world": [
+      [
+        0.5069080591201782,
+        -0.09835328161716461,
+        0.3995068371295929
+      ],
+      [
+        0.5076100826263428,
+        -0.09780368208885193,
+        0.39962297677993774
+      ]
+    ],
+    "normals_world": [
+      [
+        -0.17328467965126038,
+        0.013215011917054653,
+        0.9847831130027771
+      ],
+      [
+        -0.17328467965126038,
+        0.013215011917054653,
+        0.9847831130027771
+      ]
+    ],
+    "native_separations_m": [
+      0.0020775478333234787,
+      0.002024468034505844
+    ],
+    "evidence": "native PhysX contact points; positive separation may produce contact before mesh overlap"
+  },
+  "retention_at_failure": {
+    "right": {
+      "position_m": 0.0007616618849811673,
+      "rotation_rad": 0.03173635860151347,
+      "contact_retained": true
+    },
+    "left": {
+      "position_m": 0.005643459387098773,
+      "rotation_rad": 0.06672708955269784,
+      "contact_retained": true
+    }
+  },
+  "state_resets_between_segments": 0,
+  "vlm_used": false,
+  "source_time_stretch": false,
+  "relaxed_reference_tracking": false,
+  "padded_artifacts_complete": false,
+  "initial_preparation_uses_synthesis_context": true,
+  "fresh_padded_attempts": [
+    {
+      "success": false,
+      "actual_end_frame": 32.0,
+      "failure_reason": "core_exit_handoff"
+    },
+    {
+      "success": false,
+      "actual_end_frame": 32.0,
+      "failure_reason": "core_exit_handoff"
+    },
+    {
+      "success": false,
+      "actual_end_frame": 32.0,
+      "failure_reason": "core_exit_handoff"
+    },
+    {
+      "success": false,
+      "actual_end_frame": 35.0,
+      "failure_reason": "Persistent grasp constraint failed: {'position_m': 0.0032787918937456874, 'rotation_rad': 0.10887927154623524, 'contact_retained': False}"
+    },
+    {
+      "success": true,
+      "actual_end_frame": 38.0,
+      "failure_reason": null
+    }
+  ]
+}

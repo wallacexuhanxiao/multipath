@@ -1,0 +1,32 @@
+{
+  "experiment": "r302",
+  "pbs_job_id": "658898.hopper-m-02",
+  "feedback_provenance": {
+    "physical_rollout": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_bimanual_r299/physical",
+    "physical_validation": false,
+    "state_assignment": false,
+    "unobserved_tail": "constant last observed error; prediction only"
+  },
+  "fit_result": {
+    "phase": "collision_feasibility_restoration",
+    "clearance_residual_m": -0.00371962616443634,
+    "source_condition": -9.849638323045085e-05,
+    "source_conditions": [
+      -9.849638323045085e-05,
+      -4.638578320559361e-06,
+      0.6934228073696675,
+      0.5651902737190968
+    ],
+    "nominal_dynamics_ratio": 1.0000000000074039
+  },
+  "continuous_result": {
+    "full_pipeline_success": false,
+    "status": "failed",
+    "error": "RuntimeError: Nonlinear source-time collision fit rejected: Feasibility restoration: Positive directional derivative for linesearch; clearance_residual=-0.00371962616443634; source_condition=-9.849638323045085e-05",
+    "failure_source_frame": 32.0,
+    "actual_duration_s": 1.0666666666666667,
+    "state_resets_between_segments": 0
+  },
+  "source_condition_semantics": "This failed version required C4 on both the command endpoint and tracking-predicted physical endpoint",
+  "correction": "Apply unchanged C4 to predicted physical entry only; physical handoff applies C4 directly to actual simulator state; no weakened threshold"
+}

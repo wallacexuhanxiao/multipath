@@ -1,0 +1,41 @@
+{
+  "experiment": "r303",
+  "pbs_job_id": "658930.hopper-m-02",
+  "source_constraint": "unchanged C4 on predicted actual boundary only",
+  "fit_result": {
+    "phase": "collision_feasibility_restoration",
+    "clearance_residual_m": -0.00371962616443634,
+    "source_condition": 0.151028061426421,
+    "source_conditions": [
+      0.151028061426421,
+      0.8622739336827251
+    ],
+    "nominal_dynamics_ratio": 1.0000000000069775
+  },
+  "continuous_result": {
+    "full_pipeline_success": false,
+    "status": "failed",
+    "error": "RuntimeError: Nonlinear source-time collision fit rejected: Feasibility restoration: Positive directional derivative for linesearch; clearance_residual=-0.00371962616443634; source_condition=0.151028061426421",
+    "failure_source_frame": 32.0,
+    "actual_duration_s": 1.0666666666666667,
+    "state_resets_between_segments": 0
+  },
+  "static_geometry_attribution": {
+    "method": "CPU box signed distance on exported full hand spheres and the fitted path; compared nominal vs tracking-corrected transforms",
+    "right_nominal_min_m": 0.0224280801288134,
+    "right_tracking_min_m": 0.01709907505133805,
+    "left_nominal_min_m": 0.000456800717977884,
+    "left_tracking_min_m": -0.0036196245043841786,
+    "left_tracking_min_tick": 23,
+    "planning_margin_m": 0.0001,
+    "predictive_gap_matches_rejection_within_m": 2e-09,
+    "physical_collision_observed_in_this_run": false
+  },
+  "grasp_deformation_diagnostic": {
+    "prior_actual_rollout": "r299",
+    "left_wrist_z_tracking_error_m": -0.005543529987335205,
+    "rigid_entry_grasp_predicted_minus_actual_plate_z_m": 0.0037334980311549137,
+    "actual_finger_q_change_rad": 0.020748496055603027
+  },
+  "conclusion": "Source boundary is feasible in prediction; rigid frozen-hand tracking forecast of the supported assembly creates the invariant table clearance floor. This is prediction-model failure, not newly observed PhysX table penetration."
+}

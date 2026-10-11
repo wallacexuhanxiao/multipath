@@ -106,6 +106,7 @@ class WindowEvaluation:
         reward = 0.
         tracking_reward = 0.
         reason = None
+        handoff_failure = None
         index = min(max(round(frame) - a.synth_start, 0), len(self.data['tool_pose']) - 1)
         if frame < a.core_start and self.held is not None:
             r=retention_errors(measured,self.held)
@@ -155,6 +156,7 @@ class WindowEvaluation:
             handoff = (transition(command[:7], a.exit_contact, self.data['tool_pose'][index]) if transition else
                        check_transition(self.scene, command[:7], a.exit_contact, self.data['tool_pose'][index]))
             if not handoff['success']:
+                handoff_failure = dict(handoff, preceding_failure=reason)
                 reason = 'core_exit_handoff'
             full_bridge_constraints=getattr(self.scene,'bridge_exit_constraints',False)
             outgoing=getattr(self.scene,'outgoing_oracle_boundary',None)
@@ -232,6 +234,8 @@ class WindowEvaluation:
                 self.tracking_failures.append({'source_frame': float(frame), 'reason': reason})
                 return True
             self.failure = {'source_frame': float(frame), 'reason': reason}
+            if handoff_failure is not None:
+                self.failure['handoff'] = handoff_failure
             return False
         return True
 

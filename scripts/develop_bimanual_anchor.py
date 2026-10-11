@@ -16,7 +16,7 @@ def main():
     p.add_argument('--left-padded-controls',type=Path,help='Compiled local two-hand trial proposal; fresh physics is still required')
     p.add_argument('--left-prefix-run',type=Path,help='Freeze a passed supporting-hand cuRobo predecessor for this source')
     p.add_argument('--right-boundary-feedback-run',type=Path,help='Rejected joint bridge collision fit for local exit resynthesis')
-    p.add_argument('--bridge-feedback-run',type=Path,help='Complete physical bridge with a rejected oracle handoff; refine its goal from measured error')
+    p.add_argument('--bridge-feedback-run',type=Path,help='Rejected physical bridge; refine handoff or collision predictions from its measured tracking error')
     p.add_argument('--right-core-run',type=Path,help='Freeze a physically passed right core while repairing the other hand')
     p.add_argument('--carry-context-run',type=Path,help='Actual failed joint bridge whose planned controls provide outgoing synthesis context')
     p.add_argument('--left-ppo-checkpoint',type=Path,help='Continue a small PPO optimizer for the identical local residual reference')
@@ -143,8 +143,10 @@ def main():
                 raise ValueError('Carry context must originate at a validated same-scene physical core exit')
             left.post_context_entry=context_anchor['core_exit']['hands']['left']
             left.validated_core_reference=False
+            left.require_transport_opposition=True
             report['outgoing_context']=dict(physical_run=str(args.carry_context_run),
                 mode='planned cuRobo bridge load; unvalidated commands, fresh joint physics required',
+                acquisition='opposing native forces before grasp-relative takeover; final load Replay required',
                 retention_checked_each_physics_step=True)
         right_padded=np.vstack((prefix[anchor.synth_start*tpf:],right_core,right_post))
         objectives=None;core_entry=None;core_exit=None;padded_failure=None;right_drive=None
@@ -251,6 +253,12 @@ def main():
                 if right_drive is None:
                     right_drive=segment_wrenches(scene,scene.snapshot(),np.vstack((right_core,right_post)),
                         baseline_commands=right_baseline_padded)
+                    # A compiled companion CORE includes its executed drive
+                    # program. Keep it in repair/evaluation trials just as in
+                    # the initial padded Replay; pose commands alone changed
+                    # the frozen interaction while optimizing the other hand.
+                    if right_core_drive is not None:
+                        right_drive[:len(right_core)]=right_core_drive
                 k=tick-anchor.core_start*tpf
                 if args.carry_context_run and k==len(right_core):
                     right_drive[k:]=segment_wrenches(scene,scene.snapshot(),right_post,transport=True)

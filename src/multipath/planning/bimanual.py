@@ -25,7 +25,53 @@ def clear_predictions(planner):
     planner.proposed_peer_poses={};planner.proposed_object_poses={}
 
 
-def coordinated_support_bridge(primary,support,planner,goal,source,support_source,ticks,output):
+def measured_bridge_tracking(folder,window,starts,ticks,dt,fps):
+    """Fit a prediction from a rejected real rollout, never a state assignment.
+
+    Entry commands start at the measured predecessor, so its prediction bias
+    starts at zero. Interpolate observed errors on the same source clock;
+    beyond an early failure keep the last error as an unverified hypothesis.
+    Every new candidate still needs fresh uninterrupted physical execution.
+    """
+    import json
+    from pathlib import Path
+    from multipath.planning.floating import pose_coordinates
+    from multipath.anchors.compatibility import boundary_errors,compatible
+    folder=Path(folder)
+    states=json.loads((folder/'exported_core'/'actual_trace.json').read_text())
+    failed=folder/'failed_state.json'
+    if failed.exists():states.append(json.loads(failed.read_text()))
+    first=window['start'];last=window['end']
+    states=sorted((s for s in states if first<=s['time_s']*fps<=last),key=lambda s:s['time_s'])
+    if not states or abs(states[0]['time_s']*fps-first)>1e-6:
+        raise ValueError('Bridge tracking feedback lacks its real predecessor')
+    query=first+np.arange(ticks+1)*dt*fps;profiles={};observed=[]
+    def side_state(s,side):return s if side=='right' else s['hands'][side]
+    for side,start in starts.items():
+        previous=side_state(states[0],side)
+        if not previous.get('physically_acquired_state'):
+            raise ValueError('Tracking feedback predecessor must be physically acquired')
+        if not compatible(boundary_errors(start,previous)):
+            raise ValueError('Tracking feedback requires the same physical predecessor')
+        near=pose_coordinates(start['wrist_xyz_wxyz']);frames=[float(first)];errors=[np.zeros(6)]
+        for state in states[1:]:
+            sample=side_state(state,side)
+            if not sample.get('physically_acquired_state'):
+                raise ValueError('Tracking feedback requires actual PhysX states')
+            frames.append(float(state['time_s']*fps))
+            errors.append(pose_coordinates(sample['wrist_xyz_wxyz'],near)-
+                          pose_coordinates(sample['command_wrist'],near))
+        if len(frames)<2:raise ValueError('Bridge tracking feedback has no executed segment samples')
+        values=np.asarray(errors)
+        if not np.isfinite(values).all():raise ValueError('Nonfinite physical tracking feedback')
+        profiles[side]=np.stack([np.interp(query,frames,values[:,j]) for j in range(6)],axis=1)
+        observed.append(dict(side=side,source_frames=frames,coordinate_error=values.tolist()))
+    return profiles,dict(physical_rollout=str(folder),observed=observed,
+        unobserved_tail='constant last observed error; prediction only',
+        state_assignment=False,physical_validation=False,acceptance_reused=False)
+
+
+def coordinated_support_bridge(primary,support,planner,goal,source,support_source,ticks,output,*,tracking_feedback=None):
     """Select both endpoints, plan both paths, verify shared-time geometry.
 
     The supporter keeps its physical grasp, table height and tilt.
@@ -48,6 +94,11 @@ def coordinated_support_bridge(primary,support,planner,goal,source,support_sourc
     primary_side='right' if primary is world else primary.side
     support_side='right' if support is world else support.side
     states={primary_side:start,support_side:left}
+    tracking=np.zeros((ticks+1,12));tracking_report=None
+    if tracking_feedback is not None:
+        profiles,tracking_report=tracking_feedback
+        tracking=np.c_[profiles[primary_side],profiles[support_side]]
+        (folder/'measured_tracking_prediction.json').write_text(json.dumps(tracking_report,indent=2))
     cache_reports=[]
     def cache_geometry(model):
         actual,_=model.scene.root_motion();q=pose_coordinates(actual)[None]
@@ -67,6 +118,25 @@ def coordinated_support_bridge(primary,support,planner,goal,source,support_sourc
     l0=pose_coordinates(left['wrist_xyz_wxyz']);lv0=coordinate_velocity(left['wrist_xyz_wxyz'],left['wrist_twist'],l0)
     held=np.asarray(start['hand_object_transform']);source=np.asarray(source);support_source=np.asarray(support_source)
     table=np.asarray(primary.table['pose']);plane=Rotation.from_quat(table[[4,5,6,3]]).as_matrix()[:,:2]
+    if tracking_report is not None:
+        # The supported model has table-plane translation and yaw, not a
+        # free rigid payload. Measured wrist sag/tilt also includes native
+        # finger compliance and changing hand/object transforms. Applying it
+        # to a frozen rigid cover made the forecast penetrate the table even
+        # though that was not a newly observed physical collision.
+        # Project only the *prediction*. Execution and actual mesh validation
+        # continue to use the full unprojected PhysX state.
+        original=tracking[:,6:].copy();normal=np.cross(plane[:,0],plane[:,1])
+        tracking[:,6:9]=original[:,:3]@plane@plane.T
+        tilt=plane.T@coordinate_angular_jacobian(l0)
+        yaw=np.cross(tilt[0],tilt[1]);yaw/=np.linalg.norm(yaw)
+        tracking[:,9:]=(original[:,3:]@yaw)[:,None]*yaw
+        tracking_report=dict(tracking_report,support_prediction=dict(
+            kind='declared table tangent translation and normal-axis rotation',
+            omitted_normal_position_error_m=float(np.max(np.linalg.norm(original[:,:3]-tracking[:,6:9],axis=1))),
+            omitted_tilt_coordinate_error_rad=float(np.max(np.linalg.norm(original[:,3:]-tracking[:,9:],axis=1))),
+            approximation_only=True,actual_physics_and_collision_validation_unprojected=True))
+        (folder/'measured_tracking_prediction.json').write_text(json.dumps(tracking_report,indent=2))
     low_l,high_l=discrete_displacement_bounds(lv0,np.zeros(6),budget,dt,vmax,amax)
     def support_pose(offset):
         pose=np.asarray(left['wrist_xyz_wxyz']).copy();pose[:3]+=plane@offset;return pose
@@ -199,41 +269,56 @@ def coordinated_support_bridge(primary,support,planner,goal,source,support_sourc
         def scan(right_poses,left_poses):
             clearance=[];proxy_overlaps=[]
             for tick,(rp,lp) in enumerate(zip(right_poses,left_poses)):
-                predict_peer(planner,support,lp);predict_peer(other,primary,rp)
-                rv=float(planner.path_clearance_gradient(pose_coordinates(rp)[None])[0][0])
-                lv=float(other.path_clearance_gradient(pose_coordinates(lp)[None])[0][0])
-                clearance.append(min(rv,lv))
-                if clearance[-1]<-1e-7:
-                    primary_collisions=planner.measured_mesh_collisions(rp)
-                    support_collisions=other.measured_mesh_collisions(lp)
-                    if primary_collisions or support_collisions:
-                        return clearance,proxy_overlaps,dict(physics_tick=tick,physics_dt=dt,
-                            primary_collisions=primary_collisions,support_collisions=support_collisions,
-                            primary_pose=rp.tolist(),support_pose=lp.tolist(),
-                            fixed_initial_slope=tick<=1,physical_validation=False)
-                    proxy_overlaps.append(tick)
+                clearance.append(float('inf'))
+                variants=[(rp,lp,False)]
+                if tracking_report is not None:
+                    variants.append((coordinates_pose(pose_coordinates(rp,q0)+tracking[tick,:6]),
+                        coordinates_pose(pose_coordinates(lp,l0)+tracking[tick,6:]),True))
+                for right_pose,left_pose,corrected in variants:
+                    predict_peer(planner,support,left_pose);predict_peer(other,primary,right_pose)
+                    rv=float(planner.path_clearance_gradient(pose_coordinates(right_pose)[None])[0][0])
+                    lv=float(other.path_clearance_gradient(pose_coordinates(left_pose)[None])[0][0])
+                    clearance[-1]=min(clearance[-1],rv,lv)
+                    if min(rv,lv)<-1e-7:
+                        primary_collisions=planner.measured_mesh_collisions(right_pose)
+                        support_collisions=other.measured_mesh_collisions(left_pose)
+                        if primary_collisions or support_collisions:
+                            return clearance,proxy_overlaps,dict(physics_tick=tick,physics_dt=dt,
+                                primary_collisions=primary_collisions,support_collisions=support_collisions,
+                                primary_pose=right_pose.tolist(),support_pose=left_pose.tolist(),
+                                tracking_prediction=corrected,
+                                fixed_initial_slope=tick<=1,physical_validation=False)
+                        proxy_overlaps.append(tick)
             return clearance,proxy_overlaps,None
         clearance,proxy_overlaps,failure=scan(right_poses,left_poses)
-        if failure and failure['physics_tick']>1:
+        if (failure and failure['physics_tick']>1) or (failure is None and tracking_report is not None):
             from multipath.planning.timing import collision_fitted_path
             from multipath.anchors.floating import controls_from_poses
-            (folder/'independent_path_collision.json').write_text(json.dumps(failure,indent=2))
+            fit_reason=failure or dict(physics_tick=ticks,reason='physical tracking boundary correction',
+                physical_validation=False)
+            (folder/'independent_path_collision.json').write_text(json.dumps(fit_reason,indent=2))
             right_q=np.asarray([pose_coordinates(p,q0) for p in right_poses])
             left_q=np.asarray([pose_coordinates(p,l0) for p in left_poses])
             fixed=[0,1,ticks-1,ticks]
             # Refine coarse covers only from mesh-safe fixed configurations.
             # In a joint route the peer moves at every sample; retaining its
             # final pose during cover refinement creates false fixed collisions.
-            for model,peer,own_q,peer_poses in ((planner,support,right_q,left_poses),
-                                               (other,primary,left_q,right_poses)):
-                invalid=[]
-                for i,tick in enumerate(fixed):
-                    predict_peer(model,peer,peer_poses[tick])
-                    if model.path_clearance_gradient(own_q[tick,None])[0][0]<0:invalid.append(i)
-                if invalid:
-                    model.refine_path_cover(own_q[fixed],invalid,
-                        peer_prediction=lambda i,model=model,peer=peer,poses=peer_poses:
-                            predict_peer(model,peer,poses[fixed[i]]))
+            def refine_joint_geometry(candidate,indices):
+                variants=[candidate]
+                if tracking_report is not None:variants.append(candidate+tracking)
+                geometry=np.concatenate([p[indices] for p in variants])
+                right_geometry=geometry[:,:6];left_geometry=geometry[:,6:]
+                for model,peer,own_q,peer_q in ((planner,support,right_geometry,left_geometry),
+                                              (other,primary,left_geometry,right_geometry)):
+                    peer_poses=np.asarray([coordinates_pose(q) for q in peer_q]);invalid=[]
+                    for i in range(len(own_q)):
+                        predict_peer(model,peer,peer_poses[i])
+                        if model.path_clearance_gradient(own_q[i,None])[0][0]<0:invalid.append(i)
+                    if invalid:
+                        model.refine_path_cover(own_q,invalid,
+                            peer_prediction=lambda i,model=model,peer=peer,poses=peer_poses:
+                                predict_peer(model,peer,poses[i]))
+            refine_joint_geometry(np.c_[right_q,left_q],fixed)
             path=np.c_[right_q,left_q];field_cache={}
             # A table support does not fix yaw. Preserve tilt and height;
             # choose its in-plane rotation together with the collision route.
@@ -283,7 +368,7 @@ def coordinated_support_bridge(primary,support,planner,goal,source,support_sourc
                     value,gradient=field_cache[key];values.append(value);gradients.append(gradient)
                 return np.asarray(values),np.asarray(gradients)
             batch_verified=False
-            def field(path):
+            def geometry_field(path):
                 nonlocal batch_verified
                 rv,rg=planner.coordinated_clearance_gradient(path[:,:6],path[:,6:],left['wrist_xyz_wxyz'])
                 lv,lg=other.coordinated_clearance_gradient(path[:,6:],path[:,:6],start['wrist_xyz_wxyz'])
@@ -301,20 +386,82 @@ def coordinated_support_bridge(primary,support,planner,goal,source,support_sourc
                     if difference>1e-5:raise RuntimeError('Batched peer distance differs from the original world field')
                     batch_verified=True
                 return values,gradient
+            def field(path):
+                values,gradient=geometry_field(path)
+                if tracking_report is not None:
+                    observed,observed_gradient=geometry_field(path+tracking)
+                    gradient=np.where((values<=observed)[:,None],gradient,observed_gradient)
+                    values=np.minimum(values,observed)
+                return values,gradient
             preserved=np.zeros((3,12));preserved[0,6:9]=np.cross(plane[:,0],plane[:,1])
             preserved[1:,9:]=tilt
             def boundary(pair):
-                return np.array([1.-source_score(pose_matrix(coordinates_pose(pair[:6]))@held,source),
-                    1.-source_score(pose_matrix(coordinates_pose(pair[6:]))@
+                # Source semantics constrain the physical entry, not a drive
+                # target that deliberately compensates measured tracking lag.
+                # This is the same C.4 condition, using the execution model;
+                # actual PhysX handoff still applies it without prediction.
+                candidate=pair+tracking[-1]
+                return np.asarray([
+                    1.-source_score(pose_matrix(coordinates_pose(candidate[:6]))@held,source),
+                    1.-source_score(pose_matrix(coordinates_pose(candidate[6:]))@
                         np.asarray(left['hand_object_transform']),support_source)])
             def progress(candidate,report):
                 np.savez_compressed(folder/'latest_path_fit.npz',path=candidate,dt=dt)
                 (folder/'path_fit_progress.json').write_text(json.dumps(dict(report,
                     physical_validation=False,source_time_stretch=False),indent=2))
-            print('COORDINATED_PATH_FIT_BEGIN',failure['physics_tick'],flush=True)
-            path,joint_timing=collision_fitted_path(path,dt,np.tile(vmax,2),np.tile(amax,2),
-                np.r_[v0,lv0],np.r_[v,np.zeros(6)],field,boundary_condition=boundary,
-                preserved_coordinates=preserved,progress_callback=progress)
+            print('COORDINATED_PATH_FIT_BEGIN',fit_reason['physics_tick'],flush=True)
+            try:
+                path,joint_timing=collision_fitted_path(path,dt,np.tile(vmax,2),np.tile(amax,2),
+                    np.r_[v0,lv0],np.r_[v,np.zeros(6)],field,boundary_condition=boundary,
+                    preserved_coordinates=preserved,progress_callback=progress)
+            except RuntimeError as error:
+                candidate=getattr(error,'collision_candidate_path',None)
+                if candidate is None or not np.isfinite(candidate).all():raise
+                candidate_right=np.asarray([coordinates_pose(q[:6]) for q in candidate])
+                candidate_left=np.asarray([coordinates_pose(q[6:]) for q in candidate])
+                _,_,exact_failure=scan(candidate_right,candidate_left)
+                (folder/'rejected_fit_mesh_check.json').write_text(json.dumps(dict(
+                    preceding_fit=getattr(error,'collision_fit_diagnostic',{}),
+                    exact_mesh_failure=exact_failure,physical_validation=False),indent=2))
+                if exact_failure:
+                    error.coordinated_collision_failure=exact_failure
+                    raise
+                # A conservative sphere rejection with exact mesh clearance
+                # needs covers of this route, not only the four old endpoints.
+                # Keep every surface and rerun source/time/collision checks.
+                print('COORDINATED_FULL_PATH_COVER_RETRY',flush=True)
+                refine_joint_geometry(candidate,np.arange(len(candidate)))
+                field_cache.clear();batch_verified=False
+                try:
+                    path,joint_timing=collision_fitted_path(candidate,dt,np.tile(vmax,2),np.tile(amax,2),
+                        np.r_[v0,lv0],np.r_[v,np.zeros(6)],field,boundary_condition=boundary,
+                        preserved_coordinates=preserved,progress_callback=progress)
+                except RuntimeError as refined_error:
+                    candidate=getattr(refined_error,'collision_candidate_path',None)
+                    if candidate is None or not np.isfinite(candidate).all():raise
+                    diagnostic=refined_error.collision_fit_diagnostic
+                    clearance=field(candidate)[0]
+                    # Extra cover clearance is an optimization target. A
+                    # positive full cover plus exact mesh nonintersection
+                    # already proves geometric nonpenetration of the model.
+                    # Do not spend physical iterations on a nominal margin;
+                    # source/time/dynamics and actual PhysX gates stay hard.
+                    if (np.min(clearance)<0 or np.min(boundary(candidate[-1]))<-1e-6
+                            or diagnostic['preserved_coordinate_error']>1e-8):raise
+                    candidate_right=np.asarray([coordinates_pose(q[:6]) for q in candidate])
+                    candidate_left=np.asarray([coordinates_pose(q[6:]) for q in candidate])
+                    _,_,exact_failure=scan(candidate_right,candidate_left)
+                    if exact_failure:raise
+                    from multipath.planning.timing import fixed_budget_path
+                    path,joint_timing=fixed_budget_path(candidate,dt,ticks,dt,np.tile(vmax,2),
+                        np.tile(amax,2),np.r_[v0,lv0],(candidate[-1]-candidate[-2])/dt)
+                    joint_timing.update(parameterization='exact_mesh_and_positive_cover_source_time_fit',
+                        minimum_planning_clearance_m=float(np.min(clearance)),
+                        source_condition=float(np.min(boundary(candidate[-1]))),
+                        source_solver_residual_tolerance=1e-6,
+                        interior_clearance_target_m=1e-4,extra_margin_is_optimization_target=True,
+                        physical_entry_velocity_preserved=True,physical_validation=False)
+                joint_timing['exact_mesh_verified_cover_retry']=True
             right_poses=np.asarray([coordinates_pose(q[:6]) for q in path])
             left_poses=np.asarray([coordinates_pose(q[6:]) for q in path])
             right_hands=np.vstack((start['command_hand_q'],right_commands[:,7:19]))
@@ -329,6 +476,14 @@ def coordinated_support_bridge(primary,support,planner,goal,source,support_sourc
                 wrist_twist=coordinates_twist(path[-1,:6],terminal[:6]).tolist())
             left_goal.update(wrist_xyz_wxyz=left_poses[-1].tolist(),
                 wrist_twist=coordinates_twist(path[-1,6:],terminal[6:]).tolist())
+            if tracking_report is not None:
+                for state,q,v in ((right_goal,path[-1,:6],terminal[:6]),(left_goal,path[-1,6:],terminal[6:])):
+                    offset=tracking[-1,:6] if state is right_goal else tracking[-1,6:]
+                    state.update(command_wrist_xyz_wxyz=coordinates_pose(q).tolist(),
+                        command_wrist_twist=coordinates_twist(q,v).tolist(),
+                        wrist_xyz_wxyz=coordinates_pose(q+offset).tolist(),
+                        wrist_twist=coordinates_twist(q+offset,v).tolist(),
+                        boundary_prediction_from_physical_tracking=True)
             right_timing['coordinated_path_fit']=left_timing['coordinated_path_fit']=joint_timing
             np.savez_compressed(folder/'paired_command_fit.npz',primary=right_commands,support=left_commands,dt=dt)
             (folder/'joint_timing.json').write_text(json.dumps(joint_timing,indent=2))
@@ -347,6 +502,7 @@ def coordinated_support_bridge(primary,support,planner,goal,source,support_sourc
             report=dict(attempts=attempts,minimum_shared_time_clearance_m=min(clearance),
                 shared_time_samples=len(clearance),both_paths_curobo=True,source_time_stretch=False,state_assignment=False,
                 prediction_cache_geometry=cache_reports,support_in_plane_yaw_allowed=True))
+        result['report']['measured_tracking_prediction']=tracking_report
         result['report']['proxy_overlap_but_full_meshes_clear_ticks']=proxy_overlaps
         return result
     finally:

@@ -1,0 +1,135 @@
+{
+  "run": "r309",
+  "job_id": "658998.hopper-m-02",
+  "bimanual_anchor_success": true,
+  "padded_rollout": {
+    "success": true,
+    "failure": null,
+    "actual_end_frame": 38.0,
+    "state_resets_within_rollout": 0
+  },
+  "core_replay": {
+    "success": true,
+    "failure": null,
+    "entry_physically_reachable": true,
+    "state_resets_within_rollout": 0
+  },
+  "full_pipeline_success": false,
+  "task_success": false,
+  "failure": "RuntimeError: right: actual RELAXED mesh collision",
+  "failure_source_frame": 38.0,
+  "actual_duration_s": 1.2666666666666666,
+  "source_duration_s": 3.6666666666666665,
+  "state_resets_between_segments": 0,
+  "source_time_stretch": false,
+  "retention_at_failure": {
+    "right": {
+      "position_m": 0.0033677800855218044,
+      "rotation_rad": 0.10473767205431823,
+      "contact_retained": true
+    },
+    "left": {
+      "position_m": 0.008826153798724423,
+      "rotation_rad": 0.12135853394390046,
+      "contact_retained": true
+    }
+  },
+  "right_collision": {
+    "source_frame": 38.0,
+    "meshes": [
+      {
+        "mesh": "tool",
+        "obstacle": "peer_left_004",
+        "geometry": "triangle_mesh"
+      }
+    ]
+  },
+  "command_precheck": {
+    "feasible": true,
+    "reasons": [],
+    "budget_s": 0.23333333333333334,
+    "boundary_checked": "compensating_command",
+    "minimum_duration_velocity_only_s": 0.10980045987313895,
+    "minimum_duration_velocity_change_only_s": 0.17668642922079175,
+    "coordinate_displacement": [
+      -0.008589985229004782,
+      0.10775869395587281,
+      -0.011906474747446105,
+      0.32940137961941685,
+      -0.08434159129261753,
+      -0.20318474249723573
+    ],
+    "initial_coordinate_velocity": [
+      -0.3408100856356594,
+      0.27532192567520375,
+      -0.01565651185246316,
+      1.0711655539207727,
+      -1.2678538872595708,
+      0.7555113148473231
+    ],
+    "terminal_coordinate_velocity": [
+      0.503435088127584,
+      0.9785959873024328,
+      -0.47743556319502556,
+      2.898632454265027,
+      1.2583510247468377,
+      -1.894785123464553
+    ],
+    "hand_q_max_difference_rad": 0.0,
+    "reachable_displacement_lower": [
+      -0.013445142927037919,
+      0.10296458791305167,
+      -0.11492096969815407,
+      0.31463702215257394,
+      -0.09891347966906378,
+      -0.2200140908231999
+    ],
+    "reachable_displacement_upper": [
+      0.051390976841820306,
+      0.18077168901666807,
+      -0.0001338478129266265,
+      0.5756440766763303,
+      0.09669614508275935,
+      -0.045816464520820416
+    ],
+    "limits_provenance": "configured nominal planning budget; not hardware ratings"
+  },
+  "feedback_rollout": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_bimanual_r307/physical",
+  "feedback_last_observed_frame": 33.75,
+  "unobserved_tail": "constant last observed error; prediction only",
+  "physical_bridge_prefix_before_rejection": [
+    32,
+    37.75
+  ],
+  "full_bridge_success": false,
+  "prediction_diagnostic": {
+    "right": {
+      "wrist_translation_error_m": [
+        0.0011157579108282412,
+        0.0034483000128248953,
+        -0.00881677272846182
+      ],
+      "constant_prediction_m": [
+        0.009464952822434869,
+        0.0023078694939613342,
+        -0.00855720043182373
+      ],
+      "translation_prediction_mismatch_m": 0.008430718546929164,
+      "max_finger_actual_change_rad": 0.02701553702354431
+    },
+    "left": {
+      "wrist_translation_error_m": [
+        0.006027291294316617,
+        -0.010697532135436512,
+        -0.001381993293762207
+      ],
+      "constant_prediction_m": [
+        -0.0023813648558408396,
+        0.001259171634358498,
+        0.0
+      ],
+      "translation_prediction_mismatch_m": 0.014682580452843251,
+      "max_finger_actual_change_rad": 0.03847062587738037
+    }
+  }
+}

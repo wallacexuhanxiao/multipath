@@ -1,0 +1,21 @@
+{
+  "actual_core_exit_source_frame": 32,
+  "native_thumb_contact": true,
+  "native_non_thumb_contact": true,
+  "table_pressure_latches": true,
+  "transport_opposition_latches": false,
+  "native_active_contact_force_dot_products_n2": [
+    [
+      6.5235814236573315
+    ]
+  ],
+  "actual_active_groups": [
+    "index",
+    "thumb"
+  ],
+  "nominal_retarget_opposition_finger": "ring",
+  "nominal_retarget_normal_dot": -0.8218190300542932,
+  "interpretation": "surface pressure was accepted by the acquisition initializer; this is not a demonstration of transported grip",
+  "acceptance_gates_changed": false,
+  "full_pipeline_success": false
+}

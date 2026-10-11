@@ -1,0 +1,110 @@
+diff --git a/src/multipath/planning/bimanual.py b/src/multipath/planning/bimanual.py
+index 42311dc..1828dca 100644
+--- a/src/multipath/planning/bimanual.py
++++ b/src/multipath/planning/bimanual.py
+@@ -49,6 +49,21 @@ def coordinated_support_bridge(primary,support,planner,goal,source,support_sourc
+     support_side='right' if support is world else support.side
+     states={primary_side:start,support_side:left}
+     cache_reports=[]
++    # Occupancy uses restOffset. For unintended contacts, route outside the
++    # native contact-generation band as a separate planning margin. A mere
++    # 0.1 mm nonintersection can still generate PhysX contact and alter the
++    # closed-loop route. Keep already acquired entry/slope states immutable.
++    contact_offsets=[]
++    for scene in (primary,support):
++        for view in (scene.contacts._physics_view,
++                     scene.objects['tool']._rigid_prim_view._physics_view):
++            values=np.asarray(view.get_contact_offsets())
++            contact_offsets.append(float(np.max(values[np.isfinite(values)],initial=0.)))
++    interior_clearance=max(1e-4,sum(sorted(contact_offsets)[-2:]))
++    (folder/'contact_planning_margin.json').write_text(json.dumps(dict(
++        native_max_contact_offsets_m=contact_offsets,interior_clearance_m=interior_clearance,
++        occupied_geometry='native rest envelope; unchanged',physical_acceptance_unchanged=True,
++        immutable_physical_entry_ticks=[0,1]),indent=2))
+     def cache_geometry(model):
+         actual,_=model.scene.root_motion();q=pose_coordinates(actual)[None]
+         live=model.path_clearance_gradient(q)[0]
+@@ -212,6 +227,13 @@ def coordinated_support_bridge(primary,support,planner,goal,source,support_sourc
+                             primary_pose=rp.tolist(),support_pose=lp.tolist(),
+                             fixed_initial_slope=tick<=1,physical_validation=False)
+                     proxy_overlaps.append(tick)
++                if tick>1 and clearance[-1]<interior_clearance-1e-7:
++                    return clearance,proxy_overlaps,dict(physics_tick=tick,physics_dt=dt,
++                        reason='inside native contact-generation planning margin',
++                        planning_clearance_m=clearance[-1],required_clearance_m=interior_clearance,
++                        primary_collisions=[],support_collisions=[],
++                        primary_pose=rp.tolist(),support_pose=lp.tolist(),
++                        fixed_initial_slope=False,physical_validation=False)
+             return clearance,proxy_overlaps,None
+         clearance,proxy_overlaps,failure=scan(right_poses,left_poses)
+         if failure and failure['physics_tick']>1:
+@@ -314,7 +336,8 @@ def coordinated_support_bridge(primary,support,planner,goal,source,support_sourc
+             print('COORDINATED_PATH_FIT_BEGIN',failure['physics_tick'],flush=True)
+             path,joint_timing=collision_fitted_path(path,dt,np.tile(vmax,2),np.tile(amax,2),
+                 np.r_[v0,lv0],np.r_[v,np.zeros(6)],field,boundary_condition=boundary,
+-                preserved_coordinates=preserved,progress_callback=progress)
++                preserved_coordinates=preserved,progress_callback=progress,
++                interior_clearance_m=interior_clearance)
+             right_poses=np.asarray([coordinates_pose(q[:6]) for q in path])
+             left_poses=np.asarray([coordinates_pose(q[6:]) for q in path])
+             right_hands=np.vstack((start['command_hand_q'],right_commands[:,7:19]))
+@@ -337,14 +360,16 @@ def coordinated_support_bridge(primary,support,planner,goal,source,support_sourc
+             clearance,proxy_overlaps,failure=scan(right_poses,left_poses)
+         if failure:
+             (folder/'collision_failure.json').write_text(json.dumps(failure,indent=2))
+-            error=RuntimeError(f'Coordinated paths intersect at physics tick {failure["physics_tick"]}: '
+-                               f'{failure["primary_collisions"]+failure["support_collisions"]}')
++            reason=failure.get('reason','mesh intersection')
++            error=RuntimeError(f'Coordinated route rejected at physics tick {failure["physics_tick"]}: '
++                               f'{reason}; {failure["primary_collisions"]+failure["support_collisions"]}')
+             error.coordinated_collision_failure=failure
+             raise error
+         result=dict(primary_commands=right_commands,support_commands=left_commands,
+             primary_goal=right_goal,support_goal=left_goal,support_planner=other,
+             primary_timing=right_timing,support_timing=left_timing,
+             report=dict(attempts=attempts,minimum_shared_time_clearance_m=min(clearance),
++                interior_planning_clearance_m=interior_clearance,
+                 shared_time_samples=len(clearance),both_paths_curobo=True,source_time_stretch=False,state_assignment=False,
+                 prediction_cache_geometry=cache_reports,support_in_plane_yaw_allowed=True))
+         result['report']['proxy_overlap_but_full_meshes_clear_ticks']=proxy_overlaps
+diff --git a/src/multipath/planning/timing.py b/src/multipath/planning/timing.py
+index e07d616..288c32a 100644
+--- a/src/multipath/planning/timing.py
++++ b/src/multipath/planning/timing.py
+@@ -137,7 +137,7 @@ def parameterize_path(raw,ticks,dt,velocity_limits,acceleration_limits,
+ def collision_fitted_path(path,dt,velocity_limits,acceleration_limits,
+                           initial_velocity,final_velocity,clearance_gradient,
+                           boundary_condition=None,preserved_coordinates=None,
+-                          progress_callback=None):
++                          progress_callback=None,interior_clearance_m=1e-4):
+     """Couple wrist position and orientation to fixed-time collision fitting.
+
+     The physical entry remains fixed. A verified exit remains fixed too; an
+@@ -184,7 +184,9 @@ def collision_fitted_path(path,dt,velocity_limits,acceleration_limits,
+     weights=np.repeat(1/np.asarray(velocity_limits),n)
+     objective=np.r_[np.zeros(dimension*n),weights,np.full(n,1e3),
+                     1/np.asarray(velocity_limits) if end_count else np.empty(0)]
+-    required=np.full(n,1e-4)
++    if not np.isfinite(interior_clearance_m) or interior_clearance_m<0:
++        raise ValueError('Planning clearance must be finite and nonnegative')
++    required=np.full(n,interior_clearance_m)
+     # Fixed physical boundaries cannot be moved to acquire an extra solver
+     # margin. Require nonpenetration there; retain the interior path margin.
+     # A valid 28 micrometre entry otherwise made every LP impossible to finish.
+@@ -207,7 +209,7 @@ def collision_fitted_path(path,dt,velocity_limits,acceleration_limits,
+             _,check=fixed_budget_path(path,dt,n-1,dt,velocity_limits,acceleration_limits,initial_velocity,end_velocity)
+             check.update(parameterization='collision_constrained_source_time_fit',
+                 collision_fit_iterations=iteration,minimum_planning_clearance_m=float(np.min(clearance)),
+-                fixed_boundary_clearance_requirement_m=0.,interior_clearance_requirement_m=1e-4,
++                fixed_boundary_clearance_requirement_m=0.,interior_clearance_requirement_m=float(interior_clearance_m),
+                 boundary_velocities_preserved=boundary_condition is None,
+                 physical_entry_velocity_preserved=True,canonical_boundary_jointly_fitted=boundary_condition is not None)
+             return path,check
+@@ -379,6 +381,6 @@ def nonlinear_collision_fit(seed,desired,dt,velocity_limits,acceleration_limits,
+         canonical_boundary_jointly_fitted=True,physical_entry_velocity_preserved=True,
+         boundary_velocities_preserved=False,source_condition=float(source_value),
+         source_solver_residual_tolerance=source_solver_tolerance,
+-        fixed_boundary_clearance_requirement_m=0.,interior_clearance_requirement_m=1e-4,
++        fixed_boundary_clearance_requirement_m=0.,interior_clearance_requirement_m=float(np.max(required)),
+         preceding_scp_failure=reason)
+     return path,check

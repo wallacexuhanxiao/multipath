@@ -1,0 +1,38 @@
+{
+  "experiment": "r300",
+  "pbs_job_id": "658877.hopper-m-02",
+  "comparison": "r299 left+right controls frozen; live supported-contact reaction ablation",
+  "bimanual_anchor_success": true,
+  "padded_rollout": {
+    "success": true,
+    "failure": null,
+    "actual_end_frame": 38.0,
+    "state_resets_within_rollout": 0
+  },
+  "core_replay": {
+    "success": true,
+    "failure": null,
+    "entry_physically_reachable": true,
+    "state_resets_within_rollout": 0
+  },
+  "continuous_result": {
+    "error": "RuntimeError: Persistent grasp constraint failed: {'position_m': 0.00508723324353575, 'rotation_rad': 0.043230028180542716, 'contact_retained': False, 'opposition_observed': False, 'contact_requirement': 'native_touch_between_source_control_boundaries'}",
+    "failure_source_frame": 32.5,
+    "retention_at_failure": {
+      "right": {
+        "position_m": 0.0005730906031317558,
+        "rotation_rad": 0.013151472798634576,
+        "contact_retained": true
+      },
+      "left": {
+        "position_m": 0.00508723324353575,
+        "rotation_rad": 0.043230028180542716,
+        "contact_retained": false
+      }
+    },
+    "actual_duration_s": 1.0833333333333333,
+    "state_resets_between_segments": 0,
+    "full_pipeline_success": false
+  },
+  "conclusion": "Negative ablation; earlier loss of native contact; live reaction code reverted"
+}

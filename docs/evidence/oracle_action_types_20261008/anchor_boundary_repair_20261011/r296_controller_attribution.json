@@ -1,0 +1,88 @@
+{
+  "experiment": "r296",
+  "same_right_pose_hand_twist_commands": true,
+  "right_commands_max_difference": 0.0,
+  "right_core_wrench_max_difference": 12.701241295855489,
+  "right_force_difference_max_n": [
+    3.5840202766051994,
+    11.455986369715266,
+    12.701241295855489
+  ],
+  "right_moment_difference_max_nm": [
+    0.17549199216036165,
+    0.3774036653986261,
+    0.34528406667173833
+  ],
+  "right_failure_frame": 31,
+  "core_wrenches_recomputed_in_fresh_trials": true,
+  "correction": "reuse the compiled companion core drive program in all trials",
+  "hardware_or_task_acceptance_changed": false,
+  "zero_policy": {
+    "evaluation": {
+      "success": false,
+      "failure": {
+        "source_frame": 37.0,
+        "reason": "Persistent grasp constraint failed: {'position_m': 0.008293033383118978, 'rotation_rad': 0.046182485876173636, 'contact_retained': False}"
+      },
+      "tracking_failure_count": 0,
+      "source_steps": 23,
+      "evaluation_return": 11.620895408998926,
+      "reward_terms": {
+        "object_tracking": 0.0,
+        "contact": 2.0,
+        "lifting": 0.0,
+        "total": 2.0
+      },
+      "return_value": 23.620895408998926,
+      "deterministic": true
+    },
+    "actual_terminal_contact": {
+      "mode": "free",
+      "thumb_contact": false,
+      "other_finger_contact": true
+    },
+    "tool_pose": [
+      0.5622274875640869,
+      0.010172042064368725,
+      0.3823615610599518,
+      0.7299840450286865,
+      -2.9706396162509918e-05,
+      -2.0955289073754102e-05,
+      0.6834642291069031
+    ]
+  },
+  "best_evaluation": {
+    "evaluation": {
+      "success": false,
+      "failure": {
+        "source_frame": 32.0,
+        "reason": "core_exit_handoff"
+      },
+      "tracking_failure_count": 0,
+      "source_steps": 18,
+      "evaluation_return": 11.673519765807008,
+      "reward_terms": {
+        "object_tracking": 0.8971161025815153,
+        "contact": 0.0,
+        "lifting": 0.0,
+        "total": 0.8971161025815153
+      },
+      "return_value": 13.673519765807008,
+      "deterministic": true
+    },
+    "actual_terminal_contact": {
+      "mode": "free",
+      "thumb_contact": true,
+      "other_finger_contact": false
+    },
+    "tool_pose": [
+      0.5637615919113159,
+      0.010572263039648533,
+      0.38235732913017273,
+      0.7272171974182129,
+      -2.355244942009449e-05,
+      -3.527709486661479e-05,
+      0.6864075660705566
+    ]
+  }
+}

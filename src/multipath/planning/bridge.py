@@ -134,7 +134,14 @@ def bridge_precheck(start,goal,budget,planning):
 
     Independent Anchor success is not a proof of fixed-time compatibility.
     These limits are the configured planning budgets, not hardware ratings.
+    Tracking compensation can separate the commanded terminal state from
+    the predicted physical handoff. Test the command's nominal feasibility;
+    the actual handoff is still verified after continuous execution.
     """
+    compensated=bool(goal.get('boundary_prediction_from_physical_tracking'))
+    if compensated:
+        goal=dict(goal,wrist_xyz_wxyz=goal['command_wrist_xyz_wxyz'],
+            wrist_twist=goal['command_wrist_twist'])
     q0=pose_coordinates(start['wrist_xyz_wxyz']);q1=pose_coordinates(goal['wrist_xyz_wxyz'],q0)
     v0=coordinate_velocity(start['wrist_xyz_wxyz'],start['wrist_twist'],q0)
     v1=coordinate_velocity(goal['wrist_xyz_wxyz'],goal['wrist_twist'],q1)
@@ -155,6 +162,7 @@ def bridge_precheck(start,goal,budget,planning):
     if np.any(q1-q0<low-1e-6) or np.any(q1-q0>high+1e-6):
         reasons.append('displacement_exceeds_acceleration_reachability')
     return dict(feasible=not reasons,reasons=reasons,budget_s=float(budget),
+                boundary_checked='compensating_command' if compensated else 'trajectory_boundary',
                 minimum_duration_velocity_only_s=time_position,
                 minimum_duration_velocity_change_only_s=time_velocity,
                 coordinate_displacement=(q1-q0).tolist(),initial_coordinate_velocity=v0.tolist(),
