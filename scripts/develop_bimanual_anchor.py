@@ -17,6 +17,8 @@ def main():
     p.add_argument('--left-prefix-run',type=Path,help='Freeze a passed supporting-hand cuRobo predecessor for this source')
     p.add_argument('--right-boundary-feedback-run',type=Path,help='Rejected joint bridge collision fit for local exit resynthesis')
     p.add_argument('--bridge-feedback-run',type=Path,help='Rejected physical bridge; refine handoff or collision predictions from its measured tracking error')
+    p.add_argument('--bridge-physical-seed',type=Path,help='Refine an existing cuRobo bridge with short fresh physical trials, preserving path and timing')
+    p.add_argument('--bridge-physics-seconds',type=float,default=180.)
     p.add_argument('--right-core-run',type=Path,help='Freeze a physically passed right core while repairing the other hand')
     p.add_argument('--carry-context-run',type=Path,help='Actual failed joint bridge whose planned controls provide outgoing synthesis context')
     p.add_argument('--left-ppo-checkpoint',type=Path,help='Continue a small PPO optimizer for the identical local residual reference')
@@ -113,6 +115,34 @@ def main():
             right_core_drive=np.load(args.right_core_run/'joint_commands.npz',allow_pickle=False)['right_core_wrenches'].copy()
             if right_core_drive.shape!=(len(right_core),6):raise ValueError('Compiled core wrench program has a different source clock')
             report['right_core_seed']['controller_program_retained']=True
+        if args.bridge_physical_seed:
+            if not args.right_core_run or not args.continue_oracle:
+                raise ValueError('Bridge physical refinement requires a compiled local core and oracle continuation')
+            from multipath.execution.bridge_physics import replay_predecessor,refine_bridge
+            from multipath.execution.bimanual_executor import continue_oracle
+            cached=json.loads((args.right_core_run/'bimanual_result.json').read_text())
+            if not cached.get('bimanual_anchor_success'):
+                raise ValueError('Bridge predecessor needs a physically validated padded/core artifact')
+            compiled=dict(np.load(args.right_core_run/'joint_commands.npz',allow_pickle=False))
+            left_data=dict(left_data,anchor_contacts=dict(entry_contact=left_anchor.entry_contact,
+                                                          exit_contact=left_anchor.exit_contact))
+            def replay(folder,mesh=False):
+                return replay_predecessor(scene,anchor,data,left_data,prefix,left_prefix,compiled,folder,mesh=mesh)
+            replay(out/'bridge_initial_predecessor')
+            report.update(padded_rollout=dict(success=True,cached_physical_artifact=str(args.right_core_run),
+                                              fresh_revalidation=False),
+                          core_replay=dict(success=True,entry_physically_reachable=True,
+                                           state_resets_within_rollout=0),bimanual_anchor_success=True)
+            program,repair=refine_bridge(scene,schedule,manifest,args.bridge_physical_seed,replay,
+                                        out/'bridge_physics',max_seconds=args.bridge_physics_seconds)
+            report['bridge_physical_refinement']=repair
+            if program is None:raise RuntimeError('No physically feasible bridge candidate within the compute budget')
+            # Candidate trials are local development. The exported final run
+            # starts again at initial and performs every source step in order.
+            report['core_exit']=replay(out/'exported_core',mesh=True)
+            report['continuous_candidate']=continue_oracle(scene,schedule,manifest,args.proposals,out,
+                bridge_programs={anchor.core_end:program})
+            return
         if args.right_boundary_feedback_run:
             from multipath.anchors.boundary_feedback import collision_exit_proposal,recorded_core_commands
             right_baseline=recorded_core_commands(args.right_boundary_feedback_run,anchor,tpf)

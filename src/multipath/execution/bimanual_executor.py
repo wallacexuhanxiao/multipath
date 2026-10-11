@@ -22,7 +22,7 @@ def hand_data(data,side,role):
                 tool_pose=data[role+'_pose'])
 
 
-def continue_oracle(scene,schedule,manifest,proposals,output,*,boundary_feedback_run=None):
+def continue_oracle(scene,schedule,manifest,proposals,output,*,boundary_feedback_run=None,bridge_programs=None):
     from multipath.planning.floating import FloatingPlanner
     from multipath.planning.bridge import feedback_boundary_target,bridge_precheck,terminal_stop_target
     from multipath.execution.wrench_handoff import segment_wrenches,measured_force_balance,support_hold_commands
@@ -65,10 +65,39 @@ def continue_oracle(scene,schedule,manifest,proposals,output,*,boundary_feedback
             commands={};drives={};goals={};planners={};checks={};held={};preload={}
             if window['mode']=='RELAXED':
                 later=next((w for w in schedule.windows[wi+1:] if w['mode']=='ANCHOR'),None)
+                program=(bridge_programs or {}).get(window['start'])
+                if program is not None:
+                    from multipath.anchors.compatibility import boundary_errors,compatible
+                    if program['window']!=window or program['source_provenance']!=manifest['provenance']:
+                        raise ValueError('Compiled physical bridge has a different oracle source/window')
+                    if not program['physical_report']['success']:
+                        raise ValueError('Compiled bridge was not physically validated')
+                    if not compatible(boundary_errors(scene.snapshot(),program['entry'])):
+                        raise ValueError('Compiled bridge requires its physically reached predecessor')
                 for side,hand in hands.items():
                     if side in commands:continue
                     start=starts[side];carry=start['contact']['mode']=='grasped'
                     if carry:held[side]=np.asarray(start['hand_object_transform']);check_retention(start,held[side])
+                    if program is not None:
+                        goal=program['goals'][side];controls=program['commands'][side]
+                        if not carry or goal['contact']['mode']!=start['contact']['mode']:
+                            raise ValueError('Compiled RELAXED bridge changes contact mode')
+                        if len(controls)!=(window['end']-window['start'])*tpf or not validate_commands(hand,controls,start)['feasible']:
+                            raise ValueError('Compiled bridge changed source time or violated hand limits')
+                        if not np.allclose(controls[:,7:19],start['command_hand_q'],atol=1e-8,rtol=0):
+                            raise ValueError('Compiled RELAXED bridge must freeze finger commands')
+                        permitted=schedule.metadata.get('allowed_object_environment_contacts',{}).get(
+                            'tool' if side=='right' else hand.object_role,[])
+                        commands[side]=controls;drives[side]=program['drives'][side]
+                        goals[side]=(goal,np.asarray(goal['source_tool_boundary']))
+                        planners[side]=FloatingPlanner(hand,True,output/f'planner_{window["start"]}_{side}',
+                                                      allowed_object_contacts=permitted)
+                        info['hands'][side]=dict(curobo_used=True,frozen_curobo_origin=program['origin'],
+                            source_time_stretch=False,planning=program['nominal_timing'][side],
+                            controller_refinement='short fresh physical candidate rollouts',
+                            candidate_physical_report=program['physical_report'],
+                            source_entry_physically_verified=False,acceptance_reused=False)
+                        continue
                     if later:
                         anchor=hand_anchor(schedule,schedule.anchors[later['anchor']],side)
                         if start['contact']['mode']!=anchor.entry_contact:
