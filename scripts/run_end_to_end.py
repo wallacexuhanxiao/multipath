@@ -188,9 +188,10 @@ def main():
                 valid_seed=seeds/anchor_id/'report.json'
                 if (context is None and 'No collision-free trajectory in source time' in value.get('error','')
                         and valid_seed.exists() and json.loads(valid_seed.read_text()).get('local_rollout_success')):
-                    # Without an outgoing command/context, this call would
-                    # repeat identical local synthesis, as observed in r208.
-                    raise RuntimeError('Carry planning failed before command export; preserve the valid local Anchor and repair the saved planner failure')
+                    # An unchanged replay repeats the same incompatible exit.
+                    # Fit its acquired tail and next entry jointly, then require
+                    # fresh padded/core physics before replanning the bridge.
+                    context_args=['--outgoing-boundary-run',candidate]
                 local_value=run(f'local_{anchor_id}_{attempt:02d}','develop_reached_anchor.py',
                     [*common,'--anchor-id',anchor_id,'--entry-run',candidate,*context_args,
                      '--output-dir',local,'--mpc-candidates',args.mpc_candidates,'--mpc-iters',args.mpc_iters,

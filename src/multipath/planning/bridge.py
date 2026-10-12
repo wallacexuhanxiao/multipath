@@ -402,7 +402,7 @@ def feedback_boundary_target(start,goal,planned_pose,actual_state,source_target,
         boundary_fit_elapsed_s=monotonic()-fit_begin)
 
 
-def lookahead_grasp_boundary(start,previous_exit,source_exit,source_entry,tail_budget,bridge_budget,dt,planning,*,exit_condition=None):
+def lookahead_grasp_boundary(start,previous_exit,source_exit,source_entry,tail_budget,bridge_budget,dt,planning,*,exit_condition=None,boundary_hand_object_transform=None):
     """Choose an Anchor exit together with its next oracle entry.
 
     These are command proposals from an acquired grasp, not physical states.
@@ -416,7 +416,11 @@ def lookahead_grasp_boundary(start,previous_exit,source_exit,source_entry,tail_b
     from multipath.validation.physics import OBJECT_POSITION_TOLERANCE_M,OBJECT_ROTATION_TOLERANCE_RAD
     if not start.get('physically_acquired_state'):
         raise ValueError('Lookahead exit requires a physically acquired grasp')
-    held=np.asarray(start['hand_object_transform'])
+    # Fingers can continue closing after first opposition. The terminal
+    # grasp transform may come from the measured completed interaction;
+    # initial q/dq still come exclusively from the actual tail entry.
+    held=np.asarray(start['hand_object_transform'] if boundary_hand_object_transform is None
+                    else boundary_hand_object_transform)
     q0=pose_coordinates(start['wrist_xyz_wxyz'])
     v0=coordinate_velocity(start['wrist_xyz_wxyz'],start['wrist_twist'],q0)
     vmax=np.asarray(planning['velocity_limits']);amax=np.asarray(planning['acceleration_limits'])

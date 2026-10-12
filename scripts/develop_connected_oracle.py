@@ -329,6 +329,13 @@ def main():
                     # its controls no longer belong to the saved program.
                     native_wrenches=None
                 np.savez_compressed(folder/'commands.npz',commands=commands)
+                # Preserve the complete proposal before measured acquisition
+                # overwrites its drives. Local search must optimize this same
+                # initialization, rather than an executed-prefix hybrid.
+                np.savez_compressed(folder/'nominal_commands.npz',commands=commands)
+                info['acquisition_command_frame']='moving_source_tool' if template_used else (
+                    'stationary_entry_tool' if manifest.get('retarget_details',{}).get(a.id,{}).get(
+                    'pre_acquisition_tool_motion')=='stationary_entry' else 'moving_source_tool')
                 check=validate_commands(scene,commands,start);info['command_precheck']=check
                 if not check['feasible']:raise RuntimeError('Local core command rejected')
                 objective=WindowEvaluation(scene,a,d,start)
@@ -337,7 +344,7 @@ def main():
                 wrenches=(native_wrenches if native_wrenches is not None else
                           local_anchor_wrenches(scene,start,commands,a))
                 info['native_controller_program_replayed']=native_wrenches is not None
-                acquisition=AcquiredGraspProposal(scene,a,d) if native_wrenches is None and not reused and a.entry_contact=='free' and a.exit_contact=='grasped' else None
+                acquisition=AcquiredGraspProposal(scene,a,d,stationary_prior=False if template_used else None) if native_wrenches is None and not reused and a.entry_contact=='free' and a.exit_contact=='grasped' else None
                 preload=None
                 for k,c in enumerate(commands):
                     scene.wrench_bias=wrenches[k];frame=a.core_start+(k+1)*scene.dt*schedule.fps

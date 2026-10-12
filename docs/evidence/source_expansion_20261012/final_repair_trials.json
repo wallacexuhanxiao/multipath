@@ -1,0 +1,305 @@
+{
+  "batches": [
+    {
+      "triplet": "(pour in some, bowl, plate)",
+      "sequence": "20231024_246",
+      "status": "failed",
+      "success": false,
+      "source_duration_s": 4.833333333333333,
+      "elapsed_s": 214.5881659470033,
+      "error": "Local anchor_0 failed: Reached-entry local interaction failed",
+      "run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_frame_repair_r343_20231024_246",
+      "steps": [
+        {
+          "name": "prepare",
+          "success": true,
+          "elapsed_s": 0.0,
+          "result_path": null
+        },
+        {
+          "name": "candidate_00",
+          "success": false,
+          "elapsed_s": 48.97207633103244,
+          "result_path": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_frame_repair_r343_20231024_246/candidate_00/pipeline_result.json"
+        },
+        {
+          "name": "local_anchor_0_00",
+          "success": false,
+          "elapsed_s": 165.52926175994799,
+          "result_path": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_frame_repair_r343_20231024_246/local_anchor_0_00/development_result.json"
+        }
+      ],
+      "candidate_rollouts": [
+        {
+          "run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_frame_repair_r343_20231024_246/candidate_00",
+          "segments": [
+            {
+              "start": 0,
+              "end": 30,
+              "mode": "RELAXED",
+              "anchor": null,
+              "success": true,
+              "acquisition_command_frame": null
+            },
+            {
+              "start": 30,
+              "end": 50,
+              "mode": "ANCHOR",
+              "anchor": "anchor_0",
+              "success": false,
+              "acquisition_command_frame": "moving_source_tool"
+            }
+          ],
+          "error": "RuntimeError: {'source_frame': 50.0, 'reason': 'core_exit_handoff', 'handoff': {'wrist_error': {'position_m': 0.021255178625949726, 'rotation_rad': 0.011403616471900139}, 'wrist_tracking_diagnostic_only': True, 'actual_contact': {'mode': 'free', 'thumb_contact': False, 'other_finger_contact': False, 'opposition_contact': False, 'touching_links': 0, 'link_paths': ['/xhand_right/right_hand_link', '/xhand_right/right_hand_ee_link', '/xhand_right/right_hand_index_bend_link', '/xhand_right/right_hand_index_rota_link1', '/xhand_right/right_hand_index_rota_link2', '/xhand_right/right_hand_index_rota_tip', '/xhand_right/right_hand_mid_link1', '/xhand_right/right_hand_mid_link2', '/xhand_right/right_hand_mid_tip', '/xhand_right/right_hand_pinky_link1', '/xhand_right/right_hand_pinky_link2', '/xhand_right/right_hand_pinky_tip', '/xhand_right/right_hand_ring_link1', '/xhand_right/right_hand_ring_link2', '/xhand_right/right_hand_ring_tip', '/xhand_right/right_hand_thumb_bend_link', '/xhand_right/right_hand_thumb_rota_link1', '/xhand_right/right_hand_thumb_rota_link2', '/xhand_right/right_hand_thumb_rota_tip'], 'force_norms_n': [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'force_vectors_n': [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]], 'evidence': 'PhysX thumb AND non-thumb finger/tool contact; retention checked separately'}, 'actual_wrist_twist': [-0.11391021564847627, 0.24350588850177254, 0.05077180668588436, 2.6595942974090576, -1.036124348640442, -2.244558095932007], 'object_boundary_error': {'position_m': 0.05069555596903407, 'rotation_rad': 1.5142346841488195}, 'success': False, 'preceding_failure': None}}",
+          "actual_duration_s": 1.6666666666666667,
+          "state_resets_between_segments": 0
+        }
+      ],
+      "local_development": [
+        {
+          "run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_frame_repair_r343_20231024_246/local_anchor_0_00",
+          "core_success": false,
+          "error": "Reached-entry local interaction failed",
+          "acquisition_nominal_origin": "complete_local_library_proposal_before_physical_feedback",
+          "padded_success": null,
+          "exported_core_success": null,
+          "outgoing_boundary_feedback": null
+        }
+      ]
+    },
+    {
+      "triplet": "(brush, eraser, plate)",
+      "sequence": "20231103_057",
+      "status": "failed",
+      "success": false,
+      "source_duration_s": 3.6666666666666665,
+      "elapsed_s": 225.87707302509807,
+      "error": "Unresolved physical failure at [32, 39]: RuntimeError: No canonical boundary found within source/time/collision conditions",
+      "run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_frame_repair_r343_20231103_057",
+      "steps": [
+        {
+          "name": "prepare",
+          "success": true,
+          "elapsed_s": 0.0,
+          "result_path": null
+        },
+        {
+          "name": "candidate_00",
+          "success": false,
+          "elapsed_s": 74.93222315399908,
+          "result_path": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_frame_repair_r343_20231103_057/candidate_00/pipeline_result.json"
+        },
+        {
+          "name": "local_anchor_0_00",
+          "success": true,
+          "elapsed_s": 117.24864434101619,
+          "result_path": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_frame_repair_r343_20231103_057/local_anchor_0_00/development_result.json"
+        },
+        {
+          "name": "candidate_01",
+          "success": false,
+          "elapsed_s": 32.99247510894202,
+          "result_path": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_frame_repair_r343_20231103_057/candidate_01/pipeline_result.json"
+        }
+      ],
+      "candidate_rollouts": [
+        {
+          "run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_frame_repair_r343_20231103_057/candidate_00",
+          "segments": [
+            {
+              "start": 0,
+              "end": 20,
+              "mode": "RELAXED",
+              "anchor": null,
+              "success": true,
+              "acquisition_command_frame": null
+            },
+            {
+              "start": 20,
+              "end": 32,
+              "mode": "ANCHOR",
+              "anchor": "anchor_0",
+              "success": true,
+              "acquisition_command_frame": "stationary_entry_tool"
+            },
+            {
+              "start": 32,
+              "end": 39,
+              "mode": "RELAXED",
+              "anchor": null,
+              "success": false,
+              "acquisition_command_frame": null
+            }
+          ],
+          "error": "RuntimeError: No collision-free trajectory in source time: ['fixed_budget: Fixed source budget violates dynamics: velocity=0.831, acceleration=16.906', 'path_parameterization: Boundary velocity is incompatible with the geometric path', 'boundary_fit: Nonlinear source-time collision fit rejected: Feasibility restoration: Positive directional derivative for linesearch; clearance_residual=-0.007245266048610211; source_condition=-1.4285937638414126e-07']",
+          "actual_duration_s": 1.0666666666666667,
+          "state_resets_between_segments": 0
+        },
+        {
+          "run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_frame_repair_r343_20231103_057/candidate_01",
+          "segments": [
+            {
+              "start": 0,
+              "end": 20,
+              "mode": "RELAXED",
+              "anchor": null,
+              "success": true,
+              "acquisition_command_frame": null
+            },
+            {
+              "start": 20,
+              "end": 32,
+              "mode": "ANCHOR",
+              "anchor": "anchor_0",
+              "success": true,
+              "acquisition_command_frame": "stationary_entry_tool"
+            },
+            {
+              "start": 32,
+              "end": 39,
+              "mode": "RELAXED",
+              "anchor": null,
+              "success": false,
+              "acquisition_command_frame": null
+            }
+          ],
+          "error": "RuntimeError: No canonical boundary found within source/time/collision conditions",
+          "actual_duration_s": 1.0666666666666667,
+          "state_resets_between_segments": 0
+        }
+      ],
+      "local_development": [
+        {
+          "run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_frame_repair_r343_20231103_057/local_anchor_0_00",
+          "core_success": true,
+          "error": null,
+          "acquisition_nominal_origin": null,
+          "padded_success": true,
+          "exported_core_success": true,
+          "outgoing_boundary_feedback": {
+            "method": "physically_acquired_grasp_joint_exit_entry_fit",
+            "feedback_run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_frame_repair_r343_20231103_057/candidate_00",
+            "physical_grasp_frame": 25.0,
+            "boundary_proposal": {
+              "method": "joint_anchor_exit_and_next_oracle_entry",
+              "anchor_tail_budget_s": 0.23333333333333334,
+              "relaxed_budget_s": 0.23333333333333334,
+              "exit_source_score": 0.0024030045438101556,
+              "entry_source_score": 0.00030172671266604894,
+              "proposed_next_wrist": [
+                0.36979919931415733,
+                -0.05992830461180031,
+                0.5099794812787313,
+                0.6117508738171514,
+                -0.32680149860514496,
+                -0.5274315342924136,
+                0.49069096744013274
+              ],
+              "proposed_next_coordinate_velocity": [
+                4.907322799799381e-06,
+                0.1205727332354753,
+                3.8345252749543625e-06,
+                0.6000779869007996,
+                0.9145831010685883,
+                5.727205908298639e-06
+              ],
+              "next_source_object_boundary": [
+                [
+                  0.5284370820011592,
+                  -0.8488591949185017,
+                  -0.013868681077302306,
+                  0.4934794353211065
+                ],
+                [
+                  0.8483393782308281,
+                  0.5273418396417348,
+                  0.047231251500862305,
+                  0.019652142848470413
+                ],
+                [
+                  -0.03277914971113205,
+                  -0.036724090576171875,
+                  0.9987877011299133,
+                  0.41357524156570435
+                ],
+                [
+                  0.0,
+                  0.0,
+                  0.0,
+                  1.0
+                ]
+              ],
+              "proposed_exit_coordinate_velocity": [
+                -0.03528853515047264,
+                0.20899834223099786,
+                -5.8493169736049676e-06,
+                1.6672533849676872,
+                -0.5145728690197183,
+                3.104074833165736e-05
+              ],
+              "attempts": [
+                {
+                  "solver_success": true,
+                  "message": "Optimization terminated successfully",
+                  "minimum_constraint": -2.1570047335574472e-14
+                }
+              ],
+              "original_source_conditions": true,
+              "source_time_stretch": false,
+              "physical_acceptance": false,
+              "collision_acceptance": false,
+              "state_assignment": false,
+              "exit_separation_condition": true
+            },
+            "tail_fit": {
+              "budget_s": 0.23333333333333334,
+              "curobo_duration_s": 0.23333333333333334,
+              "time_scale": 1.0,
+              "command_velocity_ratio": 0.9822464421647537,
+              "command_acceleration_ratio": 1.0000000000003695,
+              "parameterization": "endpoint_constrained_geometric_fit",
+              "geometry_max_adjustment": 0.17480805820026324,
+              "boundary_velocities_preserved": true
+            },
+            "source_time_stretch": false,
+            "original_finger_commands_retained": true,
+            "physical_acceptance": false
+          }
+        }
+      ]
+    }
+  ],
+  "brush_local_vs_continuous": {
+    "entry_max_errors": {
+      "wrist_xyz_wxyz": 0.0,
+      "wrist_twist": 0.0,
+      "hand_q": 0.0,
+      "hand_dq": 0.0,
+      "command_wrist": 0.0,
+      "command_twist": 0.0,
+      "command_hand_q": 0.0,
+      "controller_wrench_bias": 0.0,
+      "hand_object_transform": 0.0
+    },
+    "local_exit_twist": [
+      -0.09658408657347635,
+      0.21843277599843916,
+      0.03494250255394548,
+      -1.7757246494293213,
+      -0.2792084217071533,
+      -0.48779693245887756
+    ],
+    "continuous_exit_twist": [
+      -0.09658408657347635,
+      0.21843277599843916,
+      0.03494250255394548,
+      -1.7757246494293213,
+      -0.2792084217071533,
+      -0.48779693245887756
+    ],
+    "control_program_max_errors": {
+      "right": 0.0,
+      "right_wrenches": 0.0
+    }
+  }
+}

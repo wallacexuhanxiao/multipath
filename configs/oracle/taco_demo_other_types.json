@@ -1,0 +1,19 @@
+[
+  {
+    "schedule": "/scratch/e0985859/multipath_v0_fc2da7b/configs/oracle/taco_brush_20231103_057.json",
+    "triplet": "(brush, eraser, plate)",
+    "sequence": "20231103_057",
+    "prepared_proposals": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_lift_repair_r225_20231103_057/proposals",
+    "seed_artifacts": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_lift_repair_r225_20231103_057/local_seeds",
+    "initial_bridge_run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_lift_repair_r225_20231103_057/candidate_00",
+    "solutions_per_interval": 3
+  },
+  {
+    "schedule": "/scratch/e0985859/multipath_v0_fc2da7b/configs/oracle/taco_hit_20231102_003.json",
+    "triplet": "(hit, hammer, box)",
+    "sequence": "20231102_003",
+    "prepared_proposals": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_lift_repair_r208_20231102_003/proposals",
+    "initial_bridge_run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_action_types_r195_20231102_003/candidate_00",
+    "solutions_per_interval": 3
+  }
+]

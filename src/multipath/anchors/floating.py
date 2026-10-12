@@ -565,25 +565,21 @@ def outgoing_carry_context(scene,last_command,ticks):
     return post
 
 
-def acquisition_opposition_observed(contact,*,surface_supported=False):
-    """Use the declared load support when latching an acquisition controller.
+def acquisition_opposition_observed(contact):
+    """Use Appendix C.7 native contact to propose the acquisition handoff.
 
-    Airborne carry needs an opposing pair. A declared table-supported object
-    can be stabilized by measured thumb/non-thumb pressure. Appendix C.7 and
-    the physical rollout gates continue to consume the raw native contact.
+    A force-vector dot product is not a load-bearing proof and previously
+    prevented any lifting command despite measured thumb/non-thumb contact.
+    Contact must persist for a source frame before the controller latches it;
+    actual lift, retention, boundary and fresh replay still decide success.
     """
-    if contact['mode']!='grasped':return False
-    if surface_supported:return True
-    paths=contact['link_paths'];forces=np.asarray(contact['force_vectors_n'])
-    active=np.asarray(contact['force_norms_n'])>.01
-    thumb=active&np.asarray(['thumb' in p.rsplit('/',1)[-1] for p in paths])
-    other=active&np.asarray([any(f in p.rsplit('/',1)[-1] for f in ('index','mid','ring','pinky')) for p in paths])
-    return bool(np.any(forces[thumb]@forces[other].T<0.))
+    return bool(contact['mode']=='grasped' and contact['thumb_contact']
+                and contact['other_finger_contact'])
 
 
 class AcquiredGraspProposal:
     """Object-relative MPC proposal initialized by actual supported contact."""
-    def __init__(self,scene,anchor,data):
+    def __init__(self,scene,anchor,data,*,stationary_prior=None):
         self.scene,self.anchor,self.data=scene,anchor,data
         self.contact_run=0;self.contact_loss_run=0;self.held=None;self.handoff=None;self.acquired_frame=None
         self.drive_held=None
@@ -598,6 +594,8 @@ class AcquiredGraspProposal:
             scene.last_acquisition_support_projection=report
         self.source_entry=self.data['tool_pose'][anchor.core_start-anchor.synth_start]
         self.stationary_prior=scene.manifest.get('retarget_details',{}).get(anchor.id,{}).get('pre_acquisition_tool_motion')=='stationary_entry'
+        override=getattr(scene,'acquisition_stationary_prior_override',None) if stationary_prior is None else stationary_prior
+        if override is not None:self.stationary_prior=bool(override)
 
     def acquisition_command(self,frame,baseline,measured,previous_command=None):
         """Execute an acquisition proposal relative to the real resting tool.
@@ -652,14 +650,9 @@ class AcquiredGraspProposal:
             # native contact and final retention acceptance stay unchanged.
             if error['position_m']>OBJECT_POSITION_TOLERANCE_M or error['rotation_rad']>OBJECT_ROTATION_TOLERANCE_RAD:
                 self.held=None;self.drive_held=None;self.handoff=None;self.preload_bounds=None
-        # Static surface pressure can initialize a stabilizer. A successor
-        # that actually transports it needs the same opposing-force
-        # acquisition as an airborne payload; otherwise top pressure latches
-        # a transform before the fitted pinch is established. This selects
-        # an acquisition proposal, not an additional physical acceptance gate.
-        contact_ready=acquisition_opposition_observed(measured['contact'],
-            surface_supported=(getattr(self.scene,'surface_supported_object',False)
-                and not getattr(self.scene,'require_transport_opposition',False)))
+        # Native C.7 contact initializes a lifting proposal. Only subsequent
+        # actual motion can establish whether that contact supports the load.
+        contact_ready=acquisition_opposition_observed(measured['contact'])
         self.contact_run=self.contact_run+1 if contact_ready else 0
         if self.held is None and self.contact_run>=tpf:
             self.held=np.asarray(measured['hand_object_transform'])

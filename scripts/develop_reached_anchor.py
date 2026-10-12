@@ -10,6 +10,7 @@ def main():
     p.add_argument('--context-controls',type=Path,help='Optional padded warm start; otherwise derive stabilizing post-context from this local core proposal.')
     p.add_argument('--planned-bridges',type=Path,help='Original cuRobo drives used by a diverse runtime prefix for its dynamics feedforward.')
     p.add_argument('--bridge-context-run',type=Path,help='Actual failed following carry bridge; its planned commands condition local post-context.')
+    p.add_argument('--outgoing-boundary-run',type=Path,help='Reached valid core whose outgoing source-time bridge could not be planned.')
     p.add_argument('--exit-geometry-feedback-run',type=Path,help='Actual free-exit collision; reshape this Anchor before local physical validation.')
     p.add_argument('--anchor-id',required=True)
     p.add_argument('--mpc-candidates',type=int,default=16);p.add_argument('--mpc-iters',type=int,default=2)
@@ -72,6 +73,8 @@ def main():
     else:
         from multipath.anchors.floating import stopping_context
         post=stopping_context(core[-1],(anchor.synth_end-anchor.core_end)*tpf,FloatingScene.dt)
+    if args.outgoing_boundary_run:
+        validated_core_reference=any(s.get('anchor')==anchor.id and s.get('success') for s in predecessor['segments'])
     controls=np.concatenate((core,post))
     report=dict(anchor_id=anchor.id,core_success=False,full_pipeline_success=False,source_provenance=manifest['provenance'],
         synthesis_interval=[anchor.synth_start,anchor.synth_end],optimization_interval=[local.synth_start,local.synth_end],
@@ -129,6 +132,13 @@ def main():
             scene.post_context_commands=bridge_context
             report['post_context_origin']='planned carry commands from observed failed bridge; fresh physical acceptance required'
         initial_state=scene.snapshot()
+        if args.outgoing_boundary_run:
+            from multipath.anchors.boundary_feedback import single_grasp_exit_proposal
+            from multipath.anchors.floating import stopping_context
+            core,feedback=single_grasp_exit_proposal(scene,anchor,core,args.outgoing_boundary_run,data)
+            post=stopping_context(core[-1],(anchor.synth_end-anchor.core_end)*tpf,scene.dt)
+            controls=np.concatenate((core,post))
+            report['outgoing_boundary_feedback']=feedback
         if args.exit_geometry_feedback_run:
             from multipath.planning.bridge import free_exit_clearance_offset
             from multipath.anchors.floating import quiet_release_exit,stopping_context
@@ -193,11 +203,18 @@ def main():
             # Failed runtime commands contain an executed feedback prefix and
             # an untouched future. Rebuild a local nominal proposal instead
             # of optimizing that hybrid as if it were one executable Replay.
-            core=source_retarget_core_controls(scene,anchor,data,entry)
+            segment=next(s for s in predecessor['segments'] if s.get('anchor')==anchor.id)
+            nominal_path=args.entry_run/'cores'/anchor.id/'nominal_commands.npz'
+            library_proposal=bool(segment.get('interaction_initialization') and nominal_path.exists())
+            if library_proposal:
+                core=np.load(nominal_path)['commands']
+                scene.acquisition_stationary_prior_override=(segment['acquisition_command_frame']=='stationary_entry_tool')
+            else:core=source_retarget_core_controls(scene,anchor,data,entry)
             post=(np.asarray(bridge_context).copy() if bridge_context is not None else
                   stopping_context(core[-1],(anchor.synth_end-anchor.core_end)*tpf,scene.dt))
             controls=project_hand_commands(scene,np.concatenate((core,post)),entry,local)
-            report['acquisition_nominal_origin']='local_source_retarget_registered_to_actual_core_entry'
+            report['acquisition_nominal_origin']=('complete_local_library_proposal_before_physical_feedback' if library_proposal
+                else 'local_source_retarget_registered_to_actual_core_entry')
             report['failed_runtime_commands_used_as_reference']=False
         result,_,_=rollout(scene,local,cropped,controls,entry,out/'replay',continue_from_current=True,
                            controller_handoff=True,synthesize_acquisition=acquisition_synthesis)

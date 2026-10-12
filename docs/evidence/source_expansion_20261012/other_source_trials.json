@@ -1,0 +1,901 @@
+{
+  "date": "2026-10-12",
+  "batches": [
+    {
+      "triplet": "(hit, hammer, box)",
+      "sequence": "20231102_003",
+      "status": "failed",
+      "success": false,
+      "source_duration_s": 5.666666666666667,
+      "elapsed_s": 338.24494387954473,
+      "error": "Local anchor_0 failed: Reached-entry local interaction failed",
+      "run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_other_types_r340_20231102_003",
+      "steps": [
+        {
+          "name": "prepare",
+          "success": true,
+          "elapsed_s": 0.0,
+          "result_path": null
+        },
+        {
+          "name": "candidate_00",
+          "success": false,
+          "elapsed_s": 84.32366297952831,
+          "result_path": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_other_types_r340_20231102_003/candidate_00/pipeline_result.json"
+        },
+        {
+          "name": "local_anchor_0_00",
+          "success": false,
+          "elapsed_s": 253.73538311198354,
+          "result_path": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_other_types_r340_20231102_003/local_anchor_0_00/development_result.json"
+        }
+      ],
+      "candidate_rollouts": [
+        {
+          "run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_other_types_r340_20231102_003/candidate_00",
+          "segments": [
+            {
+              "mode": "RELAXED",
+              "start": 0,
+              "end": 24,
+              "anchor": null,
+              "success": true,
+              "acquisition_command_frame": null,
+              "local_refinement": null
+            },
+            {
+              "mode": "ANCHOR",
+              "start": 24,
+              "end": 42,
+              "anchor": "anchor_0",
+              "success": false,
+              "acquisition_command_frame": null,
+              "local_refinement": null
+            }
+          ],
+          "actual_duration_s": 1.4,
+          "state_resets_between_segments": 0,
+          "last_source_frame": 42.0,
+          "error": "RuntimeError: {'source_frame': 42.0, 'reason': 'core_exit_handoff', 'handoff': {'wrist_error': {'position_m': 0.023063490801511405, 'rotation_rad': 0.09454987253521618}, 'wrist_tracking_diagnostic_only': True, 'actual_contact': {'mode': 'free', 'thumb_contact': False, 'other_finger_contact': True, 'opposition_contact': False, 'touching_links': 1, 'link_paths': ['/xhand_right/right_hand_link', '/xhand_right/right_hand_ee_link', '/xhand_right/right_hand_index_bend_link', '/xhand_right/right_hand_index_rota_link1', '/xhand_right/right_hand_index_rota_link2', '/xhand_right/right_hand_index_rota_tip', '/xhand_right/right_hand_mid_link1', '/xhand_right/right_hand_mid_link2', '/xhand_right/right_hand_mid_tip', '/xhand_right/right_hand_pinky_link1', '/xhand_right/right_hand_pinky_link2', '/xhand_right/right_hand_pinky_tip', '/xhand_right/right_hand_ring_link1', '/xhand_right/right_hand_ring_link2', '/xhand_right/right_hand_ring_tip', '/xhand_right/right_hand_thumb_bend_link', '/xhand_right/right_hand_thumb_rota_link1', '/xhand_right/right_hand_thumb_rota_link2', '/xhand_right/right_hand_thumb_rota_tip'], 'force_norms_n': [0.0, 0.0, 0.0, 0.0, 0.0, 6.272052764892578, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'force_vectors_n': [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [2.061073246295564e-05, 0.0012021008878946304, 6.272052764892578], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]], 'evidence': 'PhysX thumb AND non-thumb finger/tool contact; retention checked separately'}, 'actual_wrist_twist': [0.2010330932593107, 0.0040045819387805465, -0.029967420194888406, 0.011160304769873619, -0.4076080024242401, -0.169857457280159], 'object_boundary_error': {'position_m': 0.14259141613325846, 'rotation_rad': 0.10867689820125687}, 'success': False, 'preceding_failure': None}}",
+          "maximum_tool_lift_m": 0.0006777942180633545
+        }
+      ],
+      "local_development": [
+        {
+          "run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_other_types_r340_20231102_003/local_anchor_0_00",
+          "core_success": false,
+          "error": "Reached-entry local interaction failed",
+          "acquisition_nominal_origin": "local_source_retarget_registered_to_actual_core_entry",
+          "outgoing_boundary_feedback": null,
+          "replay_success": false,
+          "fresh_local_success": false,
+          "failure_reason": "core_exit_handoff",
+          "exit_object_error": {
+            "position_m": 0.14055741368122798,
+            "rotation_rad": 0.10645497681421637
+          },
+          "exit_contact_mode": "free",
+          "mpc": {
+            "physical_candidates": 32,
+            "successful_candidates": 0,
+            "acquired_frames": [
+              30.0,
+              30.0,
+              30.0,
+              30.25,
+              33.5,
+              30.0,
+              30.749999999999996,
+              32.0
+            ]
+          },
+          "ppo_training": [
+            {
+              "report": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_other_types_r340_20231102_003/local_anchor_0_00/whole_local_ppo/chunk_0000_attempt_00/training_result.json",
+              "summary": {
+                "success": false,
+                "iterations": 20,
+                "episodes": 85,
+                "parameter_count": null,
+                "best_return": null,
+                "elapsed_s": 147.0102379657328
+              }
+            },
+            {
+              "report": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_other_types_r340_20231102_003/local_anchor_0_00/refinement/ppo/chunk_0000_attempt_00/training_result.json",
+              "summary": {
+                "success": false,
+                "iterations": 20,
+                "episodes": 85,
+                "parameter_count": null,
+                "best_return": null,
+                "elapsed_s": 37.677211727947
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "triplet": "(brush, eraser, plate)",
+      "sequence": "20231103_057",
+      "status": "failed",
+      "success": false,
+      "source_duration_s": 3.6666666666666665,
+      "elapsed_s": 119.5194621104747,
+      "error": "Carry planning failed before command export; preserve the valid local Anchor and repair the saved planner failure",
+      "run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_other_types_r340_20231103_057",
+      "steps": [
+        {
+          "name": "prepare",
+          "success": true,
+          "elapsed_s": 0.0,
+          "result_path": null
+        },
+        {
+          "name": "candidate_00",
+          "success": false,
+          "elapsed_s": 119.29313814640045,
+          "result_path": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_other_types_r340_20231103_057/candidate_00/pipeline_result.json"
+        }
+      ],
+      "candidate_rollouts": [
+        {
+          "run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_other_types_r340_20231103_057/candidate_00",
+          "segments": [
+            {
+              "mode": "RELAXED",
+              "start": 0,
+              "end": 20,
+              "anchor": null,
+              "success": true,
+              "acquisition_command_frame": null,
+              "local_refinement": null
+            },
+            {
+              "mode": "ANCHOR",
+              "start": 20,
+              "end": 32,
+              "anchor": "anchor_0",
+              "success": true,
+              "acquisition_command_frame": null,
+              "local_refinement": {
+                "method": "measured_grasp_object_relative_MPC_proposal",
+                "grasp_acquired_frame": 25.5,
+                "target_handoff": {
+                  "frame": 25.5,
+                  "duration_s": 0.16797556273838554,
+                  "duration_sizing": "nominal_velocity_and_acceleration_offset",
+                  "position_offset": [
+                    0.0067119596668910875,
+                    -0.001518142317880472,
+                    0.004579583725116854
+                  ],
+                  "rotation_offset": [
+                    0.05437049366365278,
+                    0.040189144878354,
+                    -0.020112172238958694
+                  ],
+                  "position_tangent": [
+                    -0.12822287975948826,
+                    0.33753800948300244,
+                    -0.232990941232125
+                  ],
+                  "rotation_tangent": [
+                    -2.6295530831741694,
+                    -1.4837168109352885,
+                    -2.3352419724852935
+                  ]
+                }
+              }
+            },
+            {
+              "mode": "RELAXED",
+              "start": 32,
+              "end": 39,
+              "anchor": null,
+              "success": false,
+              "acquisition_command_frame": null,
+              "local_refinement": null
+            }
+          ],
+          "actual_duration_s": 1.0666666666666667,
+          "state_resets_between_segments": 0,
+          "last_source_frame": 32.0,
+          "error": "RuntimeError: No collision-free trajectory in source time: ['fixed_budget: Fixed source budget violates dynamics: velocity=0.831, acceleration=16.906', 'path_parameterization: Boundary velocity is incompatible with the geometric path', 'boundary_fit: Nonlinear source-time collision fit rejected: Feasibility restoration: Positive directional derivative for linesearch; clearance_residual=-0.007245266048610211; source_condition=-1.4285937638414126e-07']",
+          "maximum_tool_lift_m": 0.004568636417388916
+        }
+      ],
+      "local_development": []
+    },
+    {
+      "triplet": "(empty, cup, plate)",
+      "sequence": "20230928_031",
+      "status": "failed",
+      "success": false,
+      "source_duration_s": 6.733333333333333,
+      "elapsed_s": 387.14951938949525,
+      "error": "Local anchor_0 failed: Reached-entry local interaction failed",
+      "run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_contact_lift_r341_20230928_031",
+      "steps": [
+        {
+          "name": "prepare",
+          "success": true,
+          "elapsed_s": 0.0,
+          "result_path": null
+        },
+        {
+          "name": "candidate_00",
+          "success": false,
+          "elapsed_s": 42.14857994765043,
+          "result_path": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_contact_lift_r341_20230928_031/candidate_00/pipeline_result.json"
+        },
+        {
+          "name": "local_anchor_0_00",
+          "success": false,
+          "elapsed_s": 344.91211572289467,
+          "result_path": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_contact_lift_r341_20230928_031/local_anchor_0_00/development_result.json"
+        }
+      ],
+      "candidate_rollouts": [
+        {
+          "run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_contact_lift_r341_20230928_031/candidate_00",
+          "segments": [
+            {
+              "mode": "RELAXED",
+              "start": 0,
+              "end": 18,
+              "anchor": null,
+              "success": true,
+              "acquisition_command_frame": null,
+              "local_refinement": null
+            },
+            {
+              "mode": "ANCHOR",
+              "start": 18,
+              "end": 46,
+              "anchor": "anchor_0",
+              "success": false,
+              "acquisition_command_frame": null,
+              "local_refinement": null
+            }
+          ],
+          "actual_duration_s": 1.5333333333333332,
+          "state_resets_between_segments": 0,
+          "last_source_frame": 46.0,
+          "error": "RuntimeError: {'source_frame': 46.0, 'reason': 'core_exit_handoff', 'handoff': {'wrist_error': {'position_m': 0.008642775011224249, 'rotation_rad': 0.06328070831979342}, 'wrist_tracking_diagnostic_only': True, 'actual_contact': {'mode': 'free', 'thumb_contact': False, 'other_finger_contact': True, 'opposition_contact': False, 'touching_links': 3, 'link_paths': ['/xhand_right/right_hand_link', '/xhand_right/right_hand_ee_link', '/xhand_right/right_hand_index_bend_link', '/xhand_right/right_hand_index_rota_link1', '/xhand_right/right_hand_index_rota_link2', '/xhand_right/right_hand_index_rota_tip', '/xhand_right/right_hand_mid_link1', '/xhand_right/right_hand_mid_link2', '/xhand_right/right_hand_mid_tip', '/xhand_right/right_hand_pinky_link1', '/xhand_right/right_hand_pinky_link2', '/xhand_right/right_hand_pinky_tip', '/xhand_right/right_hand_ring_link1', '/xhand_right/right_hand_ring_link2', '/xhand_right/right_hand_ring_tip', '/xhand_right/right_hand_thumb_bend_link', '/xhand_right/right_hand_thumb_rota_link1', '/xhand_right/right_hand_thumb_rota_link2', '/xhand_right/right_hand_thumb_rota_tip'], 'force_norms_n': [0.0, 0.0, 0.0, 0.0, 0.08209836483001709, 0.0, 0.0, 0.0, 0.5742053389549255, 0.0, 0.0, 0.0, 0.0, 2.0173237323760986, 0.0, 0.0, 0.0, 0.0, 0.0], 'force_vectors_n': [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [-0.004201394505798817, 0.012643525376915932, 0.08101006597280502], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.09000159800052643, -0.5669021010398865, 0.015280396677553654], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [-2.005584478378296, -0.11823251843452454, 0.1823369860649109], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]], 'evidence': 'PhysX thumb AND non-thumb finger/tool contact; retention checked separately'}, 'actual_wrist_twist': [-0.001786991766143419, 0.004337884030706233, 0.0023607344440641515, -0.01452347356826067, 0.015635177493095398, -0.06244319677352905], 'object_boundary_error': {'position_m': 0.15385777988873464, 'rotation_rad': 1.525393123161063}, 'success': False, 'preceding_failure': None}}",
+          "maximum_tool_lift_m": 0.00040775537490844727
+        }
+      ],
+      "local_development": [
+        {
+          "run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_contact_lift_r341_20230928_031/local_anchor_0_00",
+          "core_success": false,
+          "error": "Reached-entry local interaction failed",
+          "acquisition_nominal_origin": "local_source_retarget_registered_to_actual_core_entry",
+          "outgoing_boundary_feedback": null,
+          "replay_success": false,
+          "fresh_local_success": false,
+          "failure_reason": "core_exit_handoff",
+          "exit_object_error": {
+            "position_m": 0.15388627644384983,
+            "rotation_rad": 1.549088125801099
+          },
+          "exit_contact_mode": "free",
+          "mpc": {
+            "physical_candidates": 32,
+            "successful_candidates": 0,
+            "acquired_frames": [
+              28.75
+            ]
+          },
+          "ppo_training": [
+            {
+              "report": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_contact_lift_r341_20230928_031/local_anchor_0_00/whole_local_ppo/chunk_0000_attempt_00/training_result.json",
+              "summary": {
+                "success": false,
+                "iterations": 20,
+                "episodes": 85,
+                "parameter_count": null,
+                "best_return": null,
+                "elapsed_s": 189.63764555566013
+              }
+            },
+            {
+              "report": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_contact_lift_r341_20230928_031/local_anchor_0_00/refinement/ppo/chunk_0000_attempt_00/training_result.json",
+              "summary": {
+                "success": false,
+                "iterations": 20,
+                "episodes": 85,
+                "parameter_count": null,
+                "best_return": null,
+                "elapsed_s": 60.198312278836966
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "triplet": "(pour in some, bowl, plate)",
+      "sequence": "20231024_246",
+      "status": "failed",
+      "success": false,
+      "source_duration_s": 4.833333333333333,
+      "elapsed_s": 376.89864999614656,
+      "error": "Local anchor_0 failed: Reached-entry local interaction failed",
+      "run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_contact_lift_r341_20231024_246",
+      "steps": [
+        {
+          "name": "prepare",
+          "success": true,
+          "elapsed_s": 0.0,
+          "result_path": null
+        },
+        {
+          "name": "candidate_00",
+          "success": false,
+          "elapsed_s": 46.81125607714057,
+          "result_path": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_contact_lift_r341_20231024_246/candidate_00/pipeline_result.json"
+        },
+        {
+          "name": "local_anchor_0_00",
+          "success": false,
+          "elapsed_s": 329.9602247849107,
+          "result_path": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_contact_lift_r341_20231024_246/local_anchor_0_00/development_result.json"
+        }
+      ],
+      "candidate_rollouts": [
+        {
+          "run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_contact_lift_r341_20231024_246/candidate_00",
+          "segments": [
+            {
+              "mode": "RELAXED",
+              "start": 0,
+              "end": 30,
+              "anchor": null,
+              "success": true,
+              "acquisition_command_frame": null,
+              "local_refinement": null
+            },
+            {
+              "mode": "ANCHOR",
+              "start": 30,
+              "end": 50,
+              "anchor": "anchor_0",
+              "success": false,
+              "acquisition_command_frame": null,
+              "local_refinement": null
+            }
+          ],
+          "actual_duration_s": 1.6666666666666667,
+          "state_resets_between_segments": 0,
+          "last_source_frame": 50.0,
+          "error": "RuntimeError: {'source_frame': 50.0, 'reason': 'core_exit_handoff', 'handoff': {'wrist_error': {'position_m': 0.0073511099131732425, 'rotation_rad': 0.09003462136767164}, 'wrist_tracking_diagnostic_only': True, 'actual_contact': {'mode': 'free', 'thumb_contact': False, 'other_finger_contact': True, 'opposition_contact': False, 'touching_links': 2, 'link_paths': ['/xhand_right/right_hand_link', '/xhand_right/right_hand_ee_link', '/xhand_right/right_hand_index_bend_link', '/xhand_right/right_hand_index_rota_link1', '/xhand_right/right_hand_index_rota_link2', '/xhand_right/right_hand_index_rota_tip', '/xhand_right/right_hand_mid_link1', '/xhand_right/right_hand_mid_link2', '/xhand_right/right_hand_mid_tip', '/xhand_right/right_hand_pinky_link1', '/xhand_right/right_hand_pinky_link2', '/xhand_right/right_hand_pinky_tip', '/xhand_right/right_hand_ring_link1', '/xhand_right/right_hand_ring_link2', '/xhand_right/right_hand_ring_tip', '/xhand_right/right_hand_thumb_bend_link', '/xhand_right/right_hand_thumb_rota_link1', '/xhand_right/right_hand_thumb_rota_link2', '/xhand_right/right_hand_thumb_rota_tip'], 'force_norms_n': [0.0, 0.0, 0.0, 0.0, 1.429860234260559, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.32142192125320435, 0.0, 0.0, 0.0, 0.0, 0.0], 'force_vectors_n': [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [-0.2979181408882141, -0.8010790944099426, 1.146306037902832], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.18620432913303375, 0.05009591206908226, 0.2571583092212677], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]], 'evidence': 'PhysX thumb AND non-thumb finger/tool contact; retention checked separately'}, 'actual_wrist_twist': [-0.00661692602541227, -0.02290063482956452, -0.023687880731887264, -0.0062998076900839806, -0.0014168753987178206, 0.027339713647961617], 'object_boundary_error': {'position_m': 0.06713476381134544, 'rotation_rad': 0.6077706562319523}, 'success': False, 'preceding_failure': None}}",
+          "maximum_tool_lift_m": 0.017391294240951538
+        }
+      ],
+      "local_development": [
+        {
+          "run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_contact_lift_r341_20231024_246/local_anchor_0_00",
+          "core_success": false,
+          "error": "Reached-entry local interaction failed",
+          "acquisition_nominal_origin": "local_source_retarget_registered_to_actual_core_entry",
+          "outgoing_boundary_feedback": null,
+          "replay_success": false,
+          "fresh_local_success": false,
+          "failure_reason": "core_exit_handoff",
+          "exit_object_error": {
+            "position_m": 0.05510774752748073,
+            "rotation_rad": 0.2165225180187133
+          },
+          "exit_contact_mode": "free",
+          "mpc": {
+            "physical_candidates": 32,
+            "successful_candidates": 0,
+            "acquired_frames": []
+          },
+          "ppo_training": [
+            {
+              "report": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_contact_lift_r341_20231024_246/local_anchor_0_00/whole_local_ppo/chunk_0000_attempt_00/training_result.json",
+              "summary": {
+                "success": false,
+                "iterations": 20,
+                "episodes": 85,
+                "parameter_count": null,
+                "best_return": null,
+                "elapsed_s": 193.89923012070358
+              }
+            },
+            {
+              "report": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_contact_lift_r341_20231024_246/local_anchor_0_00/refinement/ppo/chunk_0000_attempt_00/training_result.json",
+              "summary": {
+                "success": false,
+                "iterations": 20,
+                "episodes": 85,
+                "parameter_count": null,
+                "best_return": null,
+                "elapsed_s": 44.93718446418643
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "triplet": "(empty, bowl, plate)",
+      "sequence": "20231027_149",
+      "status": "failed",
+      "success": false,
+      "source_duration_s": 5.4,
+      "elapsed_s": 459.63097973167896,
+      "error": "Local anchor_0 failed: Reached-entry local interaction failed",
+      "run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_contact_lift_r341_20231027_149",
+      "steps": [
+        {
+          "name": "prepare",
+          "success": true,
+          "elapsed_s": 0.0,
+          "result_path": null
+        },
+        {
+          "name": "candidate_00",
+          "success": false,
+          "elapsed_s": 110.87521453388035,
+          "result_path": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_contact_lift_r341_20231027_149/candidate_00/pipeline_result.json"
+        },
+        {
+          "name": "candidate_01",
+          "success": false,
+          "elapsed_s": 38.60288649983704,
+          "result_path": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_contact_lift_r341_20231027_149/candidate_01/pipeline_result.json"
+        },
+        {
+          "name": "local_anchor_0_01",
+          "success": false,
+          "elapsed_s": 310.073428215459,
+          "result_path": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_contact_lift_r341_20231027_149/local_anchor_0_01/development_result.json"
+        }
+      ],
+      "candidate_rollouts": [
+        {
+          "run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_contact_lift_r341_20231027_149/candidate_00",
+          "segments": [
+            {
+              "mode": "RELAXED",
+              "start": 0,
+              "end": 18,
+              "anchor": null,
+              "success": false,
+              "acquisition_command_frame": null,
+              "local_refinement": null
+            }
+          ],
+          "actual_duration_s": 0.5833333333333334,
+          "state_resets_between_segments": 0,
+          "last_source_frame": 17.0,
+          "error": "RuntimeError: Actual RELAXED mesh collision",
+          "maximum_tool_lift_m": 5.960464477539063e-08
+        },
+        {
+          "run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_contact_lift_r341_20231027_149/candidate_01",
+          "segments": [
+            {
+              "mode": "RELAXED",
+              "start": 0,
+              "end": 18,
+              "anchor": null,
+              "success": true,
+              "acquisition_command_frame": null,
+              "local_refinement": null
+            },
+            {
+              "mode": "ANCHOR",
+              "start": 18,
+              "end": 40,
+              "anchor": "anchor_0",
+              "success": false,
+              "acquisition_command_frame": null,
+              "local_refinement": null
+            }
+          ],
+          "actual_duration_s": 1.3333333333333333,
+          "state_resets_between_segments": 0,
+          "last_source_frame": 40.0,
+          "error": "RuntimeError: {'source_frame': 40.0, 'reason': 'core_exit_handoff', 'handoff': {'wrist_error': {'position_m': 0.007079539445575491, 'rotation_rad': 0.036731257807259665}, 'wrist_tracking_diagnostic_only': True, 'actual_contact': {'mode': 'free', 'thumb_contact': False, 'other_finger_contact': True, 'opposition_contact': False, 'touching_links': 1, 'link_paths': ['/xhand_right/right_hand_link', '/xhand_right/right_hand_ee_link', '/xhand_right/right_hand_index_bend_link', '/xhand_right/right_hand_index_rota_link1', '/xhand_right/right_hand_index_rota_link2', '/xhand_right/right_hand_index_rota_tip', '/xhand_right/right_hand_mid_link1', '/xhand_right/right_hand_mid_link2', '/xhand_right/right_hand_mid_tip', '/xhand_right/right_hand_pinky_link1', '/xhand_right/right_hand_pinky_link2', '/xhand_right/right_hand_pinky_tip', '/xhand_right/right_hand_ring_link1', '/xhand_right/right_hand_ring_link2', '/xhand_right/right_hand_ring_tip', '/xhand_right/right_hand_thumb_bend_link', '/xhand_right/right_hand_thumb_rota_link1', '/xhand_right/right_hand_thumb_rota_link2', '/xhand_right/right_hand_thumb_rota_tip'], 'force_norms_n': [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.9301536083221436, 0.0, 0.0, 0.0, 0.0], 'force_vectors_n': [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [-0.8365198373794556, -1.3912224769592285, 1.0441396236419678], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]], 'evidence': 'PhysX thumb AND non-thumb finger/tool contact; retention checked separately'}, 'actual_wrist_twist': [0.007264852077501254, 0.0011882764035249897, 0.0021947018676203474, 0.07674074918031693, 0.11283838748931885, 0.3860110938549042], 'object_boundary_error': {'position_m': 0.09335644520061498, 'rotation_rad': 1.2652608694080152}, 'success': False, 'preceding_failure': None}}",
+          "maximum_tool_lift_m": 0.020965009927749634
+        }
+      ],
+      "local_development": [
+        {
+          "run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_contact_lift_r341_20231027_149/local_anchor_0_01",
+          "core_success": false,
+          "error": "Reached-entry local interaction failed",
+          "acquisition_nominal_origin": "local_source_retarget_registered_to_actual_core_entry",
+          "outgoing_boundary_feedback": null,
+          "replay_success": false,
+          "fresh_local_success": false,
+          "failure_reason": "core_exit_handoff",
+          "exit_object_error": {
+            "position_m": 0.09566508277276276,
+            "rotation_rad": 0.4543561275930934
+          },
+          "exit_contact_mode": "free",
+          "mpc": {
+            "physical_candidates": 32,
+            "successful_candidates": 0,
+            "acquired_frames": [
+              25.25,
+              25.25,
+              25.25,
+              26.0
+            ]
+          },
+          "ppo_training": [
+            {
+              "report": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_contact_lift_r341_20231027_149/local_anchor_0_01/whole_local_ppo/chunk_0000_attempt_00/training_result.json",
+              "summary": {
+                "success": false,
+                "iterations": 20,
+                "episodes": 85,
+                "parameter_count": null,
+                "best_return": null,
+                "elapsed_s": 163.65128781460226
+              }
+            },
+            {
+              "report": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_contact_lift_r341_20231027_149/local_anchor_0_01/refinement/ppo/chunk_0000_attempt_00/training_result.json",
+              "summary": {
+                "success": false,
+                "iterations": 20,
+                "episodes": 85,
+                "parameter_count": null,
+                "best_return": null,
+                "elapsed_s": 55.98673230595887
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "triplet": "(pour in some, bowl, plate)",
+      "sequence": "20231024_246",
+      "status": "failed",
+      "success": false,
+      "source_duration_s": 4.833333333333333,
+      "elapsed_s": 377.5539096801076,
+      "error": "Local anchor_0 failed: Reached-entry local interaction failed",
+      "run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_boundary_repair_r342_20231024_246",
+      "steps": [
+        {
+          "name": "prepare",
+          "success": true,
+          "elapsed_s": 0.0,
+          "result_path": null
+        },
+        {
+          "name": "candidate_00",
+          "success": false,
+          "elapsed_s": 71.51967826811597,
+          "result_path": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_boundary_repair_r342_20231024_246/candidate_00/pipeline_result.json"
+        },
+        {
+          "name": "local_anchor_0_00",
+          "success": false,
+          "elapsed_s": 305.94579396001063,
+          "result_path": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_boundary_repair_r342_20231024_246/local_anchor_0_00/development_result.json"
+        }
+      ],
+      "candidate_rollouts": [
+        {
+          "run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_boundary_repair_r342_20231024_246/candidate_00",
+          "segments": [
+            {
+              "mode": "RELAXED",
+              "start": 0,
+              "end": 30,
+              "anchor": null,
+              "success": true,
+              "acquisition_command_frame": null,
+              "local_refinement": null
+            },
+            {
+              "mode": "ANCHOR",
+              "start": 30,
+              "end": 50,
+              "anchor": "anchor_0",
+              "success": false,
+              "acquisition_command_frame": null,
+              "local_refinement": null
+            }
+          ],
+          "actual_duration_s": 1.6666666666666667,
+          "state_resets_between_segments": 0,
+          "last_source_frame": 50.0,
+          "error": "RuntimeError: {'source_frame': 50.0, 'reason': 'core_exit_handoff', 'handoff': {'wrist_error': {'position_m': 0.029693023684262944, 'rotation_rad': 0.07087475121270446}, 'wrist_tracking_diagnostic_only': True, 'actual_contact': {'mode': 'free', 'thumb_contact': False, 'other_finger_contact': False, 'opposition_contact': False, 'touching_links': 0, 'link_paths': ['/xhand_right/right_hand_link', '/xhand_right/right_hand_ee_link', '/xhand_right/right_hand_index_bend_link', '/xhand_right/right_hand_index_rota_link1', '/xhand_right/right_hand_index_rota_link2', '/xhand_right/right_hand_index_rota_tip', '/xhand_right/right_hand_mid_link1', '/xhand_right/right_hand_mid_link2', '/xhand_right/right_hand_mid_tip', '/xhand_right/right_hand_pinky_link1', '/xhand_right/right_hand_pinky_link2', '/xhand_right/right_hand_pinky_tip', '/xhand_right/right_hand_ring_link1', '/xhand_right/right_hand_ring_link2', '/xhand_right/right_hand_ring_tip', '/xhand_right/right_hand_thumb_bend_link', '/xhand_right/right_hand_thumb_rota_link1', '/xhand_right/right_hand_thumb_rota_link2', '/xhand_right/right_hand_thumb_rota_tip'], 'force_norms_n': [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'force_vectors_n': [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]], 'evidence': 'PhysX thumb AND non-thumb finger/tool contact; retention checked separately'}, 'actual_wrist_twist': [-0.299825058822736, 0.37685977460945885, 0.30123097041081304, 4.209731578826904, 0.6520068645477295, -2.895207166671753], 'object_boundary_error': {'position_m': 0.04796787290530349, 'rotation_rad': 1.3511086696331334}, 'success': False, 'preceding_failure': None}}",
+          "maximum_tool_lift_m": 0.012941420078277588
+        }
+      ],
+      "local_development": [
+        {
+          "run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_boundary_repair_r342_20231024_246/local_anchor_0_00",
+          "core_success": false,
+          "error": "Reached-entry local interaction failed",
+          "acquisition_nominal_origin": "local_source_retarget_registered_to_actual_core_entry",
+          "outgoing_boundary_feedback": null,
+          "replay_success": false,
+          "fresh_local_success": false,
+          "failure_reason": "core_exit_handoff",
+          "exit_object_error": {
+            "position_m": 0.039675014284943855,
+            "rotation_rad": 0.6654363025748296
+          },
+          "exit_contact_mode": "free",
+          "mpc": {
+            "physical_candidates": 32,
+            "successful_candidates": 0,
+            "acquired_frames": [
+              35.75
+            ]
+          },
+          "ppo_training": [
+            {
+              "report": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_boundary_repair_r342_20231024_246/local_anchor_0_00/whole_local_ppo/chunk_0000_attempt_00/training_result.json",
+              "summary": {
+                "success": false,
+                "iterations": 20,
+                "episodes": 85,
+                "parameter_count": null,
+                "best_return": null,
+                "elapsed_s": 181.89756874507293
+              }
+            },
+            {
+              "report": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_boundary_repair_r342_20231024_246/local_anchor_0_00/refinement/ppo/chunk_0000_attempt_00/training_result.json",
+              "summary": {
+                "success": false,
+                "iterations": 20,
+                "episodes": 85,
+                "parameter_count": null,
+                "best_return": null,
+                "elapsed_s": 46.785081923007965
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "triplet": "(brush, eraser, plate)",
+      "sequence": "20231103_057",
+      "status": "failed",
+      "success": false,
+      "source_duration_s": 3.6666666666666665,
+      "elapsed_s": 347.65235927910544,
+      "error": "Carry-conditioned anchor_0 failed: Reached-entry local interaction failed",
+      "run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_boundary_repair_r342_20231103_057",
+      "steps": [
+        {
+          "name": "prepare",
+          "success": true,
+          "elapsed_s": 0.0,
+          "result_path": null
+        },
+        {
+          "name": "candidate_00",
+          "success": false,
+          "elapsed_s": 97.44400402903557,
+          "result_path": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_boundary_repair_r342_20231103_057/candidate_00/pipeline_result.json"
+        },
+        {
+          "name": "local_anchor_0_00",
+          "success": false,
+          "elapsed_s": 250.01961767720059,
+          "result_path": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_boundary_repair_r342_20231103_057/local_anchor_0_00/development_result.json"
+        }
+      ],
+      "candidate_rollouts": [
+        {
+          "run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_boundary_repair_r342_20231103_057/candidate_00",
+          "segments": [
+            {
+              "mode": "RELAXED",
+              "start": 0,
+              "end": 20,
+              "anchor": null,
+              "success": true,
+              "acquisition_command_frame": null,
+              "local_refinement": null
+            },
+            {
+              "mode": "ANCHOR",
+              "start": 20,
+              "end": 32,
+              "anchor": "anchor_0",
+              "success": true,
+              "acquisition_command_frame": null,
+              "local_refinement": {
+                "method": "measured_grasp_object_relative_MPC_proposal",
+                "grasp_acquired_frame": 25.5,
+                "target_handoff": {
+                  "frame": 25.5,
+                  "duration_s": 0.16797556273838554,
+                  "duration_sizing": "nominal_velocity_and_acceleration_offset",
+                  "position_offset": [
+                    0.0067119596668910875,
+                    -0.001518142317880472,
+                    0.004579583725116854
+                  ],
+                  "rotation_offset": [
+                    0.05437049366365278,
+                    0.040189144878354,
+                    -0.020112172238958694
+                  ],
+                  "position_tangent": [
+                    -0.12822287975948826,
+                    0.33753800948300244,
+                    -0.232990941232125
+                  ],
+                  "rotation_tangent": [
+                    -2.6295530831741694,
+                    -1.4837168109352885,
+                    -2.3352419724852935
+                  ]
+                }
+              }
+            },
+            {
+              "mode": "RELAXED",
+              "start": 32,
+              "end": 39,
+              "anchor": null,
+              "success": false,
+              "acquisition_command_frame": null,
+              "local_refinement": null
+            }
+          ],
+          "actual_duration_s": 1.0666666666666667,
+          "state_resets_between_segments": 0,
+          "last_source_frame": 32.0,
+          "error": "RuntimeError: No collision-free trajectory in source time: ['fixed_budget: Fixed source budget violates dynamics: velocity=0.831, acceleration=16.906', 'path_parameterization: Boundary velocity is incompatible with the geometric path', 'boundary_fit: Nonlinear source-time collision fit rejected: Feasibility restoration: Positive directional derivative for linesearch; clearance_residual=-0.007245266048610211; source_condition=-1.4285937638414126e-07']",
+          "maximum_tool_lift_m": 0.004568636417388916
+        }
+      ],
+      "local_development": [
+        {
+          "run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_boundary_repair_r342_20231103_057/local_anchor_0_00",
+          "core_success": false,
+          "error": "Reached-entry local interaction failed",
+          "acquisition_nominal_origin": null,
+          "outgoing_boundary_feedback": {
+            "method": "physically_acquired_grasp_joint_exit_entry_fit",
+            "feedback_run": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_boundary_repair_r342_20231103_057/candidate_00",
+            "physical_grasp_frame": 25.0,
+            "boundary_proposal": {
+              "method": "joint_anchor_exit_and_next_oracle_entry",
+              "anchor_tail_budget_s": 0.23333333333333334,
+              "relaxed_budget_s": 0.23333333333333334,
+              "exit_source_score": 0.00033964387655849526,
+              "entry_source_score": 0.00010858424741191146,
+              "proposed_next_wrist": [
+                0.3709780974691154,
+                -0.04467172531375787,
+                0.5202772395686199,
+                0.6295158839549563,
+                -0.35529260936920004,
+                -0.48186038709188944,
+                0.49526506128303616
+              ],
+              "proposed_next_coordinate_velocity": [
+                1.5343167556516764e-06,
+                0.141188827923573,
+                -1.5823811019107606e-06,
+                0.8857588707071115,
+                0.5282609460736715,
+                9.183721190759696e-06
+              ],
+              "next_source_object_boundary": [
+                [
+                  0.5284370820011592,
+                  -0.8488591949185017,
+                  -0.013868681077302306,
+                  0.4934794353211065
+                ],
+                [
+                  0.8483393782308281,
+                  0.5273418396417348,
+                  0.047231251500862305,
+                  0.019652142848470413
+                ],
+                [
+                  -0.03277914971113205,
+                  -0.036724090576171875,
+                  0.9987877011299133,
+                  0.41357524156570435
+                ],
+                [
+                  0.0,
+                  0.0,
+                  0.0,
+                  1.0
+                ]
+              ],
+              "proposed_exit_coordinate_velocity": [
+                3.758723456417305e-06,
+                0.24472864161584498,
+                2.337486297353719e-06,
+                1.3287361095426213,
+                -0.10163047051037546,
+                -4.341888425309686e-05
+              ],
+              "attempts": [
+                {
+                  "solver_success": true,
+                  "message": "Optimization terminated successfully",
+                  "minimum_constraint": -3.6780102772939117e-13
+                }
+              ],
+              "original_source_conditions": true,
+              "source_time_stretch": false,
+              "physical_acceptance": false,
+              "collision_acceptance": false,
+              "state_assignment": false,
+              "exit_separation_condition": false
+            },
+            "tail_fit": {
+              "budget_s": 0.23333333333333334,
+              "curobo_duration_s": 0.23333333333333334,
+              "time_scale": 1.0,
+              "command_velocity_ratio": 0.8557586549545881,
+              "command_acceleration_ratio": 1.000000000000263,
+              "parameterization": "endpoint_constrained_geometric_fit",
+              "geometry_max_adjustment": 0.13137565383026562,
+              "boundary_velocities_preserved": true
+            },
+            "source_time_stretch": false,
+            "original_finger_commands_retained": true,
+            "physical_acceptance": false
+          },
+          "replay_success": false,
+          "fresh_local_success": false,
+          "failure_reason": "post_context_grasp_retention",
+          "exit_object_error": null,
+          "exit_contact_mode": null,
+          "mpc": {
+            "physical_candidates": 32,
+            "successful_candidates": 0,
+            "acquired_frames": []
+          },
+          "ppo_training": [
+            {
+              "report": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_boundary_repair_r342_20231103_057/local_anchor_0_00/whole_local_ppo/chunk_0000_attempt_00/training_result.json",
+              "summary": {
+                "success": false,
+                "iterations": 20,
+                "episodes": 85,
+                "parameter_count": null,
+                "best_return": null,
+                "elapsed_s": 147.2519608400762
+              }
+            },
+            {
+              "report": "/scratch/e0985859/multipath_v0_fc2da7b/outputs/oracle_boundary_repair_r342_20231103_057/local_anchor_0_00/refinement/ppo/chunk_0000_attempt_00/training_result.json",
+              "summary": {
+                "success": false,
+                "iterations": 20,
+                "episodes": 85,
+                "parameter_count": null,
+                "best_return": null,
+                "elapsed_s": 27.753744642948732
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "physics": "actual PhysX",
+  "vlm_used": false,
+  "new_success_count": 0
+}

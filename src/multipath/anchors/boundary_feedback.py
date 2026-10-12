@@ -18,6 +18,70 @@ def same_source_seed(previous,current):
     return all(previous.get(key)==current.get(key) for key in keys)
 
 
+def single_grasp_exit_proposal(scene,anchor,commands,feedback_run,data):
+    """Propose a reached grasp tail compatible with the next source-time bridge.
+
+    Fresh padded/core physics must validate these drives. The measured states
+    condition the proposal; they are never assigned during final execution.
+    """
+    from multipath.oracle_schedule import OracleSchedule
+    from multipath.planning.bridge import lookahead_grasp_boundary,coordinate_velocity
+    from multipath.planning.floating import pose_coordinates,coordinates_pose
+    from multipath.planning.timing import boundary_fitted_path,physics_ticks_per_frame
+    from multipath.anchors.floating import controls_from_poses
+    folder=Path(feedback_run);report=json.loads((folder/'pipeline_result.json').read_text())
+    if report['source_provenance']!=scene.manifest['provenance']:
+        raise ValueError('Grasp exit feedback belongs to a different source')
+    if report.get('state_resets_between_segments')!=0 or not any(
+            s.get('anchor')==anchor.id and s.get('success') for s in report['segments']):
+        raise ValueError('Exit shaping requires a continuously executed valid core')
+    core=[s for s in json.loads((folder/'actual_trace.json').read_text())
+          if anchor.core_start<=s['source_frame']<=anchor.core_end]
+    acquired=next((s for i,s in enumerate(core)
+        if all(v['contact']['mode']=='grasped' for v in core[i:])),None)
+    if acquired is None or acquired['source_frame']>=anchor.core_end:
+        raise RuntimeError('No physically acquired grasp tail for outgoing compatibility')
+    schedule=OracleSchedule.load(scene.args.schedule)
+    bridge=next(w for w in schedule.windows if w['start']==anchor.core_end)
+    following=next(w for w in schedule.windows if w['start']==bridge['end'])
+    if bridge['mode']!='RELAXED' or bridge.get('contact')!='grasped' or following['mode']!='ANCHOR':
+        raise ValueError('Exit shaping requires a grasped bridge to the next Anchor')
+    next_anchor=schedule.anchors[following['anchor']]
+    next_data=np.load(scene.args.proposals/scene.manifest['anchors'][next_anchor.id],allow_pickle=False)
+    source_entry=next_data['tool_pose'][next_anchor.core_start-next_anchor.synth_start]
+    source_exit=data['tool_pose'][min(anchor.core_end-anchor.synth_start,len(data['tool_pose'])-1)]
+    tpf=physics_ticks_per_frame(schedule.fps,scene.dt)
+    cut=round((acquired['source_frame']-anchor.core_start)*tpf);ticks=len(commands)-cut
+    from multipath.execution.mounted_scene import pose_matrix
+    from multipath.planning.bridge import carried_object_clearance
+    from scipy.spatial.transform import Rotation
+    previous=core[-1];held=np.asarray(previous['hand_object_transform'])
+    tracking=pose_matrix(previous['wrist_xyz_wxyz'])@np.linalg.inv(pose_matrix(commands[-1,:7]))
+    def exit_clearance(q):
+        predicted=tracking@pose_matrix(coordinates_pose(q))@held
+        pose=np.r_[predicted[:3,3],Rotation.from_matrix(predicted[:3,:3]).as_quat()[[3,0,1,2]]]
+        proposal=dict(previous,physically_acquired_state=False,
+            objects=dict(previous['objects'],tool=dict(previous['objects']['tool'],pose=pose.tolist())))
+        return min(carried_object_clearance(scene,proposal).values())-.002
+    pose,velocity,condition=lookahead_grasp_boundary(acquired,core[-1],source_exit,source_entry,
+        ticks*scene.dt,(bridge['end']-bridge['start'])/schedule.fps,scene.dt,scene.cfg['planning'],
+        exit_condition=exit_clearance,boundary_hand_object_transform=held)
+    first=pose_coordinates(acquired['wrist_xyz_wxyz']);raw=[first.copy()];near=first
+    for c in commands[cut:]:
+        near=pose_coordinates(c[:7],near);raw.append(near.copy())
+    raw=np.asarray(raw);raw[-1]=pose_coordinates(pose,raw[-1]);limits=scene.cfg['planning']
+    path,fit=boundary_fitted_path(raw,ticks,scene.dt,np.asarray(limits['velocity_limits']),
+        np.asarray(limits['acceleration_limits']),coordinate_velocity(acquired['wrist_xyz_wxyz'],
+        acquired['wrist_twist'],first),velocity)
+    proposed=np.asarray(commands).copy()
+    hands=np.vstack((acquired['command_hand_q'],commands[cut:,7:19]))
+    proposed[cut:]=controls_from_poses(np.asarray([coordinates_pose(q) for q in path]),hands,scene.dt)
+    return proposed,dict(method='physically_acquired_grasp_joint_exit_entry_fit',
+        feedback_run=str(folder),physical_grasp_frame=acquired['source_frame'],
+        boundary_proposal=condition,tail_fit=fit,source_time_stretch=False,
+        original_finger_commands_retained=True,physical_acceptance=False)
+
+
 def validated_joint_core_seed(scene,anchor,seed,run,*,side='right'):
     """Reuse passed local commands as a proposal, with fresh joint acceptance."""
     folder=Path(run);report=json.loads((folder/'bimanual_result.json').read_text())
